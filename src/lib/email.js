@@ -52,6 +52,17 @@ export async function sendEmail(template, to, variables = {}) {
         </a></p>
       `,
     },
+    "payment-received": {
+      subject: `Paiement reçu — ${variables.missionTitle}`,
+      html: `
+        <p>Bonjour,</p>
+        <p>Bonne nouvelle ! Vous avez reçu un paiement de
+           <strong>${variables.amount} FCFA</strong> pour la mission
+           <strong>${variables.missionTitle}</strong>.</p>
+        <p>Le montant sera disponible sur votre compte Mobile Money sous peu.</p>
+        <p>Merci d'utiliser EduCash !</p>
+      `,
+    },
   }
 
   const tpl = templates[template]
