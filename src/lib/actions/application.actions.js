@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
-import { sendEmail } from "@/lib/email"
+import { sendEmail } from "@/lib/email/index"
 
 /**
  * Postule à une mission.
@@ -49,32 +49,21 @@ export async function apply({ missionId, message }) {
     .single()
 
   if (mission) {
-    const { data: clientAuthUser } = await supabase
-      .from("profiles")
-      .select("user_id")
-      .eq("user_id", mission.client_id)
-      .single()
+    const [{ data: studentProfile }, { data: { user: clientAuthUser } }] = await Promise.all([
+      supabase.from("profiles").select("full_name").eq("user_id", user.id).single(),
+      supabase.auth.admin.getUserById(mission.client_id).catch(() => ({ data: { user: null } })),
+    ])
 
-    // Récupère l'email du client depuis auth.users via la fonction RPC ou admin
-    // On utilise le profil de l'étudiant pour le nom
-    const { data: studentProfile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("user_id", user.id)
-      .single()
-
-    // Note : l'email client est dans auth.users, non accessible côté client.
-    // On l'envoie via l'email de l'utilisateur connecté dans le JWT (client_id).
-    // En prod, utiliser une Edge Function ou la service_role pour récupérer l'email.
-    // Ici on notifie seulement si l'email est disponible dans les métadonnées.
-    const clientEmail = mission.profiles?.email ?? null
+    const clientEmail = clientAuthUser?.email ?? null
+    const clientName = mission.profiles?.full_name ?? "Client"
 
     if (clientEmail) {
       await sendEmail("new-application", clientEmail, {
-        missionTitle: mission.title,
-        missionId,
+        clientName,
         studentName: studentProfile?.full_name ?? "Un étudiant",
-        message: message.trim(),
+        missionTitle: mission.title,
+        messageExcerpt: message.trim().substring(0, 100),
+        missionId,
       })
     }
   }
@@ -174,20 +163,56 @@ export async function acceptApplication({ applicationId, studentId, missionId })
 
   const missionTitle = mission?.title ?? "Mission EduCash"
 
-  // 5. Notifie l'étudiant accepté
-  const { data: acceptedProfile } = await supabase
+  // 5. Charge le profil du client pour le nom
+  const { data: clientProfile } = await supabase
     .from("profiles")
     .select("full_name")
-    .eq("user_id", studentId)
+    .eq("user_id", user.id)
     .single()
 
-  // Note : emails via auth.users non accessibles sans service_role.
-  // Les emails seront envoyés via Edge Function en production.
-  // Ici on log l'intention pour faciliter l'intégration future.
-  console.info(`[email] Accepté : ${acceptedProfile?.full_name} pour "${missionTitle}"`)
+  const clientName = clientProfile?.full_name ?? "le client"
 
-  if (rejectedApps?.length) {
-    console.info(`[email] Rejetés : ${rejectedApps.length} candidature(s) pour "${missionTitle}"`)
+  // 6. Notifie l'étudiant accepté via auth.admin
+  try {
+    const { data: acceptedProfile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("user_id", studentId)
+      .single()
+
+    const { data: { user: acceptedAuthUser } } = await supabase.auth.admin.getUserById(studentId)
+    const acceptedEmail = acceptedAuthUser?.email ?? null
+
+    if (acceptedEmail) {
+      await sendEmail("application-accepted", acceptedEmail, {
+        studentName: acceptedProfile?.full_name ?? "Étudiant",
+        missionTitle,
+        clientName,
+        missionId,
+      })
+    }
+
+    // 7. Notifie les candidats rejetés
+    if (rejectedApps?.length) {
+      const rejectedIds = rejectedApps.map((a) => a.student_id)
+      await Promise.allSettled(
+        rejectedIds.map(async (rejectedStudentId) => {
+          const [{ data: rProfile }, { data: { user: rAuthUser } }] = await Promise.all([
+            supabase.from("profiles").select("full_name").eq("user_id", rejectedStudentId).single(),
+            supabase.auth.admin.getUserById(rejectedStudentId),
+          ])
+          const rEmail = rAuthUser?.email ?? null
+          if (rEmail) {
+            await sendEmail("application-rejected", rEmail, {
+              studentName: rProfile?.full_name ?? "Étudiant",
+              missionTitle,
+            })
+          }
+        })
+      )
+    }
+  } catch (emailErr) {
+    console.error("[acceptApplication] Erreur emails:", emailErr)
   }
 
   revalidatePath("/client/missions/" + missionId)

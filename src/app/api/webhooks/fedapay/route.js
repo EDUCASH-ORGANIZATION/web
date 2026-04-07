@@ -60,11 +60,18 @@ export async function POST(request) {
       const studentEmail = userData?.user?.email
 
       if (studentEmail) {
-        // Import dynamique pour éviter le "use server" directive en route handler
-        const { sendEmail } = await import("@/lib/email")
+        const { data: studentProfile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", mission.selected_student_id)
+          .single()
+
+        const { sendEmail } = await import("@/lib/email/index")
         await sendEmail("payment-received", studentEmail, {
+          studentName: studentProfile?.full_name ?? "Étudiant",
           amount: new Intl.NumberFormat("fr-FR").format(transaction.amount_student),
           missionTitle: mission.title,
+          paidAt: transaction.paid_at,
         })
       }
     }
