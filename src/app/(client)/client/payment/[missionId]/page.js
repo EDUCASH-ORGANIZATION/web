@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { redirect, notFound } from "next/navigation"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { createClient } from "@/lib/supabase/server"
@@ -9,10 +10,9 @@ export const metadata = { title: "Confirmer le paiement — EduCash" }
 function Avatar({ name, avatarUrl }) {
   const initial = name?.charAt(0)?.toUpperCase() ?? "?"
   return (
-    <div className="w-10 h-10 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
+    <div className="relative w-10 h-10 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
       {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+        <Image src={avatarUrl} alt={name} fill className="object-cover" />
       ) : (
         <span className="text-white text-sm font-bold">{initial}</span>
       )}

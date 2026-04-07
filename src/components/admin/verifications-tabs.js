@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Star, CheckCircle, XCircle, Loader2 } from "lucide-react"
@@ -102,10 +103,10 @@ function VerificationCard({ profile }) {
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="relative w-11 h-11 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
             {profile.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+              <Image src={profile.avatar_url} alt={profile.full_name} fill className="object-cover" />
             ) : (
               <span className="text-white font-bold">{initial}</span>
             )}
@@ -126,11 +127,14 @@ function VerificationCard({ profile }) {
         {/* Carte étudiante */}
         {profile.card_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.card_signed_url}
-            alt="Carte étudiante"
-            className="rounded-lg w-full h-40 object-cover border border-gray-100"
-          />
+          <div className="relative rounded-lg w-full h-40 border border-gray-100 overflow-hidden">
+            <Image
+              src={profile.card_signed_url}
+              alt="Carte étudiante"
+              fill
+              className="object-cover"
+            />
+          </div>
         ) : (
           <div className="rounded-lg w-full h-40 bg-gray-100 flex items-center justify-center">
             <p className="text-sm text-gray-400">Aucune carte fournie</p>

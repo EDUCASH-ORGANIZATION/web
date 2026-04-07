@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -91,10 +92,10 @@ export function Sidebar({ role = "student", profile, unreadCount = 0 }) {
       <div className="border-t border-gray-100">
         {profile && (
           <div className="px-4 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="relative w-8 h-8 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
               {profile.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+                <Image src={profile.avatar_url} alt={profile.full_name} fill className="object-cover" />
               ) : (
                 <span className="text-white text-xs font-bold">
                   {profile.full_name?.charAt(0)?.toUpperCase() ?? "?"}

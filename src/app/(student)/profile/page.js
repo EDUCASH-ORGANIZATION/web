@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Star, Pencil } from "lucide-react"
@@ -11,10 +12,10 @@ export const metadata = { title: "Mon profil — EduCash" }
 function Avatar({ name, avatarUrl }) {
   const initial = name?.charAt(0)?.toUpperCase() ?? "?"
   return (
-    <div className="w-20 h-20 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
+    <div className="relative w-20 h-20 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
       {avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+        <Image src={avatarUrl} alt={name} fill className="object-cover" />
       ) : (
         <span className="text-white text-2xl font-bold">{initial}</span>
       )}
@@ -56,10 +57,9 @@ function ReviewCard({ review }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4 flex flex-col gap-3">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="relative w-9 h-9 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
           {reviewer?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={reviewer.avatar_url} alt={reviewer.full_name} className="w-full h-full object-cover" />
+            <Image src={reviewer.avatar_url} alt={reviewer.full_name} fill className="object-cover" />
           ) : (
             <span className="text-white text-sm font-bold">{initial}</span>
           )}

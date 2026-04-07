@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ChevronRight, MapPin, Calendar, Zap } from "lucide-react"
@@ -158,13 +159,13 @@ export default async function MissionDetailPage({ params }) {
         <section className="flex flex-col gap-3">
           <h2 className="text-base font-semibold text-gray-900">À propos du client</h2>
           <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <div className="w-12 h-12 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="relative w-12 h-12 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
               {clientProfile?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={clientProfile.avatar_url}
                   alt={clientProfile.full_name}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                 />
               ) : (
                 <span className="text-white text-lg font-bold">{clientInitial}</span>

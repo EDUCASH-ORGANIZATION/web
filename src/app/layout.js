@@ -17,19 +17,32 @@ export const viewport = {
 }
 
 export const metadata = {
-  title: "EduCash — Missions étudiantes",
-  description: "Transforme tes compétences en revenu",
+  title: {
+    default: "EduCash",
+    template: "%s — EduCash",
+  },
+  description: "Missions ponctuelles rémunérées pour les étudiants au Bénin",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "EduCash",
   },
+  openGraph: {
+    siteName: "EduCash",
+    locale: "fr_BJ",
+    type: "website",
+  },
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="fr" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-inter)]" suppressHydrationWarning>
         <SupabaseProvider>
           <Toaster>

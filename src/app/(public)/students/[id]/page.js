@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { notFound } from "next/navigation"
 import { Star } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
@@ -40,12 +41,12 @@ function Avatar({ name, avatarUrl, size = 80 }) {
   const px = `${size}px`
   return (
     <div
-      className="rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden"
+      className="relative rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden"
       style={{ width: px, height: px }}
     >
       {avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+        <Image src={avatarUrl} alt={name} fill className="object-cover" />
       ) : (
         <span className="text-white font-bold" style={{ fontSize: size * 0.35 }}>
           {initial}
@@ -68,10 +69,9 @@ function ReviewCard({ review }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4 flex flex-col gap-3">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="relative w-9 h-9 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
           {reviewer?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={reviewer.avatar_url} alt={reviewer.full_name} className="w-full h-full object-cover" />
+            <Image src={reviewer.avatar_url} alt={reviewer.full_name} fill className="object-cover" />
           ) : (
             <span className="text-white text-sm font-bold">{initial}</span>
           )}

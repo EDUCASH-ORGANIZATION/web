@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { SendHorizonal, Loader2, ChevronLeft, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { MessageBubble } from "@/components/messages/message-bubble"
@@ -138,13 +139,13 @@ export function ConversationView({
         </button>
 
         {/* Avatar interlocuteur */}
-        <div className="w-9 h-9 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="relative w-9 h-9 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
           {interlocuteur?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={interlocuteur.avatar_url}
               alt={interlocuteur.full_name}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
             />
           ) : (
             <span className="text-white text-sm font-bold">{interlocuteurInitial}</span>

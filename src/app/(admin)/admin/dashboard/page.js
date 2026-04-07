@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
@@ -146,10 +147,9 @@ export default async function AdminDashboardPage() {
                 const date = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(new Date(p.created_at))
                 return (
                   <div key={p.user_id} className="flex items-center gap-3 px-5 py-3">
-                    <div className="w-8 h-8 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0">
+                    <div className="relative w-8 h-8 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
                       {p.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.avatar_url} alt={p.full_name} className="w-full h-full rounded-full object-cover" />
+                        <Image src={p.avatar_url} alt={p.full_name} fill className="object-cover" />
                       ) : (
                         <span className="text-white text-xs font-bold">{initial}</span>
                       )}

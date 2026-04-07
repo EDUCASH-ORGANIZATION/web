@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import clsx from "clsx"
 
@@ -76,10 +77,10 @@ export function ConversationItem({ conversation, role }) {
     >
       {/* Avatar */}
       <div className="relative shrink-0">
-        <div className="w-11 h-11 rounded-full bg-[#1A6B4A] flex items-center justify-center overflow-hidden">
+        <div className="relative w-11 h-11 rounded-full bg-[#1A6B4A] flex items-center justify-center overflow-hidden">
           {senderAvatar ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={senderAvatar} alt={senderName} className="w-full h-full object-cover" />
+            <Image src={senderAvatar} alt={senderName} fill className="object-cover" />
           ) : (
             <span className="text-white text-base font-bold">{initial}</span>
           )}

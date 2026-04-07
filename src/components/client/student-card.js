@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import * as AlertDialog from "@radix-ui/react-alert-dialog"
@@ -157,10 +158,10 @@ export function StudentCard({ application, missionId, onStatusChange }) {
     )}>
       {/* Avatar + identité + rating */}
       <div className="flex items-start gap-3">
-        <div className="w-11 h-11 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="relative w-11 h-11 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
           {profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+            <Image src={profile.avatar_url} alt={profile.full_name} fill className="object-cover" />
           ) : (
             <span className="text-white text-base font-bold">{initial}</span>
           )}
