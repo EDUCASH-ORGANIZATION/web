@@ -76,7 +76,7 @@ function DashboardMissionCard({ mission }) {
           href={`/missions/${mission.id}`}
           className="block w-full py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 text-center hover:border-[#1A6B4A] hover:text-[#1A6B4A] hover:bg-[#f0faf5] transition-colors touch-manipulation"
         >
-          Postuler
+          Voir
         </Link>
       </div>
     </div>

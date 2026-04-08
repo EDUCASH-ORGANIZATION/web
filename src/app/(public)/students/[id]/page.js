@@ -4,11 +4,12 @@ import { Star } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 
 export async function generateMetadata({ params }) {
+  const { id } = await params
   const supabase = await createClient()
   const { data } = await supabase
     .from("profiles")
     .select("full_name")
-    .eq("user_id", params.id)
+    .eq("user_id", id)
     .single()
   return { title: data ? `${data.full_name} — EduCash` : "Profil étudiant — EduCash" }
 }
@@ -102,6 +103,7 @@ function ReviewCard({ review }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function StudentPublicProfilePage({ params }) {
+  const { id } = await params
   const supabase = await createClient()
 
   const [
@@ -110,12 +112,12 @@ export default async function StudentPublicProfilePage({ params }) {
     { data: reviews },
     { data: { user } },
   ] = await Promise.all([
-    supabase.from("profiles").select("*").eq("user_id", params.id).single(),
-    supabase.from("student_profiles").select("*").eq("user_id", params.id).single(),
+    supabase.from("profiles").select("*").eq("user_id", id).single(),
+    supabase.from("student_profiles").select("*").eq("user_id", id).single(),
     supabase
       .from("reviews")
       .select("*, profiles!reviewer_id(full_name, avatar_url)")
-      .eq("reviewed_id", params.id)
+      .eq("reviewed_id", id)
       .order("created_at", { ascending: false }),
     supabase.auth.getUser(),
   ])
@@ -182,7 +184,7 @@ export default async function StudentPublicProfilePage({ params }) {
           {/* CTA Contacter — visible uniquement pour les clients connectés */}
           {viewerRole === "client" && (
             <a
-              href={`/client/messages?studentId=${params.id}`}
+              href={`/client/messages?studentId=${id}`}
               className="mt-2 w-full h-10 rounded-xl bg-[#1A6B4A] text-white text-sm font-semibold hover:bg-[#155a3d] transition-colors flex items-center justify-center touch-manipulation"
             >
               Contacter

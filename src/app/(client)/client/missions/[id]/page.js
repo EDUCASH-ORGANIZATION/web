@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge"
 import { MissionDetailTabs } from "@/components/client/mission-detail-tabs"
 
 export async function generateMetadata({ params }) {
+  const { id } = await params
   const supabase = await createClient()
   const { data } = await supabase
     .from("missions")
     .select("title")
-    .eq("id", params.id)
+    .eq("id", id)
     .single()
 
   return {
@@ -32,6 +33,7 @@ const URGENCY_BADGE = {
 const URGENCY_LABELS = { high: "Urgent", medium: "Moyen", low: "Normal" }
 
 export default async function ClientMissionDetailPage({ params }) {
+  const { id } = await params
   const user = await getCurrentUser()
   if (!user) redirect("/auth/login")
 
@@ -41,14 +43,14 @@ export default async function ClientMissionDetailPage({ params }) {
     supabase
       .from("missions")
       .select("*")
-      .eq("id", params.id)
+      .eq("id", id)
       .eq("client_id", user.id) // garde : seul le propriétaire
       .single(),
 
     supabase
       .from("applications")
       .select("*, profiles!student_id(*), student_profiles!student_id(*)")
-      .eq("mission_id", params.id)
+      .eq("mission_id", id)
       .order("created_at", { ascending: false }),
   ])
 

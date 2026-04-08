@@ -215,7 +215,7 @@ export default async function StudentMissionsPage({ searchParams }) {
     if (sort)      params.set("sort", sort)
     if (p > 1)     params.set("page", String(p))
     const qs = params.toString()
-    return `/missions${qs ? `?${qs}` : ""}`
+    return `/student/missions${qs ? `?${qs}` : ""}`
   }
 
   return (
@@ -232,7 +232,7 @@ export default async function StudentMissionsPage({ searchParams }) {
                 href={buildHref(1).replace(
                   type ? `type=${encodeURIComponent(type)}` : "",
                   value ? `type=${encodeURIComponent(value)}` : ""
-                ).replace(/[?&]$/, "") || (value ? `/missions?type=${encodeURIComponent(value)}` : "/missions")}
+                ).replace(/[?&]$/, "") || (value ? `/student/missions?type=${encodeURIComponent(value)}` : "/student/missions")}
                 className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap touch-manipulation ${
                   isActive
                     ? "bg-[#1A6B4A] text-white"

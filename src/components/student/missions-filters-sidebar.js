@@ -23,7 +23,7 @@ export function MissionsFiltersSidebar({ budgetMax, cities, urgency }) {
     if (value) params.set(key, value)
     else params.delete(key)
     params.delete("page")
-    router.push(`/missions?${params.toString()}`, { scroll: false })
+    router.push(`/student/missions?${params.toString()}`, { scroll: false })
   }, [router, searchParams])
 
   function toggleCity(city) {
@@ -35,11 +35,11 @@ export function MissionsFiltersSidebar({ budgetMax, cities, urgency }) {
     if (next.length) params.set("cities", next.join(","))
     else params.delete("cities")
     params.delete("page")
-    router.push(`/missions?${params.toString()}`, { scroll: false })
+    router.push(`/student/missions?${params.toString()}`, { scroll: false })
   }
 
   function reset() {
-    router.push("/missions", { scroll: false })
+    router.push("/student/missions", { scroll: false })
   }
 
   const budgetVal = parseInt(budgetMax) || BUDGET_MAX

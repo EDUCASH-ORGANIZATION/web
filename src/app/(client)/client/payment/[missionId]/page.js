@@ -25,11 +25,11 @@ function Divider() {
 }
 
 export default async function PaymentPage({ params }) {
+  const { missionId } = await params
   const user = await getCurrentUser()
   if (!user) redirect("/auth/login")
 
   const supabase = await createClient()
-  const { missionId } = params
 
   // Charge la mission (doit appartenir au client connecté)
   const { data: mission } = await supabase

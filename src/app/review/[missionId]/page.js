@@ -69,11 +69,11 @@ async function createReview(reviewedId, missionId, role, formData) {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function ReviewPage({ params }) {
+  const { missionId } = await params
   const user = await getCurrentUser()
   if (!user) redirect("/auth/login")
 
   const supabase = await createClient()
-  const { missionId } = params
 
   // Charge la mission pour obtenir la personne à noter
   const { data: mission } = await supabase

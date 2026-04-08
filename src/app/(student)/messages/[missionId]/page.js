@@ -6,11 +6,11 @@ import { ConversationView } from "@/components/messages/conversation-view"
 export const metadata = { title: "Conversation — EduCash" }
 
 export default async function StudentConversationPage({ params }) {
+  const { missionId } = await params
   const user = await getCurrentUser()
   if (!user) redirect("/auth/login")
 
   const supabase = await createClient()
-  const { missionId } = params
 
   const [{ data: messages }, { data: mission }] = await Promise.all([
     supabase
