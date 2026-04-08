@@ -92,7 +92,7 @@ function MissionCard({ mission }) {
         </div>
 
         <Link
-          href={`/missions/${mission.id}`}
+          href={`/student/missions/${mission.id}`}
           className="block w-full py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 text-center hover:border-[#1A6B4A] hover:text-[#1A6B4A] hover:bg-[#f0faf5] transition-colors touch-manipulation"
         >
           Voir les détails
