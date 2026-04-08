@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { Sidebar } from "@/components/shared/sidebar"
+import { StudentHeader } from "@/components/shared/student-header"
 import { BottomNav } from "@/components/shared/bottom-nav"
 
 export default async function StudentLayout({ children }) {
@@ -12,18 +13,32 @@ export default async function StudentLayout({ children }) {
   const role = user.user_metadata?.role ?? "student"
   if (role !== "student") redirect("/client/dashboard")
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, avatar_url, role")
-    .eq("user_id", user.id)
-    .single()
+  const [{ data: profile }, { data: studentProfile }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, avatar_url, role, city")
+      .eq("user_id", user.id)
+      .single(),
+    supabase
+      .from("student_profiles")
+      .select("school")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ])
 
   return (
-    <div className="flex h-full min-h-screen bg-gray-50">
+    <div className="flex h-full min-h-screen bg-[#F5F6FA]">
       <Sidebar role="student" profile={profile} />
-      <main className="flex-1 min-w-0 pb-16 lg:pb-0">
-        {children}
-      </main>
+      <div className="flex-1 min-w-0 flex flex-col">
+        <StudentHeader
+          profile={profile}
+          school={studentProfile?.school}
+          userId={user.id}
+        />
+        <main className="flex-1 pb-20 lg:pb-0 overflow-auto">
+          {children}
+        </main>
+      </div>
       <BottomNav role="student" />
     </div>
   )
