@@ -59,7 +59,7 @@ export async function middleware(request) {
 
   // ── Routes espace étudiant (groupe (student)) ──────────────────────────────
   // /dashboard, /applications, /messages, /profile
-  const STUDENT_ONLY = ["/dashboard", "/applications", "/messages", "/profile"]
+  const STUDENT_ONLY = ["/dashboard", "/applications", "/messages", "/profile", "/student"]
   if (STUDENT_ONLY.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     if (!user) {
       const loginUrl = new URL("/auth/login", request.url)

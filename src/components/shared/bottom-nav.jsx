@@ -14,7 +14,7 @@ import clsx from "clsx"
 
 const STUDENT_ITEMS = [
   { label: "Accueil",      href: "/dashboard",    icon: Home },
-  { label: "Missions",     href: "/missions",      icon: Briefcase },
+  { label: "Missions",     href: "/student/missions", icon: Briefcase },
   { label: "Candidatures", href: "/applications",  icon: FileText },
   { label: "Messages",     href: "/messages",      icon: MessageSquare },
   { label: "Profil",       href: "/profile",       icon: User },

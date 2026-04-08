@@ -31,11 +31,11 @@ export default async function MissionsPage({ searchParams }) {
     .eq("status", "open")
     .order("created_at", { ascending: false })
 
-  if (q)                    query = query.ilike("title", `%${q}%`)
+  if (q)                      query = query.ilike("title", `%${q}%`)
   if (type && type !== "all") query = query.eq("type", type)
-  if (city)                 query = query.eq("city", city)
-  if (urgency)              query = query.eq("urgency", urgency)
-  if (budgetMax)            query = query.lte("budget", parseInt(budgetMax))
+  if (city)                   query = query.eq("city", city)
+  if (urgency)                query = query.eq("urgency", urgency)
+  if (budgetMax)              query = query.lte("budget", parseInt(budgetMax))
 
   const from = (page - 1) * PAGE_SIZE
   query = query.range(from, from + PAGE_SIZE - 1)

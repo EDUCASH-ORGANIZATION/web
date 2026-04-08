@@ -18,7 +18,7 @@ import { logout } from "@/lib/actions/auth.actions"
 
 const STUDENT_ITEMS = [
   { label: "Dashboard",          href: "/dashboard",    icon: LayoutDashboard },
-  { label: "Explorer les missions", href: "/missions",  icon: Briefcase },
+  { label: "Explorer les missions", href: "/student/missions", icon: Briefcase },
   { label: "Mes candidatures",   href: "/applications", icon: FileText },
   { label: "Messages",           href: "/messages",     icon: MessageSquare },
   { label: "Mon profil",         href: "/profile",      icon: User },

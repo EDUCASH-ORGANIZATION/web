@@ -185,7 +185,7 @@ export default async function StudentDashboardPage() {
           </p>
         </div>
         <Link
-          href="/missions"
+          href="/student/missions"
           className="shrink-0 inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-[#1A6B4A] text-white text-sm font-semibold hover:bg-[#155a3d] transition-colors touch-manipulation"
         >
           Nouvelle recherche
@@ -269,7 +269,7 @@ export default async function StudentDashboardPage() {
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-gray-900">Missions recommandées</h2>
-            <Link href="/missions" className="text-sm font-semibold text-[#1A6B4A] hover:underline flex items-center gap-1">
+            <Link href="/student/missions" className="text-sm font-semibold text-[#1A6B4A] hover:underline flex items-center gap-1">
               Voir tout <ArrowRight size={14} />
             </Link>
           </div>
@@ -277,7 +277,7 @@ export default async function StudentDashboardPage() {
           {sortedMissions.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
               <p className="text-sm text-gray-400">Aucune mission disponible pour le moment.</p>
-              <Link href="/missions" className="text-sm font-semibold text-[#1A6B4A] hover:underline mt-2 inline-block">
+              <Link href="/student/missions" className="text-sm font-semibold text-[#1A6B4A] hover:underline mt-2 inline-block">
                 Explorer toutes les missions →
               </Link>
             </div>
