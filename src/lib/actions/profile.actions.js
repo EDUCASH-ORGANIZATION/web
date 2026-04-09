@@ -127,6 +127,47 @@ export async function saveStudentProfile(formData) {
   redirect("/dashboard")
 }
 
+/**
+ * Met à jour le profil d'un client connecté.
+ * L'avatar est uploadé côté client — on reçoit ici uniquement son URL (string).
+ *
+ * @param {{ fullName, city, phone, companyName, avatarUrl?: string }} data
+ */
+export async function updateClientProfile(data) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) return { error: "Non authentifié." }
+
+    const { fullName, city, phone, companyName, avatarUrl } = data
+
+    if (!fullName?.trim()) return { error: "Le nom complet est requis." }
+    if (!city?.trim())     return { error: "La ville est requise." }
+
+    const profileUpdate = {
+      full_name: fullName.trim(),
+      city: city.trim(),
+      phone: phone?.trim() || null,
+      bio: companyName?.trim() || null,
+    }
+    if (avatarUrl) profileUpdate.avatar_url = avatarUrl
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update(profileUpdate)
+      .eq("user_id", user.id)
+
+    if (profileError) return { error: profileError.message }
+
+    revalidatePath("/client/profile")
+    return { success: true }
+  } catch (err) {
+    console.error("[updateClientProfile]", err)
+    return { error: "Une erreur inattendue est survenue. Réessayez." }
+  }
+}
+
 export async function saveClientProfile(formData) {
   const supabase = await createClient()
 
