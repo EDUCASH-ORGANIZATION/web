@@ -236,6 +236,7 @@ export default async function MissionDetailPage({ params }) {
                       src={clientProfile.avatar_url}
                       alt={clientName}
                       fill
+                      sizes="56px"
                       className="object-cover"
                     />
                   ) : (

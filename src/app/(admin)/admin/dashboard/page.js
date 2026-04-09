@@ -149,7 +149,7 @@ export default async function AdminDashboardPage() {
                   <div key={p.user_id} className="flex items-center gap-3 px-5 py-3">
                     <div className="relative w-8 h-8 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
                       {p.avatar_url ? (
-                        <Image src={p.avatar_url} alt={p.full_name} fill className="object-cover" />
+                        <Image src={p.avatar_url} alt={p.full_name} fill sizes="32px" className="object-cover" />
                       ) : (
                         <span className="text-white text-xs font-bold">{initial}</span>
                       )}

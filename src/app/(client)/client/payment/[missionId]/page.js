@@ -12,7 +12,7 @@ function Avatar({ name, avatarUrl }) {
   return (
     <div className="relative w-10 h-10 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
       {avatarUrl ? (
-        <Image src={avatarUrl} alt={name} fill className="object-cover" />
+        <Image src={avatarUrl} alt={name} fill sizes="40px" className="object-cover" />
       ) : (
         <span className="text-white text-sm font-bold">{initial}</span>
       )}

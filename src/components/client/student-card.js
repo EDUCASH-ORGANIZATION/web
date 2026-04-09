@@ -161,7 +161,7 @@ export function StudentCard({ application, missionId, onStatusChange }) {
         <div className="relative w-11 h-11 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
           {profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <Image src={profile.avatar_url} alt={profile.full_name} fill className="object-cover" />
+            <Image src={profile.avatar_url} alt={profile.full_name} fill sizes="44px" className="object-cover" />
           ) : (
             <span className="text-white text-base font-bold">{initial}</span>
           )}

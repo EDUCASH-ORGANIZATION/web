@@ -240,6 +240,7 @@ export default async function StudentMissionDetailPage({ params }) {
                     src={clientProfile.avatar_url}
                     alt={clientName}
                     fill
+                    sizes="56px"
                     className="object-cover"
                   />
                 ) : (

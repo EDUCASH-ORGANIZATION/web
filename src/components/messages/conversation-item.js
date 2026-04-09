@@ -80,7 +80,7 @@ export function ConversationItem({ conversation, role }) {
         <div className="relative w-11 h-11 rounded-full bg-[#1A6B4A] flex items-center justify-center overflow-hidden">
           {senderAvatar ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <Image src={senderAvatar} alt={senderName} fill className="object-cover" />
+            <Image src={senderAvatar} alt={senderName} fill sizes="44px" className="object-cover" />
           ) : (
             <span className="text-white text-base font-bold">{initial}</span>
           )}

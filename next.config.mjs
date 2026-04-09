@@ -13,6 +13,11 @@ const pwaConfig = withPWA({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   turbopack: {},
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "4mb",
+    },
+  },
   images: {
     remotePatterns: [
       {

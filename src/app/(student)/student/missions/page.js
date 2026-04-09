@@ -170,13 +170,14 @@ export default async function StudentMissionsPage({ searchParams }) {
 
   const supabase = await createClient()
 
-  const q         = searchParams?.q ?? ""
-  const type      = searchParams?.type ?? ""
-  const citiesStr = searchParams?.cities ?? ""
-  const urgency   = searchParams?.urgency ?? ""
-  const budgetMax = searchParams?.budget ?? ""
-  const sort      = searchParams?.sort ?? "recent"
-  const page      = Math.max(1, parseInt(searchParams?.page ?? "1") || 1)
+  const resolvedParams = await searchParams
+  const q         = resolvedParams?.q ?? ""
+  const type      = resolvedParams?.type ?? ""
+  const citiesStr = resolvedParams?.cities ?? ""
+  const urgency   = resolvedParams?.urgency ?? ""
+  const budgetMax = resolvedParams?.budget ?? ""
+  const sort      = resolvedParams?.sort ?? "recent"
+  const page      = Math.max(1, parseInt(resolvedParams?.page ?? "1") || 1)
 
   const selectedCities = citiesStr ? citiesStr.split(",").filter(Boolean) : []
 

@@ -73,7 +73,7 @@ export function StudentHeader({ profile, school }) {
         </div>
         <div className="relative w-9 h-9 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
           {profile?.avatar_url ? (
-            <Image src={profile.avatar_url} alt={profile.full_name} fill className="object-cover" />
+            <Image src={profile.avatar_url} alt={profile.full_name} fill sizes="36px" className="object-cover" />
           ) : (
             <span className="text-white text-sm font-bold">{initial}</span>
           )}

@@ -145,6 +145,7 @@ export function ConversationView({
               src={interlocuteur.avatar_url}
               alt={interlocuteur.full_name}
               fill
+              sizes="40px"
               className="object-cover"
             />
           ) : (

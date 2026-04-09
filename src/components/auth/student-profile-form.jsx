@@ -244,7 +244,7 @@ function Step2({ step1Data, onBack }) {
 
       // 5. Redirect + toast
       toast({ message: "Profil créé ! Vérification en cours sous 24h.", type: "success" })
-      router.push("/student/dashboard")
+      router.push("/dashboard")
     } catch (err) {
       setError(err.message ?? "Une erreur est survenue.")
       setIsSubmitting(false)

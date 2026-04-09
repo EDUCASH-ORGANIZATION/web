@@ -47,7 +47,7 @@ function Avatar({ name, avatarUrl, size = 80 }) {
     >
       {avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <Image src={avatarUrl} alt={name} fill className="object-cover" />
+        <Image src={avatarUrl} alt={name} fill sizes="80px" className="object-cover" />
       ) : (
         <span className="text-white font-bold" style={{ fontSize: size * 0.35 }}>
           {initial}
@@ -72,7 +72,7 @@ function ReviewCard({ review }) {
       <div className="flex items-center gap-3">
         <div className="relative w-9 h-9 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
           {reviewer?.avatar_url ? (
-            <Image src={reviewer.avatar_url} alt={reviewer.full_name} fill className="object-cover" />
+            <Image src={reviewer.avatar_url} alt={reviewer.full_name} fill sizes="36px" className="object-cover" />
           ) : (
             <span className="text-white text-sm font-bold">{initial}</span>
           )}

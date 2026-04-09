@@ -84,7 +84,7 @@ export default async function AdminUsersPage({ searchParams }) {
                       <div className="flex items-center gap-2.5">
                         <div className="relative w-8 h-8 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
                           {profile.avatar_url ? (
-                            <Image src={profile.avatar_url} alt={profile.full_name} fill className="object-cover" />
+                            <Image src={profile.avatar_url} alt={profile.full_name} fill sizes="32px" className="object-cover" />
                           ) : (
                             <span className="text-white text-xs font-bold">{initial}</span>
                           )}
