@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Camera, Upload, AlertCircle } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { Camera, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/shared/toaster"
 import { useSupabase } from "@/components/shared/supabase-provider"
 import { CITIES, MISSION_TYPES } from "@/lib/supabase/database.constants"
+import { getUniversities } from "@/lib/actions/university.actions"
+import { CardUploadZone } from "@/components/auth/card-upload-zone"
 import clsx from "clsx"
 
 const STUDY_LEVELS = [
@@ -158,16 +159,20 @@ function Step2({ step1Data, onBack }) {
   const { toast } = useToast()
   const { supabase } = useSupabase()
 
+  const [universities, setUniversities] = useState([])
+  const [selectedSchool, setSelectedSchool] = useState("")
+  const [customSchool, setCustomSchool] = useState("")
+  const [level, setLevel] = useState("")
+  const [availability, setAvailability] = useState("")
   const [skills, setSkills] = useState([])
   const [cardFile, setCardFile] = useState(null)
-  const [cardName, setCardName] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
 
-  const schoolRef = useRef(null)
-  const levelRef = useRef(null)
-  const availabilityRef = useRef(null)
-  const cardInputRef = useRef(null)
+  // Charge les universités depuis Supabase au montage
+  useEffect(() => {
+    getUniversities().then((data) => setUniversities(data))
+  }, [])
 
   function toggleSkill(skill) {
     setSkills((prev) =>
@@ -175,15 +180,17 @@ function Step2({ step1Data, onBack }) {
     )
   }
 
-  function handleCardChange(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setCardFile(file)
-    setCardName(file.name)
+  // Valeur finale du champ school
+  function resolveSchool() {
+    if (selectedSchool === "__other__") return customSchool.trim() || null
+    return selectedSchool || null
   }
 
   async function handleSubmit() {
     if (skills.length === 0) { setError("Sélectionne au moins une compétence."); return }
+    if (selectedSchool === "__other__" && !customSchool.trim()) {
+      setError("Précise le nom de ton établissement."); return
+    }
     setError("")
     setIsSubmitting(true)
 
@@ -193,7 +200,7 @@ function Step2({ step1Data, onBack }) {
       if (user.user_metadata?.role !== "student") throw new Error("Session incorrecte. Reconnecte-toi en tant qu'étudiant.")
 
       let avatarUrl = null
-      let cardUrl = null
+      let cardUrl   = null
 
       // 1. Upload avatar
       if (step1Data.avatarFile) {
@@ -219,8 +226,8 @@ function Step2({ step1Data, onBack }) {
         cardUrl = urlData.publicUrl
       }
 
-      // 3. Insert profile
-      const { error: profileError } = await supabase.from("profiles").upsert({
+      // 3. Upsert profiles (avec verification_submitted_at si carte soumise)
+      const profilePayload = {
         user_id: user.id,
         full_name: step1Data.fullName,
         phone: step1Data.phone || null,
@@ -228,17 +235,24 @@ function Step2({ step1Data, onBack }) {
         bio: step1Data.bio || null,
         avatar_url: avatarUrl,
         role: "student",
-      }, { onConflict: "user_id" })
+      }
+      if (cardUrl) {
+        profilePayload.verification_submitted_at = new Date().toISOString()
+      }
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert(profilePayload, { onConflict: "user_id" })
       if (profileError) throw profileError
 
-      // 4. Insert student_profile
+      // 4. Upsert student_profiles
       const { error: studentError } = await supabase.from("student_profiles").upsert({
-        user_id: user.id,
-        school: schoolRef.current?.value.trim() || null,
-        level: levelRef.current?.value || null,
+        user_id:      user.id,
+        school:       resolveSchool(),
+        level:        level || null,
         skills,
-        card_url: cardUrl,
-        availability: availabilityRef.current?.value.trim() || null,
+        card_url:     cardUrl,
+        availability: availability.trim() || null,
       }, { onConflict: "user_id" })
       if (studentError) throw studentError
 
@@ -251,42 +265,65 @@ function Step2({ step1Data, onBack }) {
     }
   }
 
+  const selectCls = "h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
+  const inputCls  = "h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
+
   return (
     <div className="flex flex-col gap-5">
       {/* Progression */}
       <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
         <div className="h-full bg-[#1A6B4A] rounded-full transition-all" style={{ width: "100%" }} />
       </div>
-      <h2 className="text-lg font-bold text-gray-900">Ton profil <span className="text-gray-400 font-normal text-base">(2/2)</span></h2>
+      <h2 className="text-lg font-bold text-gray-900">
+        Ton profil <span className="text-gray-400 font-normal text-base">(2/2)</span>
+      </h2>
 
-      {/* Établissement */}
+      {/* ── Établissement ─────────────────────────────────────────────── */}
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-700">Établissement</label>
-        <input
-          ref={schoolRef}
-          suppressHydrationWarning
-          type="text"
-          placeholder="Ex : UAC, UNSTIM..."
-          className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
-        />
+        <select
+          value={selectedSchool}
+          onChange={(e) => setSelectedSchool(e.target.value)}
+          className={selectCls}
+        >
+          <option value="">Sélectionne ton établissement</option>
+          {universities.map((u) => (
+            <option key={u.id} value={u.name}>
+              {u.name}{u.short_name ? ` (${u.short_name})` : ""}{u.city ? ` — ${u.city}` : ""}
+            </option>
+          ))}
+          <option value="__other__">Autre établissement</option>
+        </select>
+
+        {selectedSchool === "__other__" && (
+          <input
+            type="text"
+            value={customSchool}
+            onChange={(e) => setCustomSchool(e.target.value)}
+            placeholder="Précise le nom de ton établissement"
+            className={`${inputCls} mt-2`}
+          />
+        )}
       </div>
 
-      {/* Niveau */}
+      {/* ── Niveau d'études ───────────────────────────────────────────── */}
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-700">Niveau d&apos;études</label>
         <select
-          ref={levelRef}
-          className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
+          value={level}
+          onChange={(e) => setLevel(e.target.value)}
+          className={selectCls}
         >
           <option value="">Sélectionner un niveau</option>
           {STUDY_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
         </select>
       </div>
 
-      {/* Compétences */}
+      {/* ── Compétences ───────────────────────────────────────────────── */}
       <div className="flex flex-col gap-2">
         <p className="text-sm font-medium text-gray-700">
-          Compétences * <span className="text-gray-400 font-normal">(au moins 1)</span>
+          Compétences <span className="text-red-500">*</span>{" "}
+          <span className="text-gray-400 font-normal">(au moins 1)</span>
         </p>
         <div className="flex flex-wrap gap-2">
           {MISSION_TYPES.map((skill) => {
@@ -310,38 +347,18 @@ function Step2({ step1Data, onBack }) {
         </div>
       </div>
 
-      {/* Carte étudiante */}
-      <div className="flex flex-col gap-2">
+      {/* ── Carte étudiante ───────────────────────────────────────────── */}
+      <div className="flex flex-col gap-1.5">
         <p className="text-sm font-medium text-gray-700">Carte étudiante</p>
-        <button
-          type="button"
-          onClick={() => cardInputRef.current?.click()}
-          className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#1A6B4A] transition-colors px-4 py-6"
-        >
-          <Upload size={24} className="text-gray-400" />
-          <span className="text-sm text-gray-500">
-            {cardName || "Clique ou glisse ta carte ici"}
-          </span>
-          <span className="text-xs text-gray-400">Image ou PDF</span>
-        </button>
-        <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-          <span className="text-amber-500 text-xs mt-0.5">⚠</span>
-          <p className="text-xs text-amber-700">Utilisé uniquement pour vérifier ton statut étudiant.</p>
-        </div>
-        <input
-          ref={cardInputRef}
-          type="file"
-          accept="image/*,application/pdf"
-          className="hidden"
-          onChange={handleCardChange}
-        />
+        <CardUploadZone file={cardFile} onFileSelect={setCardFile} />
       </div>
 
-      {/* Disponibilités */}
+      {/* ── Disponibilités ────────────────────────────────────────────── */}
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-700">Disponibilités</label>
         <textarea
-          ref={availabilityRef}
+          value={availability}
+          onChange={(e) => setAvailability(e.target.value)}
           placeholder="Ex : Week-ends, mercredis après-midi, vacances scolaires..."
           rows={2}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"

@@ -30,6 +30,31 @@ export const CITIES = /** @type {const} */ ([
 // ─── Commission ───────────────────────────────────────────────────────────────
 export const COMMISSION_RATE = 0.12
 
+// ─── Vérification ─────────────────────────────────────────────────────────────
+
+// Durée de validité du badge de vérification en jours
+export const VERIFICATION_VALIDITY_DAYS = 365
+
+// Instructions upload carte étudiante
+export const CARD_UPLOAD_INSTRUCTIONS = [
+  "Photo nette et bien éclairée — pas de flou",
+  "Tous les coins de la carte doivent être visibles",
+  "Ton nom et ton établissement doivent être lisibles",
+  "Fond uni de préférence (table, bureau)",
+  "Formats acceptés : JPG, PNG, PDF — max 10 MB",
+]
+
+// Motifs de rejet prédéfinis
+export const REJECTION_REASONS = [
+  "Carte illisible ou floue — veuillez retirer une photo plus nette",
+  "Tous les coins de la carte ne sont pas visibles",
+  "La carte est expirée",
+  "Le nom sur la carte ne correspond pas au profil",
+  "Ce document ne semble pas être une carte étudiante valide",
+  "La carte appartient à un autre établissement que celui déclaré",
+  "Autre motif (préciser dans le message personnalisé)",
+]
+
 // ─── Structures de référence (documentation des objets Supabase) ─────────────
 // Ces objets ne sont pas utilisés à l'exécution.
 // Ils servent de référence visuelle pour savoir quels champs
