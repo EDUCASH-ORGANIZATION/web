@@ -12,7 +12,9 @@ function validateEmail(email) {
 }
 
 function dashboardFor(role) {
-  return role === "client" ? "/client/dashboard" : "/dashboard"
+  if (role === "client") return "/client/dashboard"
+  if (role === "admin")  return "/admin/dashboard"
+  return "/dashboard"
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────

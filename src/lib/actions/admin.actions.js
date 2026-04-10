@@ -80,12 +80,23 @@ export async function rejectStudent(userId, reason) {
   const supabase = await createClient()
   const admin = getAdminClient()
 
-  const { data: profile } = await supabase
+  // Marque le profil comme rejeté (is_verified reste false, on stocke le motif)
+  const { data: profile, error: updateError } = await supabase
     .from("profiles")
-    .select("full_name")
+    .update({
+      is_verified: false,
+      rejection_reason: reason || "Informations insuffisantes.",
+    })
     .eq("user_id", userId)
+    .select("full_name")
     .single()
 
+  if (updateError) {
+    console.error("[rejectStudent]", updateError)
+    return { error: "Impossible de mettre à jour le profil." }
+  }
+
+  // Envoie un email de notification
   try {
     const { data: { user } } = await admin.auth.admin.getUserById(userId)
     if (user?.email) {
@@ -96,6 +107,34 @@ export async function rejectStudent(userId, reason) {
     }
   } catch (emailErr) {
     console.error("[rejectStudent] email:", emailErr)
+  }
+
+  revalidatePath("/admin/verifications")
+  revalidatePath("/admin/dashboard")
+  return { success: true }
+}
+
+/**
+ * Réinitialise le rejet d'un étudiant pour lui permettre de soumettre à nouveau.
+ * @param {string} userId
+ */
+export async function resetRejection(userId) {
+  try {
+    await assertAdmin()
+  } catch (e) {
+    return { error: e.message }
+  }
+
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ rejection_reason: null })
+    .eq("user_id", userId)
+
+  if (error) {
+    console.error("[resetRejection]", error)
+    return { error: "Impossible de réinitialiser le dossier." }
   }
 
   revalidatePath("/admin/verifications")

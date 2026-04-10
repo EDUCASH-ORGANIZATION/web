@@ -46,10 +46,13 @@ export async function middleware(request) {
       return response
     }
 
-    // Connecté → rediriger vers le dashboard
+    // Connecté → rediriger vers le dashboard selon le rôle
     if (user) {
       const role = user.user_metadata?.role ?? "student"
-      const dashboard = role === "client" ? "/client/dashboard" : "/dashboard"
+      const dashboard =
+        role === "client" ? "/client/dashboard" :
+        role === "admin"  ? "/admin/dashboard"  :
+        "/dashboard"
       return NextResponse.redirect(new URL(dashboard, request.url))
     }
     // Note : /client/dashboard est servi par (client)/dashboard/page.js
@@ -68,7 +71,11 @@ export async function middleware(request) {
     }
     const role = user.user_metadata?.role ?? "student"
     if (role !== "student") {
-      return NextResponse.redirect(new URL("/client/dashboard", request.url))
+      const dashboard =
+        role === "client" ? "/client/dashboard" :
+        role === "admin"  ? "/admin/dashboard"  :
+        "/dashboard"
+      return NextResponse.redirect(new URL(dashboard, request.url))
     }
     return response
   }
@@ -106,7 +113,10 @@ export async function middleware(request) {
       // Mauvais rôle → son propre dashboard
       const role = user.user_metadata?.role ?? "student"
       if (role !== requiredRole) {
-        const dashboard = role === "client" ? "/client/dashboard" : "/dashboard"
+        const dashboard =
+          role === "client" ? "/client/dashboard" :
+          role === "admin"  ? "/admin/dashboard"  :
+          "/dashboard"
         return NextResponse.redirect(new URL(dashboard, request.url))
       }
 

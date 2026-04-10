@@ -87,7 +87,7 @@ export default async function HomePage() {
       <PublicNavbar />
 
       {/* ── HERO ─────────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#f0faf5] via-white to-[#fffbeb] px-4 pt-12 pb-0">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#f0faf5] via-white to-[#fffbeb] px-4 pt-12 pb-10">
         {/* Decoration blobs */}
         <div className="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#1A6B4A]/5 blur-3xl" />
         <div className="pointer-events-none absolute top-1/2 -left-24 w-64 h-64 rounded-full bg-[#F59E0B]/5 blur-3xl" />
