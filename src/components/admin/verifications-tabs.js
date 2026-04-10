@@ -1,7 +1,7 @@
 "use client"
 
-import Image from "next/image"
 import { useState } from "react"
+import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 import { useRouter } from "next/navigation"
 import {
   CheckCircle, XCircle, Loader2, ShieldCheck, Clock,
@@ -145,7 +145,6 @@ function VerificationCard({ profile }) {
   const { toast } = useToast()
   const router = useRouter()
 
-  const initial = profile.full_name?.charAt(0)?.toUpperCase() ?? "?"
   const date = new Intl.DateTimeFormat("fr-FR", {
     day: "numeric", month: "long", year: "numeric",
   }).format(new Date(profile.created_at))
@@ -186,19 +185,13 @@ function VerificationCard({ profile }) {
 
         {/* Header */}
         <div className="p-5 flex items-start gap-3 border-b border-gray-50">
-          <div className="relative w-12 h-12 rounded-2xl bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
-            {profile.avatar_url ? (
-              <Image
-                src={profile.avatar_url}
-                alt={profile.full_name ?? ""}
-                fill
-                sizes="48px"
-                className="object-cover"
-              />
-            ) : (
-              <span className="text-white font-black text-lg">{initial}</span>
-            )}
-          </div>
+          <VerifiedAvatar
+            avatarUrl={profile.avatar_url}
+            fullName={profile.full_name ?? ""}
+            isVerified={profile.is_verified}
+            showBadge={false}
+            size="md"
+          />
           <div className="flex-1 min-w-0">
             <p className="font-black text-gray-900 truncate">
               {profile.full_name ?? "Nom non renseigné"}

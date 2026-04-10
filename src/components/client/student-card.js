@@ -1,7 +1,7 @@
 "use client"
 
-import Image from "next/image"
 import { useState } from "react"
+import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 import { useRouter } from "next/navigation"
 import * as AlertDialog from "@radix-ui/react-alert-dialog"
 import { Star, Loader2, CheckCircle } from "lucide-react"
@@ -144,7 +144,6 @@ function RejectButton({ applicationId, onRejected }) {
 export function StudentCard({ application, missionId, onStatusChange }) {
   const profile       = application.profiles ?? {}
   const studentProfile = application.student_profiles ?? {}
-  const initial       = profile.full_name?.charAt(0)?.toUpperCase() ?? "?"
   const skills        = (studentProfile.skills ?? []).slice(0, 3)
   const messagePreview = application.message ?? ""
 
@@ -158,14 +157,12 @@ export function StudentCard({ application, missionId, onStatusChange }) {
     )}>
       {/* Avatar + identité + rating */}
       <div className="flex items-start gap-3">
-        <div className="relative w-11 h-11 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <Image src={profile.avatar_url} alt={profile.full_name} fill sizes="44px" className="object-cover" />
-          ) : (
-            <span className="text-white text-base font-bold">{initial}</span>
-          )}
-        </div>
+        <VerifiedAvatar
+          avatarUrl={profile.avatar_url}
+          fullName={profile.full_name ?? ""}
+          isVerified={profile.is_verified ?? false}
+          size="md"
+        />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">{profile.full_name ?? "Étudiant"}</p>
           {studentProfile.school && (

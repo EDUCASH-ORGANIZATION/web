@@ -1,8 +1,8 @@
 "use client"
 
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import clsx from "clsx"
+import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 
 /**
  * Formate un timestamp selon : aujourd'hui → "14h32", semaine → "lun.", avant → "12 avr."
@@ -77,14 +77,13 @@ export function ConversationItem({ conversation, role }) {
     >
       {/* Avatar */}
       <div className="relative shrink-0">
-        <div className="relative w-11 h-11 rounded-full bg-[#1A6B4A] flex items-center justify-center overflow-hidden">
-          {senderAvatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <Image src={senderAvatar} alt={senderName} fill sizes="44px" className="object-cover" />
-          ) : (
-            <span className="text-white text-base font-bold">{initial}</span>
-          )}
-        </div>
+        <VerifiedAvatar
+          avatarUrl={senderAvatar}
+          fullName={senderName ?? ""}
+          isVerified={false}
+          showBadge={false}
+          size="md"
+        />
         {/* Point non lu */}
         {isUnread && (
           <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-red-500 border-2 border-white" />

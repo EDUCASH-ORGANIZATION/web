@@ -1,4 +1,3 @@
-import Image from "next/image"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import {
@@ -7,6 +6,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
+import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 
 export const metadata = { title: "Mon profil — EduCash" }
 
@@ -109,7 +109,6 @@ export default async function StudentProfilePage() {
   const rating       = profile?.rating ?? 0
   const isVerified   = profile?.is_verified ?? false
   const hasCard      = !!studentProfile?.card_url
-  const initial      = profile?.full_name?.charAt(0)?.toUpperCase() ?? "?"
 
   return (
     <div className="p-6 lg:p-8 max-w-[1100px] mx-auto flex flex-col gap-6">
@@ -146,20 +145,12 @@ export default async function StudentProfilePage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
 
           {/* Avatar */}
-          <div className="relative shrink-0">
-            <div className="relative w-24 h-24 rounded-2xl bg-[#1A6B4A] flex items-center justify-center overflow-hidden">
-              {profile?.avatar_url ? (
-                <Image src={profile.avatar_url} alt={profile.full_name ?? ""} fill sizes="96px" className="object-cover" />
-              ) : (
-                <span className="text-white text-3xl font-black">{initial}</span>
-              )}
-            </div>
-            {isVerified && (
-              <div className="absolute -bottom-2 -right-2 bg-[#1A6B4A] rounded-full p-1.5 shadow-sm border-2 border-white">
-                <ShieldCheck size={13} className="text-white" />
-              </div>
-            )}
-          </div>
+          <VerifiedAvatar
+            avatarUrl={profile?.avatar_url}
+            fullName={profile?.full_name ?? ""}
+            isVerified={isVerified}
+            size="lg"
+          />
 
           {/* Nom + infos */}
           <div className="flex-1 min-w-0 flex flex-col gap-2">

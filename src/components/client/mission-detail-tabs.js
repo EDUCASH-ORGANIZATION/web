@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
+import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 import * as Tabs from "@radix-ui/react-tabs"
 import * as AlertDialog from "@radix-ui/react-alert-dialog"
 import {
@@ -125,7 +125,6 @@ function CandidateCard({ application, missionId, onStatusChange }) {
   const { toast } = useToast()
   const profile        = application.profiles ?? {}
   const studentProfile = application.student_profiles ?? {}
-  const initial        = profile.full_name?.charAt(0)?.toUpperCase() ?? "?"
   const skills         = (studentProfile.skills ?? []).slice(0, 3)
 
   const isAccepted = application.status === "accepted"
@@ -161,13 +160,12 @@ function CandidateCard({ application, missionId, onStatusChange }) {
 
         {/* Header: avatar + identité */}
         <div className="flex items-start gap-3">
-          <div className="relative w-12 h-12 rounded-2xl bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
-            {profile.avatar_url ? (
-              <Image src={profile.avatar_url} alt={profile.full_name ?? ""} fill sizes="48px" className="object-cover" />
-            ) : (
-              <span className="text-white text-lg font-black">{initial}</span>
-            )}
-          </div>
+          <VerifiedAvatar
+            avatarUrl={profile.avatar_url}
+            fullName={profile.full_name ?? ""}
+            isVerified={profile.is_verified ?? false}
+            size="md"
+          />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-black text-gray-900 truncate">{profile.full_name ?? "Étudiant"}</p>
             {studentProfile.school && (

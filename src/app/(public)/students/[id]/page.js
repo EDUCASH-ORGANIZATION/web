@@ -1,7 +1,7 @@
-import Image from "next/image"
 import { notFound } from "next/navigation"
 import { Star } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
+import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 
 export async function generateMetadata({ params }) {
   const { id } = await params
@@ -37,25 +37,6 @@ function StarRow({ rating, count }) {
   )
 }
 
-function Avatar({ name, avatarUrl, size = 80 }) {
-  const initial = name?.charAt(0)?.toUpperCase() ?? "?"
-  const px = `${size}px`
-  return (
-    <div
-      className="relative rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden"
-      style={{ width: px, height: px }}
-    >
-      {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <Image src={avatarUrl} alt={name} fill sizes="80px" className="object-cover" />
-      ) : (
-        <span className="text-white font-bold" style={{ fontSize: size * 0.35 }}>
-          {initial}
-        </span>
-      )}
-    </div>
-  )
-}
 
 function ReviewCard({ review }) {
   const reviewer = review.profiles
@@ -137,14 +118,12 @@ export default async function StudentPublicProfilePage({ params }) {
 
         {/* Header profil */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center text-center gap-3">
-          <div className="relative">
-            <Avatar name={profile.full_name} avatarUrl={profile.avatar_url} size={80} />
-            {profile.is_verified && (
-              <span className="absolute -bottom-1 -right-1 bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap">
-                Vérifié ✓
-              </span>
-            )}
-          </div>
+          <VerifiedAvatar
+            avatarUrl={profile.avatar_url}
+            fullName={profile.full_name ?? ""}
+            isVerified={profile.is_verified ?? false}
+            size="lg"
+          />
 
           <div>
             <h1 className="text-xl font-bold text-gray-900">{profile.full_name}</h1>
