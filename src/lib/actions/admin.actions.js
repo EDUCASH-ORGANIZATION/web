@@ -36,9 +36,17 @@ export async function verifyStudent(userId) {
   const supabase = await createClient()
   const admin = getAdminClient()
 
+  // Calcule la date d'expiration (1 an)
+  const verifiedAt    = new Date()
+  const verifiedUntil = new Date(verifiedAt)
+  verifiedUntil.setFullYear(verifiedUntil.getFullYear() + 1)
+
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .update({ is_verified: true })
+    .update({
+      is_verified:  true,
+      rejection_reason: null, // efface un éventuel rejet précédent
+    })
     .eq("user_id", userId)
     .select("full_name")
     .single()
@@ -48,12 +56,19 @@ export async function verifyStudent(userId) {
     return { error: "Impossible de mettre à jour le profil." }
   }
 
-  // Récupère l'email via service role
+  // Récupère l'email + student_profiles via service role
   try {
-    const { data: { user } } = await admin.auth.admin.getUserById(userId)
+    const [{ data: { user } }, { data: studentProfile }] = await Promise.all([
+      admin.auth.admin.getUserById(userId),
+      supabase.from("student_profiles").select("school").eq("user_id", userId).maybeSingle(),
+    ])
+
     if (user?.email) {
-      await sendEmail("welcome-verified", user.email, {
-        name: profile.full_name ?? "Étudiant",
+      await sendEmail("verification-approved", user.email, {
+        name:          profile.full_name ?? "Étudiant",
+        school:        studentProfile?.school ?? null,
+        verifiedUntil: verifiedUntil.toISOString(),
+        appUrl:        process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj",
       })
     }
   } catch (emailErr) {
@@ -101,8 +116,9 @@ export async function rejectStudent(userId, reason) {
     const { data: { user } } = await admin.auth.admin.getUserById(userId)
     if (user?.email) {
       await sendEmail("verification-rejected", user.email, {
-        name: profile?.full_name ?? "Étudiant",
-        reason: reason || "Informations insuffisantes.",
+        name:            profile?.full_name ?? "Étudiant",
+        rejectionReason: reason || "Informations insuffisantes.",
+        appUrl:          process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj",
       })
     }
   } catch (emailErr) {

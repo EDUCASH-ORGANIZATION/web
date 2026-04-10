@@ -1,28 +1,42 @@
 "use server"
 
 import { Resend } from "resend"
-import WelcomeStudent from "./templates/welcome-student.jsx"
-import WelcomeVerified from "./templates/welcome-verified.jsx"
-import NewApplication from "./templates/new-application.jsx"
-import ApplicationAccepted from "./templates/application-accepted.jsx"
-import ApplicationRejected from "./templates/application-rejected.jsx"
-import PaymentReceived from "./templates/payment-received.jsx"
-import VerificationRejected from "./templates/verification-rejected.jsx"
+import WelcomeStudent        from "./templates/welcome-student.jsx"
+import WelcomeVerified       from "./templates/welcome-verified.jsx"
+import NewApplication        from "./templates/new-application.jsx"
+import ApplicationAccepted   from "./templates/application-accepted.jsx"
+import ApplicationRejected   from "./templates/application-rejected.jsx"
+import PaymentReceived       from "./templates/payment-received.jsx"
+import VerificationApproved  from "./templates/verification-approved.jsx"
+import VerificationRejected  from "./templates/verification-rejected.jsx"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const TEMPLATES = {
-  "welcome-student": WelcomeStudent,
-  "welcome-verified": WelcomeVerified,
-  "new-application": NewApplication,
-  "application-accepted": ApplicationAccepted,
-  "application-rejected": ApplicationRejected,
-  "payment-received": PaymentReceived,
-  "verification-rejected": VerificationRejected,
+  "welcome-student":        WelcomeStudent,
+  "welcome-verified":       WelcomeVerified,
+  "new-application":        NewApplication,
+  "application-accepted":   ApplicationAccepted,
+  "application-rejected":   ApplicationRejected,
+  "payment-received":       PaymentReceived,
+  "verification-approved":  VerificationApproved,
+  "verification-rejected":  VerificationRejected,
+}
+
+const SUBJECTS = {
+  "welcome-student":        "Bienvenue sur EduCash 🎓",
+  "welcome-verified":       "Votre profil a été vérifié ✓",
+  "new-application":        "Nouvelle candidature pour votre mission",
+  "application-accepted":   "Bonne nouvelle ! Vous avez été sélectionné(e) 🎉",
+  "application-rejected":   "Mise à jour de votre candidature",
+  "verification-approved":  "Ton profil EduCash est vérifié ✓",
+  "verification-rejected":  "Action requise sur ton dossier EduCash",
 }
 
 /**
- * @param {string} template
+ * Envoie un email via Resend en utilisant un template React Email.
+ *
+ * @param {keyof typeof TEMPLATES} template
  * @param {string | string[]} to
  * @param {Record<string, unknown>} data
  * @returns {Promise<{ success: true } | { error: string }>}
@@ -39,21 +53,16 @@ export async function sendEmail(template, to, data = {}) {
     return { error: "Template inconnu : " + template }
   }
 
-  const subjects = {
-    "welcome-student": "Bienvenue sur EduCash 🎓",
-    "new-application": "Nouvelle candidature pour votre mission",
-    "application-accepted": "Bonne nouvelle ! Vous avez été sélectionné(e) 🎉",
-    "application-rejected": "Mise à jour de votre candidature",
-    "payment-received": `Paiement reçu : ${data.amount ?? ""} FCFA 💰`,
-    "welcome-verified": "Votre profil a été vérifié ✓",
-    "verification-rejected": "Mise à jour de votre vérification",
-  }
+  // payment-received a un sujet dynamique
+  const subject = template === "payment-received"
+    ? `Paiement reçu : ${data.amount ?? ""} FCFA 💰`
+    : SUBJECTS[template]
 
   try {
     const { error } = await resend.emails.send({
       from: process.env.EMAIL_FROM || "EduCash <noreply@educash.bj>",
       to,
-      subject: subjects[template],
+      subject,
       react: Template(data),
     })
 
