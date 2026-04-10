@@ -67,7 +67,7 @@ export default async function ClientMissionDetailPage({ params }) {
 
   const supabase = await createClient()
 
-  const [{ data: mission }, { data: applications }] = await Promise.all([
+  const [{ data: mission }, { data: rawApps }] = await Promise.all([
     supabase
       .from("missions")
       .select("*")
@@ -75,20 +75,49 @@ export default async function ClientMissionDetailPage({ params }) {
       .eq("client_id", user.id)
       .single(),
 
+    // Pas de FK applications → profiles : requête simple sans join embarqué
     supabase
       .from("applications")
-      .select("*, profiles!student_id(*), student_profiles!student_id(*)")
+      .select("id, mission_id, student_id, message, status, created_at")
       .eq("mission_id", id)
       .order("created_at", { ascending: false }),
   ])
 
   if (!mission) notFound()
 
+  // Récupère les profils et student_profiles des candidats séparément
+  const studentIds = (rawApps ?? []).map((a) => a.student_id)
+
+  const [{ data: profilesData }, { data: studentProfilesData }] = studentIds.length
+    ? await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, full_name, avatar_url, city, rating, missions_done")
+          .in("user_id", studentIds),
+        supabase
+          .from("student_profiles")
+          .select("user_id, school, level, skills")
+          .in("user_id", studentIds),
+      ])
+    : [{ data: [] }, { data: [] }]
+
+  // Index par user_id pour jointure O(1)
+  const profilesMap      = {}
+  const studentProfilesMap = {}
+  ;(profilesData ?? []).forEach((p) => { profilesMap[p.user_id] = p })
+  ;(studentProfilesData ?? []).forEach((s) => { studentProfilesMap[s.user_id] = s })
+
+  // Fusion applications + profils
+  const apps = (rawApps ?? []).map((a) => ({
+    ...a,
+    profiles:        profilesMap[a.student_id]        ?? {},
+    student_profiles: studentProfilesMap[a.student_id] ?? {},
+  }))
+
   const status  = STATUS_CONFIG[mission.status] ?? STATUS_CONFIG.open
   const urgency = URGENCY_CONFIG[mission.urgency] ?? URGENCY_CONFIG.low
   const typeColor = TYPE_COLORS[mission.type] ?? "bg-gray-100 text-gray-600"
   const days = daysUntil(mission.deadline)
-  const apps = applications ?? []
 
   const appCounts = {
     total:    apps.length,

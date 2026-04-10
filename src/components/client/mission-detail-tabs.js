@@ -218,7 +218,7 @@ function CandidateCard({ application, missionId, onStatusChange }) {
 
         {/* Message de motivation */}
         {application.message && (
-          <div className="bg-gray-50 rounded-xl px-3 py-2.5 border-l-2 border-[#1A6B4A]">
+          <div className="bg-gray-50 rounded-xl px-3 py-2.5">
             <p className="text-xs text-gray-600 italic leading-relaxed line-clamp-3">
               &ldquo;{application.message}&rdquo;
             </p>
