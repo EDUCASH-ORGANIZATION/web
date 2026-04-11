@@ -325,7 +325,7 @@ function VerificationCard({ profile }) {
               <button
                 type="button"
                 onClick={() => setShowReject(true)}
-                className="flex-1 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <XCircle size={13} />
                 Rejeter
@@ -334,7 +334,7 @@ function VerificationCard({ profile }) {
                 type="button"
                 onClick={() => setShowConfirm(true)}
                 disabled={verifying}
-                className="flex-1 py-2.5 rounded-xl bg-[#1A6B4A] text-white text-xs font-bold hover:bg-[#155a3d] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-xl bg-[#1A6B4A] text-white text-xs font-bold hover:bg-[#155a3d] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {verifying ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
                 Valider

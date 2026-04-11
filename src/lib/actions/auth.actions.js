@@ -58,10 +58,17 @@ export async function register(formData) {
   const { data: { user: existingUser } } = await supabase.auth.getUser()
   if (existingUser) await supabase.auth.signOut()
 
+  // emailRedirectTo : après confirmation email, Supabase redirige vers
+  // /auth/callback qui échange le code et redirige vers la bonne page d'onboarding.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj"
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { role } },
+    options: {
+      data: { role },
+      emailRedirectTo: `${appUrl}/auth/callback`,
+    },
   })
 
   if (error) return { error: error.message }

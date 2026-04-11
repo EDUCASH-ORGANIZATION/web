@@ -2,10 +2,11 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
 
 // Pages /auth/* accessibles même si l'utilisateur est déjà connecté
-// (complétion de profil post-inscription)
+// (complétion de profil post-inscription, callback OAuth/email)
 const AUTH_OPEN_WHEN_LOGGED_IN = [
   "/auth/register/student",
   "/auth/register/client",
+  "/auth/callback",
 ]
 
 export async function middleware(request) {

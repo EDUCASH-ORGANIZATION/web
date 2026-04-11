@@ -16,7 +16,7 @@ export default async function StudentLayout({ children }) {
   const [{ data: profile }, { data: studentProfile }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("full_name, avatar_url, role, city")
+      .select("full_name, avatar_url, role, city, is_verified, verified_until")
       .eq("user_id", user.id)
       .single(),
     supabase

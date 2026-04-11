@@ -164,7 +164,9 @@ function CandidateCard({ application, missionId, onStatusChange }) {
             avatarUrl={profile.avatar_url}
             fullName={profile.full_name ?? ""}
             isVerified={profile.is_verified ?? false}
+            verifiedUntil={profile.verified_until ?? null}
             size="md"
+            showBadge
           />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-black text-gray-900 truncate">{profile.full_name ?? "Étudiant"}</p>

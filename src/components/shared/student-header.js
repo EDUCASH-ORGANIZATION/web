@@ -1,20 +1,24 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useRef } from "react"
-import { Search, Bell, Settings } from "lucide-react"
+import { Search, Bell, Settings, ShieldCheck } from "lucide-react"
+import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 
 /**
  * @param {{
- *   profile: { full_name: string, avatar_url: string | null },
+ *   profile: {
+ *     full_name:     string,
+ *     avatar_url:    string | null,
+ *     is_verified:   boolean,
+ *     verified_until: string | null,
+ *   },
  *   school: string | null,
- *   userId: string,
  * }} props
  */
 export function StudentHeader({ profile, school }) {
-  const router = useRouter()
+  const router   = useRouter()
   const inputRef = useRef(null)
 
   function handleSearch(e) {
@@ -28,8 +32,12 @@ export function StudentHeader({ profile, school }) {
     ? profile.full_name.split(" ").slice(0, 2).map((p, i) => i === 1 ? p.charAt(0) + "." : p).join(" ")
     : "Étudiant"
 
-  const initial = profile?.full_name?.charAt(0)?.toUpperCase() ?? "?"
   const institution = school ? `ÉTUDIANT · ${school.toUpperCase()}` : "ÉTUDIANT · EDUCASH"
+
+  const isVerified   = profile?.is_verified ?? false
+  const verifiedUntil = profile?.verified_until ?? null
+  const isStillValid = !verifiedUntil || new Date(verifiedUntil) > new Date()
+  const showBadge    = isVerified && isStillValid
 
   return (
     <header className="sticky top-0 z-20 bg-white border-b border-gray-100 px-6 py-3 flex items-center gap-4 w-full">
@@ -67,17 +75,30 @@ export function StudentHeader({ profile, school }) {
 
       {/* Profil utilisateur */}
       <Link href="/profile" className="flex items-center gap-2.5 pl-2 border-l border-gray-100">
-        <div className="text-right hidden sm:block">
+        {/* Nom + statut (desktop uniquement) */}
+        <div className="text-right hidden sm:flex flex-col items-end gap-0.5">
           <p className="text-sm font-semibold text-gray-900 leading-tight">{displayName}</p>
-          <p className="text-[10px] text-gray-400 font-medium tracking-wide leading-tight">{institution}</p>
-        </div>
-        <div className="relative w-9 h-9 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
-          {profile?.avatar_url ? (
-            <Image src={profile.avatar_url} alt={profile.full_name} fill sizes="36px" className="object-cover" />
+          {showBadge ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1A6B4A] leading-tight">
+              <ShieldCheck size={10} strokeWidth={2.5} />
+              Vérifié
+            </span>
           ) : (
-            <span className="text-white text-sm font-bold">{initial}</span>
+            <p className="text-[10px] text-gray-400 font-medium tracking-wide leading-tight">
+              {institution}
+            </p>
           )}
         </div>
+
+        {/* Avatar avec badge de vérification */}
+        <VerifiedAvatar
+          avatarUrl={profile?.avatar_url}
+          fullName={profile?.full_name ?? ""}
+          isVerified={isVerified}
+          verifiedUntil={verifiedUntil}
+          size="sm"
+          showBadge
+        />
       </Link>
     </header>
   )

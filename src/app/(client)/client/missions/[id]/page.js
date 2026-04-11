@@ -92,7 +92,7 @@ export default async function ClientMissionDetailPage({ params }) {
     ? await Promise.all([
         supabase
           .from("profiles")
-          .select("user_id, full_name, avatar_url, city, rating, missions_done")
+          .select("user_id, full_name, avatar_url, city, rating, missions_done, is_verified, verified_until")
           .in("user_id", studentIds),
         supabase
           .from("student_profiles")
