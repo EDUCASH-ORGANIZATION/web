@@ -9,6 +9,7 @@ import ApplicationRejected   from "./templates/application-rejected.jsx"
 import PaymentReceived       from "./templates/payment-received.jsx"
 import VerificationApproved  from "./templates/verification-approved.jsx"
 import VerificationRejected  from "./templates/verification-rejected.jsx"
+import VerificationExpired   from "./templates/verification-expired.jsx"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -21,6 +22,7 @@ const TEMPLATES = {
   "payment-received":       PaymentReceived,
   "verification-approved":  VerificationApproved,
   "verification-rejected":  VerificationRejected,
+  "verification-expired":   VerificationExpired,
 }
 
 const SUBJECTS = {
@@ -31,6 +33,7 @@ const SUBJECTS = {
   "application-rejected":   "Mise à jour de votre candidature",
   "verification-approved":  "Ton profil EduCash est vérifié ✓",
   "verification-rejected":  "Action requise sur ton dossier EduCash",
+  "verification-expired":   "Ton badge EduCash a expiré — renouvelle-le",
 }
 
 /**

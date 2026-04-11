@@ -4,10 +4,18 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 
--- ─── 1. Colonnes de suivi du rejet ───────────────────────────────────────────
+-- ─── 1. Colonnes de suivi du rejet et de l'expiration ───────────────────────
 
 alter table public.profiles
-  add column if not exists rejection_reason text;
+  add column if not exists rejection_reason  text;
+
+-- Date d'expiration du badge (YYYY-MM-DD), null si non vérifié
+alter table public.profiles
+  add column if not exists verified_until    date;
+
+-- Date de soumission initiale du dossier (pour trier dans l'admin)
+alter table public.profiles
+  add column if not exists verification_submitted_at timestamptz;
 
 -- ─── 1b. Clé étrangère entre student_profiles et profiles ────────────────────
 -- Nécessaire pour que PostgREST puisse faire les jointures embarquées.

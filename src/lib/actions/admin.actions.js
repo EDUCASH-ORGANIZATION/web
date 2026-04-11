@@ -22,9 +22,9 @@ async function assertAdmin() {
 }
 
 /**
- * Valide un étudiant : is_verified = true + email de bienvenue.
+ * Valide un étudiant : is_verified = true, verified_until = +1 an, email de confirmation.
  * @param {string} userId
- * @returns {Promise<{ success: true } | { error: string }>}
+ * @returns {Promise<{ success: true, verifiedUntil: string } | { error: string }>}
  */
 export async function verifyStudent(userId) {
   try {
@@ -34,58 +34,62 @@ export async function verifyStudent(userId) {
   }
 
   const supabase = await createClient()
-  const admin = getAdminClient()
+  const admin    = getAdminClient()
 
-  // Calcule la date d'expiration (1 an)
-  const verifiedAt    = new Date()
-  const verifiedUntil = new Date(verifiedAt)
+  // Calcule la date d'expiration (1 an, format YYYY-MM-DD)
+  const verifiedUntil = new Date()
   verifiedUntil.setFullYear(verifiedUntil.getFullYear() + 1)
+  const verifiedUntilISO = verifiedUntil.toISOString().split("T")[0]
 
-  const { data: profile, error: profileError } = await supabase
+  // Met à jour le profil
+  const { error } = await supabase
     .from("profiles")
     .update({
-      is_verified:  true,
-      rejection_reason: null, // efface un éventuel rejet précédent
+      is_verified:      true,
+      verified_until:   verifiedUntilISO,
+      rejection_reason: null,
     })
     .eq("user_id", userId)
-    .select("full_name")
-    .single()
 
-  if (profileError) {
-    console.error("[verifyStudent]", profileError)
-    return { error: "Impossible de mettre à jour le profil." }
+  if (error) {
+    console.error("[verifyStudent]", error)
+    return { error: error.message }
   }
 
-  // Récupère l'email + student_profiles via service role
-  try {
-    const [{ data: { user } }, { data: studentProfile }] = await Promise.all([
-      admin.auth.admin.getUserById(userId),
-      supabase.from("student_profiles").select("school").eq("user_id", userId).maybeSingle(),
-    ])
+  // Charge les infos nécessaires pour l'email
+  const [
+    { data: profile },
+    { data: studentProfile },
+    { data: authData },
+  ] = await Promise.all([
+    supabase.from("profiles").select("full_name").eq("user_id", userId).single(),
+    supabase.from("student_profiles").select("school").eq("user_id", userId).maybeSingle(),
+    admin.auth.admin.getUserById(userId),
+  ])
 
-    if (user?.email) {
-      await sendEmail("verification-approved", user.email, {
-        name:          profile.full_name ?? "Étudiant",
-        school:        studentProfile?.school ?? null,
-        verifiedUntil: verifiedUntil.toISOString(),
-        appUrl:        process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj",
-      })
-    }
-  } catch (emailErr) {
-    console.error("[verifyStudent] email:", emailErr)
+  const email = authData?.user?.email
+  if (email) {
+    await sendEmail("verification-approved", email, {
+      name:          profile?.full_name?.split(" ")[0] ?? "Étudiant",
+      school:        studentProfile?.school ?? "ton établissement",
+      verifiedUntil: verifiedUntilISO,
+      appUrl:        process.env.NEXT_PUBLIC_APP_URL ?? "https://educash.bj",
+    }).catch((err) => console.error("[verifyStudent] email:", err))
   }
 
   revalidatePath("/admin/verifications")
-  return { success: true }
+  revalidatePath("/admin/dashboard")
+  return { success: true, verifiedUntil: verifiedUntilISO }
 }
 
 /**
- * Rejette un étudiant avec un motif + email de notification.
+ * Rejette un étudiant avec un motif + message optionnel + email de notification.
  * @param {string} userId
  * @param {string} reason
+ * @param {string} [customMessage]
  * @returns {Promise<{ success: true } | { error: string }>}
  */
-export async function rejectStudent(userId, reason) {
+export async function rejectStudent(userId, reason, customMessage = "") {
   try {
     await assertAdmin()
   } catch (e) {
@@ -93,36 +97,42 @@ export async function rejectStudent(userId, reason) {
   }
 
   const supabase = await createClient()
-  const admin = getAdminClient()
+  const admin    = getAdminClient()
 
-  // Marque le profil comme rejeté (is_verified reste false, on stocke le motif)
-  const { data: profile, error: updateError } = await supabase
+  const finalReason = reason || "Informations insuffisantes."
+
+  // Met à jour le profil
+  const { error } = await supabase
     .from("profiles")
     .update({
-      is_verified: false,
-      rejection_reason: reason || "Informations insuffisantes.",
+      is_verified:      false,
+      verified_until:   null,
+      rejection_reason: finalReason,
     })
     .eq("user_id", userId)
-    .select("full_name")
-    .single()
 
-  if (updateError) {
-    console.error("[rejectStudent]", updateError)
-    return { error: "Impossible de mettre à jour le profil." }
+  if (error) {
+    console.error("[rejectStudent]", error)
+    return { error: error.message }
   }
 
-  // Envoie un email de notification
-  try {
-    const { data: { user } } = await admin.auth.admin.getUserById(userId)
-    if (user?.email) {
-      await sendEmail("verification-rejected", user.email, {
-        name:            profile?.full_name ?? "Étudiant",
-        rejectionReason: reason || "Informations insuffisantes.",
-        appUrl:          process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj",
-      })
-    }
-  } catch (emailErr) {
-    console.error("[rejectStudent] email:", emailErr)
+  // Charge les infos pour l'email
+  const [
+    { data: profile },
+    { data: authData },
+  ] = await Promise.all([
+    supabase.from("profiles").select("full_name").eq("user_id", userId).single(),
+    admin.auth.admin.getUserById(userId),
+  ])
+
+  const email = authData?.user?.email
+  if (email) {
+    await sendEmail("verification-rejected", email, {
+      name:            profile?.full_name?.split(" ")[0] ?? "Étudiant",
+      rejectionReason: finalReason,
+      customMessage:   customMessage || null,
+      appUrl:          process.env.NEXT_PUBLIC_APP_URL ?? "https://educash.bj",
+    }).catch((err) => console.error("[rejectStudent] email:", err))
   }
 
   revalidatePath("/admin/verifications")

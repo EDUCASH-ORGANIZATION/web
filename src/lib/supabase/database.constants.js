@@ -37,7 +37,7 @@ export const VERIFICATION_VALIDITY_DAYS = 365
 
 // Instructions upload carte étudiante
 export const CARD_UPLOAD_INSTRUCTIONS = [
-  "Photo nette et bien éclairée — pas de flou",
+  "Photo nette et bien éclairée: pas de flou",
   "Tous les coins de la carte doivent être visibles",
   "Ton nom et ton établissement doivent être lisibles",
   "Fond uni de préférence (table, bureau)",
