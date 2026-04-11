@@ -228,7 +228,7 @@ function CandidateCard({ application, missionId, onStatusChange }) {
         {/* Footer : lien profil + actions */}
         <div className="flex items-center gap-2 pt-1">
           <a
-            href={`/students/${application.student_id}`}
+            href={`/students/${application.student_id}?missionId=${missionId}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-[11px] font-semibold text-[#1A6B4A] hover:underline mr-auto"

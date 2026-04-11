@@ -5,8 +5,9 @@ import { ConversationView } from "@/components/messages/conversation-view"
 
 export const metadata = { title: "Conversation — EduCash" }
 
-export default async function ClientConversationPage({ params }) {
+export default async function ClientConversationPage({ params, searchParams }) {
   const { missionId } = await params
+  const { studentId: studentIdParam } = await searchParams
   const user = await getCurrentUser()
   if (!user) redirect("/auth/login")
 
@@ -29,13 +30,18 @@ export default async function ClientConversationPage({ params }) {
 
   if (!mission) notFound()
 
-  // L'interlocuteur du client = l'étudiant sélectionné (ou null si pas encore choisi)
+  // Ordre de priorité pour trouver l'interlocuteur :
+  // 1. Étudiant sélectionné sur la mission
+  // 2. studentId passé en query param (candidature pending)
+  // 3. Depuis les messages existants
   let interlocuteur = null
-  if (mission.selected_student_id) {
+  const targetStudentId = mission.selected_student_id ?? studentIdParam ?? null
+
+  if (targetStudentId) {
     const { data } = await supabase
       .from("profiles")
-      .select("user_id, full_name, avatar_url")
-      .eq("user_id", mission.selected_student_id)
+      .select("user_id, full_name, avatar_url, is_verified, verified_until")
+      .eq("user_id", targetStudentId)
       .single()
     interlocuteur = data
   }
@@ -47,7 +53,7 @@ export default async function ClientConversationPage({ params }) {
       : messages[0].sender_id
     const { data } = await supabase
       .from("profiles")
-      .select("user_id, full_name, avatar_url")
+      .select("user_id, full_name, avatar_url, is_verified, verified_until")
       .eq("user_id", otherId)
       .single()
     interlocuteur = data

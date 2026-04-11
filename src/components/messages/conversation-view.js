@@ -2,17 +2,23 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { SendHorizonal, Loader2, ChevronLeft, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { MessageBubble } from "@/components/messages/message-bubble"
+import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 
 /**
  * @param {{
  *   initialMessages: object[],
  *   missionId: string,
  *   currentUserId: string,
- *   interlocuteur: { user_id: string, full_name: string, avatar_url: string | null },
+ *   interlocuteur: {
+ *     user_id: string,
+ *     full_name: string,
+ *     avatar_url: string | null,
+ *     is_verified?: boolean,
+ *     verified_until?: string | null,
+ *   },
  *   missionTitle: string,
  *   missionStatus: string,
  *   userRole: 'student' | 'client'
@@ -27,36 +33,36 @@ export function ConversationView({
   missionStatus,
   userRole,
 }) {
-  const router = useRouter()
-  const supabase = createClient()
+  const router   = useRouter()
+  const supabase = useRef(createClient()).current
 
-  const [messages, setMessages] = useState(initialMessages)
-  const [newMessage, setNewMessage] = useState("")
-  const [isSending, setIsSending] = useState(false)
-  const bottomRef = useRef(null)
-  const channelRef = useRef(null)
-  const textareaRef = useRef(null)
+  const [messages,    setMessages]    = useState(initialMessages)
+  const [newMessage,  setNewMessage]  = useState("")
+  const [isSending,   setIsSending]   = useState(false)
+  const bottomRef    = useRef(null)
+  const channelRef   = useRef(null)
+  const textareaRef  = useRef(null)
 
-  // Scroll automatique quand les messages changent
+  // Scroll automatique vers le bas quand les messages changent
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Realtime — écoute les nouveaux messages de cette conversation
+  // ── Realtime : écoute les nouveaux messages de cette conversation ──────────
   useEffect(() => {
     channelRef.current = supabase
-      .channel(`messages:${missionId}`)
+      .channel(`conv:${missionId}`)
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event:  "INSERT",
           schema: "public",
-          table: "messages",
+          table:  "messages",
           filter: `mission_id=eq.${missionId}`,
         },
         (payload) => {
           setMessages((prev) => {
-            // Évite les doublons si l'insert vient de nous-mêmes
+            // Évite les doublons (le message qu'on vient d'envoyer)
             if (prev.some((m) => m.id === payload.new.id)) return prev
             return [...prev, payload.new]
           })
@@ -67,9 +73,9 @@ export function ConversationView({
     return () => {
       supabase.removeChannel(channelRef.current)
     }
-  }, [missionId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [missionId, supabase])
 
-  // Marque les messages reçus comme lus
+  // ── Marque les messages reçus comme lus ───────────────────────────────────
   useEffect(() => {
     supabase
       .from("messages")
@@ -78,9 +84,9 @@ export function ConversationView({
       .eq("receiver_id", currentUserId)
       .eq("read", false)
       .then(() => {})
-  }, [missionId, currentUserId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [missionId, currentUserId, supabase])
 
-  // Auto-resize du textarea
+  // ── Auto-resize textarea ──────────────────────────────────────────────────
   function handleTextareaChange(e) {
     setNewMessage(e.target.value)
     const el = textareaRef.current
@@ -90,24 +96,35 @@ export function ConversationView({
     }
   }
 
+  // ── Envoi d'un message ────────────────────────────────────────────────────
   async function sendMessage() {
     const content = newMessage.trim()
     if (!content || isSending) return
 
     setIsSending(true)
 
-    await supabase.from("messages").insert({
-      mission_id: missionId,
-      sender_id: currentUserId,
-      receiver_id: interlocuteur.user_id,
-      content,
-      read: false,
-    })
+    const { data: inserted } = await supabase
+      .from("messages")
+      .insert({
+        mission_id:  missionId,
+        sender_id:   currentUserId,
+        receiver_id: interlocuteur.user_id,
+        content,
+        read: false,
+      })
+      .select()
+      .single()
+
+    // On ajoute localement sans attendre le realtime (UX plus rapide)
+    if (inserted) {
+      setMessages((prev) =>
+        prev.some((m) => m.id === inserted.id) ? prev : [...prev, inserted]
+      )
+    }
 
     setNewMessage("")
     setIsSending(false)
 
-    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto"
     }
@@ -120,14 +137,25 @@ export function ConversationView({
     }
   }
 
-  const interlocuteurInitial = interlocuteur?.full_name?.charAt(0)?.toUpperCase() ?? "?"
   const backHref = userRole === "client" ? "/client/messages" : "/messages"
-  const payHref = `/client/payment/${missionId}`
+  const payHref  = `/client/payment/${missionId}`
+
+  const interlocuteurIsVerified  = interlocuteur?.is_verified   ?? false
+  const interlocuteurVerifiedUntil = interlocuteur?.verified_until ?? null
+
+  // Datestamp séparateur — affiche la date quand le jour change entre deux messages
+  function getDateLabel(msg, idx) {
+    if (idx === 0) return formatDayLabel(msg.created_at)
+    const prev = messages[idx - 1]
+    const d1 = new Date(msg.created_at).toDateString()
+    const d2 = new Date(prev.created_at).toDateString()
+    return d1 !== d2 ? formatDayLabel(msg.created_at) : null
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-screen">
 
-      {/* Header sticky */}
+      {/* ── Header sticky ─────────────────────────────────────────────── */}
       <header className="sticky top-0 bg-white border-b border-gray-100 z-10 px-4 py-3 flex items-center gap-3">
         <button
           type="button"
@@ -138,34 +166,31 @@ export function ConversationView({
           <ChevronLeft size={20} />
         </button>
 
-        {/* Avatar interlocuteur */}
-        <div className="relative w-9 h-9 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
-          {interlocuteur?.avatar_url ? (
-            <Image
-              src={interlocuteur.avatar_url}
-              alt={interlocuteur.full_name}
-              fill
-              sizes="40px"
-              className="object-cover"
-            />
-          ) : (
-            <span className="text-white text-sm font-bold">{interlocuteurInitial}</span>
-          )}
-        </div>
+        {/* Avatar interlocuteur avec badge de vérification */}
+        <VerifiedAvatar
+          avatarUrl={interlocuteur?.avatar_url ?? null}
+          fullName={interlocuteur?.full_name ?? ""}
+          isVerified={interlocuteurIsVerified}
+          verifiedUntil={interlocuteurVerifiedUntil}
+          size="sm"
+          showBadge
+        />
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">
-            {interlocuteur?.full_name ?? "Interlocuteur"}
-          </p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {interlocuteur?.full_name ?? "Interlocuteur"}
+            </p>
+          </div>
           <p className="text-xs text-gray-500 truncate">{missionTitle}</p>
         </div>
       </header>
 
-      {/* Barre "Confirmer et payer" — client uniquement si mission en cours */}
+      {/* ── Barre "Confirmer et payer" (client, mission en cours) ─────── */}
       {missionStatus === "in_progress" && userRole === "client" && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-3">
           <p className="text-xs text-amber-800">
-            La mission est en cours. Confirmez la fin pour procéder au paiement.
+            Mission en cours. Confirmez la fin pour procéder au paiement.
           </p>
           <button
             type="button"
@@ -178,8 +203,8 @@ export function ConversationView({
         </div>
       )}
 
-      {/* Zone de messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      {/* ── Zone de messages ───────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-gray-400 text-center px-8">
@@ -187,29 +212,38 @@ export function ConversationView({
             </p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <MessageBubble
-              key={msg.id}
-              message={msg}
-              currentUserId={currentUserId}
-            />
-          ))
+          messages.map((msg, idx) => {
+            const dayLabel = getDateLabel(msg, idx)
+            return (
+              <div key={msg.id}>
+                {dayLabel && (
+                  <div className="flex items-center gap-3 my-4">
+                    <div className="flex-1 h-px bg-gray-100" />
+                    <span className="text-[11px] text-gray-400 font-medium shrink-0">
+                      {dayLabel}
+                    </span>
+                    <div className="flex-1 h-px bg-gray-100" />
+                  </div>
+                )}
+                <MessageBubble message={msg} currentUserId={currentUserId} />
+              </div>
+            )
+          })
         )}
-        {/* Ancre de scroll */}
         <div ref={bottomRef} />
       </div>
 
-      {/* Zone de saisie */}
+      {/* ── Zone de saisie ────────────────────────────────────────────── */}
       <div className="border-t border-gray-100 bg-white px-3 py-3 flex items-end gap-2">
         <textarea
           ref={textareaRef}
           value={newMessage}
           onChange={handleTextareaChange}
           onKeyDown={handleKeyDown}
-          placeholder="Écrivez un message… (Entrée pour envoyer)"
+          placeholder="Écris un message… (Entrée pour envoyer)"
           rows={1}
           disabled={isSending}
-          className="flex-1 resize-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent disabled:opacity-60 overflow-hidden leading-relaxed"
+          className="flex-1 resize-none rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] disabled:opacity-60 overflow-hidden leading-relaxed transition-colors"
           style={{ minHeight: "42px", maxHeight: "120px" }}
         />
         <button
@@ -227,4 +261,22 @@ export function ConversationView({
       </div>
     </div>
   )
+}
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+function formatDayLabel(iso) {
+  const date = new Date(iso)
+  const now  = new Date()
+
+  const isToday     = date.toDateString() === now.toDateString()
+  const yesterday   = new Date(now); yesterday.setDate(now.getDate() - 1)
+  const isYesterday = date.toDateString() === yesterday.toDateString()
+
+  if (isToday)     return "Aujourd'hui"
+  if (isYesterday) return "Hier"
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    weekday: "long", day: "numeric", month: "long",
+  }).format(date)
 }

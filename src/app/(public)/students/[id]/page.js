@@ -102,15 +102,22 @@ function ReviewCard({ review }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function StudentPublicProfilePage({ params }) {
+export default async function StudentPublicProfilePage({ params, searchParams }) {
   const { id } = await params
+  const { missionId: missionIdParam } = await searchParams
   const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const viewerRole = user?.user_metadata?.role ?? null
+  const isClient   = viewerRole === "client"
 
   const [
     { data: profile },
     { data: studentProfile },
     { data: reviews },
-    { data: { user } },
+    { data: contextMission },
+    { data: sharedMissions },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("user_id", id).single(),
     supabase.from("student_profiles").select("*").eq("user_id", id).maybeSingle(),
@@ -119,13 +126,33 @@ export default async function StudentPublicProfilePage({ params }) {
       .select("*, profiles!reviewer_id(full_name, avatar_url)")
       .eq("reviewed_id", id)
       .order("created_at", { ascending: false }),
-    supabase.auth.getUser(),
+    // Mission passée en contexte via ?missionId= (depuis la page candidatures)
+    isClient && user && missionIdParam
+      ? supabase
+          .from("missions")
+          .select("id, title, status")
+          .eq("id", missionIdParam)
+          .eq("client_id", user.id) // sécurité : seul le propriétaire
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    // Fallback : cherche la dernière mission partagée (étudiant sélectionné)
+    isClient && user && !missionIdParam
+      ? supabase
+          .from("missions")
+          .select("id, title, status")
+          .eq("client_id", user.id)
+          .eq("selected_student_id", id)
+          .in("status", ["in_progress", "done"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+      : Promise.resolve({ data: null }),
   ])
 
   if (!profile) notFound()
 
-  const viewerRole   = user?.user_metadata?.role ?? null
-  const isClient     = viewerRole === "client"
+  // Mission de référence pour le bouton "Discuter"
+  // Priorité : mission passée en contexte → mission partagée existante
+  const sharedMission = contextMission ?? sharedMissions?.[0] ?? null
   const skills       = Array.isArray(studentProfile?.skills) ? studentProfile.skills : []
   const missionsDone = profile.missions_done ?? 0
   const rating       = profile.rating ?? 0
@@ -312,12 +339,27 @@ export default async function StudentPublicProfilePage({ params }) {
 
               {/* CTA */}
               {isClient ? (
-                <a
-                  href={`/client/missions/new?studentId=${id}`}
-                  className="w-full py-3 rounded-xl bg-[#1A6B4A] text-white text-sm font-bold hover:bg-[#155a3d] transition-colors text-center touch-manipulation"
-                >
-                  Proposer une mission →
-                </a>
+                <div className="flex flex-col gap-2">
+                  {sharedMission && (
+                    <a
+                      href={`/client/messages/${sharedMission.id}?studentId=${id}`}
+                      className="w-full py-3 rounded-xl bg-[#1A6B4A] text-white text-sm font-bold hover:bg-[#155a3d] transition-colors text-center flex items-center justify-center gap-2 touch-manipulation"
+                    >
+                      <MessageSquare size={15} />
+                      Discuter
+                    </a>
+                  )}
+                  <a
+                    href={`/client/missions/new?studentId=${id}`}
+                    className={`w-full py-3 rounded-xl text-sm font-bold transition-colors text-center touch-manipulation ${
+                      sharedMission
+                        ? "border border-[#1A6B4A] text-[#1A6B4A] hover:bg-green-50"
+                        : "bg-[#1A6B4A] text-white hover:bg-[#155a3d]"
+                    }`}
+                  >
+                    Proposer une mission →
+                  </a>
+                </div>
               ) : !user ? (
                 <Link
                   href={`/auth/login`}

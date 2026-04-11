@@ -13,7 +13,7 @@ export default async function StudentLayout({ children }) {
   const role = user.user_metadata?.role ?? "student"
   if (role !== "student") redirect("/client/dashboard")
 
-  const [{ data: profile }, { data: studentProfile }] = await Promise.all([
+  const [{ data: profile }, { data: studentProfile }, { count: unreadCount }] = await Promise.all([
     supabase
       .from("profiles")
       .select("full_name, avatar_url, role, city, is_verified, verified_until")
@@ -24,11 +24,16 @@ export default async function StudentLayout({ children }) {
       .select("school")
       .eq("user_id", user.id)
       .maybeSingle(),
+    supabase
+      .from("messages")
+      .select("*", { count: "exact", head: true })
+      .eq("receiver_id", user.id)
+      .eq("read", false),
   ])
 
   return (
     <div className="flex h-full min-h-screen bg-[#F5F6FA]">
-      <Sidebar role="student" profile={profile} />
+      <Sidebar role="student" profile={profile} userId={user.id} unreadCount={unreadCount ?? 0} />
       <div className="flex-1 min-w-0 flex flex-col">
         <StudentHeader
           profile={profile}
@@ -39,7 +44,7 @@ export default async function StudentLayout({ children }) {
           {children}
         </main>
       </div>
-      <BottomNav role="student" />
+      <BottomNav role="student" userId={user.id} unreadCount={unreadCount ?? 0} />
     </div>
   )
 }

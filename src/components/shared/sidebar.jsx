@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import clsx from "clsx"
 import { logout } from "@/lib/actions/auth.actions"
+import { useUnreadCount } from "@/hooks/use-unread-count"
 
 const STUDENT_ITEMS = [
   { label: "Dashboard",          href: "/dashboard",    icon: LayoutDashboard },
@@ -32,9 +33,10 @@ const CLIENT_ITEMS = [
   { label: "Profil",             href: "/client/profile",    icon: User },
 ]
 
-export function Sidebar({ role = "student", profile, unreadCount = 0 }) {
-  const pathname = usePathname()
-  const items = role === "client" ? CLIENT_ITEMS : STUDENT_ITEMS
+export function Sidebar({ role = "student", profile, userId, unreadCount: initialUnreadCount = 0 }) {
+  const pathname    = usePathname()
+  const items       = role === "client" ? CLIENT_ITEMS : STUDENT_ITEMS
+  const unreadCount = useUnreadCount(userId, initialUnreadCount)
   const subtitle = role === "client" ? "Espace client" : "Espace étudiant"
   const homeHref = role === "client" ? "/client/dashboard" : "/dashboard"
   const messagesHref = role === "client" ? "/client/messages" : "/messages"
