@@ -8,6 +8,8 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { MessageBubble } from "@/components/messages/message-bubble"
+import { ImagePreviewModal } from "@/components/messages/image-preview-modal"
+import { LocationPickerModal } from "@/components/messages/location-picker-modal"
 import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 import { useToast } from "@/components/shared/toaster"
 
@@ -45,11 +47,16 @@ export function ConversationView({
   const supabase    = useRef(createClient()).current
   const { toast }   = useToast()
 
-  const [messages,          setMessages]          = useState(initialMessages)
-  const [newMessage,        setNewMessage]        = useState("")
-  const [isSending,         setIsSending]         = useState(false)
-  const [isUploadingMedia,  setIsUploadingMedia]  = useState(false)
-  const [isSendingLocation, setIsSendingLocation] = useState(false)
+  const [messages,         setMessages]         = useState(initialMessages)
+  const [newMessage,       setNewMessage]       = useState("")
+  const [isSending,        setIsSending]        = useState(false)
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false)
+
+  // Image preview
+  const [pendingImage,    setPendingImage]    = useState(null)  // { file, previewUrl }
+
+  // Location picker
+  const [showLocPicker,   setShowLocPicker]   = useState(false)
 
   // Voice recording
   const [isRecording,    setIsRecording]    = useState(false)
@@ -87,12 +94,13 @@ export function ConversationView({
 
     return () => {
       supabase.removeChannel(channelRef.current)
-      // Nettoyage enregistrement si on quitte la page
       clearInterval(recordingTimerRef.current)
       if (mediaRecorderRef.current?.state !== "inactive") {
         mediaRecorderRef.current?.stop()
       }
       mediaRecorderRef.current?.stream?.getTracks().forEach((t) => t.stop())
+      // Libère l'URL blob de preview si elle existe encore
+      if (pendingImage?.previewUrl) URL.revokeObjectURL(pendingImage.previewUrl)
     }
   }, [missionId, supabase])
 
@@ -257,22 +265,31 @@ export function ConversationView({
     }
   }
 
-  // ── Image ─────────────────────────────────────────────────────────────────
-  async function handleImageSelect(e) {
+  // ── Image : affiche la preview, ne uploade pas encore ───────────────────
+  function handleImageSelect(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    e.target.value = ""  // reset input pour pouvoir re-sélectionner le même fichier
+    e.target.value = ""
 
     if (file.size > 10 * 1024 * 1024) {
       toast({ message: "L'image ne doit pas dépasser 10 Mo.", type: "error" })
       return
     }
 
+    const previewUrl = URL.createObjectURL(file)
+    setPendingImage({ file, previewUrl })
+  }
+
+  // Confirme l'envoi de l'image depuis le modal preview
+  async function confirmSendImage() {
+    if (!pendingImage) return
     setIsUploadingMedia(true)
     try {
-      const ext       = file.name.split(".").pop() || "jpg"
-      const publicUrl = await uploadToStorage(file, ext)
+      const ext       = pendingImage.file.name.split(".").pop() || "jpg"
+      const publicUrl = await uploadToStorage(pendingImage.file, ext)
       await sendMediaMessage({ type: "image", mediaUrl: publicUrl, content: "🖼️ Image" })
+      URL.revokeObjectURL(pendingImage.previewUrl)
+      setPendingImage(null)
     } catch {
       toast({ message: "Erreur lors de l'envoi de l'image.", type: "error" })
     } finally {
@@ -280,34 +297,27 @@ export function ConversationView({
     }
   }
 
-  // ── Localisation ──────────────────────────────────────────────────────────
-  function sendLocation() {
-    if (!navigator.geolocation) {
-      toast({ message: "La géolocalisation n'est pas disponible sur cet appareil.", type: "error" })
-      return
+  function cancelSendImage() {
+    if (pendingImage?.previewUrl) URL.revokeObjectURL(pendingImage.previewUrl)
+    setPendingImage(null)
+  }
+
+  // ── Localisation : confirmation depuis le picker ──────────────────────────
+  async function handleLocationConfirm(lat, lng) {
+    setShowLocPicker(false)
+    setIsUploadingMedia(true)
+    try {
+      await sendMediaMessage({
+        type:        "location",
+        locationLat: lat,
+        locationLng: lng,
+        content:     "📍 Localisation partagée",
+      })
+    } catch {
+      toast({ message: "Erreur lors de l'envoi de la localisation.", type: "error" })
+    } finally {
+      setIsUploadingMedia(false)
     }
-    setIsSendingLocation(true)
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          await sendMediaMessage({
-            type:        "location",
-            locationLat: pos.coords.latitude,
-            locationLng: pos.coords.longitude,
-            content:     "📍 Localisation partagée",
-          })
-        } catch {
-          toast({ message: "Erreur lors de l'envoi de la localisation.", type: "error" })
-        } finally {
-          setIsSendingLocation(false)
-        }
-      },
-      () => {
-        toast({ message: "Position introuvable. Vérifiez les autorisations de localisation.", type: "error" })
-        setIsSendingLocation(false)
-      },
-      { timeout: 10000 }
-    )
   }
 
   // ── Helpers affichage ─────────────────────────────────────────────────────
@@ -324,10 +334,11 @@ export function ConversationView({
     return d1 !== d2 ? formatDayLabel(msg.created_at) : null
   }
 
-  const isBusy = isSending || isUploadingMedia || isSendingLocation
+  const isBusy = isSending || isUploadingMedia
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
+    <>
     <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-screen">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
@@ -481,13 +492,13 @@ export function ConversationView({
             {/* Localisation */}
             <button
               type="button"
-              onClick={sendLocation}
+              onClick={() => setShowLocPicker(true)}
               disabled={isBusy}
-              title="Partager ma position"
+              title="Partager une localisation"
               className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-[#1A6B4A] transition-colors disabled:opacity-40 touch-manipulation"
             >
-              {isSendingLocation
-                ? <Loader2 size={17} className="animate-spin text-[#1A6B4A]" />
+              {isUploadingMedia
+                ? null
                 : <MapPin size={17} />
               }
             </button>
@@ -522,5 +533,25 @@ export function ConversationView({
         </div>
       )}
     </div>
+
+      {/* ── Modal preview image ─────────────────────────────────────────── */}
+      {pendingImage && (
+        <ImagePreviewModal
+          file={pendingImage.file}
+          previewUrl={pendingImage.previewUrl}
+          isUploading={isUploadingMedia}
+          onConfirm={confirmSendImage}
+          onCancel={cancelSendImage}
+        />
+      )}
+
+      {/* ── Modal localisation ──────────────────────────────────────────── */}
+      {showLocPicker && (
+        <LocationPickerModal
+          onConfirm={handleLocationConfirm}
+          onClose={() => setShowLocPicker(false)}
+        />
+      )}
+    </>
   )
 }
