@@ -6,6 +6,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import clsx from "clsx"
+import { Logo } from "@/components/shared/logo"
 
 const NAV_LINKS = [
   { label: "Accueil", href: "/" },
@@ -38,10 +39,12 @@ function MobileMenu({ open, onClose }) {
       }}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <span className="text-lg font-bold tracking-tight">
-            <span className="text-[#1A6B4A]">Edu</span>
-            <span className="text-[#F59E0B]">Cash</span>
-          </span>
+          <div className="flex items-center gap-2">
+            <Logo size="sm" />
+            <span className="text-base font-black tracking-tight">
+              <span className="text-[#1A6B4A]">Edu</span><span className="text-[#F59E0B]">Cash</span>
+            </span>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -112,10 +115,12 @@ export function PublicNavbar() {
         )}
       >
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="text-xl font-bold tracking-tight shrink-0">
-            <span className="text-[#1A6B4A]">Edu</span>
-            <span className="text-[#F59E0B]">Cash</span>
+          {/* Logo + nom */}
+          <Link href="/" className="inline-flex items-center gap-2 shrink-0">
+            <Logo size="md" />
+            <span className="text-xl font-black tracking-tight">
+              <span className="text-[#1A6B4A]">Edu</span><span className="text-[#F59E0B]">Cash</span>
+            </span>
           </Link>
 
           {/* Nav desktop */}

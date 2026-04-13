@@ -16,6 +16,7 @@ import {
 import clsx from "clsx"
 import { logout } from "@/lib/actions/auth.actions"
 import { useUnreadCount } from "@/hooks/use-unread-count"
+import { Logo } from "@/components/shared/logo"
 
 const STUDENT_ITEMS = [
   { label: "Dashboard",          href: "/dashboard",    icon: LayoutDashboard },
@@ -46,11 +47,9 @@ export function Sidebar({ role = "student", profile, userId, unreadCount: initia
 
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-100">
-        <Link href={homeHref} className="block">
-          <span className="text-xl font-black tracking-tight">
-            <span className="text-[#1A6B4A]">Edu</span><span className="text-[#F59E0B]">Cash</span>
-          </span>
-          <p className="text-xs text-gray-400 mt-0.5 font-medium">{subtitle}</p>
+        <Link href={homeHref} className="flex items-center gap-2.5">
+          <Logo size="md" />
+          <p className="text-xs text-gray-400 font-medium">{subtitle}</p>
         </Link>
       </div>
 

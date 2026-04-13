@@ -23,6 +23,13 @@ export const metadata = {
   },
   description: "Missions ponctuelles rémunérées pour les étudiants au Bénin",
   manifest: "/manifest.json",
+  icons: {
+    icon:  [
+      { url: "/favicon.png",       sizes: "32x32",   type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/icon-192.png", sizes: "192x192" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

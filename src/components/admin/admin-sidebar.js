@@ -7,6 +7,7 @@ import {
   Briefcase, TrendingUp,
 } from "lucide-react"
 import { logout } from "@/lib/actions/auth.actions"
+import { Logo } from "@/components/shared/logo"
 
 const NAV_ITEMS = [
   { label: "Dashboard",       href: "/admin/dashboard",      icon: LayoutDashboard },
@@ -23,11 +24,9 @@ export function AdminSidebar({ pendingCount = 0 }) {
 
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/10">
-        <Link href="/admin/dashboard">
-          <span className="text-xl font-black tracking-tight">
-            <span className="text-[#1A6B4A]">Edu</span><span className="text-[#F59E0B]">Cash</span>
-          </span>
-          <p className="text-[11px] text-white/40 mt-0.5 font-medium uppercase tracking-widest">
+        <Link href="/admin/dashboard" className="flex items-center gap-2.5">
+          <Logo size="md" />
+          <p className="text-[11px] text-white/40 font-medium uppercase tracking-widest">
             Administration
           </p>
         </Link>

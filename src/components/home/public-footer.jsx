@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Logo } from "@/components/shared/logo"
 
 const FOOTER_LINKS = [
   {
@@ -34,10 +35,12 @@ export function PublicFooter() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 mb-10">
           {/* Brand */}
           <div className="col-span-2 sm:col-span-1">
-            <span className="text-2xl font-bold tracking-tight">
-              <span className="text-[#1A6B4A]">Edu</span>
-              <span className="text-[#F59E0B]">Cash</span>
-            </span>
+            <div className="flex items-center gap-2.5">
+              <Logo size="lg" />
+              <span className="text-2xl font-black tracking-tight">
+                <span className="text-[#1A6B4A]">Edu</span><span className="text-[#F59E0B]">Cash</span>
+              </span>
+            </div>
             <p className="mt-3 text-sm text-gray-400 leading-relaxed">
               La marketplace des étudiants au Bénin. Des missions rémunérées, un paiement sécurisé.
             </p>

@@ -5,6 +5,7 @@ import Link from "next/link"
 import * as Dialog from "@radix-ui/react-dialog"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Logo as LogoImg } from "@/components/shared/logo"
 
 const NAV_LINKS = [
   { label: "Accueil", href: "/" },
@@ -14,12 +15,7 @@ const NAV_LINKS = [
 ]
 
 function Logo() {
-  return (
-    <Link href="/" className="text-xl font-bold tracking-tight">
-      <span className="text-[#1A6B4A]">Edu</span>
-      <span className="text-[#F59E0B]">Cash</span>
-    </Link>
-  )
+  return <LogoImg size="md" href="/" />
 }
 
 export function Navbar() {
