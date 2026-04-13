@@ -2,10 +2,11 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import {
   Star, MapPin, GraduationCap, Pencil, ShieldCheck, ShieldAlert,
-  BookOpen, Zap, Clock, MessageSquare
+  BookOpen, Zap, Clock, MessageSquare, LogOut
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
+import { logout } from "@/lib/actions/auth.actions"
 import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 
 export const metadata = { title: "Mon profil — EduCash" }
@@ -313,6 +314,19 @@ export default async function StudentProfilePage() {
               )}
             </div>
           )}
+        </div>
+
+        {/* ── Déconnexion (mobile uniquement) ───────────────────────── */}
+        <div className="lg:hidden mt-2 mb-6">
+          <form action={logout}>
+            <button
+              type="submit"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-red-200 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors touch-manipulation"
+            >
+              <LogOut size={16} strokeWidth={1.75} />
+              Se déconnecter
+            </button>
+          </form>
         </div>
       </div>
     </div>
