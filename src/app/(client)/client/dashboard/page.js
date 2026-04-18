@@ -5,8 +5,11 @@ import {
 } from "lucide-react"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { createClient } from "@/lib/supabase/server"
+import { getWallet } from "@/lib/actions/wallet.actions"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
+import { DashboardWalletCard } from "@/components/client/dashboard-wallet-card"
+import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
 
 export const metadata = { title: "Espace client — EduCash" }
 
@@ -30,6 +33,7 @@ export default async function ClientDashboardPage() {
   const supabase = await createClient()
 
   const [
+    walletResult,
     { data: profile },
     { count: activeMissionsCount },
     { count: doneCount },
@@ -37,35 +41,38 @@ export default async function ClientDashboardPage() {
     { data: recentMissions },
     { data: pendingApplicationsMissions },
   ] = await Promise.all([
-    // 1. Profil client
+    // 1. Wallet
+    getWallet(user.id),
+
+    // 2. Profil client
     supabase
       .from("profiles")
       .select("full_name")
       .eq("user_id", user.id)
       .single(),
 
-    // 2. COUNT missions actives (open + in_progress)
+    // 3. COUNT missions actives (open + in_progress)
     supabase
       .from("missions")
       .select("id", { count: "exact", head: true })
       .eq("client_id", user.id)
       .in("status", ["open", "in_progress"]),
 
-    // 3. COUNT missions terminées
+    // 4. COUNT missions terminées
     supabase
       .from("missions")
       .select("id", { count: "exact", head: true })
       .eq("client_id", user.id)
       .eq("status", "done"),
 
-    // 4. SUM total dépensé (amount_total côté client)
+    // 5. SUM total dépensé (amount_total côté client)
     supabase
       .from("transactions")
       .select("amount_total")
       .eq("client_id", user.id)
       .eq("status", "paid"),
 
-    // 5. 5 missions récentes avec candidatures jointes
+    // 6. 5 missions récentes avec candidatures jointes
     supabase
       .from("missions")
       .select("id, title, type, status, created_at, applications(id, status)")
@@ -73,7 +80,7 @@ export default async function ClientDashboardPage() {
       .order("created_at", { ascending: false })
       .limit(5),
 
-    // 6. Missions avec au moins une candidature pending (pour "À traiter")
+    // 7. Missions avec au moins une candidature pending (pour "À traiter")
     supabase
       .from("missions")
       .select("id, title, applications!inner(id, status)")
@@ -85,6 +92,11 @@ export default async function ClientDashboardPage() {
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "vous"
   const totalSpent = (paidTransactions ?? []).reduce((sum, t) => sum + (t.amount_total ?? 0), 0)
+
+  const walletAvailable = walletResult.error ? 0 : walletResult.available
+  const walletBalance   = walletResult.error ? 0 : (walletResult.wallet?.balance ?? 0)
+  const walletReserved  = walletResult.error ? 0 : (walletResult.wallet?.reserved ?? 0)
+  const walletLow       = walletAvailable < MIN_DEPOSIT_AMOUNT
 
   // Candidatures pending sur toutes les missions récentes
   const totalPendingApplications = (recentMissions ?? []).reduce((sum, m) => {
@@ -155,6 +167,34 @@ export default async function ClientDashboardPage() {
           Poster une mission
         </Link>
       </div>
+
+      {/* ── Banner wallet insuffisant ──────────────────────────────── */}
+      {walletLow && (
+        <div className="flex items-center gap-4 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex-wrap">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+            <Wallet size={20} className="text-amber-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-amber-900">Votre wallet est vide ou insuffisant</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Rechargez pour publier de nouvelles missions.
+            </p>
+          </div>
+          <Link
+            href="/client/wallet"
+            className="shrink-0 px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition-colors touch-manipulation whitespace-nowrap"
+          >
+            Recharger maintenant
+          </Link>
+        </div>
+      )}
+
+      {/* ── Wallet card ────────────────────────────────────────────── */}
+      <DashboardWalletCard
+        balance={walletBalance}
+        reserved={walletReserved}
+        available={walletAvailable}
+      />
 
       {/* ── Stats ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

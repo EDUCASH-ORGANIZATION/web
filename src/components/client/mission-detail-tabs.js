@@ -14,6 +14,7 @@ import clsx from "clsx"
 import { acceptApplication, rejectApplication } from "@/lib/actions/application.actions"
 import { updateMissionStatus } from "@/lib/actions/mission.actions"
 import { useToast } from "@/components/shared/toaster"
+import { ConfirmMissionModal } from "@/components/client/confirm-mission-modal"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -334,18 +335,8 @@ function TabApplications({ applications, missionId, onStatusChange }) {
 
 // ─── Tab Paiement ─────────────────────────────────────────────────────────────
 
-function TabPayment({ mission }) {
-  const { toast } = useToast()
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-
-  async function handleConfirmDone() {
-    setLoading(true)
-    const result = await updateMissionStatus(mission.id, "done")
-    setLoading(false)
-    if (result.error) { toast({ message: result.error, type: "error" }); return }
-    router.push(`/client/payment/${mission.id}`)
-  }
+function TabPayment({ mission, selectedStudentName }) {
+  const [modalOpen, setModalOpen] = useState(false)
 
   if (mission.status === "done") {
     return (
@@ -355,11 +346,15 @@ function TabPayment({ mission }) {
         </div>
         <div>
           <p className="text-lg font-black text-gray-900">Mission terminée</p>
-          <p className="text-sm text-gray-500 mt-1.5">Le paiement a été traité avec succès.</p>
+          <p className="text-sm text-gray-500 mt-1.5">
+            Le paiement a été libéré depuis votre wallet.
+          </p>
         </div>
         <div className="bg-green-50 border border-green-200 rounded-2xl px-6 py-4 text-center">
-          <p className="text-xs text-gray-500">Montant payé</p>
-          <p className="text-2xl font-black text-[#1A6B4A] mt-0.5">{fmt(mission.budget)} FCFA</p>
+          <p className="text-xs text-gray-500">Montant versé à l&apos;étudiant</p>
+          <p className="text-2xl font-black text-[#1A6B4A] mt-0.5">
+            {fmt(Math.round(mission.budget * 0.88))} FCFA
+          </p>
         </div>
       </div>
     )
@@ -367,57 +362,75 @@ function TabPayment({ mission }) {
 
   if (mission.status === "in_progress") {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-              <CreditCard size={20} className="text-amber-600" />
+      <>
+        <div className="flex flex-col gap-6">
+          {/* Statut en cours */}
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                <CreditCard size={20} className="text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-amber-900">Mission en cours</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Confirmez la fin de mission pour libérer le paiement depuis votre wallet.
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-black text-amber-900">Mission en cours</p>
-              <p className="text-xs text-amber-700 mt-0.5">Confirmez la fin de mission pour procéder au paiement.</p>
+          </div>
+
+          {/* Récapitulatif */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-4">
+            <p className="text-sm font-black text-gray-900">Récapitulatif du paiement</p>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Budget total</span>
+                <span className="font-semibold text-gray-900">{fmt(mission.budget)} FCFA</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Commission EduCash (12%)</span>
+                <span className="font-semibold text-gray-700">
+                  {fmt(Math.round(mission.budget * 0.12))} FCFA
+                </span>
+              </div>
+              <div className="border-t border-gray-100 pt-2 flex justify-between text-sm">
+                <span className="font-bold text-gray-900">
+                  Versé à {selectedStudentName?.split(" ")[0] ?? "l'étudiant"}
+                </span>
+                <span className="font-black text-[#1A6B4A]">
+                  {fmt(Math.round(mission.budget * 0.88))} FCFA
+                </span>
+              </div>
             </div>
+          </div>
+
+          {/* Bouton */}
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="w-full py-4 rounded-2xl bg-[#1A6B4A] text-white font-bold hover:bg-[#155a3d] transition-colors flex items-center justify-center gap-2 touch-manipulation"
+          >
+            <CheckCircle size={18} />
+            Confirmer la fin et payer
+          </button>
+
+          <div className="flex items-center gap-2 justify-center">
+            <ShieldCheck size={14} className="text-[#1A6B4A]" />
+            <p className="text-xs text-gray-400 text-center">
+              Paiement instantané depuis votre wallet · Sécurisé par EduCash
+            </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-4">
-          <p className="text-sm font-black text-gray-900">Récapitulatif du paiement</p>
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Budget total</span>
-              <span className="font-semibold text-gray-900">{fmt(mission.budget)} FCFA</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Commission EduCash (12%)</span>
-              <span className="font-semibold text-gray-700">{fmt(Math.round(mission.budget * 0.12))} FCFA</span>
-            </div>
-            <div className="border-t border-gray-100 pt-2 flex justify-between text-sm">
-              <span className="font-bold text-gray-900">Montant étudiant</span>
-              <span className="font-black text-[#1A6B4A]">{fmt(Math.round(mission.budget * 0.88))} FCFA</span>
-            </div>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleConfirmDone}
-          disabled={loading}
-          className="w-full py-4 rounded-2xl bg-[#1A6B4A] text-white font-bold hover:bg-[#155a3d] transition-colors disabled:opacity-60 flex items-center justify-center gap-2 touch-manipulation"
-        >
-          {loading ? (
-            <><Loader2 size={18} className="animate-spin" /> Traitement…</>
-          ) : (
-            <><CheckCircle size={18} /> Confirmer la fin et payer</>
-          )}
-        </button>
-
-        <div className="flex items-center gap-2 justify-center">
-          <ShieldCheck size={14} className="text-[#1A6B4A]" />
-          <p className="text-xs text-gray-400 text-center">
-            Paiement sécurisé via EduCash · Libéré à la validation
-          </p>
-        </div>
-      </div>
+        <ConfirmMissionModal
+          missionId={mission.id}
+          missionTitle={mission.title}
+          studentName={selectedStudentName ?? "l'étudiant(e)"}
+          budget={mission.budget}
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+        />
+      </>
     )
   }
 
@@ -447,6 +460,9 @@ export function MissionDetailTabs({ mission, applications: initialApplications }
       prev.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
     )
   }
+
+  const acceptedApp         = applications.find((a) => a.status === "accepted")
+  const selectedStudentName = acceptedApp?.profiles?.full_name ?? null
 
   const pendingCount = applications.filter((a) => a.status === "pending").length
 
@@ -488,7 +504,7 @@ export function MissionDetailTabs({ mission, applications: initialApplications }
       </Tabs.Content>
 
       <Tabs.Content value="payment" className="focus:outline-none">
-        <TabPayment mission={mission} />
+        <TabPayment mission={mission} selectedStudentName={selectedStudentName} />
       </Tabs.Content>
     </Tabs.Root>
   )

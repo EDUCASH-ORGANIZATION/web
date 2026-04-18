@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, ShieldCheck, Users, LogOut,
-  Briefcase, TrendingUp,
+  Briefcase, TrendingUp, Wallet,
 } from "lucide-react"
 import { logout } from "@/lib/actions/auth.actions"
 import { Logo } from "@/components/shared/logo"
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { label: "Vérifications",   href: "/admin/verifications",  icon: ShieldCheck     },
   { label: "Utilisateurs",    href: "/admin/users",          icon: Users           },
   { label: "Missions",        href: "/admin/missions",       icon: Briefcase       },
+  { label: "Wallets",         href: "/admin/wallets",        icon: Wallet          },
 ]
 
 export function AdminSidebar({ pendingCount = 0 }) {

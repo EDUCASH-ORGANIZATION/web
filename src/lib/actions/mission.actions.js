@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
+import { getWallet } from "@/lib/actions/wallet.actions"
 
 /**
  * Charge les missions ouvertes avec filtres optionnels.
@@ -80,6 +81,23 @@ export async function createMission(data) {
 
   const supabase = await createClient()
 
+  // 1. Vérification du solde wallet avant publication
+  const walletResult = await getWallet(user.id)
+  if (walletResult.error) return { error: "Impossible de vérifier votre wallet. Réessayez." }
+
+  const { available } = walletResult
+  const budgetNum     = Number(budget)
+
+  if (available < budgetNum) {
+    return {
+      error:     "wallet_insufficient",
+      available,
+      required:  budgetNum,
+      shortfall: budgetNum - available,
+    }
+  }
+
+  // 2. Insertion de la mission
   const { data: mission, error } = await supabase
     .from("missions")
     .insert({
@@ -88,7 +106,7 @@ export async function createMission(data) {
       description: description.trim(),
       type,
       city,
-      budget: Number(budget),
+      budget: budgetNum,
       urgency: urgency ?? "low",
       deadline: deadline || null,
       status: "open",
@@ -98,10 +116,95 @@ export async function createMission(data) {
 
   if (error) return { error: error.message }
 
+  // 3. Réservation des fonds dans le wallet
+  const { error: reserveError } = await supabase.rpc("wallet_reserve", {
+    p_user_id:   user.id,
+    p_amount:    budgetNum,
+    p_mission_id: mission.id,
+  })
+
+  if (reserveError) {
+    // Rollback : supprime la mission si la réservation échoue
+    await supabase.from("missions").delete().eq("id", mission.id)
+    return { error: "Impossible de réserver les fonds. Vérifiez votre solde et réessayez." }
+  }
+
   revalidatePath("/client/missions")
-  revalidatePath("/missions")
+  revalidatePath("/student/missions")
 
   return { id: mission.id }
+}
+
+/**
+ * Confirme la fin d'une mission et libère les fonds wallet vers l'étudiant.
+ *
+ * @param {string} missionId
+ * @returns {Promise<{ success: true, amountStudent: number } | { error: string }>}
+ */
+export async function confirmMission(missionId) {
+  const user = await getCurrentUser()
+  if (!user) return { error: "Non authentifié." }
+
+  const supabase = await createClient()
+
+  // 1. Charge la mission
+  const { data: mission, error: missionError } = await supabase
+    .from("missions")
+    .select("id, title, budget, client_id, selected_student_id, status")
+    .eq("id", missionId)
+    .single()
+
+  if (missionError || !mission) return { error: "Mission introuvable." }
+  if (mission.client_id !== user.id) return { error: "Action non autorisée." }
+  if (mission.status === "done")     return { error: "Cette mission est déjà terminée." }
+  if (!mission.selected_student_id) return { error: "Aucun étudiant sélectionné pour cette mission." }
+
+  // 2. Libère les fonds via wallet_release (SQL SECURITY DEFINER)
+  const { data: releaseResult, error: releaseError } = await supabase.rpc("wallet_release", {
+    p_client_id:    mission.client_id,
+    p_student_id:   mission.selected_student_id,
+    p_mission_id:   missionId,
+    p_amount_total: mission.budget,
+  })
+
+  if (releaseError) return { error: releaseError.message }
+  if (!releaseResult?.success) return { error: releaseResult?.error ?? "Échec de la libération des fonds." }
+
+  // 3. Marque la mission comme terminée
+  await supabase
+    .from("missions")
+    .update({ status: "done" })
+    .eq("id", missionId)
+
+  // 4. Notification email à l'étudiant
+  try {
+    const { data: userData } = await supabase.auth.admin.getUserById(mission.selected_student_id)
+    const studentEmail = userData?.user?.email
+
+    if (studentEmail) {
+      const { data: studentProfile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", mission.selected_student_id)
+        .single()
+
+      const amountFormatted = new Intl.NumberFormat("fr-FR").format(releaseResult.amount_student ?? 0)
+
+      const { sendEmail } = await import("@/lib/email/index")
+      await sendEmail("payment-received-wallet", studentEmail, {
+        firstName:    studentProfile?.full_name?.split(" ")[0] ?? "Étudiant",
+        missionTitle: mission.title,
+        amount:       amountFormatted,
+      })
+    }
+  } catch (emailErr) {
+    console.error("[confirmMission] Erreur envoi email:", emailErr)
+  }
+
+  revalidatePath("/client/missions/" + missionId)
+  revalidatePath("/client/dashboard")
+
+  return { success: true, amountStudent: releaseResult.amount_student ?? 0 }
 }
 
 /**
@@ -117,11 +220,37 @@ export async function updateMissionStatus(id, status) {
 
   const supabase = await createClient()
 
+  // Si annulation, rembourser les fonds réservés avant de changer le statut
+  if (status === "cancelled") {
+    const { data: mission } = await supabase
+      .from("missions")
+      .select("client_id, budget, status")
+      .eq("id", id)
+      .eq("client_id", user.id)
+      .single()
+
+    if (!mission) return { error: "Mission introuvable." }
+
+    // Remboursement uniquement si des fonds étaient réservés (statut open ou in_progress)
+    if (mission.status === "open" || mission.status === "in_progress") {
+      const { error: refundError } = await supabase.rpc("wallet_refund", {
+        p_user_id:   user.id,
+        p_amount:    mission.budget,
+        p_mission_id: id,
+      })
+
+      if (refundError) {
+        console.error("[updateMissionStatus] wallet_refund error:", refundError)
+        // On continue quand même — le statut doit être mis à jour
+      }
+    }
+  }
+
   const { error } = await supabase
     .from("missions")
     .update({ status })
     .eq("id", id)
-    .eq("client_id", user.id) // garde : seul le propriétaire peut modifier
+    .eq("client_id", user.id)
 
   if (error) return { error: error.message }
 

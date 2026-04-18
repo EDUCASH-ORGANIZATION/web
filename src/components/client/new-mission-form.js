@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronRight, Send, Loader2, ShieldCheck, Star, MapPin } from "lucide-react"
+import Link from "next/link"
+import { ChevronRight, Send, Loader2, ShieldCheck, Star, MapPin, Wallet } from "lucide-react"
 import { MISSION_TYPES, CITIES } from "@/lib/supabase/database.constants"
 import { createMission } from "@/lib/actions/mission.actions"
 import { useToast } from "@/components/shared/toaster"
@@ -45,7 +46,49 @@ function diffDaysFromNow(dateStr) {
 
 // ─── Aperçu en temps réel ─────────────────────────────────────────────────────
 
-function LivePreview({ title, type, city, description, budget, urgency, deadline, profile }) {
+function WalletImpact({ available, budget }) {
+  const remaining = available - budget
+  const insufficient = budget > 0 && remaining < 0
+
+  if (!budget) return null
+
+  return (
+    <div className={`rounded-2xl border p-4 flex flex-col gap-3 ${
+      insufficient ? "bg-red-50 border-red-200" : "bg-[#f0faf5] border-green-100"
+    }`}>
+      <div className="flex items-center gap-2">
+        <Wallet size={14} className={insufficient ? "text-red-500" : "text-[#1A6B4A]"} />
+        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+          Impact sur le wallet
+        </p>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Solde disponible</span>
+          <span className="font-bold text-gray-900">{fmt(available)} FCFA</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Sera bloqué</span>
+          <span className="font-bold text-red-500">− {fmt(budget)} FCFA</span>
+        </div>
+        <div className="h-px bg-gray-200 my-0.5" />
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-semibold text-gray-800">Solde restant</span>
+          <span className={`font-black ${insufficient ? "text-red-600" : "text-[#1A6B4A]"}`}>
+            {fmt(remaining)} FCFA
+          </span>
+        </div>
+      </div>
+      {insufficient && (
+        <p className="text-xs text-red-600 font-semibold">
+          Solde insuffisant — rechargez votre wallet avant de publier.
+        </p>
+      )}
+    </div>
+  )
+}
+
+function LivePreview({ title, type, city, description, budget, urgency, deadline, profile, walletAvailable }) {
   const color    = TYPE_COLORS[type] ?? { bg: "bg-gray-100", text: "text-gray-600" }
   const urgBadge = URGENCY_BADGE[urgency]
   const days     = diffDaysFromNow(deadline)
@@ -135,6 +178,9 @@ function LivePreview({ title, type, city, description, budget, urgency, deadline
         </div>
       </div>
 
+      {/* Impact wallet */}
+      <WalletImpact available={walletAvailable} budget={budget} />
+
       {/* Trust badge */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-start gap-3">
         <div className="w-9 h-9 rounded-xl bg-[#f0faf5] flex items-center justify-center shrink-0">
@@ -153,7 +199,7 @@ function LivePreview({ title, type, city, description, budget, urgency, deadline
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 
-export function NewMissionForm({ profile }) {
+export function NewMissionForm({ profile, walletAvailable = 0 }) {
   const router = useRouter()
   const { toast } = useToast()
 
@@ -165,9 +211,12 @@ export function NewMissionForm({ profile }) {
   const [description, setDescription] = useState("")
   const [budget,      setBudget]      = useState("")
   const [error,       setError]       = useState("")
+  const [walletError, setWalletError] = useState(null)
   const [submitting,  setSubmitting]  = useState(false)
 
-  const budgetNum = parseFloat(budget.replace(/\s/g, "")) || 0
+  const budgetNum      = parseFloat(budget.replace(/\s/g, "")) || 0
+  const afterReserve   = walletAvailable - budgetNum
+  const walletInsufficient = budgetNum > 0 && afterReserve < 0
 
   function handleBudgetChange(e) {
     // Garder que les chiffres
@@ -202,7 +251,12 @@ export function NewMissionForm({ profile }) {
 
     setSubmitting(false)
 
-    if (result.error) {
+    if (result?.error === "wallet_insufficient") {
+      setWalletError(result)
+      return
+    }
+
+    if (result?.error) {
       setError(result.error)
       toast({ message: result.error, type: "error" })
       return
@@ -373,7 +427,24 @@ export function NewMissionForm({ profile }) {
               )}
             </div>
 
-            {/* Erreur */}
+            {/* Erreur wallet_insufficient */}
+            {walletError && (
+              <div className="flex flex-col gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-4">
+                <p className="text-sm text-red-700 font-semibold">
+                  Solde insuffisant. Il vous manque{" "}
+                  <strong>{fmt(walletError.shortfall)} FCFA</strong> pour publier cette mission.
+                </p>
+                <Link
+                  href="/client/wallet"
+                  className="inline-flex items-center gap-1.5 self-start text-sm font-bold text-[#1A6B4A] hover:underline"
+                >
+                  <Wallet size={14} />
+                  Recharger mon wallet →
+                </Link>
+              </div>
+            )}
+
+            {/* Erreur générique */}
             {error && (
               <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
                 {error}
@@ -393,7 +464,7 @@ export function NewMissionForm({ profile }) {
               <button
                 type="button"
                 onClick={handlePublish}
-                disabled={submitting}
+                disabled={submitting || walletInsufficient}
                 className="flex-1 py-3 rounded-xl bg-[#1A6B4A] text-white text-sm font-bold hover:bg-[#155a3d] transition-colors disabled:opacity-60 flex items-center justify-center gap-2 touch-manipulation"
               >
                 {submitting ? (
@@ -427,6 +498,7 @@ export function NewMissionForm({ profile }) {
             urgency={urgency}
             deadline={deadline}
             profile={profile}
+            walletAvailable={walletAvailable}
           />
         </div>
       </div>

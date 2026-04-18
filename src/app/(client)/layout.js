@@ -13,7 +13,7 @@ export default async function ClientLayout({ children }) {
   const role = user.user_metadata?.role ?? "student"
   if (role !== "client") redirect("/dashboard")
 
-  const [{ data: profile }, { count: unreadCount }] = await Promise.all([
+  const [{ data: profile }, { count: unreadCount }, { data: walletData }] = await Promise.all([
     supabase
       .from("profiles")
       .select("full_name, avatar_url, role, bio")
@@ -24,11 +24,20 @@ export default async function ClientLayout({ children }) {
       .select("*", { count: "exact", head: true })
       .eq("receiver_id", user.id)
       .eq("read", false),
+    supabase
+      .from("wallets")
+      .select("balance, reserved")
+      .eq("user_id", user.id)
+      .single(),
   ])
+
+  const walletAvailable = walletData
+    ? (walletData.balance ?? 0) - (walletData.reserved ?? 0)
+    : 0
 
   return (
     <div className="flex h-full min-h-screen bg-[#F5F6FA]">
-      <Sidebar role="client" profile={profile} userId={user.id} unreadCount={unreadCount ?? 0} />
+      <Sidebar role="client" profile={profile} userId={user.id} unreadCount={unreadCount ?? 0} walletAvailable={walletAvailable} />
       <div className="flex-1 min-w-0 flex flex-col">
         <ClientHeader profile={profile} />
         <main className="flex-1 pb-20 lg:pb-0 overflow-auto">

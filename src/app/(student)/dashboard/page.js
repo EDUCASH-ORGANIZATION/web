@@ -4,6 +4,8 @@ import { redirect } from "next/navigation"
 import { MapPin, Hourglass, CheckCircle2, Wallet, ShieldAlert, ArrowRight } from "lucide-react"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { createClient } from "@/lib/supabase/server"
+import { getWallet } from "@/lib/actions/wallet.actions"
+import { WalletCard } from "@/components/shared/wallet-card"
 
 export const metadata = { title: "Dashboard — EduCash" }
 
@@ -100,13 +102,14 @@ export default async function StudentDashboardPage() {
   const supabase = await createClient()
 
   const [
+    walletResult,
     { data: profile },
     { count: pendingCount },
-    { data: earningsData },
     { data: allMissions },
     { data: recentApplications },
     { data: recentMessages },
   ] = await Promise.all([
+    getWallet(user.id),
     supabase
       .from("profiles")
       .select("full_name, city, is_verified, missions_done")
@@ -118,12 +121,6 @@ export default async function StudentDashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("student_id", user.id)
       .eq("status", "pending"),
-
-    supabase
-      .from("transactions")
-      .select("amount_student")
-      .eq("student_id", user.id)
-      .eq("status", "paid"),
 
     supabase
       .from("missions")
@@ -167,9 +164,11 @@ export default async function StudentDashboardPage() {
 
   const unreadCount = (recentMessages ?? []).filter((m) => !m.read).length
 
-  const firstName = profile?.full_name?.split(" ")[0] ?? ""
-  const totalEarned = (earningsData ?? []).reduce((s, t) => s + (t.amount_student ?? 0), 0)
+  const firstName    = profile?.full_name?.split(" ")[0] ?? ""
   const missionsDone = profile?.missions_done ?? 0
+  const walletAvailable = walletResult.error ? 0 : walletResult.available
+  const walletBalance   = walletResult.error ? 0 : (walletResult.wallet?.balance ?? 0)
+  const walletReserved  = walletResult.error ? 0 : (walletResult.wallet?.reserved ?? 0)
 
   return (
     <div className="p-6 lg:p-8 max-w-[1200px] mx-auto flex flex-col gap-6">
@@ -213,6 +212,15 @@ export default async function StudentDashboardPage() {
         </div>
       )}
 
+      {/* ── Wallet ─────────────────────────────────────────────────── */}
+      <WalletCard
+        balance={walletBalance}
+        reserved={walletReserved}
+        available={walletAvailable}
+        role="student"
+        showActions={false}
+      />
+
       {/* ── Stats ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
@@ -244,20 +252,20 @@ export default async function StudentDashboardPage() {
           </div>
         </div>
 
-        {/* Total revenus */}
+        {/* Solde wallet */}
         <div className="bg-[#1A6B4A] rounded-2xl shadow-sm px-6 py-5 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
               <Wallet size={18} className="text-white" />
             </div>
-            <span className="text-[11px] font-bold text-white/60 uppercase tracking-widest">Total revenus</span>
+            <span className="text-[11px] font-bold text-white/60 uppercase tracking-widest">Solde wallet</span>
           </div>
           <div>
             <p className="text-3xl font-black text-white">
-              {fmt(totalEarned)}
+              {fmt(walletAvailable)}
               <span className="text-base font-bold ml-1">FCFA</span>
             </p>
-            <p className="text-xs text-white/60 mt-0.5">Gagnés ce mois-ci</p>
+            <p className="text-xs text-white/60 mt-0.5">Disponible pour retrait</p>
           </div>
         </div>
       </div>

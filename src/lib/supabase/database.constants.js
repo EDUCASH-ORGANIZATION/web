@@ -30,6 +30,37 @@ export const CITIES = /** @type {const} */ ([
 // ─── Commission ───────────────────────────────────────────────────────────────
 export const COMMISSION_RATE = 0.12
 
+// ─── Wallet ───────────────────────────────────────────────────────────────────
+export const WALLET_TRANSACTION_TYPES = [
+  "deposit",    // recharge client
+  "reserve",    // blocage mission
+  "release",    // libération vers étudiant
+  "commission", // commission EduCash
+  "refund",     // remboursement annulation
+  "withdrawal", // retrait Mobile Money
+]
+
+export const WALLET_TRANSACTION_LABELS = {
+  deposit:    "Recharge",
+  reserve:    "Mission publiée",
+  release:    "Paiement reçu",
+  commission: "Commission EduCash",
+  refund:     "Remboursement",
+  withdrawal: "Retrait",
+}
+
+export const WALLET_TRANSACTION_COLORS = {
+  deposit:    "text-green-600",
+  reserve:    "text-orange-500",
+  release:    "text-green-600",
+  commission: "text-gray-400",
+  refund:     "text-blue-500",
+  withdrawal: "text-red-500",
+}
+
+export const MIN_WITHDRAWAL_AMOUNT = 2000
+export const MIN_DEPOSIT_AMOUNT    = 2000
+
 // ─── Vérification ─────────────────────────────────────────────────────────────
 
 // Durée de validité du badge de vérification en jours

@@ -12,6 +12,7 @@ import {
   Plus,
   LogOut,
   LifeBuoy,
+  Wallet,
 } from "lucide-react"
 import clsx from "clsx"
 import { logout } from "@/lib/actions/auth.actions"
@@ -34,13 +35,24 @@ const CLIENT_ITEMS = [
   { label: "Profil",             href: "/client/profile",    icon: User },
 ]
 
-export function Sidebar({ role = "student", profile, userId, unreadCount: initialUnreadCount = 0 }) {
+function fmt(n) {
+  return new Intl.NumberFormat("fr-FR").format(n ?? 0)
+}
+
+export function Sidebar({ role = "student", profile, userId, unreadCount: initialUnreadCount = 0, walletAvailable = 0 }) {
   const pathname    = usePathname()
   const items       = role === "client" ? CLIENT_ITEMS : STUDENT_ITEMS
   const unreadCount = useUnreadCount(userId, initialUnreadCount)
   const subtitle = role === "client" ? "Espace client" : "Espace étudiant"
   const homeHref = role === "client" ? "/client/dashboard" : "/dashboard"
-  const messagesHref = role === "client" ? "/client/messages" : "/messages"
+  const messagesHref  = role === "client" ? "/client/messages" : "/messages"
+  const walletHref    = role === "client" ? "/client/wallet" : "/wallet"
+
+  const walletColor = walletAvailable >= 5000
+    ? "text-[#1A6B4A]"
+    : walletAvailable >= 2000
+      ? "text-amber-500"
+      : "text-red-500"
 
   return (
     <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-white border-r border-gray-100 h-screen sticky top-0 overflow-y-auto">
@@ -90,6 +102,24 @@ export function Sidebar({ role = "student", profile, userId, unreadCount: initia
           )
         })}
       </nav>
+
+      {/* Mini wallet */}
+      <div className="border-t border-gray-100 px-4 py-3">
+        <Link
+          href={walletHref}
+          className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors group"
+        >
+          <Wallet size={14} className={walletColor} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-0.5">
+              Mon wallet
+            </p>
+            <p className={`text-xs font-bold leading-none ${walletColor}`}>
+              {fmt(walletAvailable)} FCFA
+            </p>
+          </div>
+        </Link>
+      </div>
 
       {/* Bas : aide + déconnexion */}
       <div className="border-t border-gray-100 px-5 py-5 flex flex-col gap-3">
