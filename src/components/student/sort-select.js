@@ -11,7 +11,7 @@ export function SortSelect({ sort }) {
     const params = new URLSearchParams(searchParams.toString())
     params.set("sort", e.target.value)
     params.delete("page")
-    router.push(`/missions?${params.toString()}`, { scroll: false })
+    router.push(`/student/missions?${params.toString()}`, { scroll: false })
   }
 
   return (

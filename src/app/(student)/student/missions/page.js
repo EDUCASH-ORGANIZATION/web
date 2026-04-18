@@ -219,22 +219,31 @@ export default async function StudentMissionsPage({ searchParams }) {
     return `/student/missions${qs ? `?${qs}` : ""}`
   }
 
+  function buildTypeHref(newType) {
+    const params = new URLSearchParams()
+    if (q)         params.set("q", q)
+    if (newType)   params.set("type", newType)
+    if (citiesStr) params.set("cities", citiesStr)
+    if (urgency)   params.set("urgency", urgency)
+    if (budgetMax) params.set("budget", budgetMax)
+    if (sort)      params.set("sort", sort)
+    const qs = params.toString()
+    return `/student/missions${qs ? `?${qs}` : ""}`
+  }
+
   return (
     <div className="flex flex-col min-h-full">
 
       {/* ── Chips catégories ──────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-100 px-6 py-3">
-        <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
-          {[{ label: "Toutes les missions", value: "" }, ...MISSION_TYPES.map((t) => ({ label: t, value: t }))].map(({ label, value }) => {
+      <div className="bg-white border-b border-gray-100 px-4 lg:px-6 py-3">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5">
+          {[{ label: "Toutes", value: "" }, ...MISSION_TYPES.map((t) => ({ label: t, value: t }))].map(({ label, value }) => {
             const isActive = type === value
             return (
               <Link
-                key={label}
-                href={buildHref(1).replace(
-                  type ? `type=${encodeURIComponent(type)}` : "",
-                  value ? `type=${encodeURIComponent(value)}` : ""
-                ).replace(/[?&]$/, "") || (value ? `/student/missions?type=${encodeURIComponent(value)}` : "/student/missions")}
-                className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap touch-manipulation ${
+                key={value || "_all"}
+                href={buildTypeHref(value)}
+                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap touch-manipulation ${
                   isActive
                     ? "bg-[#1A6B4A] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -248,9 +257,9 @@ export default async function StudentMissionsPage({ searchParams }) {
       </div>
 
       {/* ── Corps : sidebar gauche + grille ──────────────────────── */}
-      <div className="flex flex-1 gap-6 p-6 max-w-[1280px] w-full mx-auto">
+      <div className="flex flex-col lg:flex-row flex-1 gap-4 lg:gap-6 p-4 lg:p-6 max-w-[1280px] w-full mx-auto">
 
-        {/* Sidebar filtres */}
+        {/* Sidebar filtres (desktop) + bouton mobile */}
         <Suspense fallback={null}>
           <MissionsFiltersSidebar
             budgetMax={budgetMax}
@@ -260,18 +269,17 @@ export default async function StudentMissionsPage({ searchParams }) {
         </Suspense>
 
         {/* Contenu principal */}
-        <div className="flex-1 min-w-0 flex flex-col gap-5">
+        <div className="flex-1 min-w-0 flex flex-col gap-4">
 
-          {/* Titre + tri */}
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-black text-gray-900">Missions disponibles</h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {count ?? 0} mission{(count ?? 0) !== 1 ? "s" : ""} correspondent à vos critères
+          {/* Toolbar : titre/count + [tri] [filtres mobile] */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-base lg:text-xl font-black text-gray-900 leading-tight">Missions disponibles</h1>
+              <p className="text-xs lg:text-sm text-gray-500 mt-0.5">
+                {count ?? 0} mission{(count ?? 0) !== 1 ? "s" : ""}
               </p>
             </div>
-            <div className="shrink-0 flex items-center gap-2 text-sm text-gray-500 font-medium">
-              Trier par :
+            <div className="shrink-0 flex items-center gap-2">
               <Suspense fallback={null}>
                 <SortSelect sort={sort} />
               </Suspense>
@@ -280,19 +288,19 @@ export default async function StudentMissionsPage({ searchParams }) {
 
           {/* Grille missions */}
           {!missions?.length ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-20 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
               <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
                 <MapPin size={24} className="text-gray-300" />
               </div>
               <p className="text-base font-semibold text-gray-700 mb-1">Aucune mission trouvée</p>
               <p className="text-sm text-gray-400">Modifiez vos filtres pour voir plus de résultats.</p>
-              <Link href="/missions" className="mt-4 text-sm font-semibold text-[#1A6B4A] hover:underline">
+              <Link href="/student/missions" className="mt-4 text-sm font-semibold text-[#1A6B4A] hover:underline">
                 Réinitialiser les filtres
               </Link>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 lg:gap-4">
                 {missions.map((mission) => (
                   <MissionCard key={mission.id} mission={mission} />
                 ))}
