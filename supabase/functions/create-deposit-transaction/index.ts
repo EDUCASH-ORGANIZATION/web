@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -6,24 +7,23 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { ...CORS, "Content-Type": "application/json" },
+  })
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS })
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
 
   try {
     const { userId, amount } = await req.json()
 
-    if (!userId || !amount) {
-      return new Response(
-        JSON.stringify({ error: "userId et amount sont requis" }),
-        { status: 400, headers: { ...CORS, "Content-Type": "application/json" } }
-      )
-    }
+    if (!userId || !amount) return json({ error: "userId et amount sont requis" }, 400)
 
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL"),
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
 
     // Vérifie que le wallet existe
@@ -33,49 +33,46 @@ serve(async (req) => {
       .eq("user_id", userId)
       .single()
 
-    if (walletError || !wallet) {
-      return new Response(
-        JSON.stringify({ error: "Wallet introuvable pour cet utilisateur" }),
-        { status: 404, headers: { ...CORS, "Content-Type": "application/json" } }
-      )
+    if (walletError || !wallet) return json({ error: "Wallet introuvable pour cet utilisateur" }, 404)
+
+    const fedaBase = Deno.env.get("FEDAPAY_API_URL") ?? "https://sandbox-api.fedapay.com"
+    const fedaHeaders = {
+      "Authorization": "Bearer " + Deno.env.get("FEDAPAY_SECRET_KEY"),
+      "Content-Type": "application/json",
     }
 
-    // Crée la transaction FedaPay
-    const fedaResponse = await fetch("https://api.fedapay.com/v1/transactions", {
+    // ── Étape 1 : créer la transaction ──────────────────────────────────────────
+    // callback_url = redirection navigateur après paiement (?id=X&status=approved|canceled)
+    // Le webhook FedaPay est configuré dans le Dashboard FedaPay, pas ici
+    const createRes = await fetch(`${fedaBase}/v1/transactions`, {
       method: "POST",
-      headers: {
-        "Authorization": "Bearer " + Deno.env.get("FEDAPAY_SECRET_KEY"),
-        "Content-Type": "application/json",
-      },
+      headers: fedaHeaders,
       body: JSON.stringify({
         amount,
         description: "Recharge wallet EduCash",
-        callback_url: Deno.env.get("APP_URL") + "/api/webhooks/fedapay",
-        cancel_url: Deno.env.get("APP_URL") + "/client/wallet?status=cancelled",
+        callback_url: Deno.env.get("APP_URL")?.replace(/\/$/, "") + "/client/wallet",
         currency: { iso: "XOF" },
-        metadata: { userId, type: "wallet_deposit" },
+        custom_metadata: { userId, type: "wallet_deposit" },
       }),
     })
 
-    const fedaData = await fedaResponse.json()
+    const createData = await createRes.json()
 
-    if (!fedaResponse.ok) {
-      return new Response(
-        JSON.stringify({ error: "Erreur FedaPay: " + (fedaData.message ?? "inconnue") }),
-        { status: 400, headers: { ...CORS, "Content-Type": "application/json" } }
-      )
+    if (!createRes.ok) {
+      const msg = createData?.message ?? createData?.error ?? "Erreur inconnue"
+      return json({ error: "Erreur FedaPay: " + msg }, 400)
     }
 
-    const paymentUrl = fedaData.payment_url ?? fedaData.links?.payment_url ?? null
+    // La réponse FedaPay encapsule sous la clé "v1/transaction"
+    const transaction = createData?.["v1/transaction"]
+    const transactionId = transaction?.id
+    const paymentUrl    = transaction?.payment_url
 
-    return new Response(
-      JSON.stringify({ paymentUrl, fedapayId: fedaData.id }),
-      { headers: { ...CORS, "Content-Type": "application/json" } }
-    )
+    if (!transactionId) return json({ error: "ID de transaction FedaPay manquant" }, 500)
+    if (!paymentUrl)    return json({ error: "URL de paiement manquante" }, 500)
+
+    return json({ paymentUrl, fedapayId: transactionId })
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message ?? "Erreur interne" }),
-      { status: 500, headers: { ...CORS, "Content-Type": "application/json" } }
-    )
+    return json({ error: err?.message ?? "Erreur interne" }, 500)
   }
 })

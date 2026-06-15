@@ -39,7 +39,7 @@ export async function POST(request) {
   // ── transaction.approved ────────────────────────────────────────────────────
 
   if (event.name === "transaction.approved") {
-    const metadata  = event.entity?.metadata ?? {}
+    const metadata  = event.entity?.custom_metadata ?? event.entity?.metadata ?? {}
     const fedapayId = String(event.entity.id)
     const amount    = event.entity.amount
 
@@ -144,7 +144,7 @@ export async function POST(request) {
   // ── transaction.declined ────────────────────────────────────────────────────
 
   if (event.name === "transaction.declined") {
-    const metadata  = event.entity?.metadata ?? {}
+    const metadata  = event.entity?.custom_metadata ?? event.entity?.metadata ?? {}
     const fedapayId = String(event.entity.id)
 
     if (metadata.type === "wallet_deposit") {

@@ -74,7 +74,10 @@ export async function initiateDeposit({ amount }) {
 
   const { data, error } = await supabase.functions.invoke(
     "create-deposit-transaction",
-    { body: { userId: user.id, amount } }
+    {
+      body: { userId: user.id, amount },
+      headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}` },
+    }
   )
 
   if (error) {
@@ -105,7 +108,10 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
 
   const { data, error } = await supabase.functions.invoke(
     "process-withdrawal",
-    { body: { userId: user.id, amount, phone, operator } }
+    {
+      body: { userId: user.id, amount, phone, operator },
+      headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}` },
+    }
   )
 
   if (error) {
