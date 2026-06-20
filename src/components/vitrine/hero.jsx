@@ -12,7 +12,7 @@ import AvatarGroup from "@mui/material/AvatarGroup"
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded"
 import { keyframes } from "@mui/system"
 import { BRAND, GRADIENTS } from "./theme"
-import { HeroVisual } from "./hero-visual"
+import { HeroPhone } from "./hero-phone"
 
 const pulse = keyframes`
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -96,10 +96,10 @@ export function Hero({ students = 0 }) {
           </Stack>
 
           {/* Colonne 3D */}
-          <Box sx={{ position: "relative", height: { xs: 340, sm: 420, md: 500 }, order: { xs: -1, md: 0 } }}>
+          <Box sx={{ position: "relative", height: { xs: 420, sm: 520, md: 600 }, order: { xs: -1, md: 0 } }}>
             <Box sx={{ position: "absolute", inset: "8% 12%", borderRadius: "50%",
               background: `radial-gradient(circle, ${BRAND.green}33 0%, transparent 65%)`, filter: "blur(30px)" }} />
-            <HeroVisual />
+            <HeroPhone />
           </Box>
         </Box>
       </Container>
