@@ -1,31 +1,47 @@
-import Image from "next/image"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronRight, MapPin, Calendar, Clock, Star } from "lucide-react"
+import Box from "@mui/material/Box"
+import Container from "@mui/material/Container"
+import Typography from "@mui/material/Typography"
+import Card from "@mui/material/Card"
+import Chip from "@mui/material/Chip"
+import Divider from "@mui/material/Divider"
+import Avatar from "@mui/material/Avatar"
+import Breadcrumbs from "@mui/material/Breadcrumbs"
+import MuiLink from "@mui/material/Link"
+import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded"
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded"
+import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded"
+import StarRoundedIcon from "@mui/icons-material/StarRounded"
+import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded"
+import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded"
 import { createClient } from "@/lib/supabase/server"
-import { PublicNavbar } from "@/components/home/public-navbar"
-import { PublicFooter } from "@/components/home/public-footer"
-import { ApplySidebar } from "@/components/missions/apply-sidebar"
-import { ApplyStickyButton } from "@/components/missions/apply-sticky-button"
+import { VitrineProvider } from "@/components/vitrine/vitrine-provider"
+import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
+import { VitrineFooter } from "@/components/vitrine/vitrine-footer"
+import { Stack } from "@/components/vitrine/stack"
+import { ApplySidebar } from "@/components/vitrine/apply-sidebar"
+import { ApplyStickyButton } from "@/components/vitrine/apply-sticky-button"
+import { BRAND } from "@/components/vitrine/theme"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const URGENCY_LABELS = { high: "Urgent", medium: "Cette semaine", low: "Normal" }
 const URGENCY_BADGE = {
-  high:   "bg-red-100 text-red-700 border border-red-200",
-  medium: "bg-orange-100 text-orange-700 border border-orange-200",
-  low:    "bg-gray-100 text-gray-600 border border-gray-200",
+  high:   { bg: "#FEE2E2", color: "#B91C1C" },
+  medium: { bg: "#FFEDD5", color: "#C2410C" },
+  low:    { bg: "#F1F5F9", color: "#475569" },
 }
 
 const TYPE_COLORS = {
-  "Babysitting":           "bg-purple-50 text-purple-700 border border-purple-200",
-  "Livraison":             "bg-blue-50 text-blue-700 border border-blue-200",
-  "Aide administrative":   "bg-teal-50 text-teal-700 border border-teal-200",
-  "Saisie":                "bg-indigo-50 text-indigo-700 border border-indigo-200",
-  "Community Management":  "bg-pink-50 text-pink-700 border border-pink-200",
-  "Traduction":            "bg-cyan-50 text-cyan-700 border border-cyan-200",
-  "Cours particuliers":    "bg-green-50 text-green-700 border border-green-200",
-  "Autre":                 "bg-gray-100 text-gray-600 border border-gray-200",
+  "Babysitting":          { bg: "#FCE7F3", color: "#BE185D" },
+  "Livraison":            { bg: "#DBEAFE", color: "#1D4ED8" },
+  "Aide administrative":  { bg: "#CCFBF1", color: "#0F766E" },
+  "Saisie":               { bg: "#E0E7FF", color: "#4338CA" },
+  "Community Management": { bg: "#EDE9FE", color: "#6D28D9" },
+  "Traduction":           { bg: "#CFFAFE", color: "#0E7490" },
+  "Cours particuliers":   { bg: BRAND.greenSoft, color: BRAND.greenDark },
+  "Autre":                { bg: "#F1F5F9", color: "#475569" },
 }
 
 function formatBudget(n) {
@@ -66,29 +82,31 @@ export async function generateMetadata({ params }) {
 // ─── Mini card mission similaire ─────────────────────────────────────────────
 
 function SimilarMissionCard({ mission }) {
-  const typeClass = TYPE_COLORS[mission.type] ?? TYPE_COLORS["Autre"]
+  const c = TYPE_COLORS[mission.type] ?? TYPE_COLORS["Autre"]
   return (
-    <Link
-      href={`/missions/${mission.id}`}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 flex flex-col gap-3 group"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg ${typeClass}`}>
-          {mission.type}
-        </span>
-        <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg whitespace-nowrap">
-          {formatBudget(mission.budget)} FCFA
-        </span>
-      </div>
-      <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2 group-hover:text-[#1A6B4A] transition-colors">
-        {mission.title}
-      </p>
-      {mission.city && (
-        <p className="text-xs text-gray-400 flex items-center gap-1">
-          <MapPin size={11} strokeWidth={2} />
-          {mission.city}
-        </p>
-      )}
+    <Link href={`/missions/${mission.id}`} style={{ textDecoration: "none" }}>
+      <Card sx={{ p: 2, height: "100%", transition: "box-shadow .2s ease, transform .2s ease",
+        "&:hover": { boxShadow: "0 16px 32px -20px rgba(15,23,42,0.3)", transform: "translateY(-2px)" } }}>
+        <Stack spacing={1.5}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+            <Chip label={mission.type} size="small"
+              sx={{ bgcolor: c.bg, color: c.color, fontWeight: 700, fontSize: "0.65rem", height: 22 }} />
+            <Typography sx={{ fontWeight: 800, color: BRAND.amberDark, fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+              {formatBudget(mission.budget)} FCFA
+            </Typography>
+          </Stack>
+          <Typography sx={{ fontWeight: 600, fontSize: "0.9rem", lineHeight: 1.35, color: "text.primary",
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            {mission.title}
+          </Typography>
+          {mission.city && (
+            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: "text.disabled" }}>
+              <PlaceRoundedIcon sx={{ fontSize: 13 }} />
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>{mission.city}</Typography>
+            </Stack>
+          )}
+        </Stack>
+      </Card>
     </Link>
   )
 }
@@ -126,187 +144,166 @@ export default async function MissionDetailPage({ params }) {
   const clientInitial = clientName.charAt(0).toUpperCase()
   const rating = clientProfile?.rating ?? 0
   const missionsDone = clientProfile?.missions_done ?? 0
-  const urgencyClass = URGENCY_BADGE[mission.urgency] ?? URGENCY_BADGE.low
-  const typeClass = TYPE_COLORS[mission.type] ?? TYPE_COLORS["Autre"]
+  const urgencyC = URGENCY_BADGE[mission.urgency] ?? URGENCY_BADGE.low
+  const typeC = TYPE_COLORS[mission.type] ?? TYPE_COLORS["Autre"]
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
-      <PublicNavbar />
+    <VitrineProvider>
+      <VitrineNavbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-8 pb-28 lg:pb-12">
+      <Box sx={{ bgcolor: "#F8FAFB", pb: { xs: 14, lg: 8 } }}>
+        <Container sx={{ py: { xs: 4, md: 6 } }}>
 
-        {/* ── Breadcrumb ────────────────────────────────────────────────── */}
-        <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-6 flex-wrap">
-          <Link href="/missions" className="hover:text-[#1A6B4A] transition-colors font-semibold uppercase tracking-wide">
-            Missions
-          </Link>
-          <ChevronRight size={13} className="text-gray-300 shrink-0" />
-          <span className="font-semibold uppercase tracking-wide text-gray-400">{mission.type}</span>
-          <ChevronRight size={13} className="text-gray-300 shrink-0" />
-          <span className="text-gray-600 font-medium truncate max-w-[220px]">
-            {truncate(mission.title, 35)}
-          </span>
-        </nav>
+          {/* Breadcrumb */}
+          <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 16 }} />} sx={{ mb: 4 }}>
+            <MuiLink href="/missions" underline="hover"
+              sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "0.72rem", color: "text.secondary" }}>
+              Missions
+            </MuiLink>
+            <Typography sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "0.72rem", color: "text.disabled" }}>
+              {mission.type}
+            </Typography>
+            <Typography sx={{ fontSize: "0.8rem", color: "text.primary", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {truncate(mission.title, 35)}
+            </Typography>
+          </Breadcrumbs>
 
-        {/* ── Corps : 2 colonnes ────────────────────────────────────────── */}
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" }, gap: 4, alignItems: "start" }}>
 
-          {/* ── Colonne gauche (2/3) ──────────────────────────────────── */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
+            {/* Colonne gauche */}
+            <Stack spacing={3}>
 
-            {/* Carte principale */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5">
+              {/* Carte principale */}
+              <Card sx={{ p: { xs: 3, md: 4 } }}>
+                <Stack spacing={2.5}>
+                  <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}>
+                    <Chip label={mission.type} sx={{ bgcolor: typeC.bg, color: typeC.color, fontWeight: 700 }} />
+                    <Chip label={URGENCY_LABELS[mission.urgency] ?? "Normal"} sx={{ bgcolor: urgencyC.bg, color: urgencyC.color, fontWeight: 700 }} />
+                  </Stack>
 
-              {/* Badges */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-xs font-bold px-3 py-1 rounded-full ${typeClass}`}>
-                  {mission.type}
-                </span>
-                <span className={`text-xs font-bold px-3 py-1 rounded-full ${urgencyClass}`}>
-                  {URGENCY_LABELS[mission.urgency] ?? "Normal"}
-                </span>
-              </div>
+                  <Typography variant="h4" sx={{ fontWeight: 800, fontSize: { xs: "1.6rem", md: "2rem" }, lineHeight: 1.25 }}>
+                    {mission.title}
+                  </Typography>
 
-              {/* Titre */}
-              <h1 className="text-2xl font-black text-gray-900 leading-snug">
-                {mission.title}
-              </h1>
-
-              {/* Méta */}
-              <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
-                {mission.city && (
-                  <span className="flex items-center gap-1.5">
-                    <MapPin size={14} className="text-gray-400 shrink-0" />
-                    {mission.city}
-                  </span>
-                )}
-                <span className="flex items-center gap-1.5">
-                  <Calendar size={14} className="text-gray-400 shrink-0" />
-                  Publiée le {formatDate(mission.created_at)}
-                </span>
-              </div>
-
-              <hr className="border-gray-100" />
-
-              {/* Description */}
-              <div className="flex flex-col gap-3">
-                <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">
-                  Description
-                </h2>
-                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                  {mission.description}
-                </p>
-              </div>
-
-              <hr className="border-gray-100" />
-
-              {/* Infos clés */}
-              <div className="grid grid-cols-2 gap-4">
-                {mission.deadline && (
-                  <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-1">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <Clock size={11} />
-                      Date limite
-                    </p>
-                    <p className="text-sm font-bold text-gray-900">
-                      {formatDate(mission.deadline)}
-                    </p>
-                  </div>
-                )}
-                <div className="bg-amber-50 rounded-xl p-4 flex flex-col gap-1">
-                  <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">
-                    Rémunération
-                  </p>
-                  <p className="text-sm font-black text-amber-700">
-                    {formatBudget(mission.budget)} <span className="text-xs font-bold">FCFA</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Card client ──────────────────────────────────────────── */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-4">
-                À propos du client
-              </h2>
-              <div className="flex items-center gap-4">
-                <div className="relative w-14 h-14 rounded-full bg-[#1A6B4A] flex items-center justify-center shrink-0 overflow-hidden">
-                  {clientProfile?.avatar_url ? (
-                    <Image
-                      src={clientProfile.avatar_url}
-                      alt={clientName}
-                      fill
-                      sizes="56px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <span className="text-white text-xl font-black">{clientInitial}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-bold text-gray-900">{clientName}</p>
-                    {clientProfile?.is_verified && (
-                      <span className="text-[10px] font-bold text-[#1A6B4A] bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                        Vérifié
-                      </span>
+                  <Stack direction="row" useFlexGap spacing={3} sx={{ flexWrap: "wrap", color: "text.secondary" }}>
+                    {mission.city && (
+                      <Stack direction="row" alignItems="center" spacing={0.8}>
+                        <PlaceRoundedIcon sx={{ fontSize: 17, color: "text.disabled" }} />
+                        <Typography variant="body2">{mission.city}</Typography>
+                      </Stack>
                     )}
-                  </div>
-                  {clientProfile?.city && (
-                    <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                      <MapPin size={10} className="shrink-0" />
-                      {clientProfile.city}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-3 mt-2">
-                    {rating > 0 && (
-                      <span className="flex items-center gap-1 text-xs text-amber-500 font-semibold">
-                        <Star size={11} fill="currentColor" />
-                        {rating.toFixed(1)}
-                      </span>
+                    <Stack direction="row" alignItems="center" spacing={0.8}>
+                      <CalendarMonthRoundedIcon sx={{ fontSize: 17, color: "text.disabled" }} />
+                      <Typography variant="body2">Publiée le {formatDate(mission.created_at)}</Typography>
+                    </Stack>
+                  </Stack>
+
+                  <Divider />
+
+                  <Stack spacing={1.2}>
+                    <Typography variant="overline" sx={{ color: "text.disabled", letterSpacing: "0.12em" }}>Description</Typography>
+                    <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7, whiteSpace: "pre-line" }}>
+                      {mission.description}
+                    </Typography>
+                  </Stack>
+
+                  <Divider />
+
+                  <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                    {mission.deadline && (
+                      <Stack spacing={0.5} sx={{ bgcolor: "#F8FAFB", borderRadius: 2.5, p: 2 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.6}>
+                          <AccessTimeRoundedIcon sx={{ fontSize: 13, color: "text.disabled" }} />
+                          <Typography variant="caption" sx={{ fontWeight: 800, color: "text.disabled", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                            Date limite
+                          </Typography>
+                        </Stack>
+                        <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }}>{formatDate(mission.deadline)}</Typography>
+                      </Stack>
                     )}
-                    {missionsDone > 0 && (
-                      <span className="text-xs text-gray-400">
-                        {missionsDone} mission{missionsDone > 1 ? "s" : ""} publiée{missionsDone > 1 ? "s" : ""}
-                      </span>
+                    <Stack spacing={0.5} sx={{ bgcolor: BRAND.amberSoft, borderRadius: 2.5, p: 2 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 800, color: BRAND.amberDark, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                        Rémunération
+                      </Typography>
+                      <Typography sx={{ fontWeight: 900, color: BRAND.amberDark }}>
+                        {formatBudget(mission.budget)} <Box component="span" sx={{ fontSize: "0.75rem", fontWeight: 700 }}>FCFA</Box>
+                      </Typography>
+                    </Stack>
+                  </Box>
+                </Stack>
+              </Card>
+
+              {/* Carte client */}
+              <Card sx={{ p: 3 }}>
+                <Typography variant="overline" sx={{ color: "text.disabled", letterSpacing: "0.12em", mb: 2, display: "block" }}>
+                  À propos du client
+                </Typography>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Avatar src={clientProfile?.avatar_url || undefined} sx={{ width: 56, height: 56, bgcolor: BRAND.green, fontWeight: 800 }}>
+                    {clientInitial}
+                  </Avatar>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Stack direction="row" useFlexGap alignItems="center" spacing={1} sx={{ flexWrap: "wrap" }}>
+                      <Typography sx={{ fontWeight: 700 }}>{clientName}</Typography>
+                      {clientProfile?.is_verified && (
+                        <Chip size="small" icon={<VerifiedRoundedIcon sx={{ fontSize: "14px !important" }} />} label="Vérifié"
+                          sx={{ height: 22, bgcolor: BRAND.greenSoft, color: BRAND.greenDark, fontWeight: 700, fontSize: "0.68rem" }} />
+                      )}
+                    </Stack>
+                    {clientProfile?.city && (
+                      <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5, color: "text.disabled" }}>
+                        <PlaceRoundedIcon sx={{ fontSize: 13 }} />
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>{clientProfile.city}</Typography>
+                      </Stack>
                     )}
-                  </div>
-                </div>
-              </div>
-            </div>
+                    <Stack direction="row" useFlexGap alignItems="center" spacing={2} sx={{ mt: 1, flexWrap: "wrap" }}>
+                      {rating > 0 && (
+                        <Stack direction="row" alignItems="center" spacing={0.4}>
+                          <StarRoundedIcon sx={{ fontSize: 15, color: "#F59E0B" }} />
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: BRAND.amberDark }}>{rating.toFixed(1)}</Typography>
+                        </Stack>
+                      )}
+                      {missionsDone > 0 && (
+                        <Typography variant="caption" sx={{ color: "text.disabled" }}>
+                          {missionsDone} mission{missionsDone > 1 ? "s" : ""} publiée{missionsDone > 1 ? "s" : ""}
+                        </Typography>
+                      )}
+                    </Stack>
+                  </Box>
+                </Stack>
+              </Card>
 
-            {/* ── Missions similaires ──────────────────────────────────── */}
-            {similarMissions?.length > 0 && (
-              <div className="flex flex-col gap-4">
-                <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">
-                  Missions similaires
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {similarMissions.map((m) => (
-                    <SimilarMissionCard key={m.id} mission={m} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+              {/* Missions similaires */}
+              {similarMissions?.length > 0 && (
+                <Stack spacing={2}>
+                  <Typography variant="overline" sx={{ color: "text.disabled", letterSpacing: "0.12em" }}>
+                    Missions similaires
+                  </Typography>
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+                    {similarMissions.map((m) => <SimilarMissionCard key={m.id} mission={m} />)}
+                  </Box>
+                </Stack>
+              )}
+            </Stack>
 
-          {/* ── Colonne droite sticky — desktop uniquement ───────────── */}
-          <div className="hidden lg:block">
-            <ApplySidebar
-              missionId={mission.id}
-              missionTitle={mission.title}
-              clientName={clientName}
-              budget={mission.budget}
-              estimatedDuration={mission.estimated_duration ?? null}
-            />
-          </div>
-        </div>
-      </div>
+            {/* Colonne droite (desktop) */}
+            <Box sx={{ display: { xs: "none", lg: "block" } }}>
+              <ApplySidebar
+                missionId={mission.id}
+                missionTitle={mission.title}
+                clientName={clientName}
+                budget={mission.budget}
+                estimatedDuration={mission.estimated_duration ?? null}
+              />
+            </Box>
+          </Box>
+        </Container>
+      </Box>
 
-      <PublicFooter />
+      <VitrineFooter />
 
       {/* Barre sticky mobile */}
       <ApplyStickyButton missionId={mission.id} missionTitle={mission.title} />
-    </div>
+    </VitrineProvider>
   )
 }

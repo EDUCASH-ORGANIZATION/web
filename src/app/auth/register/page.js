@@ -1,6 +1,7 @@
-import { AlertCircle } from "lucide-react"
+import Alert from "@mui/material/Alert"
+import Box from "@mui/material/Box"
 import { RegisterForm } from "@/components/auth/register-form"
-import { Logo } from "@/components/shared/logo"
+import { AuthShell } from "@/components/vitrine/auth-shell"
 
 export const metadata = {
   title: "Inscription — EduCash",
@@ -19,32 +20,13 @@ export default async function RegisterPage({ searchParams }) {
     : null
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg bg-white rounded-xl shadow-sm border border-gray-100 px-8 py-10">
-        {/* Logo */}
-        <div className="flex flex-col items-center gap-2 mb-8">
-          <Logo size="lg" />
-          <span className="text-2xl font-black tracking-tight">
-            <span className="text-[#1A6B4A]">Edu</span><span className="text-[#F59E0B]">Cash</span>
-          </span>
-        </div>
-
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Rejoindre EduCash</h1>
-          <p className="mt-1 text-sm text-gray-500">Choisis ton profil</p>
-        </div>
-
-        {/* Erreur de callback (lien expiré, etc.) */}
-        {errorMessage && (
-          <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 mb-5">
-            <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
-            <p className="text-sm text-red-700">{errorMessage}</p>
-          </div>
-        )}
-
-        <RegisterForm />
-      </div>
-    </main>
+    <AuthShell title="Rejoindre EduCash" subtitle="Choisis ton profil pour commencer" maxWidth={520}>
+      {errorMessage && (
+        <Box sx={{ mb: 2.5 }}>
+          <Alert severity="error" sx={{ borderRadius: 2.5 }}>{errorMessage}</Alert>
+        </Box>
+      )}
+      <RegisterForm />
+    </AuthShell>
   )
 }

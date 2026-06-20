@@ -2,14 +2,23 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Camera, AlertCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import Box from "@mui/material/Box"
+import TextField from "@mui/material/TextField"
+import MenuItem from "@mui/material/MenuItem"
+import Button from "@mui/material/Button"
+import Chip from "@mui/material/Chip"
+import Alert from "@mui/material/Alert"
+import Typography from "@mui/material/Typography"
+import LinearProgress from "@mui/material/LinearProgress"
+import CircularProgress from "@mui/material/CircularProgress"
+import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded"
+import { Stack } from "@/components/vitrine/stack"
 import { useToast } from "@/components/shared/toaster"
 import { useSupabase } from "@/components/shared/supabase-provider"
 import { CITIES, MISSION_TYPES } from "@/lib/supabase/database.constants"
 import { getUniversities } from "@/lib/actions/university.actions"
 import { CardUploadZone } from "@/components/auth/card-upload-zone"
-import clsx from "clsx"
+import { BRAND } from "@/components/vitrine/theme"
 
 const STUDY_LEVELS = [
   "Licence 1", "Licence 2", "Licence 3",
@@ -18,16 +27,15 @@ const STUDY_LEVELS = [
 
 // ─── Étape 1 ─────────────────────────────────────────────────────────────────
 
-function Step1({ onNext }) {
-  const [avatarFile, setAvatarFile] = useState(null)
+function Step1({ initial = {}, onNext }) {
+  const [avatarFile, setAvatarFile] = useState(initial.avatarFile ?? null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [fullName, setFullName] = useState(initial.fullName ?? "")
+  const [city, setCity] = useState(initial.city ?? "")
+  const [phone, setPhone] = useState(initial.phone ?? "")
+  const [bio, setBio] = useState(initial.bio ?? "")
   const [error, setError] = useState("")
-  const [bio, setBio] = useState("")
   const avatarInputRef = useRef(null)
-
-  const fullNameRef = useRef(null)
-  const cityRef = useRef(null)
-  const phoneRef = useRef(null)
 
   function handleAvatarChange(e) {
     const file = e.target.files?.[0]
@@ -39,116 +47,57 @@ function Step1({ onNext }) {
   }
 
   function handleNext() {
-    const fullName = fullNameRef.current?.value.trim()
-    const city = cityRef.current?.value
-
-    if (!fullName) { setError("Le nom complet est requis."); return }
+    if (!fullName.trim()) { setError("Le nom complet est requis."); return }
     if (!city) { setError("Veuillez choisir une ville."); return }
     setError("")
-
-    onNext({
-      avatarFile,
-      fullName,
-      city,
-      phone: phoneRef.current?.value.trim() ?? "",
-      bio,
-    })
+    onNext({ avatarFile, fullName: fullName.trim(), city, phone: phone.trim(), bio })
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <Stack spacing={2.5}>
       {/* Progression */}
-      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className="h-full bg-[#1A6B4A] rounded-full transition-all" style={{ width: "50%" }} />
-      </div>
-      <h2 className="text-lg font-bold text-gray-900">Ton profil <span className="text-gray-400 font-normal text-base">(1/2)</span></h2>
+      <Box>
+        <LinearProgress variant="determinate" value={50} sx={{ height: 6, borderRadius: 999, mb: 1.5 }} />
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>
+          Ton profil <Box component="span" sx={{ color: "text.disabled", fontWeight: 400, fontSize: "0.9rem" }}>(1/2)</Box>
+        </Typography>
+      </Box>
 
       {/* Avatar */}
-      <div className="flex flex-col items-center gap-2">
-        <button
-          type="button"
-          onClick={() => avatarInputRef.current?.click()}
-          className="relative w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 hover:border-[#1A6B4A] transition-colors overflow-hidden flex items-center justify-center"
+      <Stack spacing={1} sx={{ alignItems: "center" }}>
+        <Box component="button" type="button" onClick={() => avatarInputRef.current?.click()}
           aria-label="Choisir une photo de profil"
-        >
-          {previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={previewUrl} alt="Aperçu avatar" className="w-full h-full object-cover" />
-          ) : (
-            <Camera size={28} className="text-gray-400" />
-          )}
-        </button>
-        <p className="text-xs text-gray-500">Photo de profil (optionnel)</p>
-        <input
-          ref={avatarInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleAvatarChange}
-        />
-      </div>
+          sx={{ width: 96, height: 96, borderRadius: "50%", cursor: "pointer", overflow: "hidden",
+            border: "2px dashed", borderColor: "divider", bgcolor: "#F8FAFB", display: "grid", placeItems: "center",
+            transition: "border-color .15s ease", "&:hover": { borderColor: BRAND.green } }}>
+          {previewUrl
+            ? <Box component="img" src={previewUrl} alt="Aperçu avatar" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <PhotoCameraRoundedIcon sx={{ fontSize: 28, color: "text.disabled" }} />}
+        </Box>
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>Photo de profil (optionnel)</Typography>
+        <input ref={avatarInputRef} type="file" accept="image/*" hidden onChange={handleAvatarChange} />
+      </Stack>
 
-      {/* Nom complet */}
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">Nom complet *</label>
-        <input
-          ref={fullNameRef}
-          suppressHydrationWarning
-          type="text"
-          placeholder="Ex : Kokou Mensah"
-          className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
-        />
-      </div>
+      <TextField label="Nom complet" required value={fullName} onChange={(e) => setFullName(e.target.value)}
+        placeholder="Ex : Kokou Mensah" fullWidth />
 
-      {/* Ville */}
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">Ville *</label>
-        <select
-          ref={cityRef}
-          className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
-        >
-          <option value="">Sélectionner une ville</option>
-          {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
+      <TextField select label="Ville" required value={city} onChange={(e) => setCity(e.target.value)} fullWidth
+        slotProps={{ select: { displayEmpty: true } }}>
+        <MenuItem value="">Sélectionner une ville</MenuItem>
+        {CITIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+      </TextField>
 
-      {/* Téléphone */}
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">Téléphone</label>
-        <input
-          ref={phoneRef}
-          suppressHydrationWarning
-          type="tel"
-          placeholder="+229 XX XX XX XX"
-          className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
-        />
-      </div>
+      <TextField label="Téléphone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+        placeholder="+229 XX XX XX XX" fullWidth />
 
-      {/* Bio */}
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">
-          Bio courte <span className="text-gray-400 font-normal">({bio.length}/200)</span>
-        </label>
-        <textarea
-          value={bio}
-          onChange={(e) => setBio(e.target.value.slice(0, 200))}
-          placeholder="Dis quelques mots sur toi..."
-          rows={3}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
-        />
-      </div>
+      <TextField label="Bio courte" value={bio} onChange={(e) => setBio(e.target.value.slice(0, 200))}
+        placeholder="Dis quelques mots sur toi..." fullWidth multiline minRows={3}
+        helperText={`${bio.length}/200`} slotProps={{ formHelperText: { sx: { textAlign: "right", mr: 0 } } }} />
 
-      {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
-          <AlertCircle size={15} className="text-red-500 shrink-0" />
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
-      )}
+      {error && <Alert severity="error" sx={{ borderRadius: 2.5 }}>{error}</Alert>}
 
-      <Button variant="primary" fullWidth onClick={handleNext}>
-        Suivant →
-      </Button>
-    </div>
+      <Button variant="contained" size="large" fullWidth onClick={handleNext}>Suivant →</Button>
+    </Stack>
   )
 }
 
@@ -265,122 +214,83 @@ function Step2({ step1Data, onBack }) {
     }
   }
 
-  const selectCls = "h-10 w-full rounded-lg border border-gray-300 px-3 text-sm bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
-  const inputCls  = "h-10 w-full rounded-lg border border-gray-300 px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
-
   return (
-    <div className="flex flex-col gap-5">
+    <Stack spacing={2.5}>
       {/* Progression */}
-      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className="h-full bg-[#1A6B4A] rounded-full transition-all" style={{ width: "100%" }} />
-      </div>
-      <h2 className="text-lg font-bold text-gray-900">
-        Ton profil <span className="text-gray-400 font-normal text-base">(2/2)</span>
-      </h2>
+      <Box>
+        <LinearProgress variant="determinate" value={100} sx={{ height: 6, borderRadius: 999, mb: 1.5 }} />
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>
+          Ton profil <Box component="span" sx={{ color: "text.disabled", fontWeight: 400, fontSize: "0.9rem" }}>(2/2)</Box>
+        </Typography>
+      </Box>
 
-      {/* ── Établissement ─────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">Établissement</label>
-        <select
-          value={selectedSchool}
-          onChange={(e) => setSelectedSchool(e.target.value)}
-          className={selectCls}
-        >
-          <option value="">Sélectionne ton établissement</option>
+      {/* Établissement */}
+      <Box>
+        <TextField select label="Établissement" value={selectedSchool} onChange={(e) => setSelectedSchool(e.target.value)} fullWidth
+          slotProps={{ select: { displayEmpty: true } }}>
+          <MenuItem value="">Sélectionne ton établissement</MenuItem>
           {universities.map((u) => (
-            <option key={u.id} value={u.name}>
+            <MenuItem key={u.id} value={u.name}>
               {u.name}{u.short_name ? ` (${u.short_name})` : ""}{u.city ? ` — ${u.city}` : ""}
-            </option>
+            </MenuItem>
           ))}
-          <option value="__other__">Autre établissement</option>
-        </select>
-
+          <MenuItem value="__other__">Autre établissement</MenuItem>
+        </TextField>
         {selectedSchool === "__other__" && (
-          <input
-            type="text"
-            value={customSchool}
-            onChange={(e) => setCustomSchool(e.target.value)}
-            placeholder="Précise le nom de ton établissement"
-            className={`${inputCls} mt-2`}
-          />
+          <TextField value={customSchool} onChange={(e) => setCustomSchool(e.target.value)}
+            placeholder="Précise le nom de ton établissement" fullWidth sx={{ mt: 1.5 }} />
         )}
-      </div>
+      </Box>
 
-      {/* ── Niveau d'études ───────────────────────────────────────────── */}
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">Niveau d&apos;études</label>
-        <select
-          value={level}
-          onChange={(e) => setLevel(e.target.value)}
-          className={selectCls}
-        >
-          <option value="">Sélectionner un niveau</option>
-          {STUDY_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-        </select>
-      </div>
+      {/* Niveau d'études */}
+      <TextField select label="Niveau d'études" value={level} onChange={(e) => setLevel(e.target.value)} fullWidth
+        slotProps={{ select: { displayEmpty: true } }}>
+        <MenuItem value="">Sélectionner un niveau</MenuItem>
+        {STUDY_LEVELS.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
+      </TextField>
 
-      {/* ── Compétences ───────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-gray-700">
-          Compétences <span className="text-red-500">*</span>{" "}
-          <span className="text-gray-400 font-normal">(au moins 1)</span>
-        </p>
-        <div className="flex flex-wrap gap-2">
+      {/* Compétences */}
+      <Box>
+        <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+          Compétences <Box component="span" sx={{ color: "error.main" }}>*</Box>{" "}
+          <Box component="span" sx={{ color: "text.disabled", fontWeight: 400 }}>(au moins 1)</Box>
+        </Typography>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
           {MISSION_TYPES.map((skill) => {
             const active = skills.includes(skill)
             return (
-              <button
-                key={skill}
-                type="button"
-                onClick={() => toggleSkill(skill)}
-                className={clsx(
-                  "px-3 py-1.5 rounded-full text-sm border transition-colors",
-                  active
-                    ? "bg-[#1A6B4A] text-white border-[#1A6B4A]"
-                    : "bg-white text-gray-600 border-gray-300 hover:border-[#1A6B4A] hover:text-[#1A6B4A]"
-                )}
-              >
-                {skill}
-              </button>
+              <Chip key={skill} label={skill} clickable onClick={() => toggleSkill(skill)}
+                variant={active ? "filled" : "outlined"}
+                sx={active
+                  ? { bgcolor: BRAND.green, color: "#fff", fontWeight: 700, "&:hover": { bgcolor: BRAND.greenDark } }
+                  : { fontWeight: 600 }} />
             )
           })}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      {/* ── Carte étudiante ───────────────────────────────────────────── */}
-      <div className="flex flex-col gap-1.5">
-        <p className="text-sm font-medium text-gray-700">Carte étudiante</p>
+      {/* Carte étudiante */}
+      <Box>
+        <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Carte étudiante</Typography>
         <CardUploadZone file={cardFile} onFileSelect={setCardFile} />
-      </div>
+      </Box>
 
-      {/* ── Disponibilités ────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">Disponibilités</label>
-        <textarea
-          value={availability}
-          onChange={(e) => setAvailability(e.target.value)}
-          placeholder="Ex : Week-ends, mercredis après-midi, vacances scolaires..."
-          rows={2}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#1A6B4A] focus:border-transparent"
-        />
-      </div>
+      {/* Disponibilités */}
+      <TextField label="Disponibilités" value={availability} onChange={(e) => setAvailability(e.target.value)}
+        placeholder="Ex : Week-ends, mercredis après-midi, vacances scolaires..." fullWidth multiline minRows={2} />
 
-      {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
-          <AlertCircle size={15} className="text-red-500 shrink-0" />
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
-      )}
+      {error && <Alert severity="error" sx={{ borderRadius: 2.5 }}>{error}</Alert>}
 
-      <div className="flex gap-3">
-        <Button variant="secondary" onClick={onBack} disabled={isSubmitting}>
+      <Stack direction="row" spacing={1.5}>
+        <Button variant="outlined" color="inherit" onClick={onBack} disabled={isSubmitting} sx={{ flexShrink: 0 }}>
           ← Retour
         </Button>
-        <Button variant="primary" fullWidth isLoading={isSubmitting} onClick={handleSubmit}>
+        <Button variant="contained" fullWidth onClick={handleSubmit} disabled={isSubmitting}
+          startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : null}>
           Terminer mon inscription
         </Button>
-      </div>
-    </div>
+      </Stack>
+    </Stack>
   )
 }
 
@@ -390,21 +300,18 @@ export function StudentProfileForm() {
   const [step, setStep] = useState(1)
   const [step1Data, setStep1Data] = useState({})
 
-  return (
-    <div>
-      {step === 1 ? (
-        <Step1
-          onNext={(data) => {
-            setStep1Data(data)
-            setStep(2)
-          }}
-        />
-      ) : (
-        <Step2
-          step1Data={step1Data}
-          onBack={() => setStep(1)}
-        />
-      )}
-    </div>
+  return step === 1 ? (
+    <Step1
+      initial={step1Data}
+      onNext={(data) => {
+        setStep1Data(data)
+        setStep(2)
+      }}
+    />
+  ) : (
+    <Step2
+      step1Data={step1Data}
+      onBack={() => setStep(1)}
+    />
   )
 }

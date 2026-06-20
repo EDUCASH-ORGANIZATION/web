@@ -3,26 +3,53 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import Link from "next/link"
-import { GraduationCap, Briefcase, Eye, EyeOff, AlertCircle } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import Box from "@mui/material/Box"
+import TextField from "@mui/material/TextField"
+import Button from "@mui/material/Button"
+import Alert from "@mui/material/Alert"
+import IconButton from "@mui/material/IconButton"
+import InputAdornment from "@mui/material/InputAdornment"
+import Typography from "@mui/material/Typography"
+import MuiLink from "@mui/material/Link"
+import CircularProgress from "@mui/material/CircularProgress"
+import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded"
+import BusinessCenterRoundedIcon from "@mui/icons-material/BusinessCenterRounded"
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded"
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded"
+import { Stack } from "@/components/vitrine/stack"
 import { register as registerAction } from "@/lib/actions/auth.actions"
-import clsx from "clsx"
+import { BRAND } from "@/components/vitrine/theme"
 
 const ROLE_OPTIONS = [
-  {
-    value: "student",
-    label: "Je suis étudiant",
-    description: "Je cherche des missions rémunérées",
-    icon: GraduationCap,
-  },
-  {
-    value: "client",
-    label: "Je cherche un prestataire",
-    description: "Je publie des missions ponctuelles",
-    icon: Briefcase,
-  },
+  { value: "student", label: "Je suis étudiant", description: "Je cherche des missions rémunérées", icon: SchoolRoundedIcon },
+  { value: "client", label: "Je cherche un prestataire", description: "Je publie des missions ponctuelles", icon: BusinessCenterRoundedIcon },
 ]
+
+function RoleCard({ selected, onClick, icon: Icon, label, description }) {
+  return (
+    <Box component="button" type="button" onClick={onClick}
+      sx={{
+        textAlign: "left", cursor: "pointer", width: "100%", borderRadius: 2.5, p: 2,
+        display: "flex", flexDirection: "row", alignItems: "center", gap: 1.5, transition: "all .15s ease",
+        border: "1.5px solid", borderColor: selected ? BRAND.green : "rgba(15,23,42,0.12)",
+        bgcolor: selected ? BRAND.greenSoft : "#fff",
+        boxShadow: selected ? "0 4px 12px -4px rgba(26,107,74,0.2)" : "none",
+        "&:hover": { borderColor: selected ? BRAND.green : BRAND.greenLight, bgcolor: selected ? BRAND.greenSoft : "rgba(26,107,74,0.02)" },
+      }}>
+      <Box sx={{ width: 44, height: 44, borderRadius: 2, flexShrink: 0, display: "grid", placeItems: "center",
+        bgcolor: selected ? BRAND.green : "rgba(15,23,42,0.04)", color: selected ? "#fff" : "text.secondary",
+        transition: "all .15s ease" }}>
+        <Icon sx={{ fontSize: 22 }} />
+      </Box>
+      <Box>
+        <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: selected ? BRAND.greenDark : "text.primary", lineHeight: 1.25 }}>
+          {label}
+        </Typography>
+        <Typography sx={{ fontSize: "0.82rem", color: "text.secondary", mt: 0.2, lineHeight: 1.4 }}>{description}</Typography>
+      </Box>
+    </Box>
+  )
+}
 
 export function RegisterForm() {
   const [role, setRole] = useState(null)
@@ -38,6 +65,12 @@ export function RegisterForm() {
   } = useForm()
 
   const password = watch("password")
+
+  // Adapte react-hook-form aux champs MUI (ref → inputRef)
+  const rhf = (name, rules) => {
+    const { ref, ...rest } = register(name, rules)
+    return { inputRef: ref, ...rest }
+  }
 
   async function onSubmit(values) {
     setServerError(null)
@@ -56,129 +89,84 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate suppressHydrationWarning className="flex flex-col gap-5">
-      {/* Sélection du rôle — boutons purs, pas de radio */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {ROLE_OPTIONS.map(({ value, label, description, icon: Icon }) => {
-          const selected = role === value
-          return (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setRole(value)}
-              className={clsx(
-                "flex flex-col items-start gap-2 rounded-xl border-2 px-4 py-4 text-left transition-all duration-150 touch-manipulation",
-                selected
-                  ? "border-[#1A6B4A] bg-[#f0faf5]"
-                  : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-              )}
-            >
-              <Icon
-                size={28}
-                className={selected ? "text-[#1A6B4A]" : "text-gray-400"}
-                strokeWidth={1.75}
-              />
-              <div>
-                <p className={clsx("text-sm font-semibold", selected ? "text-[#1A6B4A]" : "text-gray-800")}>
-                  {label}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">{description}</p>
-              </div>
-            </button>
-          )
-        })}
-      </div>
+    <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate suppressHydrationWarning>
+      <Stack spacing={2.5}>
+        {/* Sélection du rôle */}
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
+          {ROLE_OPTIONS.map((opt) => (
+            <RoleCard key={opt.value} {...opt} selected={role === opt.value} onClick={() => setRole(opt.value)} />
+          ))}
+        </Box>
 
-      {/* Email */}
-      <Input
-        label="Adresse email"
-        name="email"
-        type="email"
-        placeholder="toi@example.com"
-        error={errors.email?.message}
-        {...register("email", {
-          required: "L'adresse email est requise.",
-          pattern: {
-            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-            message: "L'adresse email n'est pas valide.",
-          },
-        })}
-      />
+        {/* Email */}
+        <TextField
+          {...rhf("email", {
+            required: "L'adresse email est requise.",
+            pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "L'adresse email n'est pas valide." },
+          })}
+          label="Adresse email"
+          type="email"
+          placeholder="toi@example.com"
+          fullWidth
+          error={!!errors.email}
+          helperText={errors.email?.message}
+        />
 
-      {/* Mot de passe */}
-      <Input
-        label="Mot de passe"
-        name="password"
-        type={showPassword ? "text" : "password"}
-        placeholder="Minimum 8 caractères"
-        error={errors.password?.message}
-        rightIcon={
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label={showPassword ? "Masquer" : "Afficher"}
-          >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        }
-        {...register("password", {
-          required: "Le mot de passe est requis.",
-          minLength: {
-            value: 8,
-            message: "Le mot de passe doit contenir au moins 8 caractères.",
-          },
-        })}
-      />
+        {/* Mot de passe */}
+        <TextField
+          {...rhf("password", {
+            required: "Le mot de passe est requis.",
+            minLength: { value: 8, message: "Le mot de passe doit contenir au moins 8 caractères." },
+          })}
+          label="Mot de passe"
+          type={showPassword ? "text" : "password"}
+          placeholder="Minimum 8 caractères"
+          fullWidth
+          error={!!errors.password}
+          helperText={errors.password?.message}
+          slotProps={{ input: { endAdornment: (
+            <InputAdornment position="end">
+              <IconButton onClick={() => setShowPassword((v) => !v)} edge="end" aria-label={showPassword ? "Masquer" : "Afficher"}>
+                {showPassword ? <VisibilityOffRoundedIcon sx={{ fontSize: 19 }} /> : <VisibilityRoundedIcon sx={{ fontSize: 19 }} />}
+              </IconButton>
+            </InputAdornment>
+          ) } }}
+        />
 
-      {/* Confirmer le mot de passe */}
-      <Input
-        label="Confirmer le mot de passe"
-        name="confirmPassword"
-        type={showConfirm ? "text" : "password"}
-        placeholder="Répète ton mot de passe"
-        error={errors.confirmPassword?.message}
-        rightIcon={
-          <button
-            type="button"
-            onClick={() => setShowConfirm((v) => !v)}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label={showConfirm ? "Masquer" : "Afficher"}
-          >
-            {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        }
-        {...register("confirmPassword", {
-          required: "Veuillez confirmer ton mot de passe.",
-          validate: (value) =>
-            value === password || "Les mots de passe ne correspondent pas.",
-        })}
-      />
+        {/* Confirmer */}
+        <TextField
+          {...rhf("confirmPassword", {
+            required: "Veuillez confirmer ton mot de passe.",
+            validate: (value) => value === password || "Les mots de passe ne correspondent pas.",
+          })}
+          label="Confirmer le mot de passe"
+          type={showConfirm ? "text" : "password"}
+          placeholder="Répète ton mot de passe"
+          fullWidth
+          error={!!errors.confirmPassword}
+          helperText={errors.confirmPassword?.message}
+          slotProps={{ input: { endAdornment: (
+            <InputAdornment position="end">
+              <IconButton onClick={() => setShowConfirm((v) => !v)} edge="end" aria-label={showConfirm ? "Masquer" : "Afficher"}>
+                {showConfirm ? <VisibilityOffRoundedIcon sx={{ fontSize: 19 }} /> : <VisibilityRoundedIcon sx={{ fontSize: 19 }} />}
+              </IconButton>
+            </InputAdornment>
+          ) } }}
+        />
 
-      {/* Erreur serveur */}
-      {serverError && (
-        <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
-          <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
-          <p className="text-sm text-red-700">{serverError}</p>
-        </div>
-      )}
+        {/* Erreur serveur */}
+        {serverError && <Alert severity="error" sx={{ borderRadius: 2.5 }}>{serverError}</Alert>}
 
-      <Button
-        type="submit"
-        variant="primary"
-        fullWidth
-        isLoading={isSubmitting}
-        disabled={!role}
-      >
-        Créer mon compte
-      </Button>
+        <Button type="submit" variant="contained" size="large" fullWidth disabled={!role || isSubmitting}
+          startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : null}>
+          Créer mon compte
+        </Button>
 
-      <p className="text-center text-sm text-gray-500">
-        Déjà inscrit ?{" "}
-        <Link href="/auth/login" className="text-[#1A6B4A] font-medium hover:underline">
-          Se connecter
-        </Link>
-      </p>
-    </form>
+        <Typography variant="body2" sx={{ textAlign: "center", color: "text.secondary" }}>
+          Déjà inscrit ?{" "}
+          <MuiLink component={Link} href="/auth/login" sx={{ fontWeight: 700 }}>Se connecter</MuiLink>
+        </Typography>
+      </Stack>
+    </Box>
   )
 }
