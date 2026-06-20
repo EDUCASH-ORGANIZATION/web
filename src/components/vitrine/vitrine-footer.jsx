@@ -15,8 +15,8 @@ const FOOTER_LINKS = [
     links: [
       { label: "Comment ça marche", href: "/#how-it-works" },
       { label: "Voir les missions", href: "/missions" },
-      { label: "Pour les étudiants", href: "/auth/register" },
-      { label: "Pour les clients", href: "/auth/register" },
+      { label: "Pour les étudiants", href: "/auth/register?role=student" },
+      { label: "Pour les clients", href: "/auth/register?role=client" },
     ],
   },
   {

@@ -13,7 +13,6 @@ export const MISSION_URGENCIES = /** @type {const} */ (["low", "medium", "high"]
 export const MISSION_TYPES = /** @type {const} */ ([
   "Babysitting",
   "Livraison",
-  "Aide administrative",
   "Saisie",
   "Community Management",
   "Traduction",

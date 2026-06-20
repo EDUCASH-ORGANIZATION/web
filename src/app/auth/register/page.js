@@ -15,6 +15,7 @@ const ERROR_MESSAGES = {
 export default async function RegisterPage({ searchParams }) {
   const params = await searchParams
   const errorKey = params?.error
+  const defaultRole = params?.role === "student" || params?.role === "client" ? params.role : null
   const errorMessage = errorKey
     ? (ERROR_MESSAGES[errorKey] ?? "Une erreur est survenue. Réessaie.")
     : null
@@ -26,7 +27,7 @@ export default async function RegisterPage({ searchParams }) {
           <Alert severity="error" sx={{ borderRadius: 2.5 }}>{errorMessage}</Alert>
         </Box>
       )}
-      <RegisterForm />
+      <RegisterForm defaultRole={defaultRole} />
     </AuthShell>
   )
 }

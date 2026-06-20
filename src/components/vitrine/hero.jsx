@@ -67,16 +67,16 @@ export function Hero({ students = 0 }) {
 
             <Typography sx={{ color: "text.secondary", fontSize: "1.06rem", lineHeight: 1.7, maxWidth: 480 }}>
               Des missions ponctuelles rémunérées pour les étudiants de{" "}
-              <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>Cotonou, Calavi et Porto-Novo</Box>.
+              <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>Cotonou, Calavi, Porto-Novo et Parakou</Box>.
               Alliez études et autonomie financière.
             </Typography>
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-              <Button component={Link} href="/auth/register" variant="contained" color="primary" size="large"
+              <Button component={Link} href="/auth/register?role=student" variant="contained" color="primary" size="large"
                 endIcon={<ArrowForwardRoundedIcon />}>
                 Je suis étudiant
               </Button>
-              <Button component={Link} href="/auth/register" variant="outlined" color="primary" size="large">
+              <Button component={Link} href="/auth/register?role=client" variant="outlined" color="primary" size="large">
                 Je cherche un prestataire
               </Button>
             </Stack>

@@ -11,10 +11,46 @@ function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+function validatePassword(password) {
+  if (password.length < 8) return "Le mot de passe doit contenir au moins 8 caractères."
+  if (!/[A-Z]/.test(password)) return "Le mot de passe doit contenir au moins une majuscule."
+  if (!/[a-z]/.test(password)) return "Le mot de passe doit contenir au moins une minuscule."
+  if (!/[0-9]/.test(password)) return "Le mot de passe doit contenir au moins un chiffre."
+  if (!/[^A-Za-z0-9]/.test(password)) return "Le mot de passe doit contenir au moins un caractère spécial."
+  return null
+}
+
 function dashboardFor(role) {
   if (role === "client") return "/client/dashboard"
   if (role === "admin")  return "/admin/dashboard"
   return "/dashboard"
+}
+
+function mapAuthError(message = "") {
+  const normalized = message.toLowerCase().trim()
+  if (normalized.includes("user already registered")) {
+    return "Cette adresse email est déjà utilisée. Connecte-toi ou utilise une autre adresse."
+  }
+  if (normalized.includes("invalid login credentials")) {
+    return "Email ou mot de passe incorrect."
+  }
+  if (normalized.includes("email not confirmed") || normalized.includes("email address not confirmed")) {
+    return "L'adresse email n'a pas encore été confirmée. Vérifie ta boîte de réception."
+  }
+  if (normalized.includes("over email send rate limit") || normalized.includes("rate limit")) {
+    return "Trop de tentatives. Réessaie dans quelques minutes."
+  }
+  if (normalized.includes("user not found") || normalized.includes("invalid email")) {
+    return "Aucun compte n'est associé à cette adresse email."
+  }
+  if (normalized.includes("jwt") || normalized.includes("token")) {
+    return "Ta session a expiré. Reconnecte-toi."
+  }
+  if (normalized.includes("network")) {
+    return "Problème de connexion. Vérifie ton internet et réessaie."
+  }
+  // Fallback : message générique si l'erreur est en anglais brute
+  return message
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -32,7 +68,7 @@ export async function login(formData) {
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
-  if (error) return { error: error.message }
+  if (error) return { error: mapAuthError(error.message) }
 
   const role = data.user?.user_metadata?.role ?? "student"
   redirect(dashboardFor(role))
@@ -47,7 +83,8 @@ export async function register(formData) {
   if (!email) return { error: "L'adresse email est requise." }
   if (!validateEmail(email)) return { error: "L'adresse email n'est pas valide." }
   if (!password) return { error: "Le mot de passe est requis." }
-  if (password.length < 8) return { error: "Le mot de passe doit contenir au moins 8 caractères." }
+  const passwordError = validatePassword(password)
+  if (passwordError) return { error: passwordError }
   if (confirmPassword !== password) return { error: "Les mots de passe ne correspondent pas." }
   if (!VALID_ROLES.includes(role)) return { error: "Le rôle sélectionné est invalide." }
 
@@ -71,7 +108,7 @@ export async function register(formData) {
     },
   })
 
-  if (error) return { error: error.message }
+  if (error) return { error: mapAuthError(error.message) }
 
   // Si Supabase requiert une confirmation email, data.session est null
   // → on redirige vers une page d'attente plutôt que vers le formulaire de profil

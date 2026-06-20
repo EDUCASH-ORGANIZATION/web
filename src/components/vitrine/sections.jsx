@@ -28,7 +28,6 @@ import { BRAND, GRADIENTS } from "./theme"
 const MISSION_ICONS = {
   "Babysitting": ChildCareRoundedIcon,
   "Livraison": TwoWheelerRoundedIcon,
-  "Aide administrative": AssignmentRoundedIcon,
   "Saisie": KeyboardRoundedIcon,
   "Community Management": CampaignRoundedIcon,
   "Traduction": TranslateRoundedIcon,
@@ -39,7 +38,6 @@ const MISSION_ICONS = {
 const MISSION_DESCRIPTIONS = {
   "Babysitting": "Garde d'enfants à domicile en toute confiance",
   "Livraison": "Coursier & livraison express en ville",
-  "Aide administrative": "Gestion de documents et dossiers officiels",
   "Saisie": "Transcription et entrée de données rapide",
   "Community Management": "Animation et croissance sur les réseaux sociaux",
   "Traduction": "Français, Anglais, Fon et langues locales",

@@ -25,7 +25,6 @@ function timeAgo(dateStr) {
 const TYPE_COLORS = {
   "Babysitting":          { bg: "#FCE7F3", color: "#BE185D" },
   "Livraison":            { bg: "#DBEAFE", color: "#1D4ED8" },
-  "Aide administrative":  { bg: "#EDE9FE", color: "#6D28D9" },
   "Saisie":               { bg: "#CCFBF1", color: "#0F766E" },
   "Community Management":  { bg: "#E0E7FF", color: "#4338CA" },
   "Traduction":           { bg: "#CFFAFE", color: "#0E7490" },

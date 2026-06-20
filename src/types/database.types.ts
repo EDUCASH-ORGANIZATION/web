@@ -6,7 +6,6 @@ export type MissionUrgency = "low" | "medium" | "high"
 export type MissionType =
   | "Babysitting"
   | "Livraison"
-  | "Aide administrative"
   | "Saisie"
   | "Community Management"
   | "Traduction"

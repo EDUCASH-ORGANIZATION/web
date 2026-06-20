@@ -43,7 +43,6 @@ const STATUS_CONFIG = {
 const TYPE_COLORS = {
   "Babysitting":           "bg-orange-100 text-orange-700",
   "Livraison":             "bg-sky-100 text-sky-700",
-  "Aide administrative":   "bg-teal-100 text-teal-700",
   "Saisie":                "bg-indigo-100 text-indigo-700",
   "Community Management":  "bg-pink-100 text-pink-700",
   "Traduction":            "bg-blue-100 text-blue-700",

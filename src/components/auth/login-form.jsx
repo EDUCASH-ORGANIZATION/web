@@ -107,7 +107,11 @@ export function LoginForm() {
         </Box>
 
         {/* Erreur serveur */}
-        {serverError && <Alert severity="error" sx={{ borderRadius: 2.5 }}>{serverError}</Alert>}
+        {serverError && (
+          <Alert severity="error" sx={{ borderRadius: 1, fontSize: "0.875rem", alignItems: "center" }}>
+            {serverError}
+          </Alert>
+        )}
 
         {/* Submit */}
         <Button type="submit" variant="contained" size="large" fullWidth disabled={isSubmitting}

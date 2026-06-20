@@ -20,7 +20,6 @@ const URGENCY_BADGE = {
 const TYPE_COLORS = {
   "Babysitting":           "bg-purple-50 text-purple-700 border border-purple-200",
   "Livraison":             "bg-blue-50 text-blue-700 border border-blue-200",
-  "Aide administrative":   "bg-teal-50 text-teal-700 border border-teal-200",
   "Saisie":                "bg-indigo-50 text-indigo-700 border border-indigo-200",
   "Community Management":  "bg-pink-50 text-pink-700 border border-pink-200",
   "Traduction":            "bg-cyan-50 text-cyan-700 border border-cyan-200",

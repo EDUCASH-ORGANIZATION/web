@@ -22,8 +22,37 @@ const STUDY_LEVELS = [
   "Master 1", "Master 2", "BTS", "Doctorat", "Autre",
 ]
 
+const COUNTRY_CODES = [
+  { code: "+229", label: "🇧🇯 Bénin (+229)" },
+  { code: "+225", label: "🇨🇮 Côte d'Ivoire (+225)" },
+  { code: "+233", label: "🇬🇭 Ghana (+233)" },
+  { code: "+234", label: "🇳🇬 Nigeria (+234)" },
+  { code: "+221", label: "🇸🇳 Sénégal (+221)" },
+  { code: "+226", label: "🇧🇫 Burkina Faso (+226)" },
+  { code: "+227", label: "🇳🇪 Niger (+227)" },
+  { code: "+242", label: "🇨🇬 Congo (+242)" },
+  { code: "+241", label: "🇬🇦 Gabon (+241)" },
+  { code: "+237", label: "🇨🇲 Cameroun (+237)" },
+  { code: "+33", label: "🇫🇷 France (+33)" },
+  { code: "+1", label: "🇺🇸 USA/Canada (+1)" },
+  { code: "+44", label: "🇬🇧 Royaume-Uni (+44)" },
+  { code: "+49", label: "🇩🇪 Allemagne (+49)" },
+  { code: "+91", label: "🇮🇳 Inde (+91)" },
+  { code: "+86", label: "🇨🇳 Chine (+86)" },
+  { code: "+other", label: "Autre indicatif" },
+]
+
+const AVAILABILITY_PRESETS = [
+  "Jours de semaine",
+  "Week-end",
+  "Matin",
+  "Après-midi",
+  "Soirée",
+  "Autre",
+]
+
 const SKILLS_LIST = [
-  "Babysitting", "Livraison", "Aide administrative", "Saisie",
+  "Babysitting", "Livraison", "Saisie",
   "Community Management", "Traduction", "Cours particuliers",
   "Mathématiques", "Physique-Chimie", "Informatique", "Rédaction Web",
   "Microsoft Excel", "AutoCAD", "Comptabilité", "Marketing", "Autre",
@@ -36,6 +65,56 @@ function fmtDate(iso) {
   return new Intl.DateTimeFormat("fr-FR", {
     day: "numeric", month: "long", year: "numeric",
   }).format(new Date(iso))
+}
+
+function parsePhone(phone = "") {
+  const clean = phone.replace(/\s+/g, "")
+  // Cherche un indicatif connu dans COUNTRY_CODES (sauf +other)
+  const known = COUNTRY_CODES.filter((c) => c.code !== "+other").find((c) => clean.startsWith(c.code))
+  if (known) {
+    return { countryCode: known.code, phoneNumber: clean.slice(known.code.length), otherCode: "" }
+  }
+  // S'il commence par +, on prend le premier bloc comme indicatif "autre"
+  if (clean.startsWith("+")) {
+    const match = clean.match(/^\+(\d{1,4})(\d*)$/)
+    if (match) return { countryCode: "+other", phoneNumber: match[2], otherCode: `+${match[1]}` }
+  }
+  // Valeur par défaut : Bénin
+  return { countryCode: "+229", phoneNumber: clean, otherCode: "" }
+}
+
+function formatPhone(countryCode, phoneNumber, otherCode) {
+  if (countryCode === "+other") return `${otherCode}${phoneNumber}`.trim()
+  const num = phoneNumber.replace(/\s+/g, "")
+  return num ? `${countryCode}${num}` : ""
+}
+
+function normalizeBeninPhone(number) {
+  // Supprime tout sauf les chiffres
+  const digits = number.replace(/\D/g, "")
+  // Si le numéro commence par 01, 02, 05, 06, 07, 08, 09 on le garde
+  return digits.slice(0, 10)
+}
+
+function parseAvailability(value = "") {
+  const parts = value
+    .split(/[,;]|\u2014|--/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+  const presets = parts.filter((p) => AVAILABILITY_PRESETS.includes(p))
+  const otherParts = parts.filter((p) => !AVAILABILITY_PRESETS.includes(p))
+  return {
+    presets,
+    other: otherParts.join(", "),
+  }
+}
+
+function formatAvailability(presets, other) {
+  const hasAutre = presets.includes("Autre")
+  const cleanPresets = presets.filter((p) => p !== "Autre")
+  const parts = [...cleanPresets]
+  if (hasAutre && other.trim()) parts.push(other.trim())
+  return parts.join(", ")
 }
 
 // ─── Bannière de statut de vérification ──────────────────────────────────────
@@ -186,13 +265,16 @@ export default function ProfileEditPage() {
   // ── Champs formulaire ─────────────────────────────────────────────────────
   const [fullName, setFullName]         = useState("")
   const [city, setCity]                 = useState("")
-  const [phone, setPhone]               = useState("")
+  const [countryCode, setCountryCode]   = useState("+229")
+  const [phoneNumber, setPhoneNumber]   = useState("")
+  const [otherCode, setOtherCode]       = useState("")
   const [bio, setBio]                   = useState("")
   const [school, setSchool]             = useState("")
   const [schoolOther, setSchoolOther]   = useState("")
   const [level, setLevel]               = useState("")
-  const [availability, setAvailability] = useState("")
-  const [skills, setSkills]             = useState([])
+  const [availabilityPresets, setAvailabilityPresets] = useState([])
+  const [availabilityOther, setAvailabilityOther]     = useState("")
+  const [skills, setSkills]                           = useState([])
 
   // ── Fichiers ──────────────────────────────────────────────────────────────
   const [avatarFile, setAvatarFile]     = useState(null)
@@ -226,11 +308,16 @@ export default function ProfileEditPage() {
       // Pré-remplissage
       setFullName(p?.full_name ?? "")
       setCity(p?.city ?? "")
-      setPhone(p?.phone ?? "")
+      const parsedPhone = parsePhone(p?.phone ?? "")
+      setCountryCode(parsedPhone.countryCode)
+      setPhoneNumber(parsedPhone.phoneNumber)
+      setOtherCode(parsedPhone.otherCode)
       setBio(p?.bio ?? "")
       setAvatarPreview(p?.avatar_url ?? null)
       setLevel(sp?.level ?? "")
-      setAvailability(sp?.availability ?? "")
+      const parsedAvailability = parseAvailability(sp?.availability ?? "")
+      setAvailabilityPresets(parsedAvailability.presets)
+      setAvailabilityOther(parsedAvailability.other)
       setSkills(Array.isArray(sp?.skills) ? sp.skills : [])
 
       // École : détecte si c'est une valeur libre ou dans la liste des universités
@@ -269,10 +356,32 @@ export default function ProfileEditPage() {
     )
   }
 
+  function toggleAvailabilityPreset(preset) {
+    setAvailabilityPresets((prev) =>
+      prev.includes(preset)
+        ? prev.filter((p) => p !== preset)
+        : [...prev, preset]
+    )
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!fullName.trim()) { setError("Le nom complet est requis."); return }
     if (!city.trim())     { setError("La ville est requise."); return }
+
+    const finalPhone = formatPhone(countryCode, phoneNumber, otherCode)
+    if (finalPhone) {
+      const localNumber = countryCode === "+other" ? phoneNumber.replace(/\D/g, "") : phoneNumber.replace(/\D/g, "")
+      if (countryCode === "+229" && localNumber.length !== 10) {
+        setError("Le numéro de téléphone béninois doit commencer par 01 et contenir 10 chiffres (ex: 01 00 00 00 00)."); return
+      }
+      if (countryCode === "+other" && !/^\+\d{1,4}$/.test(otherCode)) {
+        setError("Indicatif international invalide (ex: +225)."); return
+      }
+      if (localNumber.length < 6) {
+        setError("Le numéro de téléphone semble trop court."); return
+      }
+    }
 
     setError("")
     setSubmitting(true)
@@ -310,16 +419,17 @@ export default function ProfileEditPage() {
 
       // 3. Calcule la valeur finale de l'école
       const finalSchool = school === "__other__" ? schoolOther.trim() : school
+      const finalAvailability = formatAvailability(availabilityPresets, availabilityOther)
 
       // 4. Server Action
       const result = await updateStudentProfileWithCard({
         fullName:     fullName.trim(),
         city:         city.trim(),
-        phone:        phone.trim(),
+        phone:        finalPhone,
         bio:          bio.trim(),
         school:       finalSchool,
         level:        level.trim(),
-        availability: availability.trim(),
+        availability: finalAvailability,
         skills,
         avatarUrl,
         cardUrl,
@@ -469,13 +579,43 @@ export default function ProfileEditPage() {
             {/* Téléphone */}
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-gray-700">Téléphone</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+229 96 00 00 00"
-                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] transition-colors"
-              />
+              <div className="flex gap-2">
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="shrink-0 rounded-xl border border-gray-200 px-2 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] transition-colors bg-white"
+                >
+                  {COUNTRY_CODES.map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </select>
+                {countryCode === "+other" && (
+                  <input
+                    type="text"
+                    value={otherCode}
+                    onChange={(e) => setOtherCode(e.target.value.replace(/[^0-9+]/g, ""))}
+                    placeholder="+225"
+                    className="w-20 rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] transition-colors"
+                  />
+                )}
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => {
+                    const value = countryCode === "+229"
+                      ? normalizeBeninPhone(e.target.value)
+                      : e.target.value.replace(/[^0-9]/g, "").slice(0, 12)
+                    setPhoneNumber(value)
+                  }}
+                  placeholder={countryCode === "+229" ? "01 00 00 00 00" : "Numéro local"}
+                  className="flex-1 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] transition-colors"
+                />
+              </div>
+              <p className="text-xs text-gray-400">
+                {countryCode === "+229"
+                  ? "Format béninois : 01 suivi de 8 chiffres (ex: 01 00 00 00 00)"
+                  : "Saisis le numéro local sans l'indicatif"}
+              </p>
             </div>
           </div>
 
@@ -548,15 +688,38 @@ export default function ProfileEditPage() {
           </div>
 
           {/* Disponibilités */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2.5">
             <label className="text-sm font-semibold text-gray-700">Disponibilités</label>
-            <textarea
-              value={availability}
-              onChange={(e) => setAvailability(e.target.value)}
-              rows={3}
-              placeholder="ex : Lundi–Vendredi de 18h à 21h, week-ends libres…"
-              className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-sm text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] transition-colors"
-            />
+            <p className="text-xs text-gray-500">Sélectionne tes plages habituelles</p>
+            <div className="flex flex-wrap gap-2">
+              {AVAILABILITY_PRESETS.map((preset) => {
+                const selected = availabilityPresets.includes(preset)
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => toggleAvailabilityPreset(preset)}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all touch-manipulation ${
+                      selected
+                        ? "bg-[#1A6B4A] text-white border-[#1A6B4A]"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-[#1A6B4A] hover:text-[#1A6B4A]"
+                    }`}
+                  >
+                    {selected && <Check size={11} />}
+                    {preset}
+                  </button>
+                )
+              })}
+            </div>
+            {availabilityPresets.includes("Autre") && (
+              <textarea
+                value={availabilityOther}
+                onChange={(e) => setAvailabilityOther(e.target.value)}
+                rows={3}
+                placeholder="Précise tes disponibilités spécifiques…"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-sm text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] transition-colors"
+              />
+            )}
           </div>
 
           {/* Compétences */}

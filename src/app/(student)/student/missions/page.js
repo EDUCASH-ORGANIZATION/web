@@ -17,7 +17,6 @@ const PAGE_SIZE = 9
 const TYPE_COLORS = {
   "Babysitting":           { bg: "bg-orange-100",  text: "text-orange-700" },
   "Livraison":             { bg: "bg-sky-100",     text: "text-sky-700" },
-  "Aide administrative":   { bg: "bg-teal-100",    text: "text-teal-700" },
   "Saisie":                { bg: "bg-indigo-100",  text: "text-indigo-700" },
   "Community Management":  { bg: "bg-pink-100",    text: "text-pink-700" },
   "Traduction":            { bg: "bg-blue-100",    text: "text-blue-700" },

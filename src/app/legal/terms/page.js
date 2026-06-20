@@ -40,8 +40,8 @@ export default function TermsPage() {
                 EduCash est une marketplace mettant en relation des étudiants (prestataires) et
                 des particuliers ou entreprises (clients) souhaitant confier des missions ponctuelles.
               </p>
-              <p>Les types de missions proposées incluent : babysitting, livraison, aide administrative,
-                saisie de données, community management, traduction, cours particuliers et autres prestations.</p>
+              <p>Les types de missions proposées incluent : babysitting, livraison, saisie de données,
+                community management, traduction, cours particuliers et autres prestations.</p>
             </LegalSection>
 
             <LegalSection title="3. Inscription et compte utilisateur">

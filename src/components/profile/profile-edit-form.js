@@ -13,7 +13,7 @@ const STUDY_LEVELS = [
 ]
 
 const SKILLS_LIST = [
-  "Babysitting", "Livraison", "Aide administrative", "Saisie",
+  "Babysitting", "Livraison", "Saisie",
   "Community Management", "Traduction", "Cours particuliers",
   "Mathématiques", "Physique-Chimie", "Informatique", "Rédaction Web",
   "Microsoft Excel", "AutoCAD", "Comptabilité", "Marketing", "Autre",
