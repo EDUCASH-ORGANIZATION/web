@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { MapPin, Zap, Calendar, ChevronLeft, ChevronRight  } from "lucide-react"
+import { MapPin, Zap, Calendar, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { MISSION_TYPES, CITIES } from "@/lib/supabase/database.constants"
@@ -308,6 +308,23 @@ export default async function StudentMissionsPage({ searchParams }) {
               <Pagination page={page} totalPages={totalPages} buildHref={buildHref} />
             </>
           )}
+
+          {/* Carte promo mobile (masquée sur desktop car dans la sidebar) */}
+          <div className="lg:hidden bg-[#1A6B4A] rounded-2xl p-5 flex flex-col gap-3 relative overflow-hidden">
+            <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
+            <div className="absolute -bottom-10 -right-2 w-16 h-16 rounded-full bg-white/5" />
+            <p className="text-base font-black text-white leading-snug relative z-10">Boostez votre profil</p>
+            <p className="text-xs text-white/70 leading-relaxed relative z-10">
+              Les étudiants certifiés ont 3× plus de chances d&apos;être sélectionnés.
+            </p>
+            <button
+              type="button"
+              className="relative z-10 flex items-center gap-1.5 mt-1 px-3 py-2 rounded-xl bg-white text-[#1A6B4A] text-xs font-bold w-fit touch-manipulation"
+            >
+              <ShieldCheck size={13} />
+              En savoir plus
+            </button>
+          </div>
         </div>
       </div>
     </div>

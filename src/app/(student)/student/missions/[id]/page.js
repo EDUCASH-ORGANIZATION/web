@@ -139,7 +139,12 @@ export default async function StudentMissionDetailPage({ params }) {
           Missions
         </Link>
         <ChevronRight size={13} className="text-gray-300 shrink-0" />
-        <span className="font-semibold uppercase tracking-wide">{mission.type}</span>
+        <Link
+          href={`/student/missions?type=${encodeURIComponent(mission.type)}`}
+          className="hover:text-[#1A6B4A] transition-colors font-semibold uppercase tracking-wide"
+        >
+          {mission.type}
+        </Link>
         <ChevronRight size={13} className="text-gray-300 shrink-0" />
         <span className="text-gray-600 font-medium truncate max-w-[220px]">
           {truncate(mission.title, 35)}

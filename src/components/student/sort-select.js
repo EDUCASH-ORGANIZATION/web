@@ -1,7 +1,13 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { ChevronRight } from "lucide-react"
+import { ArrowUpDown, ChevronDown } from "lucide-react"
+
+const SORT_OPTIONS = [
+  { value: "recent",      label: "Plus récentes" },
+  { value: "budget_desc", label: "Budget décroissant" },
+  { value: "budget_asc",  label: "Budget croissant" },
+]
 
 export function SortSelect({ sort }) {
   const router = useRouter()
@@ -15,17 +21,18 @@ export function SortSelect({ sort }) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center">
+      <ArrowUpDown size={13} className="absolute left-2.5 text-gray-400 pointer-events-none z-10" />
       <select
         value={sort}
         onChange={handleChange}
-        className="h-9 pl-3 pr-8 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/30 appearance-none cursor-pointer"
+        className="h-9 pl-8 pr-8 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/20 focus:border-[#1A6B4A] appearance-none cursor-pointer transition-colors hover:border-gray-300"
       >
-        <option value="recent">Plus récentes</option>
-        <option value="budget_desc">Budget décroissant</option>
-        <option value="budget_asc">Budget croissant</option>
+        {SORT_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
       </select>
-      <ChevronRight size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none rotate-90" />
+      <ChevronDown size={13} className="absolute right-2.5 text-gray-400 pointer-events-none" />
     </div>
   )
 }
