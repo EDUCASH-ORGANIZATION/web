@@ -14,32 +14,13 @@ import { useToast } from "@/components/shared/toaster"
 import { updateStudentProfileWithCard } from "@/lib/actions/profile.actions"
 import { getUniversities } from "@/lib/actions/university.actions"
 import { CITIES } from "@/lib/supabase/database.constants"
+import { COUNTRY_CODES, parsePhone, formatPhone, normalizeBeninPhone, validatePhone } from "@/lib/utils/phone"
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const STUDY_LEVELS = [
   "Licence 1", "Licence 2", "Licence 3",
   "Master 1", "Master 2", "BTS", "Doctorat", "Autre",
-]
-
-const COUNTRY_CODES = [
-  { code: "+229", label: "🇧🇯 Bénin (+229)" },
-  { code: "+225", label: "🇨🇮 Côte d'Ivoire (+225)" },
-  { code: "+233", label: "🇬🇭 Ghana (+233)" },
-  { code: "+234", label: "🇳🇬 Nigeria (+234)" },
-  { code: "+221", label: "🇸🇳 Sénégal (+221)" },
-  { code: "+226", label: "🇧🇫 Burkina Faso (+226)" },
-  { code: "+227", label: "🇳🇪 Niger (+227)" },
-  { code: "+242", label: "🇨🇬 Congo (+242)" },
-  { code: "+241", label: "🇬🇦 Gabon (+241)" },
-  { code: "+237", label: "🇨🇲 Cameroun (+237)" },
-  { code: "+33", label: "🇫🇷 France (+33)" },
-  { code: "+1", label: "🇺🇸 USA/Canada (+1)" },
-  { code: "+44", label: "🇬🇧 Royaume-Uni (+44)" },
-  { code: "+49", label: "🇩🇪 Allemagne (+49)" },
-  { code: "+91", label: "🇮🇳 Inde (+91)" },
-  { code: "+86", label: "🇨🇳 Chine (+86)" },
-  { code: "+other", label: "Autre indicatif" },
 ]
 
 const AVAILABILITY_PRESETS = [
@@ -65,35 +46,6 @@ function fmtDate(iso) {
   return new Intl.DateTimeFormat("fr-FR", {
     day: "numeric", month: "long", year: "numeric",
   }).format(new Date(iso))
-}
-
-function parsePhone(phone = "") {
-  const clean = phone.replace(/\s+/g, "")
-  // Cherche un indicatif connu dans COUNTRY_CODES (sauf +other)
-  const known = COUNTRY_CODES.filter((c) => c.code !== "+other").find((c) => clean.startsWith(c.code))
-  if (known) {
-    return { countryCode: known.code, phoneNumber: clean.slice(known.code.length), otherCode: "" }
-  }
-  // S'il commence par +, on prend le premier bloc comme indicatif "autre"
-  if (clean.startsWith("+")) {
-    const match = clean.match(/^\+(\d{1,4})(\d*)$/)
-    if (match) return { countryCode: "+other", phoneNumber: match[2], otherCode: `+${match[1]}` }
-  }
-  // Valeur par défaut : Bénin
-  return { countryCode: "+229", phoneNumber: clean, otherCode: "" }
-}
-
-function formatPhone(countryCode, phoneNumber, otherCode) {
-  if (countryCode === "+other") return `${otherCode}${phoneNumber}`.trim()
-  const num = phoneNumber.replace(/\s+/g, "")
-  return num ? `${countryCode}${num}` : ""
-}
-
-function normalizeBeninPhone(number) {
-  // Supprime tout sauf les chiffres
-  const digits = number.replace(/\D/g, "")
-  // Si le numéro commence par 01, 02, 05, 06, 07, 08, 09 on le garde
-  return digits.slice(0, 10)
 }
 
 function parseAvailability(value = "") {
@@ -370,18 +322,8 @@ export default function ProfileEditPage() {
     if (!city.trim())     { setError("La ville est requise."); return }
 
     const finalPhone = formatPhone(countryCode, phoneNumber, otherCode)
-    if (finalPhone) {
-      const localNumber = countryCode === "+other" ? phoneNumber.replace(/\D/g, "") : phoneNumber.replace(/\D/g, "")
-      if (countryCode === "+229" && localNumber.length !== 10) {
-        setError("Le numéro de téléphone béninois doit commencer par 01 et contenir 10 chiffres (ex: 01 00 00 00 00)."); return
-      }
-      if (countryCode === "+other" && !/^\+\d{1,4}$/.test(otherCode)) {
-        setError("Indicatif international invalide (ex: +225)."); return
-      }
-      if (localNumber.length < 6) {
-        setError("Le numéro de téléphone semble trop court."); return
-      }
-    }
+    const phoneError = validatePhone(countryCode, phoneNumber, otherCode)
+    if (phoneError) { setError(phoneError); return }
 
     setError("")
     setSubmitting(true)

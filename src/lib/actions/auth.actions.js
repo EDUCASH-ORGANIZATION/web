@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { isDisposableEmail } from "@/lib/utils/email"
 
 const VALID_ROLES = ["student", "client"]
 
@@ -82,6 +83,7 @@ export async function register(formData) {
 
   if (!email) return { error: "L'adresse email est requise." }
   if (!validateEmail(email)) return { error: "L'adresse email n'est pas valide." }
+  if (isDisposableEmail(email)) return { error: "Les adresses email temporaires ou jetables ne sont pas acceptées." }
   if (!password) return { error: "Le mot de passe est requis." }
   const passwordError = validatePassword(password)
   if (passwordError) return { error: passwordError }
@@ -108,7 +110,10 @@ export async function register(formData) {
     },
   })
 
-  if (error) return { error: mapAuthError(error.message) }
+  if (error) {
+    console.error("[register] Supabase error:", JSON.stringify(error))
+    return { error: mapAuthError(error.message) }
+  }
 
   // Si Supabase requiert une confirmation email, data.session est null
   // → on redirige vers une page d'attente plutôt que vers le formulaire de profil

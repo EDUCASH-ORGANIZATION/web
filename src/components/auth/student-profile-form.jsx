@@ -17,6 +17,7 @@ import { useToast } from "@/components/shared/toaster"
 import { useSupabase } from "@/components/shared/supabase-provider"
 import { CITIES, MISSION_TYPES } from "@/lib/supabase/database.constants"
 import { getUniversities } from "@/lib/actions/university.actions"
+import { COUNTRY_CODES, parsePhone, formatPhone, normalizeBeninPhone, validatePhone } from "@/lib/utils/phone"
 import { CardUploadZone } from "@/components/auth/card-upload-zone"
 import { BRAND } from "@/components/vitrine/theme"
 
@@ -32,10 +33,19 @@ function Step1({ initial = {}, onNext }) {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [fullName, setFullName] = useState(initial.fullName ?? "")
   const [city, setCity] = useState(initial.city ?? "")
-  const [phone, setPhone] = useState(initial.phone ?? "")
+  const [countryCode, setCountryCode] = useState("+229")
+  const [phoneNumber, setPhoneNumber] = useState("")
+  const [otherCode, setOtherCode] = useState("")
   const [bio, setBio] = useState(initial.bio ?? "")
   const [error, setError] = useState("")
   const avatarInputRef = useRef(null)
+
+  useEffect(() => {
+    const parsed = parsePhone(initial.phone ?? "")
+    setCountryCode(parsed.countryCode)
+    setPhoneNumber(parsed.phoneNumber)
+    setOtherCode(parsed.otherCode)
+  }, [initial.phone])
 
   function handleAvatarChange(e) {
     const file = e.target.files?.[0]
@@ -48,9 +58,14 @@ function Step1({ initial = {}, onNext }) {
 
   function handleNext() {
     if (!fullName.trim()) { setError("Le nom complet est requis."); return }
+    if (fullName.trim().length < 2) { setError("Le nom complet doit contenir au moins 2 caractères."); return }
+    if (!/\p{L}/u.test(fullName.trim())) { setError("Le nom complet doit contenir au moins une lettre."); return }
     if (!city) { setError("Veuillez choisir une ville."); return }
+    const phoneError = validatePhone(countryCode, phoneNumber, otherCode)
+    if (phoneError) { setError(phoneError); return }
     setError("")
-    onNext({ avatarFile, fullName: fullName.trim(), city, phone: phone.trim(), bio })
+    const finalPhone = formatPhone(countryCode, phoneNumber, otherCode)
+    onNext({ avatarFile, fullName: fullName.trim(), city, phone: finalPhone, bio })
   }
 
   return (
@@ -82,19 +97,60 @@ function Step1({ initial = {}, onNext }) {
         placeholder="Ex : Kokou Mensah" fullWidth />
 
       <TextField select label="Ville" required value={city} onChange={(e) => setCity(e.target.value)} fullWidth
-        slotProps={{ select: { displayEmpty: true } }}>
+        slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
         <MenuItem value="">Sélectionner une ville</MenuItem>
         {CITIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
       </TextField>
 
-      <TextField label="Téléphone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-        placeholder="+229 XX XX XX XX" fullWidth />
+      {/* Téléphone avec indicatif */}
+      <Box>
+        <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Téléphone *</Typography>
+        <Box sx={{ display: "flex", gap: 1.5 }}>
+          <TextField
+            select
+            label="Indicatif"
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+            sx={{ width: 140, flexShrink: 0 }}
+            slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+          >
+            {COUNTRY_CODES.map((c) => (
+              <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
+            ))}
+          </TextField>
+          {countryCode === "+other" && (
+            <TextField
+              value={otherCode}
+              onChange={(e) => setOtherCode(e.target.value.replace(/[^0-9+]/g, ""))}
+              placeholder="+225"
+              sx={{ width: 100, flexShrink: 0 }}
+            />
+          )}
+          <TextField
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => {
+              const value = countryCode === "+229"
+                ? normalizeBeninPhone(e.target.value)
+                : e.target.value.replace(/[^0-9]/g, "").slice(0, 12)
+              setPhoneNumber(value)
+            }}
+            placeholder={countryCode === "+229" ? "01 00 00 00 00" : "Numéro local"}
+            fullWidth
+          />
+        </Box>
+        <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
+          {countryCode === "+229"
+            ? "Format béninois : 01 suivi de 8 chiffres (ex: 01 00 00 00 00)"
+            : "Saisis le numéro local sans l'indicatif"}
+        </Typography>
+      </Box>
 
       <TextField label="Bio courte" value={bio} onChange={(e) => setBio(e.target.value.slice(0, 200))}
         placeholder="Dis quelques mots sur toi..." fullWidth multiline minRows={3}
         helperText={`${bio.length}/200`} slotProps={{ formHelperText: { sx: { textAlign: "right", mr: 0 } } }} />
 
-      {error && <Alert severity="error" sx={{ borderRadius: 2.5 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ borderRadius: 1, fontSize: "0.875rem", alignItems: "center" }}>{error}</Alert>}
 
       <Button variant="contained" size="large" fullWidth onClick={handleNext}>Suivant →</Button>
     </Stack>
@@ -137,9 +193,12 @@ function Step2({ step1Data, onBack }) {
 
   async function handleSubmit() {
     if (skills.length === 0) { setError("Sélectionne au moins une compétence."); return }
+    if (!selectedSchool) { setError("Veuillez sélectionner un établissement."); return }
     if (selectedSchool === "__other__" && !customSchool.trim()) {
       setError("Précise le nom de ton établissement."); return
     }
+    if (!level) { setError("Veuillez sélectionner un niveau d'études."); return }
+    if (!cardFile) { setError("La carte étudiante est obligatoire pour vérifier ton profil."); return }
     setError("")
     setIsSubmitting(true)
 
@@ -227,7 +286,7 @@ function Step2({ step1Data, onBack }) {
       {/* Établissement */}
       <Box>
         <TextField select label="Établissement" value={selectedSchool} onChange={(e) => setSelectedSchool(e.target.value)} fullWidth
-          slotProps={{ select: { displayEmpty: true } }}>
+          slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
           <MenuItem value="">Sélectionne ton établissement</MenuItem>
           {universities.map((u) => (
             <MenuItem key={u.id} value={u.name}>
@@ -244,7 +303,7 @@ function Step2({ step1Data, onBack }) {
 
       {/* Niveau d'études */}
       <TextField select label="Niveau d'études" value={level} onChange={(e) => setLevel(e.target.value)} fullWidth
-        slotProps={{ select: { displayEmpty: true } }}>
+        slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}>
         <MenuItem value="">Sélectionner un niveau</MenuItem>
         {STUDY_LEVELS.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
       </TextField>
@@ -279,7 +338,7 @@ function Step2({ step1Data, onBack }) {
       <TextField label="Disponibilités" value={availability} onChange={(e) => setAvailability(e.target.value)}
         placeholder="Ex : Week-ends, mercredis après-midi, vacances scolaires..." fullWidth multiline minRows={2} />
 
-      {error && <Alert severity="error" sx={{ borderRadius: 2.5 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ borderRadius: 1, fontSize: "0.875rem", alignItems: "center" }}>{error}</Alert>}
 
       <Stack direction="row" spacing={1.5}>
         <Button variant="outlined" color="inherit" onClick={onBack} disabled={isSubmitting} sx={{ flexShrink: 0 }}>

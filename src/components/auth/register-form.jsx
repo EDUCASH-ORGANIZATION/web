@@ -108,6 +108,11 @@ export function RegisterForm({ defaultRole = null }) {
   async function onSubmit(values) {
     setServerError(null)
 
+    if (!role) {
+      setServerError("Veuillez sélectionner un profil (étudiant ou client).")
+      return
+    }
+
     const formData = new FormData()
     formData.set("email", values.email)
     formData.set("password", values.password)
@@ -175,7 +180,7 @@ export function RegisterForm({ defaultRole = null }) {
         {/* Confirmer */}
         <TextField
           {...rhf("confirmPassword", {
-            required: "Veuillez confirmer ton mot de passe.",
+            required: "Veuillez confirmer votre mot de passe.",
             validate: (value) => value === password || "Les mots de passe ne correspondent pas.",
           })}
           label="Confirmer le mot de passe"
