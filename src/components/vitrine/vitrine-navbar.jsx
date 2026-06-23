@@ -112,10 +112,11 @@ export function VitrineNavbar() {
               <BrandName />
             </Stack>
 
-            <Box sx={{ flexGrow: 1 }} />
-
-            {/* Liens desktop */}
-            <Stack direction="row" spacing={0.5} sx={{ display: { xs: "none", md: "flex" }, mr: 2 }}>
+            {/* Liens desktop — centré absolument */}
+            <Stack direction="row" spacing={0.5} sx={{
+              display: { xs: "none", md: "flex" },
+              position: "absolute", left: "50%", transform: "translateX(-50%)",
+            }}>
               {NAV_LINKS.map(({ label, href }) => {
                 const active = pathname === href
                 return (
@@ -136,6 +137,8 @@ export function VitrineNavbar() {
                 )
               })}
             </Stack>
+
+            <Box sx={{ flexGrow: 1 }} />
 
             {/* Actions desktop */}
             <Stack direction="row" spacing={1} sx={{ display: { xs: "none", md: "flex" }, alignItems: "center" }}>
