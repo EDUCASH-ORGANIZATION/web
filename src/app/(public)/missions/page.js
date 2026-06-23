@@ -14,6 +14,7 @@ import { MissionsGrid } from "@/components/vitrine/missions-grid"
 import { MissionsVisual } from "@/components/vitrine/missions-visual"
 import { GRADIENTS, BRAND } from "@/components/vitrine/theme"
 import { MISSION_TYPES, CITIES } from "@/lib/supabase/database.constants"
+import { ScrollToResults } from "@/components/shared/scroll-to-results"
 
 const POPULAR_TYPES = ["Cours particuliers", "Babysitting", "Livraison", "Community Management"]
 
@@ -140,12 +141,25 @@ export default async function MissionsPage({ searchParams }) {
         </Container>
       </Box>
 
+      {/* Scroll automatique vers les résultats */}
+      <Suspense fallback={null}>
+        <ScrollToResults targetId="missions-results" />
+      </Suspense>
+
       {/* Filtres + grille */}
-      <Box sx={{ bgcolor: "#F8FAFB", minHeight: "60vh" }}>
+      <Box id="missions-results" sx={{ bgcolor: "#F8FAFB", minHeight: "60vh", scrollMarginTop: "72px" }}>
         <Container sx={{ py: { xs: 5, md: 7 } }}>
           <Stack spacing={5}>
             <Suspense fallback={null}>
-              <MissionsFilters totalCount={count ?? 0} />
+                <MissionsFilters
+                totalCount={count ?? 0}
+                initialQ={q}
+                initialType={type}
+                initialCity={city}
+                initialUrgency={urgency}
+                initialBudget={budgetMax}
+                initialSort={sort}
+              />
             </Suspense>
 
             <MissionsGrid

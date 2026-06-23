@@ -210,7 +210,7 @@ export default async function MissionDetailPage({ params }) {
 
                   <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
                     {mission.deadline && (
-                      <Stack spacing={0.5} sx={{ bgcolor: "#F8FAFB", borderRadius: 2.5, p: 2 }}>
+                      <Stack spacing={0.5} sx={{ bgcolor: "#F8FAFB", borderRadius: "12px", p: 2 }}>
                         <Stack direction="row" alignItems="center" spacing={0.6}>
                           <AccessTimeRoundedIcon sx={{ fontSize: 13, color: "text.disabled" }} />
                           <Typography variant="caption" sx={{ fontWeight: 800, color: "text.disabled", textTransform: "uppercase", letterSpacing: "0.1em" }}>
@@ -220,7 +220,7 @@ export default async function MissionDetailPage({ params }) {
                         <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }}>{formatDate(mission.deadline)}</Typography>
                       </Stack>
                     )}
-                    <Stack spacing={0.5} sx={{ bgcolor: BRAND.amberSoft, borderRadius: 2.5, p: 2 }}>
+                    <Stack spacing={0.5} sx={{ bgcolor: BRAND.amberSoft, borderRadius: "12px", p: 2 }}>
                       <Typography variant="caption" sx={{ fontWeight: 800, color: BRAND.amberDark, textTransform: "uppercase", letterSpacing: "0.1em" }}>
                         Rémunération
                       </Typography>

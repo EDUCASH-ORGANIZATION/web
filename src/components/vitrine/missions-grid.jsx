@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import Box from "@mui/material/Box"
-import Stack from "@mui/material/Stack"
+import { Stack } from "./stack"
 import Typography from "@mui/material/Typography"
 import Pagination from "@mui/material/Pagination"
 import PaginationItem from "@mui/material/PaginationItem"
@@ -37,7 +37,7 @@ export function MissionsGrid({ missions, totalCount, page, isLoggedIn, searchStr
   if (!missions?.length) {
     return (
       <Stack alignItems="center" justifyContent="center" spacing={1.5}
-        sx={{ py: 10, textAlign: "center", bgcolor: "#fff", borderRadius: 4, border: "1px solid", borderColor: "divider" }}>
+        sx={{ py: 10, textAlign: "center", bgcolor: "#fff", borderRadius: 4, border: "1px solid", borderColor: "divider", alignItems: "center", justifyContent: "center" }}>
         <Box sx={{ width: 64, height: 64, borderRadius: "50%", bgcolor: BRAND.greenSoft, color: BRAND.green,
           display: "grid", placeItems: "center" }}>
           <WorkOutlineRoundedIcon sx={{ fontSize: 32 }} />
@@ -65,7 +65,7 @@ export function MissionsGrid({ missions, totalCount, page, isLoggedIn, searchStr
       </Box>
 
       {totalPages > 1 && (
-        <Stack alignItems="center">
+        <Stack alignItems="center" sx={{ alignItems: "center" }}>
           <Pagination
             count={totalPages}
             page={page}

@@ -25,6 +25,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+button,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+select,
+label[for],
+summary {
+  cursor: pointer;
+}
+
 .scrollbar-none {
   scrollbar-width: none;
   -ms-overflow-style: none;

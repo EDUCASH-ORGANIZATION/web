@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { MISSION_TYPES, CITIES } from "@/lib/supabase/database.constants"
 import { MissionsFiltersSidebar } from "@/components/student/missions-filters-sidebar"
 import { SortSelect } from "@/components/student/sort-select"
+import { ScrollToResults } from "@/components/shared/scroll-to-results"
 
 export const metadata = { title: "Missions — EduCash" }
 
@@ -255,8 +256,13 @@ export default async function StudentMissionsPage({ searchParams }) {
         </div>
       </div>
 
+      {/* Scroll automatique vers les résultats */}
+      <Suspense fallback={null}>
+        <ScrollToResults targetId="missions-results" />
+      </Suspense>
+
       {/* ── Corps : sidebar gauche + grille ──────────────────────── */}
-      <div className="flex flex-col lg:flex-row flex-1 gap-4 lg:gap-6 p-4 lg:p-6 max-w-[1280px] w-full mx-auto">
+      <div id="missions-results" className="flex flex-col lg:flex-row flex-1 gap-4 lg:gap-6 p-4 lg:p-6 max-w-[1280px] w-full mx-auto" style={{ scrollMarginTop: "64px" }}>
 
         {/* Sidebar filtres (desktop) + bouton mobile */}
         <Suspense fallback={null}>

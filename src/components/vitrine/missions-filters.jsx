@@ -40,13 +40,25 @@ const SORTS = [
 
 const selectSx = { minWidth: 150, bgcolor: "#fff", "& .MuiOutlinedInput-root": { borderRadius: 2.5 } }
 
-export function MissionsFilters({ totalCount = 0 }) {
+export function MissionsFilters({
+  totalCount = 0,
+  initialQ = "", initialType = "", initialCity = "",
+  initialUrgency = "", initialBudget = "", initialSort = "recent",
+}) {
   const router = useRouter()
   const params = useSearchParams()
-  const [search, setSearch] = useState(params.get("q") ?? "")
 
-  // Garde le champ de recherche synchronisé avec l'URL (ex. après « Réinitialiser »)
-  useEffect(() => { setSearch(params.get("q") ?? "") }, [params])
+  // useSearchParams peut être vide au premier rendu dans Suspense → fallback sur les props serveur
+  const activeType    = params.get("type")    ?? initialType
+  const activeCity    = params.get("city")    ?? initialCity
+  const activeUrgency = params.get("urgency") ?? initialUrgency
+  const activeBudget  = params.get("budget")  ?? initialBudget
+  const activeSort    = params.get("sort")    ?? initialSort
+  const activeSearch  = params.get("q")       ?? initialQ
+
+  const [search, setSearch] = useState(activeSearch)
+
+  useEffect(() => { setSearch(params.get("q") ?? initialQ) }, [params])
 
   const set = useCallback((key, value) => {
     const next = new URLSearchParams(params.toString())
@@ -56,13 +68,6 @@ export function MissionsFilters({ totalCount = 0 }) {
     const qs = next.toString()
     router.push(qs ? `/missions?${qs}` : "/missions")
   }, [params, router])
-
-  const activeType    = params.get("type") ?? ""
-  const activeCity    = params.get("city") ?? ""
-  const activeUrgency = params.get("urgency") ?? ""
-  const activeBudget  = params.get("budget") ?? ""
-  const activeSort    = params.get("sort") ?? "recent"
-  const activeSearch  = params.get("q") ?? ""
 
   const activeCount = [activeType, activeCity, activeUrgency, activeBudget, activeSearch].filter(Boolean).length
 

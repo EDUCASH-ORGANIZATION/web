@@ -98,7 +98,7 @@ function PhoneScreen() {
 export function HeroPhoneFallback() {
   return (
     <Box sx={{ position: "relative", width: "100%", height: "100%", display: "grid", placeItems: "center" }}>
-      <Box sx={{ animation: `${float} 7s ease-in-out infinite`, position: "relative", zIndex: 2 }}>
+      <Box sx={{ animation: { xs: "none", md: `${float} 7s ease-in-out infinite` }, position: "relative", zIndex: 2 }}>
         {/* Phone frame */}
         <Box sx={{
           width: { xs: 260, sm: 290, md: 320 },
@@ -122,17 +122,17 @@ export function HeroPhoneFallback() {
         </Box>
       </Box>
 
-      {/* Floating accents */}
-      <Box sx={{ position: "absolute", top: "18%", right: "10%", width: 56, height: 56, borderRadius: 2.5, bgcolor: "#fff",
-        boxShadow: "0 16px 40px -14px rgba(15,23,42,0.3)", display: "grid", placeItems: "center", animation: `${floatSlow} 5s ease-in-out 0.3s infinite`, zIndex: 3 }}>
+      {/* Floating accents — masqués sur mobile */}
+      <Box sx={{ display: { xs: "none", md: "grid" }, position: "absolute", top: "18%", right: "10%", width: 56, height: 56, borderRadius: 2.5, bgcolor: "#fff",
+        boxShadow: "0 16px 40px -14px rgba(15,23,42,0.3)", placeItems: "center", animation: `${floatSlow} 5s ease-in-out 0.3s infinite`, zIndex: 3 }}>
         <Box sx={{ fontSize: "1.5rem" }}>💰</Box>
       </Box>
-      <Box sx={{ position: "absolute", bottom: "22%", left: "8%", width: 52, height: 52, borderRadius: "50%", bgcolor: BRAND.green,
-        boxShadow: `0 16px 40px -14px ${BRAND.green}88`, display: "grid", placeItems: "center", animation: `${floatSlow} 6s ease-in-out 0.6s infinite`, zIndex: 3 }}>
+      <Box sx={{ display: { xs: "none", md: "grid" }, position: "absolute", bottom: "22%", left: "8%", width: 52, height: 52, borderRadius: "50%", bgcolor: BRAND.green,
+        boxShadow: `0 16px 40px -14px ${BRAND.green}88`, placeItems: "center", animation: `${floatSlow} 6s ease-in-out 0.6s infinite`, zIndex: 3 }}>
         <CheckCircleRoundedIcon sx={{ color: "#fff", fontSize: 26 }} />
       </Box>
-      <Box sx={{ position: "absolute", top: "10%", left: "14%", width: 16, height: 16, borderRadius: "50%", bgcolor: BRAND.amber, opacity: 0.8, animation: `${floatSlow} 4.5s ease-in-out 0.2s infinite` }} />
-      <Box sx={{ position: "absolute", bottom: "12%", right: "18%", width: 12, height: 12, borderRadius: "50%", bgcolor: BRAND.greenLight, opacity: 0.8, animation: `${floatSlow} 5.5s ease-in-out 0.9s infinite` }} />
+      <Box sx={{ display: { xs: "none", md: "block" }, position: "absolute", top: "10%", left: "14%", width: 16, height: 16, borderRadius: "50%", bgcolor: BRAND.amber, opacity: 0.8, animation: `${floatSlow} 4.5s ease-in-out 0.2s infinite` }} />
+      <Box sx={{ display: { xs: "none", md: "block" }, position: "absolute", bottom: "12%", right: "18%", width: 12, height: 12, borderRadius: "50%", bgcolor: BRAND.greenLight, opacity: 0.8, animation: `${floatSlow} 5.5s ease-in-out 0.9s infinite` }} />
     </Box>
   )
 }

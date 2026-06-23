@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Zap, Clock, ShieldCheck, SlidersHorizontal, X, ChevronDown, Star, BadgeCheck, TrendingUp, ArrowRight } from "lucide-react"
 import { CITIES } from "@/lib/supabase/database.constants"
@@ -47,8 +48,8 @@ export function MissionsFiltersSidebar({ budgetMax, cities, urgency }) {
     !!urgency,
   ].filter(Boolean).length
 
-  // ── Popup promo ─────────────────────────────────────────────────────────────
-  const PromoModal = () => promoOpen ? (
+  // ── JSX inline : popup promo (rendu via portal dans body) ────────────────
+  const promoModalJsx = promoOpen ? createPortal(
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
       {/* Backdrop */}
       <div
@@ -130,10 +131,10 @@ export function MissionsFiltersSidebar({ budgetMax, cities, urgency }) {
         </div>
       </div>
     </div>
-  ) : null
+  , typeof document !== "undefined" ? document.body : null) : null
 
-  // ── Carte promo (partagée desktop + mobile) ──────────────────────────────
-  const PromoCard = () => (
+  // ── JSX inline : carte promo ─────────────────────────────────────────────
+  const promoCardJsx = (
     <div className="bg-[#1A6B4A] rounded-2xl p-5 flex flex-col gap-3 relative overflow-hidden">
       <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
       <div className="absolute -bottom-10 -right-2 w-16 h-16 rounded-full bg-white/5" />
@@ -152,8 +153,8 @@ export function MissionsFiltersSidebar({ budgetMax, cities, urgency }) {
     </div>
   )
 
-  // ── Contenu filtres (partagé desktop + mobile) ──────────────────────────
-  const FiltersContent = () => (
+  // ── JSX inline : contenu filtres ─────────────────────────────────────────
+  const filtersContentJsx = (
     <div className="flex flex-col gap-5">
 
       {/* Budget */}
@@ -276,7 +277,7 @@ export function MissionsFiltersSidebar({ budgetMax, cities, urgency }) {
   return (
     <>
       {/* ── Popup certification ───────────────────────────────────────── */}
-      <PromoModal />
+      {promoModalJsx}
 
       {/* ── Desktop sidebar ───────────────────────────────────────────── */}
       <aside className="hidden lg:flex w-56 shrink-0 flex-col gap-5">
@@ -284,11 +285,11 @@ export function MissionsFiltersSidebar({ budgetMax, cities, urgency }) {
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-5">
             Filtres avancés
           </p>
-          <FiltersContent />
+          {filtersContentJsx}
         </div>
 
         {/* Promo card desktop */}
-        <PromoCard />
+        {promoCardJsx}
       </aside>
 
       {/* ── Bouton Filtres (mobile only) ──────────────────────────────── */}
@@ -333,8 +334,8 @@ export function MissionsFiltersSidebar({ budgetMax, cities, urgency }) {
             </div>
             {/* Contenu scrollable */}
             <div className="overflow-y-auto px-5 py-4 flex-1 flex flex-col gap-5">
-              <FiltersContent />
-              <PromoCard />
+              {filtersContentJsx}
+              {promoCardJsx}
             </div>
             {/* Bouton appliquer */}
             <div className="px-5 pb-6 pt-3 border-t border-gray-100 shrink-0">

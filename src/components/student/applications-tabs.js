@@ -1,7 +1,7 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import * as Tabs from "@radix-ui/react-tabs"
 import { FileText, CheckCircle, XCircle, MessageSquare, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import clsx from "clsx"
@@ -112,14 +112,14 @@ const EMPTY_STATES = {
     icon: FileText,
     title: "Aucune candidature en attente",
     message: "Tes prochaines candidatures apparaîtront ici.",
-    href: "/missions",
+    href: "/student/missions",
     ctaLabel: "Explorer les missions",
   },
   accepted: {
     icon: CheckCircle,
     title: "Aucune candidature acceptée",
     message: "Continue à postuler — une opportunité t'attend !",
-    href: "/missions",
+    href: "/student/missions",
     ctaLabel: "Voir les missions",
   },
   rejected: {
@@ -161,45 +161,91 @@ function EmptyTab({ type }) {
  */
 export function ApplicationsTabs({ pending, accepted, rejected }) {
   const tabs = [
-    { value: "pending",  label: `En attente (${pending.length})`,  data: pending },
-    { value: "accepted", label: `Acceptées (${accepted.length})`,  data: accepted },
-    { value: "rejected", label: `Refusées (${rejected.length})`,   data: rejected },
+    {
+      value: "pending",
+      label: "En attente",
+      count: pending.length,
+      data: pending,
+      icon: FileText,
+      activeColor: "text-amber-600",
+      activeBg: "bg-amber-50",
+      activeBorder: "border-amber-300",
+      countBg: "bg-amber-100 text-amber-700",
+    },
+    {
+      value: "accepted",
+      label: "Acceptées",
+      count: accepted.length,
+      data: accepted,
+      icon: CheckCircle,
+      activeColor: "text-[#1A6B4A]",
+      activeBg: "bg-green-50",
+      activeBorder: "border-green-300",
+      countBg: "bg-green-100 text-[#1A6B4A]",
+    },
+    {
+      value: "rejected",
+      label: "Refusées",
+      count: rejected.length,
+      data: rejected,
+      icon: XCircle,
+      activeColor: "text-red-600",
+      activeBg: "bg-red-50",
+      activeBorder: "border-red-200",
+      countBg: "bg-red-100 text-red-600",
+    },
   ]
 
+  const [active, setActive] = useState("pending")
+  const current = tabs.find((t) => t.value === active)
+
   return (
-    <Tabs.Root defaultValue="pending" className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
 
       {/* Onglets */}
-      <Tabs.List className="flex gap-1 bg-gray-100 p-1 rounded-xl w-full overflow-x-auto">
-        {tabs.map(({ value, label }) => (
-          <Tabs.Trigger
-            key={value}
-            value={value}
-            className={clsx(
-              "flex-1 shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap touch-manipulation",
-              "text-gray-500 hover:text-gray-700",
-              "data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
-            )}
-          >
-            {label}
-          </Tabs.Trigger>
-        ))}
-      </Tabs.List>
+      <div className="flex gap-2 w-full overflow-x-auto pb-0.5" role="tablist">
+        {tabs.map(({ value, label, count, icon: Icon, activeColor, activeBg, activeBorder, countBg }) => {
+          const isActive = active === value
+          return (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setActive(value)}
+              className={clsx(
+                "flex-1 shrink-0 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all whitespace-nowrap touch-manipulation cursor-pointer",
+                isActive
+                  ? clsx("shadow-sm", activeBg, activeColor, activeBorder)
+                  : "border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+              )}
+            >
+              <Icon size={14} className="shrink-0" />
+              <span>{label}</span>
+              <span className={clsx(
+                "text-[11px] font-bold px-1.5 py-0.5 rounded-md transition-colors",
+                isActive ? countBg : "bg-gray-100 text-gray-500"
+              )}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
 
-      {/* Contenu des onglets */}
-      {tabs.map(({ value, data }) => (
-        <Tabs.Content key={value} value={value} className="focus:outline-none">
-          {data.length === 0 ? (
-            <EmptyTab type={value} />
-          ) : (
-            <div className="flex flex-col gap-3">
-              {data.map((app) => (
-                <ApplicationCard key={app.id} application={app} />
-              ))}
-            </div>
-          )}
-        </Tabs.Content>
-      ))}
-    </Tabs.Root>
+      {/* Contenu de l'onglet actif */}
+      <div role="tabpanel">
+        {current?.data.length === 0 ? (
+          <EmptyTab type={active} />
+        ) : (
+          <div className="flex flex-col gap-3">
+            {current?.data.map((app) => (
+              <ApplicationCard key={app.id} application={app} />
+            ))}
+          </div>
+        )}
+      </div>
+
+    </div>
   )
 }
