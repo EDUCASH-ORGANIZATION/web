@@ -93,7 +93,7 @@ export function TrustBadges() {
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", md: "repeat(4,1fr)" }, gap: 2 }}>
           {TRUST_BADGES.map(({ icon: Icon, label, desc }) => (
             <Stack key={label} direction="row" spacing={1.8} alignItems="center"
-              sx={{ bgcolor: "#fff", borderRadius: 4, px: 2.5, py: 2.2, border: "1px solid", borderColor: "divider" }}>
+              sx={{ bgcolor: "#fff", borderRadius: 1, px: 2.5, py: 2.2, border: "1px solid", borderColor: "divider" }}>
               <Box sx={{ width: 46, height: 46, borderRadius: 2.5, bgcolor: BRAND.greenSoft, color: BRAND.green,
                 display: "grid", placeItems: "center", flexShrink: 0 }}>
                 <Icon />

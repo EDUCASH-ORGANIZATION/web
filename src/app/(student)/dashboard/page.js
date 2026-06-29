@@ -173,7 +173,7 @@ export default async function StudentDashboardPage() {
     <div className="p-6 lg:p-8 max-w-[1200px] mx-auto flex flex-col gap-6">
 
       {/* ── En-tête page ───────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-black text-gray-900">
             Bienvenue, {firstName}
@@ -184,9 +184,10 @@ export default async function StudentDashboardPage() {
         </div>
         <Link
           href="/student/missions"
-          className="shrink-0 inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-[#1A6B4A] text-white text-sm font-semibold hover:bg-[#155a3d] transition-colors touch-manipulation"
+          className="shrink-0 inline-flex items-center gap-2 h-10 px-4 sm:px-5 rounded-xl bg-[#1A6B4A] text-white text-sm font-semibold hover:bg-[#155a3d] transition-colors touch-manipulation"
         >
-          Nouvelle recherche
+          <span className="hidden sm:inline">Nouvelle recherche</span>
+          <span className="sm:hidden">Explorer</span>
         </Link>
       </div>
 
