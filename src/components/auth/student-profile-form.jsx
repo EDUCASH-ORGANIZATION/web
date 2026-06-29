@@ -26,6 +26,23 @@ const STUDY_LEVELS = [
   "Master 1", "Master 2", "BTS", "Doctorat", "Autre",
 ]
 
+const AVAILABILITY_PRESETS = [
+  "Jours de semaine",
+  "Week-end",
+  "Matin",
+  "Après-midi",
+  "Soirée",
+  "Autre",
+]
+
+function formatAvailability(presets, other) {
+  const hasAutre = presets.includes("Autre")
+  const cleanPresets = presets.filter((p) => p !== "Autre")
+  const parts = [...cleanPresets]
+  if (hasAutre && other.trim()) parts.push(other.trim())
+  return parts.join(", ")
+}
+
 // ─── Étape 1 ─────────────────────────────────────────────────────────────────
 
 function Step1({ initial = {}, onNext }) {
@@ -168,7 +185,8 @@ function Step2({ step1Data, onBack }) {
   const [selectedSchool, setSelectedSchool] = useState("")
   const [customSchool, setCustomSchool] = useState("")
   const [level, setLevel] = useState("")
-  const [availability, setAvailability] = useState("")
+  const [availabilityPresets, setAvailabilityPresets] = useState([])
+  const [availabilityOther, setAvailabilityOther] = useState("")
   const [skills, setSkills] = useState([])
   const [cardFile, setCardFile] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -178,6 +196,12 @@ function Step2({ step1Data, onBack }) {
   useEffect(() => {
     getUniversities().then((data) => setUniversities(data))
   }, [])
+
+  function toggleAvailabilityPreset(preset) {
+    setAvailabilityPresets((prev) =>
+      prev.includes(preset) ? prev.filter((p) => p !== preset) : [...prev, preset]
+    )
+  }
 
   function toggleSkill(skill) {
     setSkills((prev) =>
@@ -260,7 +284,7 @@ function Step2({ step1Data, onBack }) {
         level:        level || null,
         skills,
         card_url:     cardUrl,
-        availability: availability.trim() || null,
+        availability: formatAvailability(availabilityPresets, availabilityOther) || null,
       }, { onConflict: "user_id" })
       if (studentError) throw studentError
 
@@ -335,8 +359,38 @@ function Step2({ step1Data, onBack }) {
       </Box>
 
       {/* Disponibilités */}
-      <TextField label="Disponibilités" value={availability} onChange={(e) => setAvailability(e.target.value)}
-        placeholder="Ex : Week-ends, mercredis après-midi, vacances scolaires..." fullWidth multiline minRows={2} />
+      <Box>
+        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Disponibilités</Typography>
+        <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>Sélectionne tes plages habituelles</Typography>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+          {AVAILABILITY_PRESETS.map((preset) => {
+            const selected = availabilityPresets.includes(preset)
+            return (
+              <Chip
+                key={preset}
+                label={preset}
+                clickable
+                onClick={() => toggleAvailabilityPreset(preset)}
+                variant={selected ? "filled" : "outlined"}
+                sx={selected
+                  ? { bgcolor: BRAND.green, color: "#fff", fontWeight: 700, "&:hover": { bgcolor: BRAND.greenDark } }
+                  : { fontWeight: 600 }}
+              />
+            )
+          })}
+        </Box>
+        {availabilityPresets.includes("Autre") && (
+          <TextField
+            value={availabilityOther}
+            onChange={(e) => setAvailabilityOther(e.target.value)}
+            placeholder="Précise tes disponibilités spécifiques…"
+            fullWidth
+            multiline
+            minRows={2}
+            sx={{ mt: 1.5 }}
+          />
+        )}
+      </Box>
 
       {error && <Alert severity="error" sx={{ borderRadius: 1, fontSize: "0.875rem", alignItems: "center" }}>{error}</Alert>}
 

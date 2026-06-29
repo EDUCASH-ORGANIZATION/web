@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Upload, FileImage, Check, Loader2, X } from "lucide-react"
 import { saveStudentCardUrl } from "@/lib/actions/profile.actions"
+import { verifyStudentCardWithAI } from "@/lib/actions/verify-card.actions"
 import { useSupabase } from "@/components/shared/supabase-provider"
 
 /**
@@ -17,6 +18,7 @@ export function CardUploadForm({ hasCard }) {
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [verifying, setVerifying] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
 
@@ -75,6 +77,18 @@ export function CardUploadForm({ hasCard }) {
 
       if (uploadError) {
         setError("Erreur upload : " + uploadError.message)
+        return
+      }
+
+      // Vérification IA : s'assure que l'image est bien une carte étudiante
+      setVerifying(true)
+      const aiResult = await verifyStudentCardWithAI(fileName)
+      setVerifying(false)
+
+      if (!aiResult.valid) {
+        // Supprime le fichier invalide du storage
+        await supabase.storage.from("student-cards").remove([fileName])
+        setError(`Image refusée : ${aiResult.reason}`)
         return
       }
 
@@ -207,10 +221,12 @@ export function CardUploadForm({ hasCard }) {
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={submitting || !file}
+        disabled={submitting || verifying || !file}
         className="w-full py-3.5 rounded-xl bg-[#1A6B4A] text-white text-sm font-bold hover:bg-[#155a3d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 touch-manipulation"
       >
-        {submitting ? (
+        {verifying ? (
+          <><Loader2 size={15} className="animate-spin" /> Vérification IA en cours…</>
+        ) : submitting ? (
           <><Loader2 size={15} className="animate-spin" /> Envoi en cours…</>
         ) : (
           <><Upload size={15} /> Envoyer pour vérification</>
