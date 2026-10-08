@@ -1,120 +1,59 @@
-"use client"
+import Link from "next/link"
+import { Icon } from "@/components/design/icon"
 
-import Card from "@mui/material/Card"
-import Box from "@mui/material/Box"
-import Typography from "@mui/material/Typography"
-import Chip from "@mui/material/Chip"
-import Button from "@mui/material/Button"
-import Divider from "@mui/material/Divider"
-import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded"
-import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded"
-import { Stack } from "./stack"
-import { BRAND } from "./theme"
-
-function timeAgo(dateStr) {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-  if (days > 0) return `il y a ${days}j`
-  if (hours > 0) return `il y a ${hours}h`
-  if (minutes > 0) return `il y a ${minutes}min`
-  return "à l'instant"
+// Icône par type de mission (reprise de la maquette V02)
+const TYPE_ICON = {
+  "Babysitting": "i-baby",
+  "Livraison": "i-bike",
+  "Saisie": "i-keyboard",
+  "Community Management": "i-megaphone",
+  "Traduction": "i-languages",
+  "Cours particuliers": "i-book",
+  "Autre": "i-briefcase",
 }
 
-const TYPE_COLORS = {
-  "Babysitting":          { bg: "#FCE7F3", color: "#BE185D" },
-  "Livraison":            { bg: "#DBEAFE", color: "#1D4ED8" },
-  "Saisie":               { bg: "#CCFBF1", color: "#0F766E" },
-  "Community Management":  { bg: "#E0E7FF", color: "#4338CA" },
-  "Traduction":           { bg: "#CFFAFE", color: "#0E7490" },
-  "Cours particuliers":   { bg: BRAND.greenSoft, color: BRAND.greenDark },
-  "Autre":                { bg: "#F1F5F9", color: "#475569" },
-}
-
-const URGENCY_BADGE = {
-  high:   { label: "Urgent", bg: "#FEF3C7", color: "#B45309" },
-  medium: { label: "Moyen", bg: "#FFEDD5", color: "#C2410C" },
+function fmtInt(n) {
+  return new Intl.NumberFormat("fr-FR").format(n ?? 0)
 }
 
 /**
- * Carte mission — version Material UI pour le site vitrine.
- * @param {{ mission: any, showApplyButton?: boolean, isApplied?: boolean,
- *           onApply?: (m:any)=>void, onOpen?: ()=>void }} props
+ * Carte mission de la refonte (classe .mission du design system).
+ * Composant serveur : rend un lien.
  */
-export function MissionCard({ mission, showApplyButton = false, isApplied = false, onApply, onOpen }) {
-  const budget = new Intl.NumberFormat("fr-FR").format(mission.budget)
+export function MissionCard({ mission }) {
+  const budget = mission.budget ?? 0
+  const net = Math.round(budget * 0.88)
   const isUrgent = mission.urgency === "high"
-  const badge = isUrgent
-    ? URGENCY_BADGE.high
-    : { label: mission.type, ...(TYPE_COLORS[mission.type] ?? TYPE_COLORS["Autre"]) }
+  const typeIcon = TYPE_ICON[mission.type] ?? "i-wrench"
 
   return (
-    <Card
-      onClick={onOpen}
-      sx={{
-        display: "flex", flexDirection: "column", height: "100%", overflow: "hidden",
-        cursor: onOpen ? "pointer" : "default",
-        transition: "transform .2s ease, box-shadow .2s ease, border-color .2s ease",
-        "&:hover": { transform: "translateY(-4px)", boxShadow: "0 20px 40px -22px rgba(15,23,42,0.3)", borderColor: "rgba(26,107,74,0.35)" },
-      }}
-    >
-      <Box sx={{ p: 2.5, flex: 1, display: "flex", flexDirection: "column", gap: 1.5 }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-          <Chip label={badge.label} size="small"
-            sx={{ bgcolor: badge.bg, color: badge.color, fontWeight: 700, textTransform: "uppercase",
-              fontSize: "0.65rem", letterSpacing: "0.04em", height: 22 }} />
-          <Typography sx={{ fontWeight: 800, color: BRAND.green, fontSize: "0.92rem", whiteSpace: "nowrap" }}>
-            {budget} FCFA
-          </Typography>
-        </Stack>
-
-        <Typography sx={{ fontWeight: 700, fontSize: "1.02rem", lineHeight: 1.3, color: "text.primary",
-          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-          {mission.title}
-        </Typography>
-
-        {mission.description && (
-          <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.55, flex: 1,
-            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-            {mission.description}
-          </Typography>
+    <Link className="mission mission--link" href={`/missions/${mission.id}`}>
+      <div className="mission__top">
+        <span className="mission__cat">
+          <span className="ic-sq ic-sq--sm"><Icon name={typeIcon} className="ic" /></span>
+          {mission.type}
+        </span>
+        {isUrgent ? (
+          <span className="badge badge--contour badge--sm"><Icon name="i-zap" className="ic" />Urgent</span>
+        ) : (
+          <span className="badge badge--bleu badge--sm"><i />Ouverte</span>
         )}
-
-        <Stack direction="row" spacing={2} sx={{ mt: "auto", color: "text.disabled" }}>
-          {mission.city && (
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              <PlaceRoundedIcon sx={{ fontSize: 14 }} />
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>{mission.city}</Typography>
-            </Stack>
-          )}
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <AccessTimeRoundedIcon sx={{ fontSize: 14 }} />
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>{timeAgo(mission.created_at)}</Typography>
-          </Stack>
-        </Stack>
-      </Box>
-
-      {showApplyButton && (
-        <>
-          <Divider />
-          {isApplied ? (
-            <Box sx={{ py: 1.5, textAlign: "center", bgcolor: "#F8FAFB", color: "text.disabled",
-              fontSize: "0.85rem", fontWeight: 600 }}>
-              ✓ Candidature envoyée
-            </Box>
-          ) : (
-            <Button
-              fullWidth
-              onClick={(e) => { e.stopPropagation(); onApply?.(mission) }}
-              sx={{ borderRadius: 0, py: 1.4, color: BRAND.green, fontWeight: 700,
-                "&:hover": { bgcolor: BRAND.greenSoft, transform: "none" } }}
-            >
-              Postuler
-            </Button>
-          )}
-        </>
-      )}
-    </Card>
+      </div>
+      <h3 className="mission__title">{mission.title}</h3>
+      <div className="mission__meta">
+        {mission.city && (
+          <span><Icon name="i-map-pin" className="ic" />{mission.city}</span>
+        )}
+        <span><Icon name="i-calendar" className="ic" />Avant le {mission.deadline}</span>
+        <span><Icon name="i-clock" className="ic" />Publiée il y a 2 j</span>
+      </div>
+      <div className="mission__foot">
+        <div className="mission__price">
+          <span className="amount amount--m">{fmtInt(budget)}&#8239;<small>FCFA</small></span>
+          <small className="net">Tu touches {fmtInt(net)}&#8239;FCFA</small>
+        </div>
+        <span className="btn btn--primary btn--sm">Voir</span>
+      </div>
+    </Link>
   )
 }
