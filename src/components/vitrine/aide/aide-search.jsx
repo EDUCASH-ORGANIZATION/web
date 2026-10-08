@@ -90,10 +90,11 @@ export function AideSearch({ themes }) {
     <>
       <PageHead
         eyebrow="Aide et FAQ"
+        size="xxl"
         title={<>Une question&nbsp;?<br /><span className="hl-citron">On t&apos;aide.</span></>}
       >
-        <Icon name="sc-squiggle" className="scribble v07-scribble--a" />
-        <Icon name="sc-burst" className="scribble v07-scribble--b" />
+        <Icon name="sc-squiggle" className="scribble v-pagehead__scribble v07-scribble--a" />
+        <Icon name="sc-burst" className="scribble v-pagehead__scribble v07-scribble--b" />
         <form className="search search--hero v07-search" role="search" onSubmit={(event) => event.preventDefault()}>
           <Icon name="i-search" />
           <input

@@ -552,7 +552,7 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .v06-band { margin: var(--s-12) 0 0; border-radius: var(--r-xl); padding: var(--s-8) var(--s-4); }
 
   .v07-head { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); padding: var(--s-6) var(--s-4) var(--s-8); }
-  .v07-scribble--a, .v07-scribble--b, .v08-scribble, .v09-scribble { display: none; }
+  .v07-scribble--a, .v07-scribble--b, .v08-scribble, .v09-scribble, .v08-badge { display: none; }
   .v07-themes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .v07-theme { min-height: 120px; padding: 14px; gap: 10px; border-radius: 20px; }
   .v07-theme b { font-size: var(--t-body); }
