@@ -18,7 +18,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - On consomme le système par ses classes (`.btn`, `.card`, `.badge`, `.field`, `.shell`...) et par `<Icon name="i-..." className="ic" />` (`src/components/design/icon.jsx`).
 - Anti-collision avec Tailwind : les classes qui portent un nom d'utilitaire sont préfixées `ds-` : `ds-grid`, `ds-container`, `ds-grow`, `ds-table`, `ds-table-wrap`, `ds-h1` à `ds-h4`, `ds-pulse`, `ds-strong`, `ds-scrim-fixed`. `sr-only` vient de Tailwind.
 - Select : `<Select>` (`src/components/design/select.jsx`, logique pure dans `select-logic.js`) remplace le `<select>` natif dans la vitrine (variantes `chip`, `bare`, `field`). Classes `ds-select`, `ds-select--*`, `ds-select__bare`, `ds-select__menu`, liste = `.menu` du système. Les espaces connectés gardent le `<select>` natif jusqu'à leur refonte.
-- Responsive : breakpoints 1024, 768 et 480 (media queries dans `tokens.css` et `layouts.css`). Classes `ds-desk-only` et `ds-mob-only` pour afficher selon la taille.
+- Responsive : breakpoints 1024, 768 et 480 (media queries dans `tokens.css` et `layouts.css`). Classes `ds-desk-only` et `ds-mob-only` pour afficher selon la taille. Exception : l'en-tête vitrine a son propre seuil à 1360 px (navigation dans le burger entre 1024 et 1359 px, voir `layouts.css`).
 - Titres Anton : interligne via `--lh-display` (1.14 minimum, accents des majuscules), sauf chiffres sans accents.
 - Logos d'opérateurs dans `public/logos/operators/`, affichés via `OperatorLogo` (`src/components/vitrine/shared/`).
 - Couleurs en dur interdites : uniquement `var(--c-*)`. Pas de `style={{}}`, pas de `<style>` local.

@@ -42,6 +42,8 @@ function isActivePath(pathname, href) {
 // l'en-tête passe en compact dès que la page a défilé.
 // tone="bleu" : en-tête transparent posé sur un hero bleu (accueil, maquette V01), logo blanc et
 // actions on-bleu. Une fois la page défilée, il devient l'en-tête compact blanc standard.
+// Seuil propre à l'en-tête (layouts.css) : sous 1360 px, la navigation passe dans le menu burger et
+// les actions restent visibles ; sous 1024 px, les actions bureau (ds-desk-only) cèdent la place à « S'inscrire ».
 export function VitrineNavbar({ tone = "blanc" }) {
   const pathname = usePathname()
   const session = useVitrineSession()
@@ -67,7 +69,7 @@ export function VitrineNavbar({ tone = "blanc" }) {
     <>
       <div className={tone === "bleu" ? "site-header-slot site-header-slot--bleu" : "site-header-slot"}>
         <header className={headerClass}>
-          <Link href="/" aria-label="EduCash, accueil">
+          <Link className="site-header__brand" href="/" aria-label="EduCash, accueil">
             <img
               className="logo"
               src={bleu ? "/logo-horizontal-blanc.svg" : "/logo-horizontal-bleu.svg"}
