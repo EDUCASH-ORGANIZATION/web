@@ -466,6 +466,7 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .v-payers { gap: var(--s-3); }
   .v-figures { margin: var(--s-12) var(--s-4) 0; padding: var(--s-8) var(--s-4) var(--s-4); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .v-figures__head { grid-column: 1 / -1; margin-bottom: var(--s-3); }
+  .v-figures--3 .v-fig:last-child { grid-column: 1 / -1; }
   .v-fig { min-height: 150px; padding: var(--s-4); gap: var(--s-3); border-radius: 20px; }
   .v-cta2 { grid-template-columns: minmax(0, 1fr); margin: var(--s-12) var(--s-4) 0; gap: 10px; }
   .v-cta { min-height: 0; padding: var(--s-6) var(--s-5); border-radius: 28px; }

@@ -82,7 +82,7 @@ export function ContactForm({ defaultSubject = "", defaultMessage = "" }) {
           </span>
           <h2 className="display display--m">Message envoyé.</h2>
           <p className="body-l">
-            Merci {sent.name}. Ton message est bien arrivé&nbsp;: on te répond sous <b>24&nbsp;h ouvrées</b> à{" "}
+            Merci {sent.name}. Ton message est bien arrivé&nbsp;: on te répond à{" "}
             <b>{sent.email}</b>.
           </p>
           <div className="recap">
@@ -214,11 +214,7 @@ export function ContactForm({ defaultSubject = "", defaultMessage = "" }) {
       <div className="banner banner--info">
         <Icon name="i-flag" />
         <div className="banner__body">
-          Un problème sur une mission en cours&nbsp;? Utilise{" "}
-          <Link className="link" href="/aide">
-            «&nbsp;Signaler&nbsp;»
-          </Link>{" "}
-          depuis la mission&nbsp;: la libération du paiement peut être suspendue.
+          Un problème sur une mission en cours&nbsp;? Précise-le dans ton message&nbsp;: l&apos;équipe EduCash intervient en médiation.
         </div>
       </div>
 

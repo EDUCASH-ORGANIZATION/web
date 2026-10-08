@@ -47,8 +47,11 @@ export default function AidePage() {
           <div className="banner banner--info v07-litige">
             <Icon name="i-scale" />
             <div className="banner__body">
-              <b>Un problème pendant la mission&nbsp;?</b> Le client ou toi signalez-le&nbsp;: la libération
-              automatique est suspendue et l&apos;équipe tranche (remboursement, paiement partiel ou total).
+              <b>Un souci pendant la mission&nbsp;?</b> Contacte l&apos;équipe EduCash depuis la page{" "}
+              <Link className="link" href="/contact?sujet=signalement">
+                Contact
+              </Link>
+              &nbsp;: nous intervenons en médiation.
             </div>
           </div>
         </div>
@@ -61,8 +64,8 @@ export default function AidePage() {
             <span className="hl-citron">Écris-nous.</span>
           </h2>
           <p className="body-s ds-text-brume ds-mt-3 ds-measure-l">
-            Réponse sous 24&nbsp;h ouvrées, du lundi au samedi. Pour un problème sur une mission en cours,
-            utilise plutôt « Signaler » depuis la mission&nbsp;: c&apos;est plus rapide.
+            Une vraie équipe à Cotonou lit chaque message. Pour un problème sur une mission en cours,
+            précise-le dans ton message pour qu&apos;on intervienne plus vite.
           </p>
         </div>
         <div className="stack stack--3">

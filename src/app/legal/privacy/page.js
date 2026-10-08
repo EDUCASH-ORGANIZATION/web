@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         <p>
           {LEGAL_ENTITY.name}, éditeur d’EduCash, dont le siège est situé à {LEGAL_ENTITY.address},
           est responsable du traitement de vos données personnelles.
-          Contact DPO : privacy@educash.bj
+          Contact DPO : contact@educash.bj
         </p>
       </LegalSection>
 
@@ -97,7 +97,7 @@ export default function PrivacyPage() {
           <li><strong>Droit à la portabilité :</strong> recevoir vos données dans un format structuré</li>
           <li><strong>Droit d’opposition :</strong> vous opposer à certains traitements</li>
         </ul>
-        <p>Pour exercer ces droits : privacy@educash.bj</p>
+        <p>Pour exercer ces droits : contact@educash.bj</p>
       </LegalSection>
 
       <LegalSection {...SECTIONS.cookies}>
@@ -121,7 +121,7 @@ export default function PrivacyPage() {
           <br />
           <strong>EduCash - DPO</strong>
           <br />
-          Email : privacy@educash.bj<br />
+          Email : contact@educash.bj<br />
           Adresse : {LEGAL_ENTITY.address}
         </p>
       </LegalSection>

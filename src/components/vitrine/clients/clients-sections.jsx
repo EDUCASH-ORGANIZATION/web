@@ -77,14 +77,13 @@ export function EscrowSteps() {
               <span className="ic-sq ic-sq--sm ic-sq--encre"><Icon name="i-check" /></span>
               <div className="ds-grow">
                 <b>Mission terminée&nbsp;?</b>
-                <small>Confirmer ou signaler un problème</small>
+                <small>Confirmer la fin</small>
               </div>
             </div>
             <div>
               <h3 className="v-step__title">Validez</h3>
               <p className="v-step__text">
-                L&apos;étudiant déclare la fin, vous confirmez et il est payé. Sans réponse de votre part sous
-                72&nbsp;h, le paiement part automatiquement.
+                Une fois la mission faite, vous confirmez et l&apos;étudiant est payé.
               </p>
             </div>
           </div>

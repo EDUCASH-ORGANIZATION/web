@@ -26,7 +26,7 @@ export const AIDE_THEMES = [
         question: "Quand est-ce que je suis payé ?",
         answer: [
           "Le client paie à l'avance : son budget est bloqué en séquestre dès la publication de la mission. Il ne bouge plus jusqu'à la fin.",
-          "Quand tu déclares « J'ai terminé », le client confirme. S'il ne répond pas, la libération est automatique 72 h plus tard. Ton gain arrive alors sur ton portefeuille EduCash, d'où tu peux le retirer vers MoMo.",
+          "Une fois la mission faite, le client confirme et ton argent arrive sur ton portefeuille EduCash, d'où tu peux le retirer vers MoMo.",
         ],
       },
       {
@@ -39,16 +39,16 @@ export const AIDE_THEMES = [
         ],
         steps: [
           {
-            title: "Tu envoies une demande de paiement",
-            text: "Dans la conversation : photo du numéro marchand, montant exact et ticket.",
+            title: "Tu envoies les infos du vendeur",
+            text: "Dans la conversation : la photo du numéro marchand, le montant exact et le ticket.",
           },
           {
             title: "Le client paie le vendeur par MoMo",
-            text: "Directement, hors EduCash. Il marque la demande « Payé » avec la capture du SMS.",
+            text: "Directement, hors EduCash. Il t'envoie la capture du SMS.",
           },
           {
-            title: "Tu confirmes la réception",
-            text: "Le vendeur te remet les achats, tu confirmes. Tu n'avances jamais d'argent.",
+            title: "Tu confirmes le paiement au client",
+            text: "Tu confirmes au client que le vendeur a bien reçu le paiement. Tu n'avances jamais d'argent.",
           },
         ],
         notice: PAYMENT_WARNING,
@@ -66,14 +66,14 @@ export const AIDE_THEMES = [
         question: "Le client peut-il annuler après m'avoir retenu ?",
         answer: [
           "Si la mission est annulée, le budget bloqué est remboursé au client. Tant que tu n'as pas terminé, rien ne t'est versé et rien ne t'est prélevé.",
-          "En cas de désaccord, signale-le depuis la mission : l'équipe EduCash examine la situation.",
+          "En cas de désaccord, contacte l'équipe EduCash depuis la page Contact : nous intervenons en médiation.",
         ],
       },
       {
         id: "litige",
         question: "Que se passe-t-il en cas de problème pendant la mission ?",
         answer: [
-          "Le client ou toi pouvez le signaler depuis la mission. La libération automatique est alors suspendue et l'équipe tranche : remboursement, paiement partiel ou paiement total.",
+          "Un souci pendant la mission ? Contacte l'équipe EduCash depuis la page Contact : nous intervenons en médiation.",
         ],
       },
     ],
@@ -241,7 +241,7 @@ export const ESCROW_STEPS = [
   },
   {
     title: "Tu termines, il confirme",
-    text: "Tu déclares « J'ai terminé ». Il confirme, ou c'est automatique 72 h plus tard.",
+    text: "Une fois la mission faite, le client confirme et ton argent arrive sur ton portefeuille EduCash.",
   },
   {
     title: `Tu encaisses ${NET_PCT} %`,

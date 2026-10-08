@@ -62,8 +62,7 @@ function StudentSteps() {
         <div>
           <h3 className="v-step__title">Encaisse sur ton MoMo</h3>
           <p className="v-step__text">
-            Tu déclares « J&rsquo;ai terminé », le client confirme. Sans réponse sous 72 h, l&rsquo;argent est libéré quand
-            même. Tu touches {SHARE} % du budget.
+            Une fois la mission faite, le client confirme et ton argent arrive sur ton portefeuille EduCash. Tu touches {SHARE} % du budget.
           </p>
         </div>
       </div>
@@ -107,7 +106,7 @@ function ClientSteps() {
         <div>
           <h3 className="v-step__title">Validez, c&rsquo;est payé</h3>
           <p className="v-step__text">
-            Vous confirmez la fin ou signalez un problème. Annulation avant le début : remboursement intégral.
+            Vous confirmez la fin de la mission. Annulation avant le début : remboursement intégral.
           </p>
         </div>
       </div>

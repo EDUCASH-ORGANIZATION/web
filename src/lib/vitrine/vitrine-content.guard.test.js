@@ -35,6 +35,20 @@ describe("garde-fous de contenu vitrine", () => {
     expect(hits).toEqual([])
   })
 
+  it.each([
+    ["72 h", /72(\s|&nbsp;|\u00a0)*h\b/],
+    ["J'ai terminé", /J(&rsquo;|&apos;|'|\u2019)ai terminé/],
+    ["tranche", /tranche/],
+    ["coup sûr", /coup sûr/],
+    ["privacy@educash.bj", /privacy@educash\.bj/],
+    ["24 h ouvrées", /24(\s|&nbsp;|\u00a0)*h ouvrées/],
+    ["lundi au samedi", /lundi au samedi/i],
+    ["Demande de paiement", /demande de paiement/i],
+  ])("aucune promesse retiree (%s) dans les fichiers vitrine", (_n, re) => {
+    const hits = files.filter((f) => /\.jsx?$/.test(f) && re.test(read(f)))
+    expect(hits).toEqual([])
+  })
+
   it("les mentions legales portent l'identite BRANDYBEN", () => {
     const src = read("src/components/vitrine/legal/legal-entity.js") + read("src/app/legal/mentions/page.js")
     expect(src).toContain("BRANDYBEN")

@@ -8,7 +8,7 @@ import { safeNextPath } from "@/lib/utils/safe-next"
 export const metadata = {
   title: "Contact",
   description:
-    "Écris à l'équipe EduCash : une question sur une mission, un paiement ou ta vérification. Réponse sous 24 h ouvrées.",
+    "Écris à l'équipe EduCash : une question sur une mission, un paiement ou ta vérification.",
   openGraph: { url: "/contact" },
 }
 
@@ -33,17 +33,6 @@ export default async function ContactPage({ searchParams }) {
   return (
     <VitrinePage>
       <div className="v08-head grid-bg">
-        <div className="v08-badge ds-desk-only">
-          <div>
-            <b>24&nbsp;h</b>
-            <span>
-              ouvrées pour
-              <br />
-              te répondre
-            </span>
-          </div>
-        </div>
-        <Icon name="sc-arrow" className="scribble v08-scribble" />
         <span className="eyebrow">Contact</span>
         <h1 className="display display--xxl ds-mt-6">
           Écris-nous.
@@ -51,7 +40,7 @@ export default async function ContactPage({ searchParams }) {
           <span className="hl-citron">On répond.</span>
         </h1>
         <p className="body-l v08-lead">
-          Une vraie équipe à Cotonou lit chaque message. Du lundi au samedi, réponse sous 24&nbsp;h ouvrées.
+          Une vraie équipe à Cotonou lit chaque message.
         </p>
       </div>
 
@@ -70,17 +59,6 @@ export default async function ContactPage({ searchParams }) {
                       contact@educash.bj
                     </a>
                   </div>
-                  <span className="caption">Réponse sous 24&nbsp;h ouvrées</span>
-                </div>
-              </div>
-              <div className="v08-info">
-                <span className="ic-sq ic-sq--lg">
-                  <Icon name="i-clock" />
-                </span>
-                <div>
-                  <span className="caption">Horaires</span>
-                  <b>Lun. au sam., 8&nbsp;h à 19&nbsp;h</b>
-                  <span className="caption">Mêmes horaires partout sur le site</span>
                 </div>
               </div>
               <div className="v08-info">

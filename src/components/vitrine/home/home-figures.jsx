@@ -37,8 +37,8 @@ export function HomeFigures({ figures }) {
         </div>
         <Qual
           icon="i-lock"
-          title="Payé à coup sûr"
-          text="L'argent est bloqué avant le début. Personne ne peut partir sans payer."
+          title="Paiement sécurisé"
+          text="Le budget est bloqué avant le début de la mission."
         />
         <Qual
           tone=" v01-qual--bleu"
@@ -63,7 +63,7 @@ export function HomeFigures({ figures }) {
   }
 
   return (
-    <div className="v-figures">
+    <div className="v-figures v-figures--3">
       <div className="v-figures__head">
         <span className="eyebrow">En chiffres, en vrai</span>
         <h2 className="display display--l">
@@ -91,13 +91,6 @@ export function HomeFigures({ figures }) {
         unit="%"
         label="du budget pour toi"
         text={`commission unique de ${COMMISSION} %`}
-      />
-      <Fig
-        badge="Règle"
-        value={72}
-        unit="h"
-        label="maximum pour être payé"
-        text="après ta déclaration de fin"
       />
     </div>
   )

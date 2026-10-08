@@ -22,7 +22,7 @@ export function HomeProofs({ rating }) {
           <div className="v-proof__title">Ton argent est bloqué avant que tu bosses.</div>
           <div className="v-proof__text">
             Le client paie d&rsquo;avance. L&rsquo;argent reste en séquestre et arrive sur ton portefeuille dès qu&rsquo;il
-            valide la mission, ou au plus tard 72 h après ta déclaration de fin.
+            valide la mission.
           </div>
         </div>
       </div>

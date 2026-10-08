@@ -38,8 +38,9 @@ const FAQ_ITEMS = [
     answer: (
       <>
         Oui. Le client bloque le budget sur EduCash <b>avant</b> que la mission commence : c&rsquo;est le séquestre.
-        Quand tu déclares la mission terminée, il confirme, ou l&rsquo;argent t&rsquo;est versé automatiquement au bout
-        de 72 h. En cas de désaccord, l&rsquo;équipe tranche.
+        Une fois la mission faite, le client confirme et ton argent arrive sur ton portefeuille EduCash. Un souci
+        pendant la mission&nbsp;? Contacte l&rsquo;équipe EduCash depuis la page Contact&nbsp;: nous intervenons en
+        médiation.
       </>
     ),
   },
@@ -57,7 +58,7 @@ const FAQ_ITEMS = [
     id: "carte",
     question: "Faut-il une carte étudiante pour s'inscrire ?",
     answer:
-      "Non, l'inscription est gratuite. La carte étudiante n'est demandée qu'au moment de postuler : l'équipe la contrôle à la main.",
+      "Non, l'inscription est gratuite. Ta carte étudiante est vérifiée à la main par l'équipe.",
   },
 ]
 
