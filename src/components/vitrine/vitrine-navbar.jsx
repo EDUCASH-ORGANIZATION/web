@@ -13,7 +13,6 @@ const DESKTOP_LINKS = [
   { label: "Missions", href: "/missions" },
   { label: "Comment ça marche", href: "/#how-it-works" },
   { label: "Pour les clients", href: "/auth/register?role=client" },
-  { label: "Aide", href: "/contact" },
 ]
 
 const MENU_LINKS = [...DESKTOP_LINKS, { label: "À propos", href: "/about" }, { label: "Contact", href: "/contact" }]
@@ -25,8 +24,9 @@ function isActivePath(pathname, href) {
 }
 
 // En-tête public de la vitrine (design system Direction A, maquettes V01 et V02).
-// Le design system ne s'applique que sous .ds : la racine le porte, car la navbar
-// est aussi montée sur des pages encore en MUI.
+// .ds ne porte que les styles de racine (police, encre, fond) : la racine le porte,
+// car la navbar est aussi montée sur des pages encore en MUI. Les sélecteurs de
+// composants sont globaux (couche components).
 export function VitrineNavbar() {
   const pathname = usePathname()
   const session = useVitrineSession()

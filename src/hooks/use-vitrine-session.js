@@ -37,10 +37,7 @@ export function useVitrineSession() {
         })
     }
 
-    supabase.auth.getUser().then(({ data }) => {
-      if (active) loadProfile(data?.user ?? null)
-    })
-
+    // INITIAL_SESSION est émis à l'abonnement : un seul chemin de chargement.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -59,7 +56,7 @@ export function useVitrineSession() {
     router.refresh()
   }
 
-  const role = user?.user_metadata?.role ?? profile?.role ?? null
+  const role = profile?.role ?? user?.user_metadata?.role ?? null
   const fullName = profile?.full_name ?? user?.user_metadata?.full_name ?? null
 
   return {
