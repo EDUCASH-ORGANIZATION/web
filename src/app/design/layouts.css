@@ -419,7 +419,8 @@ summary.v-faq__q:focus-visible { outline: none; box-shadow: var(--sh-focus); bor
 .v-cta__scribble { position: absolute; right: 70px; top: 60px; width: 90px; height: 80px; }
 .v05-cta .v-cta__scribble { right: 220px; top: auto; bottom: 90px; }
 .v-cta__title--low { margin-top: 120px; }
-.v-hero__photo { position: absolute; right: 0; bottom: 0; height: 100%; width: auto; max-width: 100%; object-fit: contain; object-position: bottom right; }
+.v-hero__picture { display: flex; align-items: flex-end; justify-content: center; box-sizing: border-box; width: 100%; height: 100%; padding-top: var(--s-6); }
+.v-hero__photo { display: block; height: 100%; width: auto; max-width: 100%; object-fit: contain; object-position: center bottom; }
 .v-hero__visual .v01-burst { right: -6px; top: -30px; }
 .v01-split { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: var(--s-14); align-items: start; }
 .v01-split__scribble { width: 90px; height: 80px; margin: var(--s-7) 0 0 220px; }
