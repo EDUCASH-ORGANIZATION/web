@@ -123,7 +123,7 @@ export function HomeHero({ live, openMissions, role }) {
             <span>Populaire :</span>
             {POPULAR.map((t) => <Chip key={t} type={t} />)}
           </div>
-          <div className="chips chips--scroll on-bleu ds-mt-4 ds-mob-only">
+          <div className="chips chips--scroll v-hero__chips on-bleu ds-mob-only">
             {POPULAR.map((t) => <Chip key={t} type={t} />)}
           </div>
 

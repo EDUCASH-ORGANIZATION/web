@@ -272,15 +272,6 @@
   .empty__actions .btn { width: 100%; justify-content: center; }
   .v02-void__actions { flex-direction: column; align-items: stretch; }
   .v02-void__actions .btn { width: 100%; justify-content: center; }
-  .v-figures { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
-  .v-figures--3 .v-fig:last-child { grid-column: auto; }
-  .v-fig { min-height: 0; padding: var(--s-5); }
-  .v01-qual { min-height: 0; padding: var(--s-5); }
-  .v-cats { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
-  .v-cat--big, .v-cat--lavande, .v-cat--wide { grid-column: auto; }
-  .v-cat { padding: var(--s-5); min-height: 0; }
-  .v05-guar { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
-  .v05-g { padding: var(--s-5); }
   .v02-grid { grid-template-columns: minmax(0, 1fr); }
   .v02-title { font-size: var(--t-display-m); line-height: var(--lh-display); }
   .filterbar__count { margin-left: 0; width: 100%; }
@@ -596,8 +587,18 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .v09-prose dd { margin-bottom: 8px; }
 }
 
+/* Une colonne : ce bloc doit rester après le bloc 1023.98 ci-dessus (même spécificité, l'ordre décide) */
 /* ---------- Une colonne ---------- */
 @media (max-width: 767.98px) {
+  .v-figures { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+  .v-figures--3 .v-fig:last-child { grid-column: auto; }
+  .v-fig { min-height: 0; padding: var(--s-5); }
+  .v01-qual { min-height: 0; padding: var(--s-5); }
+  .v-cats { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+  .v-cat--big, .v-cat--lavande, .v-cat--wide { grid-column: auto; }
+  .v-cat { padding: var(--s-5); min-height: 0; }
+  .v05-guar { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+  .v05-g { padding: var(--s-5); }
   .v-fig__n { font-size: 48px; }
   .v-fig__t { font-size: var(--t-caption); }
   .v-fig__t b { font-size: var(--t-body-s); }
