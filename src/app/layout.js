@@ -32,6 +32,7 @@ export const viewport = {
 }
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.educash.bj"),
   title: {
     default: "EduCash",
     template: "%s - EduCash",
