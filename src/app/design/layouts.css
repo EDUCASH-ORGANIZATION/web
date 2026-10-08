@@ -2,7 +2,8 @@
    EduCash - layouts.css
    Gabarits de mise en page. Chaque gabarit existe en version bureau
    (dans .frame-desk, 1440 px) et mobile (dans .frame-phone, 390 px).
-   Pas de @media : on choisit explicitement la classe bureau ou mobile.
+   Bureau d'abord : les variantes --m servent aux maquettes, et les
+   media queries en fin de fichier appliquent leurs valeurs sous 1024 px.
    ===================================================================== */
 
 /* ---------- Logo (fichiers SVG livrés, jamais redessinés) ---------- */
@@ -18,28 +19,30 @@
    A. VITRINE : EN-TÊTE ET FOOTER
    ===================================================================== */
 .site { background: var(--c-givre); min-height: 100%; }
-.site-header { display: flex; align-items: center; gap: var(--s-8); height: 88px; padding: 0 var(--s-10); background: var(--c-blanc); border-bottom: var(--b-ligne); position: relative; z-index: var(--z-nav); }
+.site-header { font-family: var(--f-text); display: flex; align-items: center; gap: var(--s-8); height: 88px; padding: 0 var(--s-10); background: var(--c-blanc); border-bottom: var(--b-ligne); position: relative; z-index: var(--z-nav); }
 .site-header__nav { display: flex; gap: 4px; background: var(--c-givre); border-radius: var(--r-pill); padding: 5px; }
 .site-header__nav a { padding: 9px 18px; border-radius: var(--r-pill); font-weight: var(--fw-bold); font-size: var(--t-body-s); white-space: nowrap; }
 .site-header__nav a:hover, .site-header__nav a.is-hover { background: var(--c-blanc); }
-.site-header__nav a.is-active { background: var(--c-encre); color: var(--c-blanc); }
+.site-header__nav a.is-active, .site-header__nav a[aria-current="page"] { background: var(--c-encre); color: var(--c-blanc); }
 .site-header__actions { margin-left: auto; display: flex; align-items: center; gap: var(--s-3); }
 .site-header__login { font-weight: var(--fw-xbold); font-size: var(--t-body-s); padding: 0 10px; }
 /* Variante posée sur le hero bleu (accueil) */
 .site-header--bleu { background: transparent; border-bottom: 0; color: var(--c-blanc); }
 .site-header--bleu .site-header__nav { background: rgba(255,255,255,.12); }
 .site-header--bleu .site-header__nav a:hover, .site-header--bleu .site-header__nav a.is-hover { background: rgba(255,255,255,.16); }
-.site-header--bleu .site-header__nav a.is-active { background: var(--c-blanc); color: var(--c-bleu); }
+.site-header--bleu .site-header__nav a.is-active, .site-header--bleu .site-header__nav a[aria-current="page"] { background: var(--c-blanc); color: var(--c-bleu); }
 /* Mobile */
 .site-header--m { height: 64px; padding: 0 var(--s-4); gap: var(--s-3); }
 .site-header--m .site-header__actions { gap: 8px; }
 
 /* Menu mobile ouvert (tiroir plein écran) */
-.site-menu { position: absolute; inset: 0; background: var(--c-bleu); color: var(--c-blanc); z-index: var(--z-drawer); display: flex; flex-direction: column; padding: 0 var(--s-4) var(--s-6); }
+.site-menu { font-family: var(--f-text); position: absolute; inset: 0; background: var(--c-bleu); color: var(--c-blanc); z-index: var(--z-drawer); display: flex; flex-direction: column; padding: 0 var(--s-4) var(--s-6); }
 .site-menu__top { height: 64px; display: flex; align-items: center; justify-content: space-between; }
 .site-menu__links { display: flex; flex-direction: column; margin-top: var(--s-6); }
 .site-menu__links a { font-family: var(--f-display); text-transform: uppercase; font-size: 40px; line-height: 1.15; padding: 6px 0; border-bottom: 2px solid rgba(255,255,255,.18); display: flex; justify-content: space-between; align-items: center; }
 .site-menu__links a.is-active { color: var(--c-citron); }
+.site-menu[hidden] { display: none; }
+.site-menu--page { position: fixed; inset: 0; overflow-y: auto; }
 .site-menu__foot { margin-top: auto; display: flex; flex-direction: column; gap: var(--s-3); }
 
 /* Hero vitrine (cadre arrondi bleu façon forma studio) */
@@ -50,14 +53,14 @@
 .section { padding: var(--s-20) var(--s-14) 0; }
 .section--m { padding: var(--s-12) var(--s-4) 0; }
 .section__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-6); margin-bottom: var(--s-8); }
-.container { max-width: 1240px; margin: 0 auto; }
+.ds-container { max-width: 1240px; margin: 0 auto; }
 
 /* Footer */
-.site-footer { background: var(--c-encre); color: var(--c-blanc); margin: var(--s-20) var(--s-4) var(--s-4); border-radius: var(--r-xl); padding: var(--s-12) var(--s-14) var(--s-8); }
+.site-footer { font-family: var(--f-text); background: var(--c-encre); color: var(--c-blanc); margin: var(--s-20) var(--s-4) var(--s-4); border-radius: var(--r-xl); padding: var(--s-12) var(--s-14) var(--s-8); }
 .site-footer__top { display: grid; grid-template-columns: 1.4fr repeat(4, 1fr); gap: var(--s-8); }
 .site-footer__pitch { font-family: var(--f-display); text-transform: uppercase; font-size: 40px; line-height: .95; margin-top: var(--s-5); }
 .site-footer__pitch span { color: var(--c-citron); }
-.site-footer__col h4 { font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: .14em; text-transform: uppercase; color: var(--c-brume); margin-bottom: var(--s-3); }
+.site-footer__title { font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: .14em; text-transform: uppercase; color: var(--c-brume); margin-bottom: var(--s-3); }
 .site-footer__col a { display: block; font-weight: var(--fw-semibold); font-size: var(--t-body-s); padding: 5px 0; }
 .site-footer__col a:hover { color: var(--c-citron); }
 .site-footer__pay { display: flex; align-items: center; gap: var(--s-5); flex-wrap: wrap; margin-top: var(--s-10); padding: var(--s-5) 0; border-top: 2px solid var(--c-encre-700); border-bottom: 2px solid var(--c-encre-700); font-size: var(--t-body-s); color: var(--c-brume); }
@@ -217,3 +220,62 @@
 
 /* Fond de contenu par défaut pour les écrans mobiles sans shell */
 .mscreen { min-height: 100%; background: var(--c-givre); position: relative; display: flex; flex-direction: column; }
+
+/* =====================================================================
+   RESPONSIVE (bureau d'abord)
+   Seuils : 1023.98 px (tablette et moins), 767.98 px (une colonne),
+   480 px (affinage 390). Les valeurs reprennent les variantes --m.
+   ===================================================================== */
+
+/* ---------- Classes utilitaires ---------- */
+.site-header__burger { display: none; }
+@media (min-width: 1024px) {
+  .ds-mob-only { display: none !important; }
+}
+@media (max-width: 1023.98px) {
+  .ds-desk-only { display: none !important; }
+  .site-header__burger { display: inline-flex; }
+}
+
+/* ---------- Focus clavier ---------- */
+.chip:focus-visible, .tab:focus-visible, .nav-item:focus-visible, .page-btn:focus-visible,
+.site-header__nav a:focus-visible, .avatar-btn:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+.tab:focus-visible { border-radius: 6px; }
+.site-menu__links a:focus-visible, .site-footer a:focus-visible, .site-header--bleu .site-header__nav a:focus-visible { outline: none; box-shadow: var(--sh-focus-sombre); }
+
+/* ---------- Tablette et moins ---------- */
+@media (max-width: 1023.98px) {
+  .site-header { height: 64px; padding: 0 var(--s-4); gap: var(--s-3); }
+  .site-header__nav { display: none; }
+  .site-header__actions { gap: 8px; }
+
+  .hero { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); padding: 0 var(--s-4) var(--s-8); }
+  .section { padding: var(--s-12) var(--s-4) 0; }
+
+  .site-footer { margin: var(--s-12) 0 0; border-radius: var(--r-xl) var(--r-xl) 0 0; padding: var(--s-8) var(--s-4) var(--s-6); }
+  .site-footer__top { grid-template-columns: 1fr 1fr; gap: var(--s-6); }
+  .site-footer__brand { grid-column: 1 / -1; }
+  .site-footer__pitch { font-size: 32px; }
+  .site-footer__pay { flex-direction: column; align-items: flex-start; gap: var(--s-3); }
+  .site-footer__legal { flex-direction: column; gap: 6px; }
+
+  .v02-head { padding: var(--s-8) var(--s-4) var(--s-6); }
+  .v02-head__row { flex-direction: column; align-items: flex-start; gap: var(--s-4); }
+  .v02-body { padding: var(--s-4) var(--s-4) 0; }
+  .v02-search { max-width: none; width: 100%; }
+  .v02-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------- Une colonne ---------- */
+@media (max-width: 767.98px) {
+  .v02-grid { grid-template-columns: minmax(0, 1fr); }
+  .filterbar__count { margin-left: 0; width: 100%; }
+  .pagination__info { margin-right: 0; width: 100%; }
+  .section__head { flex-direction: column; align-items: flex-start; gap: var(--s-3); }
+}
+
+/* ---------- Petits ecrans (390 px) ---------- */
+@media (max-width: 480px) {
+  .site-footer__top { grid-template-columns: minmax(0, 1fr); }
+  .site-menu__links a { font-size: 32px; }
+}
