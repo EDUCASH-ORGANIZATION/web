@@ -1217,7 +1217,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .v04-mhero .v04-kpi b { font-size: 40px; }
 .v04-mhero .v04-facts { margin-top: 0; font-size: var(--t-body-s); }
 .v04-own { background: var(--c-citron); border-bottom: var(--b-encre); padding: 12px var(--s-14); display: flex; align-items: center; gap: var(--s-4); font-weight: var(--fw-bold); }
-.v05-hero { background-color: var(--c-encre); }
+.hero.v05-hero { background-color: var(--c-encre); }
 .v05-grid { display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: var(--s-8); align-items: center; padding-top: var(--s-10); }
 .v05-lead { margin-top: var(--s-6); max-width: 620px; color: var(--c-brume); font-weight: var(--fw-medium); }
 .v05-ctas { display: flex; gap: var(--s-4); align-items: center; margin-top: var(--s-8); flex-wrap: wrap; }
