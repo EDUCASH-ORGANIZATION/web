@@ -89,6 +89,13 @@ describe("MissionsPage paramètres hostiles", () => {
     expect(find("eq").filter((c) => c[1] !== "status")).toHaveLength(0)
     expect(find("order")[0]).toEqual(["order", "created_at", { ascending: false }])
   })
+  it("urgence valide : filtre urgency high, invalide ignorée", async () => {
+    await run({ urgence: "urgent" })
+    expect(find("eq").some((c) => c[1] === "urgency" && c[2] === "high")).toBe(true)
+    calls.length = 0
+    await run({ urgence: "critique" })
+    expect(find("eq").some((c) => c[1] === "urgency")).toBe(false)
+  })
   it("page=-1, 0, abc : page 1", async () => {
     for (const p of ["-1", "0", "abc"]) {
       calls.length = 0

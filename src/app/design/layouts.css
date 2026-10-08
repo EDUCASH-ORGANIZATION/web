@@ -234,7 +234,7 @@
 }
 @media (max-width: 1023.98px) {
   .ds-desk-only { display: none !important; }
-  .site-header__burger { display: inline-flex; }
+  .site-header__burger { display: inline-grid; }
 }
 
 /* ---------- Focus clavier ---------- */
@@ -601,3 +601,26 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .v08-row2 { grid-template-columns: minmax(0, 1fr); }
 }
 
+
+/* =====================================================================
+   RD-FIX-04 : liste des missions (filtres, feuille mobile)
+   ===================================================================== */
+.ds-strong { font-weight: var(--fw-bold); }
+/* Puce déroulante : le select natif recouvre le libellé, invisible mais cliquable */
+.ds-chip-select { position: relative; }
+.ds-chip-select select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font: inherit; }
+.ds-chip-select select option { color: var(--c-encre); background: var(--c-blanc); }
+.ds-chip-select:focus-within { box-shadow: var(--sh-focus); }
+.search__city.ds-chip-select { cursor: pointer; }
+/* Feuille de filtres mobile : voile fixe sur la fenêtre */
+.ds-scrim-fixed { position: fixed; }
+.v02-scribble { position: absolute; right: 70px; top: 48px; width: 150px; height: 70px; }
+.v02-title { margin-top: 18px; }
+.v02-lead { max-width: 420px; padding-bottom: 8px; }
+.v02-promo__badge { align-self: flex-start; }
+.v02-promo__title { font-size: 30px; max-width: 80%; }
+.v02-promo__text { color: var(--c-brume); }
+.v02-promo__cta { margin-top: auto; align-self: flex-start; }
+.v02-empty-scribble { right: -4px; top: -6px; width: 46px; height: 46px; }
+.v02-skel-chip { width: 110px; height: 38px; }
+.v02-mbar .caption { white-space: nowrap; font-weight: var(--fw-bold); }
