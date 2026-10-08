@@ -1,5 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
 import { todayInBenin } from "@/lib/vitrine/dates"
+
+// Client anonyme sans cookies : le sitemap reste statique, la lecture passe par la RLS.
+export const revalidate = 3600
 
 export default async function sitemap() {
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.educash.bj"
@@ -18,7 +21,11 @@ export default async function sitemap() {
 
   let missions = []
   try {
-    const supabase = await createClient()
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    )
     const { data, error } = await supabase
       .from("missions")
       .select("id, updated_at")
