@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
+import { matchesRoutePrefix } from "@/lib/utils/route-match"
 
 // Pages /auth/* accessibles même si l'utilisateur est déjà connecté
 // (complétion de profil post-inscription, callback OAuth/email)
@@ -103,7 +104,7 @@ export async function middleware(request) {
   ]
 
   for (const { prefix, role: requiredRole } of PROTECTED) {
-    if (pathname.startsWith(prefix)) {
+    if (matchesRoutePrefix(pathname, prefix)) {
       // Non connecté → login
       if (!user) {
         const loginUrl = new URL("/auth/login", request.url)
