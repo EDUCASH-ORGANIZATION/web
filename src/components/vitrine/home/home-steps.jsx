@@ -39,7 +39,7 @@ function StudentSteps() {
         <span className="v-step__num">02</span>
         <div className="v-step__mini ds-desk-only">
           <span className="ic-sq ic-sq--sm"><Icon name="i-keyboard" /></span>
-          <div className="grow"><b>Saisie de fiches</b><small>Exemple de mission</small></div>
+          <div className="ds-grow"><b>Saisie de fiches</b><small>Exemple de mission</small></div>
           <span className="btn btn--accent btn--sm">Postuler</span>
         </div>
         <div>
@@ -78,7 +78,7 @@ function ClientSteps() {
         <span className="v-step__num">01</span>
         <div className="v-step__mini ds-desk-only">
           <span className="ic-sq ic-sq--sm ic-sq--bleu"><Icon name="i-plus" /></span>
-          <div className="grow"><b>Recharger le portefeuille</b><small>Via FedaPay · MoMo ou carte</small></div>
+          <div className="ds-grow"><b>Recharger le portefeuille</b><small>Via FedaPay · MoMo ou carte</small></div>
         </div>
         <div>
           <h3 className="v-step__title">Rechargez votre portefeuille</h3>
@@ -89,7 +89,7 @@ function ClientSteps() {
         <span className="v-step__num">02</span>
         <div className="v-step__mini ds-desk-only">
           <span className="badge badge--lavande badge--sm"><Icon name="i-lock" />En séquestre</span>
-          <div className="grow"><b>Votre mission</b><small>Budget bloqué</small></div>
+          <div className="ds-grow"><b>Votre mission</b><small>Budget bloqué</small></div>
         </div>
         <div>
           <h3 className="v-step__title">Publiez, choisissez</h3>
@@ -102,7 +102,7 @@ function ClientSteps() {
         <span className="v-step__num">03</span>
         <div className="v-step__mini ds-desk-only">
           <span className="ic-sq ic-sq--sm ic-sq--encre"><Icon name="i-check" /></span>
-          <div className="grow"><b>Mission confirmée</b><small>Fonds libérés à l&rsquo;étudiant</small></div>
+          <div className="ds-grow"><b>Mission confirmée</b><small>Fonds libérés à l&rsquo;étudiant</small></div>
         </div>
         <div>
           <h3 className="v-step__title">Validez, c&rsquo;est payé</h3>

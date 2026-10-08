@@ -29,7 +29,7 @@ export function HomeProofs({ rating }) {
 
       {rating ? (
         <div className="v-proof">
-          <div className="grow">
+          <div className="ds-grow">
             <div className="row row--nowrap ds-gap-2">
               <span className="amount amount--l">{rating.avg.toLocaleString("fr-FR")}</span>
               <span className="muted body-s">/ 5 · {rating.count} avis</span>

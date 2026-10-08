@@ -58,7 +58,7 @@ export function EscrowSteps() {
             <span className="v-step__num">02</span>
             <div className="v-step__mini">
               <span className="ic-sq ic-sq--sm"><Icon name="i-lock" /></span>
-              <div className="grow">
+              <div className="ds-grow">
                 <b>{formatFcfa(EXAMPLE_BUDGET)} bloqués</b>
                 <small>Exemple de mission</small>
               </div>
@@ -75,7 +75,7 @@ export function EscrowSteps() {
             <span className="v-step__num">03</span>
             <div className="v-step__mini">
               <span className="ic-sq ic-sq--sm ic-sq--encre"><Icon name="i-check" /></span>
-              <div className="grow">
+              <div className="ds-grow">
                 <b>Mission terminée&nbsp;?</b>
                 <small>Confirmer ou signaler un problème</small>
               </div>

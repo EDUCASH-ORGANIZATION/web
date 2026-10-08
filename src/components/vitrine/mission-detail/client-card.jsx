@@ -35,7 +35,7 @@ export function ClientCard({ profile, viewerLoggedIn }) {
       </div>
       <div className="row row--nowrap ds-gap-4">
         <span className="avatar avatar--lg avatar--citron" aria-hidden="true">{initialsOf(name)}</span>
-        <div className="grow">
+        <div className="ds-grow">
           <div className="h4">{name}</div>
           {profile?.city ? <div className="caption">{profile.city}</div> : null}
         </div>

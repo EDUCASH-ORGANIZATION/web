@@ -88,7 +88,7 @@ export function HomeCatalog() {
         {MISSION_TYPES.includes(OTHER) ? (
           <Link className="v-cat v-cat--wide" href={typeHref(OTHER)} aria-label={`Voir les missions ${OTHER}`}>
             <span className="ic-sq ic-sq--lg ic-sq--blanc"><Icon name="i-sparkles" /></span>
-            <div className="grow">
+            <div className="ds-grow">
               <div className="v-cat__name">{OTHER}</div>
               <div className="v-cat__ex">
                 Aide à un déménagement, inventaire, hôtesse d&rsquo;un jour : tout ce qui ne rentre pas ailleurs.

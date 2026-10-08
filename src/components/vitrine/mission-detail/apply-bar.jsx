@@ -13,7 +13,7 @@ export function ApplyBar({ cta, budget, caption = null, needsVerification = fals
   const { kind, primary } = cta
   return (
     <div className="v03-applybar ds-mob-only">
-      <div className="grow">
+      <div className="ds-grow">
         <div className="amount amount--s">{fmtInt(budget)}&#8239;<small>FCFA</small></div>
         {needsVerification ? <VerifyHint /> : caption ? <div className="caption">{caption}</div> : null}
       </div>
