@@ -9,6 +9,7 @@ export function VitrineNotFound({ title, text, backHref, backLabel }) {
         <div className="container">
           <StateBlock
             title={title}
+            titleAs="h1"
             text={text}
             actions={[{ href: backHref, label: backLabel, variant: "primary" }]}
           />

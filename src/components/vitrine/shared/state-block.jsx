@@ -7,14 +7,15 @@ const KIND = {
 }
 
 // Bloc d'état vide ou d'erreur (maquette V01). Les actions sont des liens.
-export function StateBlock({ kind = "empty", title, text, actions = [] }) {
+// `titleAs` choisit la balise du titre (ex. "h1" quand le bloc est le seul contenu de la page).
+export function StateBlock({ kind = "empty", title, text, actions = [], titleAs: Title = "div" }) {
   const { className, icon } = KIND[kind] ?? KIND.empty
   return (
     <div className={className}>
       <div className="empty__art">
         <span className="ic-sq"><Icon name={icon} /></span>
       </div>
-      <div className="empty__title">{title}</div>
+      <Title className="empty__title">{title}</Title>
       {text ? <div className="empty__text">{text}</div> : null}
       {actions.length > 0 ? (
         <div className="row ds-justify-center">
