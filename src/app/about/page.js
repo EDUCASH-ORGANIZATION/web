@@ -1,7 +1,7 @@
 import { SPRITE_VERSION } from "@/components/design/sprite"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 import { Payers } from "@/components/vitrine/shared/payers"
-import { CtaDouble } from "@/components/vitrine/shared/cta-double"
+import { CtaDouble, exampleRecap } from "@/components/vitrine/shared/cta-double"
 
 export const metadata = {
   title: "À propos",
@@ -151,16 +151,29 @@ export default function AboutPage() {
 
       <CtaDouble
         student={{
-          title: "Ton temps vaut de l'argent. Prouve-le.",
+          title: (
+            <>
+              Ton temps<br />vaut de l&rsquo;argent.<br />Prouve-le.
+            </>
+          ),
           text: "Crée ton profil gratuitement, postule près de ta fac et encaisse sur ton MoMo.",
           href: "/auth/register?role=student",
           label: "Créer mon compte",
+          secondary: { href: "/missions", label: "Voir les missions" },
+          badge: { value: "0 FCFA", caption: "pour t'inscrire" },
         }}
         client={{
-          title: "Une mission ? Un étudiant vérifié.",
+          tag: "Particulier, PME, association",
+          title: (
+            <>
+              Une mission&nbsp;?<br /><span className="hl-citron">Un étudiant vérifié.</span>
+            </>
+          ),
           text: "Publiez votre besoin en deux minutes. Le budget reste bloqué jusqu'à ce que vous validiez le travail.",
           href: "/auth/register?role=client",
           label: "Publier une mission",
+          secondary: { href: "/clients", label: "Pour les clients" },
+          recap: exampleRecap(),
         }}
       />
     </VitrinePage>

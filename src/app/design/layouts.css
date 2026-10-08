@@ -379,9 +379,7 @@ summary.v-faq__q:focus-visible { outline: none; box-shadow: var(--sh-focus); bor
 
 /* ---------- Réglages issus des style inline des planches ---------- */
 /* V01 : en-tête posé sur le hero (le hero porte déjà le retrait) */
-@media (min-width: 1024px) {
-  .hero > .site-header--bleu { padding: 0; }
-}
+.hero > .site-header--bleu { padding: 0; }
 .v-proof > .ic-sq { border: 2px solid var(--c-encre); }
 .v-step__ui { gap: var(--s-2); }
 .v-step__title + .v-step__text { margin-top: var(--s-2); }
@@ -441,9 +439,24 @@ summary.v-faq__q:focus-visible { outline: none; box-shadow: var(--sh-focus); bor
 .v08-form__lead { margin-top: var(--s-1); }
 .v08-sent .recap { width: 100%; }
 .v08-lead { margin-top: var(--s-5); max-width: 620px; color: var(--c-brume); }
+/* Retouches vague 3 (ST-18) */
+.v-cta2--single { grid-template-columns: minmax(0, 1fr); }
+.ds-badge-blanc { background: var(--c-blanc); color: var(--c-bleu); }
+.ds-select-bare { width: auto; height: auto; min-width: 0; border: 0; border-radius: 0; background-color: transparent; padding: 0 24px 0 0; background-position: right center; background-size: 18px; font: inherit; color: inherit; text-overflow: clip; box-shadow: none; }
+.ds-select-bare:hover, .ds-select-bare:focus { border: 0; box-shadow: none; }
+.ds-select-bare:focus-visible { box-shadow: var(--sh-focus); border-radius: var(--r-s); }
+.hero .btn--ghost { color: var(--c-blanc); }
+.hero .btn--ghost:hover { color: var(--c-blanc); background: rgba(255,255,255,.16); }
+summary.v09-acc__btn { list-style: none; cursor: pointer; }
+summary.v09-acc__btn::-webkit-details-marker { display: none; }
+summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+.v09-prose h3 + p { margin-top: var(--s-2); }
+.ds-pre-line { white-space: pre-line; }
 
 /* ---------- Tablette et moins : blocs d'accueil et pages ---------- */
 @media (max-width: 1023.98px) {
+  .v07-body { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); }
+  .v07-toc { display: none; }
   .v-hero { grid-template-columns: minmax(0, 1fr); padding-top: var(--s-5); }
   .v-hero__visual, .v01-burst, .v01-ph-art { display: none; }
   .v-proofs { grid-template-columns: minmax(0, 1fr); margin: 0; padding: var(--s-4) var(--s-4) 0; gap: var(--s-3); }
@@ -553,11 +566,13 @@ summary.v-faq__q:focus-visible { outline: none; box-shadow: var(--sh-focus); bor
   .v08-head { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); padding: var(--s-6) var(--s-4) var(--s-8); }
   .v08-grid { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
   .v08-form { padding: var(--s-5); border-radius: var(--r-l); box-shadow: var(--sh-dur); }
+  .v08-grid > .v08-form { order: -1; }
   .v08-info { padding: 14px; border-radius: 20px; }
 
   .v09-head { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); padding: var(--s-6) var(--s-4) 0; }
   .v09-tabs { overflow-x: auto; margin-top: var(--s-5); }
   .v09-tabs a { padding: 12px 14px; white-space: nowrap; font-size: var(--t-caption); }
+  .v09-tabs { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); scrollbar-width: none; }
   .v09-layout { grid-template-columns: minmax(0, 1fr); padding: var(--s-5) var(--s-4) 0; gap: var(--s-5); }
   .v09-toc { position: static; }
   .v09-prose { font-size: var(--t-body-s); }
