@@ -11,8 +11,9 @@ const MENU_ID = "site-menu"
 
 const DESKTOP_LINKS = [
   { label: "Missions", href: "/missions" },
-  { label: "Comment ça marche", href: "/#how-it-works" },
-  { label: "Pour les clients", href: "/auth/register?role=client" },
+  { label: "Comment ça marche", href: "/#etapes" },
+  { label: "Pour les clients", href: "/clients" },
+  { label: "Aide", href: "/aide" },
 ]
 
 const MENU_LINKS = [...DESKTOP_LINKS, { label: "À propos", href: "/about" }, { label: "Contact", href: "/contact" }]
