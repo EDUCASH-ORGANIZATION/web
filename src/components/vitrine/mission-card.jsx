@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
+import { netAmount } from "@/lib/constants/missions"
 
 // Icône par type de mission (reprise de la maquette V02)
 const TYPE_ICON = {
@@ -41,10 +42,10 @@ function fmtPublished(value) {
  */
 export function MissionCard({ mission }) {
   const budget = mission.budget ?? 0
-  const net = Math.round(budget * 0.88)
+  const net = netAmount(budget)
   const isUrgent = mission.urgency === "high"
   const typeIcon = TYPE_ICON[mission.type] ?? "i-briefcase"
-  const dateLabel = fmtDateLabel(mission.deadline ?? mission.deadline_at)
+  const dateLabel = fmtDateLabel(mission.deadline)
   const published = fmtPublished(mission.created_at)
 
   return (
