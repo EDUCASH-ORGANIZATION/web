@@ -156,6 +156,7 @@ export function MissionFilterBar({
 
   const filtersButtonRef = useRef(null)
   const sheetRef = useRef(null)
+  const applyRef = useRef(null)
   const closeSheet = useCallback(() => setSheetOpen(false), [])
   useModalFocus({
     active: sheetOpen,
@@ -305,9 +306,15 @@ export function MissionFilterBar({
             </div>
             <div className="modal__foot">
               {hasFilter && (
-                <button type="button" className="btn btn--ghost" onClick={() => navigate(CLEARED)}>Effacer les filtres</button>
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() => { navigate(CLEARED); applyRef.current?.focus() }}
+                >
+                  Effacer les filtres
+                </button>
               )}
-              <button type="button" className="btn btn--primary" onClick={closeSheet}>
+              <button ref={applyRef} type="button" className="btn btn--primary" onClick={closeSheet}>
                 {total > 0 ? `Voir les ${total} mission${total > 1 ? "s" : ""}` : "Fermer"}
               </button>
             </div>

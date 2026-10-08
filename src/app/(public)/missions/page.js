@@ -78,10 +78,21 @@ function HeroTitle({ type, ville }) {
   return <>{type || "Missions"}<br /><span className="hl-citron">à {ville}</span></>
 }
 
+// Complément de phrase par type (noms propres et élisions corrects).
+const TYPE_PHRASE = {
+  Babysitting: "de babysitting",
+  Livraison: "de livraison",
+  Saisie: "de saisie",
+  "Community Management": "de community management",
+  Traduction: "de traduction",
+  "Cours particuliers": "de cours particuliers",
+  Autre: "d'un autre type",
+}
+
 // Phrase de l'état « aucun résultat » : reprend les filtres actifs (maquette V02).
 function noResultText({ q, type, ville, budgetLabel }) {
   const parts = ["Aucune mission"]
-  if (type) parts.push(type === "Autre" ? "d'un autre type" : `de ${type.toLowerCase()}`)
+  if (type) parts.push(TYPE_PHRASE[type] ?? `de type ${type}`)
   if (q) parts.push(`pour « ${q} »`)
   if (budgetLabel) parts.push(`au budget « ${budgetLabel} »`)
   if (ville) parts.push(`à ${ville}`)
