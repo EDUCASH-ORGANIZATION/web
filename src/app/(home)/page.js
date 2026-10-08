@@ -37,7 +37,8 @@ const FAQ_ITEMS = [
     question: "Est-ce que je suis sûr d'être payé ?",
     answer: (
       <>
-        Oui. Le client bloque le budget sur EduCash <b>avant</b> que la mission commence : c&rsquo;est le séquestre.
+        Oui. Le client bloque le budget sur EduCash <b>avant</b>{" "}
+        que la mission commence : c&rsquo;est le séquestre.
         Une fois la mission faite, le client confirme et ton argent arrive sur ton portefeuille EduCash. Un souci
         pendant la mission&nbsp;? Contacte l&rsquo;équipe EduCash depuis la page Contact&nbsp;: nous intervenons en
         médiation.
