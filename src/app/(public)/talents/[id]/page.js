@@ -170,7 +170,7 @@ export default async function TalentPage({ params, searchParams }) {
               </div>
               <p className="ds-text-brume">
                 {missionsDone > 0
-                  ? `${firstName(profile.full_name)} a mené à terme ${missionsDone} mission${missionsDone > 1 ? "s" : ""} sur EduCash, avec paiement validé par le client.`
+                  ? `${firstName(profile.full_name, { fallback: "Cet étudiant" })} a mené à terme ${missionsDone} mission${missionsDone > 1 ? "s" : ""} sur EduCash, avec paiement validé par le client.`
                   : "Aucune mission terminée pour le moment."}
               </p>
             </div>
@@ -186,7 +186,7 @@ export default async function TalentPage({ params, searchParams }) {
 
           <TalentActions
             talentId={id}
-            firstName={firstName(profile.full_name)}
+            firstName={firstName(profile.full_name, { fallback: "Cet étudiant" })}
             role={isOwner ? "owner" : viewerRole}
             commonMissionId={commonMissionId}
             missionsDone={missionsDone}

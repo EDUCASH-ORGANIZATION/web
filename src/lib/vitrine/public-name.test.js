@@ -39,4 +39,8 @@ describe("firstName", () => {
     expect(firstName(null)).toBe("Client")
     expect(firstName(undefined)).toBe("Client")
   })
+  it("accepte un repli contextuel", () => {
+    expect(firstName("", { fallback: "Cet étudiant" })).toBe("Cet étudiant")
+    expect(firstName("Awa Dossou", { fallback: "Cet étudiant" })).toBe("Awa")
+  })
 })

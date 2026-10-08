@@ -25,15 +25,14 @@ function ActionCard({ firstName, children }) {
 
 // Colonne d'action selon le visiteur : visiteur, client, étudiant ou admin.
 export function TalentActions({ talentId, firstName, role, commonMissionId, missionsDone, ratingText }) {
-  const newMissionHref = `/client/missions/new?studentId=${talentId}`
   const loginHref = `/auth/login?next=${encodeURIComponent(`/talents/${talentId}`)}`
 
   return (
     <div className="v04-side">
       {role === "client" ? (
         <ActionCard firstName={firstName}>
-          <Link className="btn btn--accent btn--lg btn--block" href={newMissionHref}>
-            Proposer une mission
+          <Link className="btn btn--accent btn--lg btn--block" href="/client/missions/new">
+            Publier une mission
             <span className="btn__dot"><Icon name="i-arrow-right" /></span>
           </Link>
           {commonMissionId ? (
@@ -63,7 +62,7 @@ export function TalentActions({ talentId, firstName, role, commonMissionId, miss
           <div className="recap__line"><span>Note moyenne</span><b>{ratingText}</b></div>
         </div>
       </div>
-      <Link className="link body-s ds-self-start" href="/contact?sujet=signalement">
+      <Link className="link body-s ds-self-start" href={`/contact?sujet=signalement&ref=${encodeURIComponent(`/talents/${talentId}`)}`}>
         <Icon name="i-flag" className="ic ic--16" />
         Signaler ce profil
       </Link>

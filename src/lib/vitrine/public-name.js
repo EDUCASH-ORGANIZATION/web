@@ -22,10 +22,11 @@ export function publicDisplayName(fullName, { full = false } = {}) {
 }
 
 /**
- * Premier mot du nom, ou "Client" si le nom est vide.
+ * Premier mot du nom, ou `fallback` ("Client" par défaut) si le nom est vide.
  * @param {string|null|undefined} fullName
+ * @param {{ fallback?: string }} [options]
  * @returns {string}
  */
-export function firstName(fullName) {
-  return words(fullName)[0] ?? FALLBACK_CLIENT
+export function firstName(fullName, { fallback = FALLBACK_CLIENT } = {}) {
+  return words(fullName)[0] ?? fallback
 }
