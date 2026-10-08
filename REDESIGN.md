@@ -22,7 +22,7 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
   imbriquée). Tout s'applique sous une racine `.ds`, pour ne jamais écraser les
   utilitaires des espaces connectés.
 - **Anti-collision Tailwind** : préfixe `ds-` pour les classes qui portent un
-  nom d'utilitaire : `ds-grid`, `ds-container`, `ds-grow`, `ds-table`,
+  nom d'utilitaire : `ds-grid`, `ds-container`, `ds-grow`, `ds-table`, `ds-table-wrap`,
   `ds-h1` à `ds-h4`, `ds-pulse`. `sr-only` est fourni par Tailwind.
 - **Polices** : chargées par `next/font/google` dans `layout.js` (plus aucun
   `@import` Google Fonts). Variables `--font-anton`, `--font-figtree` et

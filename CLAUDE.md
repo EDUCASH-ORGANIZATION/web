@@ -15,7 +15,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Couches : `tokens.css` dans `theme`, `components.css` et `layouts.css` dans `components` (reset dans la couche `base` imbriquée). Les utilitaires Tailwind gardent donc la priorité.
 - Tout est appliqué sous une racine `.ds`. Hors `.ds`, le rendu est celui des espaces Tailwind (Inter, fond blanc).
 - On consomme le système par ses classes (`.btn`, `.card`, `.badge`, `.field`, `.shell`...) et par `<Icon name="i-..." className="ic" />` (`src/components/design/icon.jsx`).
-- Anti-collision avec Tailwind : les classes qui portent un nom d'utilitaire sont préfixées `ds-` : `ds-grid`, `ds-container`, `ds-grow`, `ds-table`, `ds-h1` à `ds-h4`, `ds-pulse`. `sr-only` vient de Tailwind.
+- Anti-collision avec Tailwind : les classes qui portent un nom d'utilitaire sont préfixées `ds-` : `ds-grid`, `ds-container`, `ds-grow`, `ds-table`, `ds-table-wrap`, `ds-h1` à `ds-h4`, `ds-pulse`. `sr-only` vient de Tailwind.
 - Responsive : breakpoints 1024, 768 et 480 (media queries dans `tokens.css` et `layouts.css`). Classes `ds-desk-only` et `ds-mob-only` pour afficher selon la taille.
 - Couleurs en dur interdites : uniquement `var(--c-*)`. Pas de `style={{}}`, pas de `<style>` local.
 - Palette : bleu `#2F3BED`, citron `#C8F03C` (jamais en texte sur fond clair), encre `#0E0F1A`, givre `--c-givre`.

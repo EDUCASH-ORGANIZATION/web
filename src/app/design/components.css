@@ -537,7 +537,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 /* =====================================================================
    6. TABLEAU
    ===================================================================== */
-.table-wrap { background: var(--c-blanc); border: var(--b-encre); border-radius: var(--r-l); overflow: hidden; }
+.ds-table-wrap { background: var(--c-blanc); border: var(--b-encre); border-radius: var(--r-l); overflow: hidden; }
 .ds-table { width: 100%; border-collapse: collapse; font-size: var(--t-body-s); }
 .ds-table th { text-align: left; font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: .08em; text-transform: uppercase; color: var(--c-ardoise); background: var(--c-givre); padding: 12px 16px; white-space: nowrap; border-bottom: var(--b-ligne); }
 .ds-table th.is-sortable { cursor: pointer; }
@@ -556,8 +556,8 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .ds-table tbody tr.is-selected td { background: var(--c-bleu-50); }
 .ds-table tbody tr.is-muted td { color: var(--c-ardoise); }
 .ds-table tbody tr.is-focus td { box-shadow: inset 0 2px 0 var(--c-bleu), inset 0 -2px 0 var(--c-bleu); }
-.table-wrap__foot { padding: 12px 16px; border-top: var(--b-ligne); }
-.table-wrap__head { padding: 14px 16px; border-bottom: var(--b-ligne); display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.ds-table-wrap__foot { padding: 12px 16px; border-top: var(--b-ligne); }
+.ds-table-wrap__head { padding: 14px 16px; border-bottom: var(--b-ligne); display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
 /* Barre d'actions groupées (sélection multiple) */
 .bulkbar { display: flex; align-items: center; gap: var(--s-3); background: var(--c-encre); color: var(--c-blanc); padding: 10px 16px; font-size: var(--t-body-s); font-weight: var(--fw-bold); }
 /* Tableau converti en cartes (mobile) */
