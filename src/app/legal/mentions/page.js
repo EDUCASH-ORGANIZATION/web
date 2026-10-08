@@ -1,122 +1,125 @@
 import Link from "next/link"
-import { PublicNavbar } from "@/components/home/public-navbar"
-import { PublicFooter } from "@/components/home/public-footer"
+import { LEGAL_ENTITY } from "@/components/vitrine/legal/legal-entity"
+import { LegalLayout } from "@/components/vitrine/legal/legal-layout"
+import { LegalSection, LegalFacts } from "@/components/vitrine/legal/legal-section"
 
 export const metadata = {
-  title: "Mentions légales — EduCash",
+  title: "Mentions légales",
+}
+
+const SECTIONS = {
+  editeur_du_site: { id: "editeur-du-site", title: "Éditeur du site" },
+  directeur_de_la_publication: { id: "directeur-de-la-publication", title: "Directeur de la publication" },
+  hebergement: { id: "hebergement", title: "Hébergement" },
+  propriete_intellectuelle: { id: "propriete-intellectuelle", title: "Propriété intellectuelle" },
+  paiements: { id: "paiements", title: "Paiements" },
+  limitation_de_responsabilite: { id: "limitation-de-responsabilite", title: "Limitation de responsabilité" },
+  droit_applicable_et_juridiction: { id: "droit-applicable-et-juridiction", title: "Droit applicable et juridiction" },
+  contact: { id: "contact", title: "Contact" },
 }
 
 export default function MentionsPage() {
   return (
-    <div className="min-h-screen bg-white">
-      <PublicNavbar />
+    <LegalLayout
+      current="mentions"
+      title="Mentions légales"
+      updatedAt="8 octobre 2026"
+      sections={Object.values(SECTIONS)}
+    >
+      <LegalSection {...SECTIONS.editeur_du_site}>
+        <p>
+          Le site educash.bj est édité par {LEGAL_ENTITY.name}, {LEGAL_ENTITY.legalForm}.
+          EduCash est une marque et une plateforme exploitée par {LEGAL_ENTITY.name}.
+        </p>
+        <LegalFacts
+          items={[
+            { label: "Raison sociale", value: LEGAL_ENTITY.name },
+            { label: "Forme juridique", value: LEGAL_ENTITY.legalForm },
+            { label: "Siège social", value: LEGAL_ENTITY.address },
+            { label: "RCCM", value: LEGAL_ENTITY.rccm },
+            { label: "IFU", value: LEGAL_ENTITY.ifu },
+            { label: "Téléphone", value: LEGAL_ENTITY.phone },
+            { label: "Email de l’éditeur", value: LEGAL_ENTITY.email },
+            { label: "Email du service EduCash", value: LEGAL_ENTITY.serviceEmail },
+            { label: "Site web", value: "educash.bj" },
+            { label: "Site de l’éditeur", value: LEGAL_ENTITY.website },
+          ]}
+        />
+      </LegalSection>
 
-      <section className="bg-gray-50 px-4 py-12 border-b border-gray-100">
-        <div className="max-w-3xl mx-auto">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#1A6B4A] mb-2">Légal</p>
-          <h1 className="text-3xl font-extrabold text-gray-900">Mentions légales</h1>
-          <p className="text-sm text-gray-500 mt-2">Dernière mise à jour : 6 avril 2025</p>
-        </div>
-      </section>
+      <LegalSection {...SECTIONS.directeur_de_la_publication}>
+        <p>Le directeur de la publication est {LEGAL_ENTITY.publisher}, exploitant de {LEGAL_ENTITY.name}.</p>
+      </LegalSection>
 
-      <section className="py-12 px-4">
-        <div className="max-w-3xl mx-auto flex flex-col gap-8">
+      <LegalSection {...SECTIONS.hebergement}>
+        <LegalFacts
+          items={[
+            { label: "Hébergeur", value: "Vercel Inc." },
+            { label: "Adresse", value: "440 N Barranca Ave #4133, Covina, CA 91723, États-Unis" },
+            { label: "Site", value: "vercel.com" },
+          ]}
+        />
+        <p>
+          Les données sont hébergées via Supabase (infrastructure AWS - région UE West).
+        </p>
+        <LegalFacts
+          items={[
+            { label: "Base de données", value: "Supabase Pte. Ltd." },
+            { label: "Adresse", value: "65 Chulia Street #38-02/03, OCBC Centre, Singapour 049513" },
+          ]}
+        />
+      </LegalSection>
 
-          <LegalSection title="Éditeur du site">
-            <Row label="Raison sociale" value="EduCash SAS" />
-            <Row label="Siège social" value="Haie Vive, Cotonou, Bénin" />
-            <Row label="Email" value="contact@educash.bj" />
-            <Row label="Site web" value="educash.bj" />
-          </LegalSection>
+      <LegalSection {...SECTIONS.propriete_intellectuelle}>
+        <p>
+          L’ensemble du contenu présent sur le site EduCash (textes, graphismes, logos,
+          icônes, images, éléments sonores) est la propriété exclusive de {LEGAL_ENTITY.name}{" "}
+          et est protégé par les lois nationales et internationales sur la propriété intellectuelle.
+        </p>
+        <p>
+          Toute reproduction, représentation, modification, publication, transmission,
+          dénaturation, totale ou partielle du site ou de son contenu, par quelque procédé
+          que ce soit, et sur quelque support que ce soit est interdite sans autorisation écrite préalable.
+        </p>
+      </LegalSection>
 
-          <LegalSection title="Directeur de la publication">
-            <p>Le directeur de la publication est le représentant légal de EduCash SAS.</p>
-          </LegalSection>
+      <LegalSection {...SECTIONS.paiements}>
+        <p>
+          Les paiements sur la plateforme EduCash sont traités par <strong>FedaPay</strong>,
+          prestataire de services de paiement agréé en Afrique de l’Ouest.
+        </p>
+        <LegalFacts items={[{ label: "Site FedaPay", value: "fedapay.com" }]} />
+        <p>
+          Les paiements d’achats effectués hors plateforme, du client au vendeur par Mobile Money,
+          ne relèvent pas d’EduCash. Voir l’article 5 des{" "}
+          <Link className="link" href="/legal/terms#achats">conditions d’utilisation</Link>.
+        </p>
+      </LegalSection>
 
-          <LegalSection title="Hébergement">
-            <Row label="Hébergeur" value="Vercel Inc." />
-            <Row label="Adresse" value="340 S Lemon Ave #4133, Walnut, CA 91789, USA" />
-            <Row label="Site" value="vercel.com" />
-            <p className="mt-2">
-              Les données sont hébergées via Supabase (infrastructure AWS — région UE West).
-            </p>
-          </LegalSection>
+      <LegalSection {...SECTIONS.limitation_de_responsabilite}>
+        <p>
+          EduCash s’efforce d’assurer l’exactitude et la mise à jour des informations
+          diffusées sur ce site. Toutefois, EduCash décline toute responsabilité pour les
+          omissions, inexactitudes et carences dans la mise à jour, qu’elles soient de
+          son fait ou du fait des tiers partenaires qui lui fournissent ces informations.
+        </p>
+      </LegalSection>
 
-          <LegalSection title="Propriété intellectuelle">
-            <p>
-              L&apos;ensemble du contenu présent sur le site EduCash (textes, graphismes, logos,
-              icônes, images, éléments sonores) est la propriété exclusive de EduCash SAS
-              et est protégé par les lois nationales et internationales sur la propriété intellectuelle.
-            </p>
-            <p>
-              Toute reproduction, représentation, modification, publication, transmission,
-              dénaturation, totale ou partielle du site ou de son contenu, par quelque procédé
-              que ce soit, et sur quelque support que ce soit est interdite sans autorisation écrite préalable.
-            </p>
-          </LegalSection>
+      <LegalSection {...SECTIONS.droit_applicable_et_juridiction}>
+        <p>
+          Tout litige en relation avec l’utilisation du site educash.bj est soumis
+          au droit béninois. Il est fait attribution exclusive de juridiction aux tribunaux
+          compétents de Cotonou.
+        </p>
+      </LegalSection>
 
-          <LegalSection title="Paiements">
-            <p>
-              Les paiements sur la plateforme EduCash sont traités par <strong>FedaPay</strong>,
-              prestataire de services de paiement agréé en Afrique de l&apos;Ouest.
-            </p>
-            <Row label="Site FedaPay" value="fedapay.com" />
-          </LegalSection>
-
-          <LegalSection title="Limitation de responsabilité">
-            <p>
-              EduCash s&apos;efforce d&apos;assurer l&apos;exactitude et la mise à jour des informations
-              diffusées sur ce site. Toutefois, EduCash décline toute responsabilité pour les
-              omissions, inexactitudes et carences dans la mise à jour, qu&apos;elles soient de
-              son fait ou du fait des tiers partenaires qui lui fournissent ces informations.
-            </p>
-          </LegalSection>
-
-          <LegalSection title="Droit applicable et juridiction">
-            <p>
-              Tout litige en relation avec l&apos;utilisation du site educash.bj est soumis
-              au droit béninois. Il est fait attribution exclusive de juridiction aux tribunaux
-              compétents de Cotonou.
-            </p>
-          </LegalSection>
-
-          <LegalSection title="Contact">
-            <p>
-              Pour toute question : <strong>contact@educash.bj</strong><br />
-              EduCash SAS · Haie Vive · Cotonou · Bénin
-            </p>
-          </LegalSection>
-
-        </div>
-
-        <div className="max-w-3xl mx-auto mt-10 pt-8 border-t border-gray-100 flex flex-wrap gap-4 text-sm">
-          <Link href="/legal/terms" className="text-[#1A6B4A] hover:underline">Conditions d&apos;utilisation</Link>
-          <Link href="/legal/privacy" className="text-[#1A6B4A] hover:underline">Politique de confidentialité</Link>
-          <Link href="/contact" className="text-[#1A6B4A] hover:underline">Nous contacter</Link>
-        </div>
-      </section>
-
-      <PublicFooter />
-    </div>
-  )
-}
-
-function LegalSection({ title, children }) {
-  return (
-    <div>
-      <h2 className="text-base font-bold text-gray-900 mb-3">{title}</h2>
-      <div className="text-sm text-gray-600 leading-relaxed flex flex-col gap-2">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function Row({ label, value }) {
-  return (
-    <div className="flex gap-2">
-      <span className="font-medium text-gray-700 w-36 shrink-0">{label} :</span>
-      <span>{value}</span>
-    </div>
+      <LegalSection {...SECTIONS.contact}>
+        <p>
+          Pour toute question : <strong>{LEGAL_ENTITY.serviceEmail}</strong>
+          <br />
+          {LEGAL_ENTITY.name} · {LEGAL_ENTITY.address}
+        </p>
+      </LegalSection>
+    </LegalLayout>
   )
 }

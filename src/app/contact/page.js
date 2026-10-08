@@ -1,107 +1,92 @@
-import Box from "@mui/material/Box"
-import Container from "@mui/material/Container"
-import { Stack } from "@/components/vitrine/stack"
-import Typography from "@mui/material/Typography"
-import Chip from "@mui/material/Chip"
-import Card from "@mui/material/Card"
-import EmailRoundedIcon from "@mui/icons-material/EmailRounded"
-import WhatsAppIcon from "@mui/icons-material/WhatsApp"
-import PlaceRoundedIcon from "@mui/icons-material/PlaceRounded"
-import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded"
-import { VitrineProvider } from "@/components/vitrine/vitrine-provider"
-import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
-import { VitrineFooter } from "@/components/vitrine/vitrine-footer"
-import { ContactForm } from "@/components/vitrine/contact-form"
-import { BRAND, GRADIENTS } from "@/components/vitrine/theme"
+import Link from "next/link"
+import { Icon } from "@/components/design/icon"
+import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
+import { ContactForm } from "@/components/vitrine/contact/contact-form"
+import { CONTACT_SUBJECTS } from "@/lib/contact/schema"
+import { safeNextPath } from "@/lib/utils/safe-next"
 
 export const metadata = {
-  title: "Contact — EduCash",
-  description: "Contactez l'équipe EduCash pour toute question ou suggestion.",
+  title: "Contact",
+  description:
+    "Écris à l'équipe EduCash : une question sur une mission, un paiement ou ta vérification.",
+  openGraph: { url: "/contact" },
 }
 
-const CONTACT_INFO = [
-  { icon: EmailRoundedIcon, label: "Email", value: "contact@educash.bj", desc: "Réponse sous 24h ouvrées" },
-  { icon: WhatsAppIcon, label: "WhatsApp", value: "+229 XX XX XX XX", desc: "Lun–Ven, 8h–18h" },
-  { icon: PlaceRoundedIcon, label: "Adresse", value: "Cotonou, Bénin", desc: "Haie Vive, Cotonou" },
-  { icon: AccessTimeRoundedIcon, label: "Disponibilité", value: "Lun–Sam", desc: "8h – 20h (WAT)" },
+const HELP_LINKS = [
+  { href: "/aide#sequestre", label: "Quand est-ce que je suis payé ?" },
+  { href: "/aide#retraits", label: "Mon retrait a échoué" },
+  { href: "/aide#achats", label: "Mission avec achats : qui paie ?" },
 ]
 
-const FAQ = [
-  "Comment vérifier mon profil étudiant ?",
-  "Quels sont les délais de paiement ?",
-  "Comment signaler un problème avec une mission ?",
-]
+function first(value) {
+  return Array.isArray(value) ? value[0] : value
+}
 
-export default function ContactPage() {
+export default async function ContactPage({ searchParams }) {
+  const sp = (await searchParams) ?? {}
+  const requested = first(sp.sujet)
+  const defaultSubject = CONTACT_SUBJECTS.some((s) => s.id === requested) ? requested : ""
+
+  const ref = safeNextPath(first(sp.ref))
+  const defaultMessage = defaultSubject === "signalement" && ref ? `Page concernée : ${ref}\n\n` : ""
+
   return (
-    <VitrineProvider>
-      <VitrineNavbar />
+    <VitrinePage>
+      <div className="v08-head grid-bg">
+        <span className="eyebrow">Contact</span>
+        <h1 className="display display--xxl ds-mt-6">
+          Écris-nous.
+          <br />
+          <span className="hl-citron">On répond.</span>
+        </h1>
+        <p className="body-l v08-lead">
+          Une vraie équipe à Cotonou lit chaque message.
+        </p>
+      </div>
 
-      {/* Hero */}
-      <Box component="section" sx={{ background: GRADIENTS.hero, py: { xs: 7, md: 10 } }}>
-        <Container>
-          <Stack alignItems="center" spacing={2} sx={{ textAlign: "center", maxWidth: 620, mx: "auto" }}>
-            <Chip label="On vous répond" sx={{ bgcolor: BRAND.greenSoft, color: BRAND.greenDark, fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.7rem" }} />
-            <Typography variant="h1" sx={{ fontSize: { xs: "2.3rem", md: "3rem" } }}>Contactez-nous</Typography>
-            <Typography sx={{ color: "text.secondary", fontSize: "1.05rem", lineHeight: 1.7, maxWidth: 460 }}>
-              Une question, un problème, une suggestion ? L&apos;équipe EduCash est là pour vous.
-              Écrivez-nous, on répond rapidement.
-            </Typography>
-          </Stack>
-        </Container>
-      </Box>
-
-      {/* Content */}
-      <Box component="section" sx={{ py: { xs: 7, md: 11 }, bgcolor: "#fff" }}>
-        <Container>
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: { xs: 4, md: 6 } }}>
-            {/* Infos */}
-            <Stack spacing={3}>
-              <Box>
-                <Typography variant="h5" sx={{ mb: 1 }}>Informations de contact</Typography>
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Plusieurs façons de nous joindre, choisissez celle qui vous convient.
-                </Typography>
-              </Box>
-              <Stack spacing={2}>
-                {CONTACT_INFO.map(({ icon: Icon, label, value, desc }) => (
-                  <Stack key={label} direction="row" alignItems="center" spacing={2}
-                    sx={{ bgcolor: "#F8FAFB", borderRadius: 3, px: 2.5, py: 2 }}>
-                    <Box sx={{ width: 46, height: 46, borderRadius: 2.5, bgcolor: BRAND.greenSoft, color: BRAND.green,
-                      display: "grid", placeItems: "center", flexShrink: 0 }}>
-                      <Icon />
-                    </Box>
-                    <Box>
-                      <Typography variant="overline" sx={{ color: "text.secondary", lineHeight: 1.2, display: "block" }}>{label}</Typography>
-                      <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }}>{value}</Typography>
-                      <Typography variant="caption" sx={{ color: "text.secondary" }}>{desc}</Typography>
-                    </Box>
-                  </Stack>
+      <section className="section ds-pt-8">
+        <div className="ds-container">
+          <div className="v08-grid">
+            <div className="v08-infos">
+              <div className="v08-info">
+                <span className="ic-sq ic-sq--lg ic-sq--bleu">
+                  <Icon name="i-mail" />
+                </span>
+                <div>
+                  <span className="caption">Email</span>
+                  <div>
+                    <a className="link" href="mailto:contact@educash.bj">
+                      contact@educash.bj
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <div className="v08-info">
+                <span className="ic-sq ic-sq--lg">
+                  <Icon name="i-map-pin" />
+                </span>
+                <div>
+                  <span className="caption">Adresse</span>
+                  <b>Cotonou, Bénin</b>
+                </div>
+              </div>
+              <div className="v08-help">
+                <b>Ta réponse est peut-être déjà là</b>
+                {HELP_LINKS.map((l) => (
+                  <Link key={l.href} href={l.href}>
+                    {l.label}
+                    <Icon name="i-arrow-right" />
+                  </Link>
                 ))}
-              </Stack>
-
-              <Box sx={{ bgcolor: BRAND.greenSoft, borderRadius: 3, px: 3, py: 2.5, border: "1px solid", borderColor: "rgba(26,107,74,0.12)" }}>
-                <Typography sx={{ fontWeight: 700, color: BRAND.green, mb: 1.5 }}>Questions fréquentes</Typography>
-                {FAQ.map((q, i) => (
-                  <Typography key={q} variant="body2" sx={{ color: "text.secondary", py: 1,
-                    borderBottom: i < FAQ.length - 1 ? "1px solid rgba(26,107,74,0.1)" : "none" }}>
-                    → {q}
-                  </Typography>
-                ))}
-              </Box>
-            </Stack>
-
-            {/* Formulaire */}
-            <Card sx={{ p: { xs: 3, md: 4 }, boxShadow: "0 24px 56px -28px rgba(15,23,42,0.25)" }}>
-              <Typography variant="h6" sx={{ mb: 3 }}>Envoyer un message</Typography>
-              <ContactForm />
-            </Card>
-          </Box>
-        </Container>
-      </Box>
-
-      <VitrineFooter />
-    </VitrineProvider>
+                <Link className="link" href="/aide">
+                  Toute l&apos;aide
+                </Link>
+              </div>
+            </div>
+            <ContactForm defaultSubject={defaultSubject} defaultMessage={defaultMessage} />
+          </div>
+        </div>
+      </section>
+    </VitrinePage>
   )
 }

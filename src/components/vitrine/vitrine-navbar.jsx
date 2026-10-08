@@ -11,8 +11,9 @@ const MENU_ID = "site-menu"
 
 const DESKTOP_LINKS = [
   { label: "Missions", href: "/missions" },
-  { label: "Comment ça marche", href: "/#how-it-works" },
-  { label: "Pour les clients", href: "/auth/register?role=client" },
+  { label: "Comment ça marche", href: "/#etapes" },
+  { label: "Pour les clients", href: "/clients" },
+  { label: "Aide", href: "/aide" },
 ]
 
 const MENU_LINKS = [...DESKTOP_LINKS, { label: "À propos", href: "/about" }, { label: "Contact", href: "/contact" }]
@@ -27,7 +28,8 @@ function isActivePath(pathname, href) {
 // .ds ne porte que les styles de racine (police, encre, fond) : la racine le porte,
 // car la navbar est aussi montée sur des pages encore en MUI. Les sélecteurs de
 // composants sont globaux (couche components).
-export function VitrineNavbar() {
+// tone="bleu" : en-tête posé dans un hero bleu (accueil, maquette V01), logo blanc et actions on-bleu.
+export function VitrineNavbar({ tone = "blanc" }) {
   const pathname = usePathname()
   const session = useVitrineSession()
   const { user, role, fullName, avatarUrl, initials, spaceHref } = session
@@ -40,12 +42,19 @@ export function VitrineNavbar() {
   const isActive = (href) => isActivePath(pathname, href)
   const publishHref = role === "client" ? "/client/missions/new" : "/auth/register?role=client"
   const showPublish = !user || role === "client"
+  const bleu = tone === "bleu"
   const accountLabel = fullName ? `Mon espace, compte de ${fullName}` : "Mon espace"
 
   return (
-    <header className="ds site-header">
+    <header className={bleu ? "ds site-header site-header--bleu" : "ds site-header"}>
       <Link href="/" aria-label="EduCash, accueil">
-        <img className="logo" src="/logo-horizontal-bleu.svg" alt="EduCash" width={534} height={100} />
+        <img
+          className="logo"
+          src={bleu ? "/logo-horizontal-blanc.svg" : "/logo-horizontal-bleu.svg"}
+          alt="EduCash"
+          width={534}
+          height={100}
+        />
       </Link>
       <nav className="site-header__nav ds-desk-only" aria-label="Navigation principale">
         {DESKTOP_LINKS.map(({ label, href }) => {
@@ -62,7 +71,7 @@ export function VitrineNavbar() {
           )
         })}
       </nav>
-      <div className="site-header__actions">
+      <div className={bleu ? "site-header__actions on-bleu" : "site-header__actions"}>
         {user ? (
           <>
             {showPublish ? (

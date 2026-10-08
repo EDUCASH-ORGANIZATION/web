@@ -61,7 +61,7 @@ async function createReview(reviewedId, missionId, role, formData) {
   }
 
   const { revalidatePath } = await import("next/cache")
-  revalidatePath(`/students/${reviewedId}`)
+  revalidatePath(`/talents/${reviewedId}`)
 
   redirect(role === "client" ? "/client/dashboard" : "/dashboard")
 }

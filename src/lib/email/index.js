@@ -1,4 +1,4 @@
-"use server"
+import "server-only"
 
 import { Resend } from "resend"
 import WelcomeStudent        from "./templates/welcome-student.jsx"
@@ -12,6 +12,7 @@ import PaymentReceivedWallet   from "./templates/payment-received-wallet.jsx"
 import VerificationApproved    from "./templates/verification-approved.jsx"
 import VerificationRejected  from "./templates/verification-rejected.jsx"
 import VerificationExpired   from "./templates/verification-expired.jsx"
+import ContactMessage        from "./templates/contact-message.jsx"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -27,6 +28,7 @@ const TEMPLATES = {
   "verification-approved":      VerificationApproved,
   "verification-rejected":  VerificationRejected,
   "verification-expired":   VerificationExpired,
+  "contact-message":        ContactMessage,
 }
 
 const SUBJECTS = {
@@ -40,6 +42,7 @@ const SUBJECTS = {
   "verification-expired":   "Ton badge EduCash a expiré — renouvelle-le",
   "wallet-deposited":           "Votre wallet a été rechargé ✓",
   "payment-received-wallet":    "Paiement reçu dans votre wallet 💰",
+  "contact-message":            "Contact EduCash",
 }
 
 /**
@@ -48,9 +51,10 @@ const SUBJECTS = {
  * @param {keyof typeof TEMPLATES} template
  * @param {string | string[]} to
  * @param {Record<string, unknown>} data
+ * @param {{ replyTo?: string, subject?: string }} options `subject` n'est pris en compte que pour "contact-message"
  * @returns {Promise<{ success: true } | { error: string }>}
  */
-export async function sendEmail(template, to, data = {}) {
+export async function sendEmail(template, to, data = {}, options = {}) {
   if (!process.env.RESEND_API_KEY) {
     console.warn("[email] RESEND_API_KEY manquant — email non envoyé:", template)
     return { error: "RESEND_API_KEY non configuré" }
@@ -63,7 +67,9 @@ export async function sendEmail(template, to, data = {}) {
   }
 
   const subject =
-    template === "payment-received"
+    template === "contact-message" && options.subject
+      ? options.subject
+      : template === "payment-received"
       ? `Paiement reçu : ${data.amount ?? ""} FCFA 💰`
       : template === "wallet-deposited"
         ? `Votre wallet a été rechargé — ${data.amount ?? ""} FCFA ✓`
@@ -77,6 +83,7 @@ export async function sendEmail(template, to, data = {}) {
       to,
       subject,
       react: Template(data),
+      ...(options.replyTo ? { replyTo: options.replyTo } : {}),
     })
 
     if (error) {
