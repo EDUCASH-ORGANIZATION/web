@@ -88,19 +88,21 @@ export function StatsBand({ students = 0, missions = 0 }) {
 // ─── Badges de confiance ──────────────────────────────────────────────────────
 export function TrustBadges() {
   return (
-    <Box sx={{ py: { xs: 6, md: 8 }, bgcolor: "#F8FAFB", borderBottom: "1px solid", borderColor: "divider" }}>
+    <Box sx={{ py: { xs: 4, md: 8 }, bgcolor: "#F8FAFB", borderBottom: "1px solid", borderColor: "divider" }}>
       <Container>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", md: "repeat(4,1fr)" }, gap: 2 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", md: "repeat(4,1fr)" }, gap: { xs: 1.5, md: 2 } }}>
           {TRUST_BADGES.map(({ icon: Icon, label, desc }) => (
-            <Stack key={label} direction="row" spacing={1.8} alignItems="center"
-              sx={{ bgcolor: "#fff", borderRadius: 1, px: 2.5, py: 2.2, border: "1px solid", borderColor: "divider" }}>
-              <Box sx={{ width: 46, height: 46, borderRadius: 2.5, bgcolor: BRAND.greenSoft, color: BRAND.green,
+            // Mobile : icône au-dessus du texte pour laisser toute la largeur au libellé
+            <Stack key={label} direction={{ xs: "column", md: "row" }} spacing={{ xs: 1.5, md: 1.8 }}
+              alignItems={{ xs: "flex-start", md: "center" }}
+              sx={{ bgcolor: "#fff", borderRadius: "16px", px: { xs: 2, md: 2.5 }, py: { xs: 2, md: 2.2 }, border: "1px solid", borderColor: "divider" }}>
+              <Box sx={{ width: { xs: 40, md: 46 }, height: { xs: 40, md: 46 }, borderRadius: 2.5, bgcolor: BRAND.greenSoft, color: BRAND.green,
                 display: "grid", placeItems: "center", flexShrink: 0 }}>
-                <Icon />
+                <Icon sx={{ fontSize: { xs: 22, md: 24 } }} />
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: 700, fontSize: "0.92rem" }}>{label}</Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>{desc}</Typography>
+                <Typography sx={{ fontWeight: 700, fontSize: { xs: "0.9rem", md: "0.92rem" }, lineHeight: 1.3 }}>{label}</Typography>
+                <Typography variant="caption" sx={{ display: "block", color: "text.secondary", lineHeight: 1.4, mt: 0.3 }}>{desc}</Typography>
               </Box>
             </Stack>
           ))}
@@ -113,10 +115,10 @@ export function TrustBadges() {
 // ─── Types de missions ────────────────────────────────────────────────────────
 export function MissionTypes() {
   return (
-    <Box component="section" id="missions" sx={{ py: { xs: 8, md: 12 }, bgcolor: "#fff" }}>
+    <Box component="section" id="missions" sx={{ py: { xs: 6, md: 12 }, bgcolor: "#fff" }}>
       <Container>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}
-          sx={{ justifyContent: "space-between", alignItems: { sm: "center" }, mb: 5 }}>
+          sx={{ justifyContent: "space-between", alignItems: { sm: "center" }, mb: { xs: 3.5, md: 5 } }}>
           <Box>
             <Chip label="Catalogue" sx={{ bgcolor: BRAND.greenSoft, color: BRAND.greenDark, fontWeight: 700,
               textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.7rem", mb: 2 }} />
@@ -132,21 +134,23 @@ export function MissionTypes() {
           </Button>
         </Stack>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", sm: "repeat(3,1fr)", lg: "repeat(4,1fr)" }, gap: 2.5 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", sm: "repeat(3,1fr)", lg: "repeat(4,1fr)" }, gap: { xs: 1.5, md: 2.5 },
+          // Mobile : la dernière carte seule sur sa ligne prend toute la largeur
+          "& > :last-child:nth-of-type(odd)": { gridColumn: { xs: "1 / -1", sm: "auto" } } }}>
           {MISSION_TYPES.map((type) => {
             const Icon = MISSION_ICONS[type] ?? AutoAwesomeRoundedIcon
             return (
               <Card key={type} component={Link} href="/auth/register"
-                sx={{ p: 2.8, textDecoration: "none", display: "block", height: "100%",
+                sx={{ p: { xs: 2, md: 2.8 }, borderRadius: { xs: "16px", md: "22px" }, textDecoration: "none", display: "block", height: "100%",
                   transition: "transform .2s ease, box-shadow .2s ease, border-color .2s ease",
                   "&:hover": { transform: "translateY(-6px)", boxShadow: "0 22px 44px -22px rgba(15,23,42,0.3)",
                     borderColor: "rgba(26,107,74,0.4)", "& .mt-icon": { background: GRADIENTS.brand, color: "#fff" } } }}>
-                <Box className="mt-icon" sx={{ width: 48, height: 48, borderRadius: 2.5, bgcolor: BRAND.greenSoft,
-                  color: BRAND.green, display: "grid", placeItems: "center", mb: 1.8, transition: "all .2s ease" }}>
+                <Box className="mt-icon" sx={{ width: { xs: 40, md: 48 }, height: { xs: 40, md: 48 }, borderRadius: 2.5, bgcolor: BRAND.greenSoft,
+                  color: BRAND.green, display: "grid", placeItems: "center", mb: { xs: 1.2, md: 1.8 }, transition: "all .2s ease" }}>
                   <Icon />
                 </Box>
-                <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: "text.primary" }}>{type}</Typography>
-                <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5, lineHeight: 1.5 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: { xs: "0.9rem", md: "0.95rem" }, lineHeight: 1.3, color: "text.primary" }}>{type}</Typography>
+                <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5, lineHeight: 1.45, fontSize: { xs: "0.8rem", md: "0.875rem" } }}>
                   {MISSION_DESCRIPTIONS[type]}
                 </Typography>
               </Card>
@@ -161,27 +165,34 @@ export function MissionTypes() {
 // ─── Témoignages ──────────────────────────────────────────────────────────────
 export function Testimonials() {
   return (
-    <Box component="section" sx={{ py: { xs: 8, md: 12 }, bgcolor: "#F8FAFB" }}>
+    <Box component="section" sx={{ py: { xs: 6, md: 12 }, bgcolor: "#F8FAFB" }}>
       <Container>
-        <Stack spacing={2} sx={{ alignItems: "center", textAlign: "center", mb: 6 }}>
+        <Stack spacing={2} sx={{ alignItems: "center", textAlign: "center", mb: { xs: 3.5, md: 6 } }}>
           <Chip label="Témoignages" sx={{ bgcolor: BRAND.greenSoft, color: BRAND.greenDark, fontWeight: 700,
             textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.7rem" }} />
-          <Typography variant="h2" sx={{ fontSize: { xs: "2rem", md: "2.6rem" } }}>Ils font confiance à EduCash</Typography>
+          <Typography variant="h2" sx={{ fontSize: { xs: "1.75rem", md: "2.6rem" } }}>Ils font confiance à EduCash</Typography>
         </Stack>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 3 }}>
+        {/* Mobile : carrousel horizontal (défilement au doigt) ; desktop : grille de 3 */}
+        <Box sx={{
+          display: { xs: "flex", md: "grid" }, gridTemplateColumns: { md: "repeat(3,1fr)" }, gap: { xs: 1.5, md: 3 },
+          overflowX: { xs: "auto", md: "visible" }, scrollSnapType: { xs: "x mandatory", md: "none" },
+          mx: { xs: -2, sm: -3, md: 0 }, px: { xs: 2, sm: 3, md: 0 }, pb: { xs: 1, md: 0 },
+          scrollPaddingInline: { xs: 16, sm: 24 }, "&::-webkit-scrollbar": { display: "none" }, scrollbarWidth: "none",
+        }}>
           {TESTIMONIALS.map(({ initial, color, name, role, quote }) => (
-            <Card key={name} sx={{ p: 3.5, display: "flex", flexDirection: "column", gap: 2, height: "100%" }}>
+            <Card key={name} sx={{ p: { xs: 2.5, md: 3.5 }, display: "flex", flexDirection: "column", gap: { xs: 1.5, md: 2 }, height: "auto",
+              flex: { xs: "0 0 84%", sm: "0 0 60%", md: "initial" }, scrollSnapAlign: "start" }}>
               <Stack direction="row" spacing={0.3}>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <StarRoundedIcon key={i} sx={{ fontSize: 20, color: BRAND.amber }} />
                 ))}
               </Stack>
-              <Typography sx={{ color: "text.secondary", lineHeight: 1.7, flex: 1 }}>&ldquo;{quote}&rdquo;</Typography>
+              <Typography sx={{ color: "text.secondary", lineHeight: 1.65, flex: 1, fontSize: { xs: "0.92rem", md: "1rem" } }}>&ldquo;{quote}&rdquo;</Typography>
               <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pt: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
                 <Avatar sx={{ bgcolor: color, fontWeight: 700 }}>{initial}</Avatar>
                 <Box>
                   <Typography sx={{ fontWeight: 700, fontSize: "0.92rem" }}>{name}</Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>{role}</Typography>
+                  <Typography variant="caption" sx={{ display: "block", color: "text.secondary", lineHeight: 1.4 }}>{role}</Typography>
                 </Box>
               </Stack>
             </Card>
@@ -196,12 +207,12 @@ export function Testimonials() {
 export function FinalCTA() {
   return (
     <Box component="section" sx={{ position: "relative", overflow: "hidden", background: GRADIENTS.brand,
-      py: { xs: 9, md: 12 } }}>
+      py: { xs: 7, md: 12 } }}>
       <Box sx={{ position: "absolute", top: -80, right: -60, width: 320, height: 320, borderRadius: "50%", bgcolor: "rgba(255,255,255,0.08)" }} />
       <Box sx={{ position: "absolute", bottom: -50, left: -40, width: 200, height: 200, borderRadius: "50%", bgcolor: "rgba(255,255,255,0.08)" }} />
       <Container sx={{ position: "relative" }}>
         <Stack spacing={3} sx={{ alignItems: "center", textAlign: "center", maxWidth: 640, mx: "auto" }}>
-          <Typography variant="h2" sx={{ color: "#fff", fontSize: { xs: "2.1rem", md: "2.8rem" } }}>
+          <Typography variant="h2" sx={{ color: "#fff", fontSize: { xs: "1.85rem", md: "2.8rem" } }}>
             Prêt à dynamiser ton budget ?
           </Typography>
           <Typography sx={{ color: "rgba(255,255,255,0.85)", maxWidth: 420 }}>

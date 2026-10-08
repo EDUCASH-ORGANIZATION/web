@@ -32,19 +32,19 @@ const CLIENT_STEPS = [
 function StepCard({ step, index }) {
   const Icon = step.icon
   return (
-    <Card sx={{ p: 3.5, height: "100%", position: "relative", overflow: "hidden",
+    <Card sx={{ p: { xs: 2.5, md: 3.5 }, height: "100%", position: "relative", overflow: "hidden",
       transition: "transform .2s ease, box-shadow .2s ease",
       "&:hover": { transform: "translateY(-6px)", boxShadow: "0 24px 48px -20px rgba(15,23,42,0.25)" } }}>
-      <Typography sx={{ position: "absolute", top: 10, right: 18, fontWeight: 900, fontSize: "3.4rem",
+      <Typography sx={{ position: "absolute", top: 10, right: 18, fontWeight: 900, fontSize: { xs: "2.6rem", md: "3.4rem" },
         lineHeight: 1, color: BRAND.greenSoft, userSelect: "none" }}>
         0{index + 1}
       </Typography>
-      <Box sx={{ width: 56, height: 56, borderRadius: 3, display: "grid", placeItems: "center",
-        background: GRADIENTS.brand, color: "#fff", mb: 2.5,
+      <Box sx={{ width: { xs: 46, md: 56 }, height: { xs: 46, md: 56 }, borderRadius: 3, display: "grid", placeItems: "center",
+        background: GRADIENTS.brand, color: "#fff", mb: { xs: 1.8, md: 2.5 },
         boxShadow: "0 12px 24px -10px rgba(26,107,74,0.5)" }}>
-        <Icon sx={{ fontSize: 28 }} />
+        <Icon sx={{ fontSize: { xs: 24, md: 28 } }} />
       </Box>
-      <Typography variant="h6" sx={{ mb: 1 }}>{step.title}</Typography>
+      <Typography variant="h6" sx={{ mb: 0.8, fontSize: { xs: "1.05rem", md: "1.25rem" } }}>{step.title}</Typography>
       <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.65 }}>{step.description}</Typography>
     </Card>
   )
@@ -55,25 +55,25 @@ export function HowItWorks() {
   const steps = tab === 0 ? STUDENT_STEPS : CLIENT_STEPS
 
   return (
-    <Box component="section" id="how-it-works" sx={{ py: { xs: 8, md: 12 }, bgcolor: "#fff" }}>
+    <Box component="section" id="how-it-works" sx={{ py: { xs: 6, md: 12 }, bgcolor: "#fff" }}>
       <Container>
-        <Stack spacing={2} sx={{ alignItems: "center", textAlign: "center", mb: 6 }}>
+        <Stack spacing={2} sx={{ alignItems: "center", textAlign: "center", mb: { xs: 3.5, md: 6 } }}>
           <Chip label="Simple & Rapide" sx={{ bgcolor: BRAND.greenSoft, color: BRAND.greenDark, fontWeight: 700,
             textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.7rem", maxWidth: "fit-content" }} />
-          <Typography variant="h2" sx={{ fontSize: { xs: "2rem", md: "2.6rem" } }}>Comment ça marche ?</Typography>
+          <Typography variant="h2" sx={{ fontSize: { xs: "1.75rem", md: "2.6rem" } }}>Comment ça marche ?</Typography>
           <Typography sx={{ color: "text.secondary", maxWidth: 520 }}>
             En quelques étapes seulement, commencez à gagner de l&apos;argent ou trouvez le bon profil.
           </Typography>
         </Stack>
 
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 6 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", mb: { xs: 3.5, md: 6 } }}>
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v)}
             sx={{
               bgcolor: "rgba(15,23,42,0.04)", borderRadius: 999, p: 0.6, minHeight: 0,
               "& .MuiTabs-indicator": { display: "none" },
-              "& .MuiTab-root": { minHeight: 0, py: 1.2, px: 3, borderRadius: 999, fontWeight: 700,
+              "& .MuiTab-root": { minHeight: 0, py: 1.2, px: { xs: 2.2, md: 3 }, borderRadius: 999, fontWeight: 700,
                 color: "text.secondary", textTransform: "none", transition: "all .2s",
                 "&.Mui-selected": { bgcolor: "#fff", color: "primary.main", boxShadow: "0 4px 14px -6px rgba(15,23,42,0.2)" } },
             }}
@@ -83,7 +83,7 @@ export function HowItWorks() {
           </Tabs>
         </Box>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 3 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: { xs: 1.5, md: 3 } }}>
           {steps.map((step, i) => <StepCard key={step.title} step={step} index={i} />)}
         </Box>
       </Container>
