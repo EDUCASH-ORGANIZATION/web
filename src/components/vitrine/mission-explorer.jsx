@@ -3,24 +3,9 @@
 import { useCallback, useTransition } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Icon } from "@/components/design/icon"
-
-export const TYPE_CHIPS = [
-  "Babysitting", "Livraison", "Saisie", "Community Management",
-  "Traduction", "Cours particuliers", "Autre",
-]
-export const VILLES = ["Cotonou", "Abomey-Calavi", "Porto-Novo"]
-export const BUDGETS = [
-  { id: "", label: "Tous budgets" },
-  { id: "0-5000", label: "Moins de 5 000 FCFA" },
-  { id: "5000-15000", label: "5 000 à 15 000 FCFA" },
-  { id: "15000-30000", label: "15 000 à 30 000 FCFA" },
-  { id: "30000+", label: "Plus de 30 000 FCFA" },
-]
-export const TRIS = [
-  { id: "", label: "Plus récentes" },
-  { id: "prix", label: "Budget croissant" },
-  { id: "prix-desc", label: "Budget décroissant" },
-]
+import {
+  MISSION_TYPES, CITIES, BUDGET_RANGES, SORTS, SEARCH_MAX_LENGTH,
+} from "@/lib/constants/missions"
 
 export function MissionExplorer({ q = "", type = "", ville = "", budget = "", tri = "" }) {
   const router = useRouter()
@@ -34,6 +19,7 @@ export function MissionExplorer({ q = "", type = "", ville = "", budget = "", tr
       if (v) sp.set(k, v)
       else sp.delete(k)
     })
+    sp.delete("page")
     const qs = sp.toString()
     startTransition(() => router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false }))
   }, [router, pathname, searchParams])
@@ -42,22 +28,35 @@ export function MissionExplorer({ q = "", type = "", ville = "", budget = "", tr
 
   return (
     <>
-      <div className="v02-search">
+      <form
+        role="search"
+        className="search search--hero v02-search"
+        onSubmit={(e) => {
+          e.preventDefault()
+          navigate({ q: new FormData(e.currentTarget).get("q").toString().trim() })
+        }}
+      >
         <Icon name="i-search" className="ic" />
+        <label className="sr-only" htmlFor="mission-q">Rechercher une mission</label>
         <input
+          key={q}
+          id="mission-q"
+          name="q"
           type="search"
-          placeholder="Rechercher une mission…"
-          aria-label="Rechercher une mission"
+          maxLength={SEARCH_MAX_LENGTH}
+          placeholder="Cours de maths, livraison, saisie…"
           defaultValue={q}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); navigate({ q: e.currentTarget.value.trim() }) } }}
         />
-      </div>
+        <button type="submit" className="btn btn--primary btn--sm">Chercher</button>
+      </form>
 
-      <div className="v02-types chips chips--scroll">
-        {TYPE_CHIPS.map((t) => (
+      <div className="v02-types chips chips--scroll on-bleu">
+        {MISSION_TYPES.map((t) => (
           <button
             key={t}
-            className={["chip", type === t ? "is-active" : ""].filter(Boolean).join(" ")}
+            type="button"
+            className={["chip", type === t ? "is-selected" : ""].filter(Boolean).join(" ")}
+            aria-pressed={type === t}
             onClick={() => setType(t)}
           >
             {t}
@@ -67,22 +66,26 @@ export function MissionExplorer({ q = "", type = "", ville = "", budget = "", tr
 
       <div className="filterbar">
         <select aria-label="Ville" value={ville} onChange={(e) => navigate({ ville: e.target.value })} className="chip chip--dropdown">
-          {["", ...VILLES].map((v) => <option key={v || "all"} value={v}>{v === "" ? "Toutes les villes" : v}</option>)}
+          {<>
+            <option value="">Toutes les villes</option>
+            {CITIES.map((v) => <option key={v} value={v}>{v}</option>)}
+          </>}
         </select>
         <select aria-label="Budget" value={budget} onChange={(e) => navigate({ budget: e.target.value })} className="chip chip--dropdown">
-          {BUDGETS.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+          <option value="">Tous budgets</option>
+          {BUDGET_RANGES.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
         </select>
         <select aria-label="Tri" value={tri} onChange={(e) => navigate({ tri: e.target.value })} className="chip chip--dropdown">
-          {TRIS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          {SORTS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
         {(q || type || ville || budget || tri) && (
-          <button className="chip chip--remove" onClick={() => navigate({ q: "", type: "", ville: "", budget: "", tri: "" })}>
+          <button type="button" className="chip chip--remove" onClick={() => navigate({ q: "", type: "", ville: "", budget: "", tri: "" })}>
             <Icon name="i-x" className="ic" /> Effacer les filtres
           </button>
         )}
       </div>
 
-      {isPending && <span className="filterbar__count" style={{ opacity: 0.6 }}>Chargement…</span>}
+      {isPending && <span className="filterbar__count muted" role="status">Chargement…</span>}
     </>
   )
 }
