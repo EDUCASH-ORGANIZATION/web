@@ -1,4 +1,14 @@
+/* EduCash - refonte direction A "Courant".
+   La source du style vient du systeme de design valide
+   (maquettes/_system) : tokens.css (valeurs), components.css, layouts.css.
+   Le systeme est range dans les couches Tailwind pour ne jamais ecraser
+   les utilitaires des espaces connectes. Les espaces connectes gardent
+   le rendu de main (Inter, body blanc, mode sombre). */
+
 @import "tailwindcss";
+@import "./design/tokens.css" layer(theme);
+@import "./design/components.css" layer(components);
+@import "./design/layouts.css" layer(components);
 
 :root {
   --background: #ffffff;
@@ -19,10 +29,16 @@
   }
 }
 
+/* Body par defaut : identique a main. Le rendu du systeme est porte par .ds */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Pages de la vitrine Direction A : le conteneur .ds peut occuper la hauteur */
+html:has(.ds) {
+  height: 100%;
 }
 
 button,

@@ -1,5 +1,6 @@
 "use client"
 
+import { useSyncExternalStore } from "react"
 import Link from "next/link"
 import Box from "@mui/material/Box"
 import Container from "@mui/material/Container"
@@ -26,7 +27,31 @@ const AVATARS = [
   { l: "M", c: BRAND.sky },
 ]
 
+const WIDE_QUERY = "(min-width: 900px)"
+const REDUCED_QUERY = "(prefers-reduced-motion: reduce)"
+
+function subscribeScene(onChange) {
+  const wide = window.matchMedia(WIDE_QUERY)
+  const reduced = window.matchMedia(REDUCED_QUERY)
+  wide.addEventListener("change", onChange)
+  reduced.addEventListener("change", onChange)
+  return () => {
+    wide.removeEventListener("change", onChange)
+    reduced.removeEventListener("change", onChange)
+  }
+}
+
+function getSceneSnapshot() {
+  return window.matchMedia(WIDE_QUERY).matches && !window.matchMedia(REDUCED_QUERY).matches
+}
+
+function getSceneServerSnapshot() {
+  return false
+}
+
 export function Hero({ students = 0 }) {
+  const showScene = useSyncExternalStore(subscribeScene, getSceneSnapshot, getSceneServerSnapshot)
+
   return (
     <Box
       component="section"
@@ -95,11 +120,11 @@ export function Hero({ students = 0 }) {
             </Stack>
           </Stack>
 
-          {/* Colonne 3D — masquée sur mobile */}
+          {/* Colonne 3D - masquée sur mobile */}
           <Box sx={{ display: { xs: "none", md: "block" }, position: "relative", height: { md: 600 }, order: { xs: -1, md: 0 } }}>
             <Box sx={{ position: "absolute", inset: "8% 12%", borderRadius: "50%",
               background: `radial-gradient(circle, ${BRAND.green}33 0%, transparent 65%)`, filter: "blur(30px)" }} />
-            <HeroPhone />
+            {showScene && <HeroPhone />}
           </Box>
         </Box>
       </Container>

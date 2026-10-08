@@ -1,0 +1,154 @@
+/* =====================================================================
+   EduCash - Système de design de la refonte (direction A "Courant")
+   tokens.css : la seule source des valeurs. Ne jamais écrire une couleur,
+   une taille ou un rayon en dur dans une page : utiliser ces variables.
+   ===================================================================== */
+
+:root {
+  /* ---------- Couleurs de marque ---------- */
+  --c-bleu: #2F3BED;          /* Bleu Courant : action principale, argent, liens */
+  --c-bleu-700: #2330CF;      /* survol du bleu */
+  --c-bleu-800: #1C27A8;      /* appui du bleu */
+  --c-bleu-clair: #8C93FF;    /* bleu lisible sur fond encre (7,02:1) */
+  --c-bleu-50: #E7E9FF;       /* fond teinté bleu (badges, sélection) */
+  --c-bleu-100: #D3D7FF;
+
+  --c-citron: #C8F03C;        /* accent : surface uniquement, jamais texte sur clair */
+  --c-citron-600: #B6DE24;    /* survol du citron */
+  --c-citron-50: #F3FBD6;
+
+  --c-encre: #0E0F1A;         /* texte, bordures, fond sombre */
+  --c-encre-800: #1B1D2B;     /* surfaces sombres secondaires */
+  --c-encre-700: #2A2D40;
+
+  --c-ardoise: #5B5F73;       /* texte secondaire sur clair (6,31:1) */
+  --c-brume: #A6A9BD;         /* texte secondaire sur encre (8,20:1) */
+  --c-acier: #8A8EA3;         /* bordure de champ (3,24:1) */
+  --c-ligne: #E3E5EE;         /* séparateurs, bordures douces */
+  --c-ligne-2: #EEF0F5;
+  --c-givre: #F4F5FA;         /* fond de page clair */
+  --c-blanc: #FFFFFF;
+
+  --c-off-bg: #E3E5EE;        /* fond désactivé */
+  --c-off-txt: #7A7E92;       /* texte désactivé */
+
+  /* ---------- Sémantique ---------- */
+  --c-succes: #0B7D43;        --c-succes-bg: #DDF4E7;   --c-succes-sombre: #3DDC84;
+  --c-erreur: #C42318;        --c-erreur-bg: #FDE3E1;   --c-erreur-sombre: #FF6B5E;
+  --c-alerte: #F5A524;        /* fond seulement, texte encre dessus */
+  --c-alerte-txt: #8A5300;    --c-alerte-bg: #FFF1D6;
+  --c-info: var(--c-bleu);    --c-info-bg: var(--c-bleu-50);
+
+  /* ---------- Pastels des tableaux de bord (direction B adaptée à A) ----------
+     Une couleur = un sens, toujours accompagnée d'un libellé. Texte toujours encre. */
+  --c-lavande: #DCDFFF;       /* séquestre, fonds bloqués */
+  --c-citron-pale: #EDF9C4;   /* en cours, réputation */
+  --c-menthe: #CDF0DC;        /* gains, payé, terminé */
+  --c-rose: #FFD6DE;          /* action requise, à traiter */
+  --c-peche: #FFE4C7;         /* information neutre, conseils */
+  /* Teintes plus soutenues pour les formes décoratives du bento */
+  --c-lavande-600: #BFC5FF;
+  --c-menthe-600: #A6E3C2;
+  --c-bleu-clair-600: #A9AEFF;
+
+  /* ---------- Typographie ---------- */
+  --f-display: var(--font-anton), Impact, "Arial Narrow", sans-serif;   /* titres courts en capitales */
+  --f-text: var(--font-figtree), system-ui, -apple-system, "Segoe UI", sans-serif; /* tout le reste, montants compris */
+  --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Échelle display (Anton, toujours en capitales, 6 mots max) */
+  --t-display-xxl: 128px;     /* hero vitrine bureau */
+  --t-display-xl: 88px;
+  --t-display-l: 64px;        /* titre de section vitrine bureau */
+  --t-display-m: 44px;        /* hero mobile, titres de page vitrine mobile */
+  --t-display-s: 28px;        /* titres de bloc dans l'app ("EN COURS", "POUR TOI") */
+
+  /* Échelle texte (Figtree) */
+  --t-h1: 32px;   --lh-h1: 1.15;   /* titre de page dans l'app */
+  --t-h2: 24px;   --lh-h2: 1.2;
+  --t-h3: 20px;   --lh-h3: 1.25;
+  --t-h4: 17px;   --lh-h4: 1.3;
+  --t-body-l: 18px;
+  --t-body: 16px;  --lh-body: 1.5;
+  --t-body-s: 14px;
+  --t-caption: 13px;
+  --t-micro: 12px;             /* minimum absolu (audit admin : libellés trop petits) */
+
+  /* Montants : Figtree, chiffres tabulaires, jamais Anton */
+  --t-amount-xl: 44px;
+  --t-amount-l: 32px;
+  --t-amount-m: 24px;
+  --t-amount-s: 17px;
+
+  --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700; --fw-xbold: 800; --fw-black: 900;
+
+  /* ---------- Espacements (base 4) ---------- */
+  --s-0: 0;     --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
+  --s-5: 20px;  --s-6: 24px;  --s-7: 28px;  --s-8: 32px;  --s-10: 40px;
+  --s-12: 48px; --s-14: 56px; --s-16: 64px; --s-20: 80px; --s-24: 96px;
+
+  /* ---------- Rayons ---------- */
+  --r-xs: 8px;     /* petites pastilles carrées, vignettes */
+  --r-s: 12px;     /* icône carrée, menu */
+  --r-m: 16px;     /* champs, bulles, toasts */
+  --r-l: 24px;     /* cartes */
+  --r-xl: 32px;    /* hero, cadre de page, modale */
+  --r-pill: 999px; /* boutons, chips, badges, onglets */
+
+  /* ---------- Bordures ---------- */
+  --bw: 2px;
+  --b-encre: 2px solid var(--c-encre);
+  --b-ligne: 2px solid var(--c-ligne);
+  --b-champ: 2px solid var(--c-acier);
+
+  /* ---------- Ombres : uniquement dures, jamais floues ---------- */
+  --sh-dur-s: 3px 3px 0 var(--c-encre);
+  --sh-dur: 4px 4px 0 var(--c-encre);      /* CTA accent, carte mise en avant */
+  --sh-dur-l: 6px 6px 0 var(--c-encre);    /* carte héros, barre de recherche vitrine */
+  --sh-dur-xl: 8px 8px 0 var(--c-encre);   /* modale, drawer, toast */
+  --sh-focus: 0 0 0 2px var(--c-blanc), 0 0 0 5px var(--c-bleu);      /* focus clavier sur clair */
+  --sh-focus-sombre: 0 0 0 2px var(--c-bleu), 0 0 0 5px var(--c-citron); /* focus sur bleu ou encre */
+  --sh-champ-focus: 0 0 0 4px rgba(47, 59, 237, .18);
+
+  /* ---------- Mouvement ---------- */
+  --dur-1: 120ms; --dur-2: 200ms; --dur-3: 320ms;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+
+  /* ---------- Hauteurs d'éléments ---------- */
+  --h-btn-sm: 36px; --h-btn: 48px; --h-btn-lg: 56px;
+  --h-input: 52px;  --h-input-sm: 40px;
+  --h-topbar: 72px; --h-topbar-m: 60px;
+  --h-bottomnav: 72px;
+  --w-sidebar: 232px; --w-sidebar-admin: 232px;
+  --w-drawer: 480px;
+
+  /* ---------- Breakpoints (référence : les variables CSS ne marchent pas
+     dans @media, les maquettes utilisent donc des gabarits explicites) ---------- */
+  --bp-mobile: 390px;    /* cadre téléphone Android */
+  --bp-tablette: 768px;
+  --bp-laptop: 1024px;   /* bascule sidebar / bottom nav */
+  --bp-bureau: 1440px;   /* cadre navigateur */
+
+  /* ---------- Couches ---------- */
+  --z-sticky: 10; --z-nav: 20; --z-drawer: 40; --z-modal: 50; --z-toast: 60;
+}
+
+/* ---------- Echelle display responsive ----------
+   Les var() sont interdites dans la condition d'une @media : seuils en dur. */
+@media (max-width: 1023.98px) {
+  :root {
+    --t-display-xxl: 88px;
+    --t-display-xl: 72px;
+    --t-display-l: 52px;
+    --t-display-m: 40px;
+  }
+}
+@media (max-width: 480px) {
+  :root {
+    --t-display-xxl: 52px;
+    --t-display-xl: 48px;
+    --t-display-l: 40px;
+    --t-display-m: 36px;
+    --t-display-s: 24px;
+  }
+}
