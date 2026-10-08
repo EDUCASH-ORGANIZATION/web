@@ -116,11 +116,39 @@ describe("placement", () => {
     expect(choosePlacement({ ...base, rect }).vertical).toBe("top")
   })
 
-  it("reste en bas, plafonnée, quand la place suffit sans contenir toute la liste", () => {
+  it("ouvre vers le haut, entière, quand elle ne tient pas en bas mais tient en haut", () => {
+    // Puce Ville de la barre de filtres de /missions à 1440x900 : 198 px en bas, 636 px en haut.
     const rect = { left: 56, right: 160, top: 650, bottom: 688 }
-    const placement = choosePlacement({ ...base, viewportWidth: 1440, viewportHeight: 900, count: 5, rect })
+    const placement = choosePlacement({ ...base, viewportWidth: 1440, viewportHeight: 900, menuHeight: 214, rect })
+    expect(placement).toEqual({ vertical: "top", horizontal: "start", maxHeight: null })
+  })
+
+  it("mesure avec la hauteur réelle de la liste plutôt qu'avec l'estimation", () => {
+    const rect = { left: 56, right: 160, top: 650, bottom: 688 }
+    // L'estimation (4 options : 182 px) tiendrait en bas ; la hauteur réelle (214 px) non.
+    expect(choosePlacement({ ...base, viewportHeight: 900, count: 4, rect }).vertical).toBe("bottom")
+    expect(choosePlacement({ ...base, viewportHeight: 900, count: 4, menuHeight: 214, rect }).vertical).toBe("top")
+  })
+
+  it("reste en bas, entière, dès qu'elle y tient, même si le haut offre plus de place", () => {
+    const rect = { left: 16, right: 120, top: 500, bottom: 540 }
+    const placement = choosePlacement({ ...base, viewportHeight: 800, menuHeight: 240, rect })
+    expect(placement).toEqual({ vertical: "bottom", horizontal: "start", maxHeight: null })
+  })
+
+  it("prend le côté le plus grand, plafonné, quand aucun ne la contient entière", () => {
+    const rect = { left: 16, right: 120, top: 120, bottom: 160 }
+    const placement = choosePlacement({ ...base, viewportHeight: 360, menuHeight: 260, rect })
     expect(placement.vertical).toBe("bottom")
-    expect(placement.maxHeight).toBe(900 - 688 - 8 - 6)
+    expect(placement.maxHeight).toBe(360 - 160 - 8 - 6)
+    const high = choosePlacement({ ...base, viewportHeight: 360, menuHeight: 260, rect: { ...rect, top: 220, bottom: 260 } })
+    expect(high.vertical).toBe("top")
+    expect(high.maxHeight).toBe(220 - 8 - 6)
+  })
+
+  it("borne la hauteur utile au plafond de la liste (au-delà, elle défile d'elle-même)", () => {
+    const rect = { left: 16, right: 120, top: 100, bottom: 140 }
+    expect(choosePlacement({ ...base, menuHeight: 600, rect })).toEqual({ vertical: "bottom", horizontal: "start", maxHeight: null })
   })
 
   it("ne plafonne pas la liste quand elle tient en entier", () => {

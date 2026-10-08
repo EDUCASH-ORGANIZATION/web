@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
 import {
   choosePlacement, firstEnabled, indexOfValue, initialActive, keyIntent, lastEnabled,
-  moveActive, nextBuffer, typeaheadIndex, MENU_MIN_WIDTH, TYPEAHEAD_RESET_MS,
+  moveActive, nextBuffer, typeaheadIndex, TYPEAHEAD_RESET_MS,
 } from "@/components/design/select-logic"
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
@@ -62,17 +62,24 @@ export function Select({
     else if (ref) ref.current = node
   }
 
+  // Mesure la liste réelle avant de l'ouvrir : elle est rendue (masquée) en permanence, on la déplie
+  // le temps de la mesure, sans peinture entre les deux. L'ancre est son offsetParent : la racine du
+  // Select, ou la pastille de recherche en variante bare (la liste s'y aligne, pas sur le déclencheur).
   const openList = (index) => {
-    const rect = triggerRef.current.getBoundingClientRect()
+    const menu = menuRef.current
+    menu.style.maxHeight = ""
+    menu.hidden = false
+    const anchor = menu.offsetParent ?? rootRef.current
     const next = choosePlacement({
-      rect,
+      rect: anchor.getBoundingClientRect(),
       viewportWidth: document.documentElement.clientWidth,
       viewportHeight: window.innerHeight,
-      count: options.length + (title ? 1 : 0),
-      menuWidth: variant === "field" ? rect.width : MENU_MIN_WIDTH,
+      menuHeight: menu.scrollHeight + menu.offsetHeight - menu.clientHeight,
+      menuWidth: menu.offsetWidth,
     })
-    // Plafond mesuré en pixels : la liste défile quand la place disponible est plus courte qu'elle.
-    if (menuRef.current) menuRef.current.style.maxHeight = next.maxHeight === null ? "" : `${next.maxHeight}px`
+    menu.hidden = true
+    // Plafond mesuré en pixels : la liste défile seulement quand aucun côté ne la contient entière.
+    if (next.maxHeight !== null) menu.style.maxHeight = `${next.maxHeight}px`
     setPlacement(next)
     setActive(index ?? initialActive(options, current))
     setOpen(true)
