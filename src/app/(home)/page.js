@@ -166,8 +166,7 @@ export default async function HomePage() {
   const cta = ctaProps(role)
 
   return (
-    <VitrinePage navbar={null}>
-      <HomeHero live={live} openMissions={figures.openMissions} role={role} />
+    <VitrinePage navbar={null} before={<HomeHero live={live} openMissions={figures.openMissions} role={role} />}>
       <HomeProofs rating={figures.rating} />
       <HomePreview missions={missions} openCount={openCount} error={previewError} />
       <HomeSteps />
