@@ -20,12 +20,12 @@
 .ds { min-height: 100%; font-family: var(--f-text); font-size: var(--t-body); line-height: var(--lh-body); color: var(--c-encre); background: var(--c-givre); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 
 /* ---------- Utilitaires typographiques ---------- */
-.display { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; line-height: 1.14; letter-spacing: .005em; }
-.display--xxl { font-size: var(--t-display-xxl); line-height: 1.16; }
-.display--xl { font-size: var(--t-display-xl); line-height: 1.14; }
-.display--l { font-size: var(--t-display-l); line-height: 1.14; }
-.display--m { font-size: var(--t-display-m); line-height: 1.14; }
-.display--s { font-size: var(--t-display-s); line-height: 1.15; }
+.display { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; line-height: 1.06; letter-spacing: .005em; }
+.display--xxl { font-size: var(--t-display-xxl); line-height: .88; }
+.display--xl { font-size: var(--t-display-xl); line-height: 1; }
+.display--l { font-size: var(--t-display-l); line-height: 1; }
+.display--m { font-size: var(--t-display-m); line-height: 1; }
+.display--s { font-size: var(--t-display-s); line-height: 1; }
 .hl-citron { color: var(--c-citron); }      /* mot surligné sur bleu ou encre */
 .hl-bleu { color: var(--c-bleu); }          /* mot surligné sur clair */
 .ds-h1 { font-size: var(--t-h1); line-height: var(--lh-h1); font-weight: var(--fw-xbold); letter-spacing: -.02em; }
@@ -1031,7 +1031,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .v-cat__ex { font-size: var(--t-para); line-height: var(--lh-para); color: var(--c-ardoise); margin-top: 4px; }
 .v-cat__shape { position: absolute; right: -30px; bottom: -40px; width: 170px; height: 170px; z-index: -1; color: var(--c-ligne-2); }
 .v-cat--big { grid-row: span 2; background: var(--c-bleu); color: var(--c-blanc); }
-.v-cat--big .v-cat__name { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; font-size: var(--t-display-l); line-height: 1.14; letter-spacing: .005em; }
+.v-cat--big .v-cat__name { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; font-size: var(--t-display-l); line-height: .92; letter-spacing: .005em; }
 .v-cat--big .v-cat__ex { color: var(--c-blanc); font-size: var(--t-body); }
 .v-cat--big .v-cat__go { background: var(--c-citron); color: var(--c-encre); }
 .v-cat--big .v-cat__shape { color: rgba(255,255,255,.1); width: 320px; height: 320px; right: -60px; bottom: -80px; }
@@ -1188,7 +1188,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .v04-wrap { padding: var(--s-6) var(--s-14) 0; }
 .v04-hero { margin: var(--s-4); border-radius: var(--r-xl); background-color: var(--c-bleu); color: var(--c-blanc); padding: var(--s-12) var(--s-14); position: relative; overflow: hidden; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-10); align-items: center; }
 .v04-hero .avatar--xl { width: 168px; height: 168px; }
-.v04-name { font-family: var(--f-display); text-transform: uppercase; font-size: 112px; line-height: 1.14; }
+.v04-name { font-family: var(--f-display); text-transform: uppercase; font-size: 112px; line-height: 1; }
 .v04-name span { color: var(--c-citron); }
 .v04-facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: var(--s-4); font-weight: var(--fw-bold); }
 .v04-facts span { display: inline-flex; align-items: center; gap: 6px; }
