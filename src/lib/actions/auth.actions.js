@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { isDisposableEmail } from "@/lib/utils/email"
+import { safeNextPath, isNextAllowedForRole } from "@/lib/utils/safe-next"
 
 const VALID_ROLES = ["student", "client"]
 
@@ -72,6 +73,8 @@ export async function login(formData) {
   if (error) return { error: mapAuthError(error.message) }
 
   const role = data.user?.user_metadata?.role ?? "student"
+  const target = safeNextPath(formData.get("next")?.toString())
+  if (target && isNextAllowedForRole(target, role)) redirect(target)
   redirect(dashboardFor(role))
 }
 
