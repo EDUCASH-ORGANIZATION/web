@@ -10,6 +10,10 @@
 @import "./design/components.css" layer(components);
 @import "./design/layouts.css" layer(components);
 
+/* Docs projet hors scan : leurs mentions de classes (ex. `grow`) generaient des utilitaires. */
+@source not "../../CLAUDE.md";
+@source not "../../REDESIGN.md";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
