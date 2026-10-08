@@ -585,7 +585,6 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
 
 /* ---------- Une colonne ---------- */
 @media (max-width: 767.98px) {
-  .v-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .v-fig__n { font-size: 48px; }
   .v-fig__t { font-size: var(--t-caption); }
   .v-fig__t b { font-size: var(--t-body-s); }
@@ -656,4 +655,16 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .empty__actions .btn { width: 100%; justify-content: center; }
   .v02-void__actions { flex-direction: column; align-items: stretch; }
   .v02-void__actions .btn { width: 100%; justify-content: center; }
+}
+/* Grilles de cartes : une colonne sous 768 px, les textes restent aérés */
+@media (max-width: 767.98px) {
+  .v-figures { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+  .v-figures--3 .v-fig:last-child { grid-column: auto; }
+  .v-fig { min-height: 0; padding: var(--s-5); }
+  .v01-qual { min-height: 0; padding: var(--s-5); }
+  .v-cats { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+  .v-cat--big, .v-cat--lavande, .v-cat--wide { grid-column: auto; }
+  .v-cat { padding: var(--s-5); min-height: 0; }
+  .v05-guar { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+  .v05-g { padding: var(--s-5); }
 }
