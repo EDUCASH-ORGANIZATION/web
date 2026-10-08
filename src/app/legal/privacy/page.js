@@ -3,7 +3,7 @@ import { LegalLayout } from "@/components/vitrine/legal/legal-layout"
 import { LegalSection } from "@/components/vitrine/legal/legal-section"
 
 export const metadata = {
-  title: "Politique de confidentialité - EduCash",
+  title: "Politique de confidentialité",
 }
 
 const SECTIONS = {
@@ -24,7 +24,7 @@ export default function PrivacyPage() {
     <LegalLayout
       current="privacy"
       title="Politique de confidentialité"
-      updatedAt="6 avril 2025"
+      updatedAt="8 octobre 2026"
       sections={Object.values(SECTIONS)}
     >
       <LegalSection {...SECTIONS.responsable_du_traitement}>
@@ -41,6 +41,7 @@ export default function PrivacyPage() {
           <li><strong>Données d’identification :</strong> nom, prénom, adresse email</li>
           <li><strong>Données de profil :</strong> ville, numéro de téléphone, photo de profil, biographie</li>
           <li><strong>Données académiques (étudiants) :</strong> établissement, niveau d’études, carte étudiante</li>
+          <li><strong>Formulaire de contact :</strong> nom, adresse email, sujet et message</li>
           <li><strong>Données de paiement :</strong> historique des transactions (traité par FedaPay)</li>
           <li><strong>Données de navigation :</strong> adresse IP, logs d’accès, cookies</li>
         </ul>
@@ -53,6 +54,7 @@ export default function PrivacyPage() {
           <li>Mettre en relation étudiants et clients</li>
           <li>Vérifier le statut étudiant et prévenir la fraude</li>
           <li>Traiter les paiements via FedaPay</li>
+          <li>Répondre aux demandes envoyées via le formulaire de contact, transmises par notre prestataire d’email Resend</li>
           <li>Vous envoyer des notifications relatives à votre compte et vos missions</li>
           <li>Améliorer nos services et analyser l’usage de la plateforme</li>
         </ul>

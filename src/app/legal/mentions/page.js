@@ -4,7 +4,7 @@ import { LegalLayout } from "@/components/vitrine/legal/legal-layout"
 import { LegalSection, LegalFacts } from "@/components/vitrine/legal/legal-section"
 
 export const metadata = {
-  title: "Mentions légales - EduCash",
+  title: "Mentions légales",
 }
 
 const SECTIONS = {
@@ -23,7 +23,7 @@ export default function MentionsPage() {
     <LegalLayout
       current="mentions"
       title="Mentions légales"
-      updatedAt="6 avril 2025"
+      updatedAt="8 octobre 2026"
       sections={Object.values(SECTIONS)}
     >
       <LegalSection {...SECTIONS.editeur_du_site}>

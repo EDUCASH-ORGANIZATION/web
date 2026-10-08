@@ -3,7 +3,7 @@ import { LegalLayout } from "@/components/vitrine/legal/legal-layout"
 import { LegalSection } from "@/components/vitrine/legal/legal-section"
 
 export const metadata = {
-  title: "Conditions d’utilisation - EduCash",
+  title: "Conditions d’utilisation",
 }
 
 const SECTIONS = {
