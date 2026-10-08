@@ -26,9 +26,9 @@ export const BUDGET_RANGES = [
 
 /** Options de tri ("" = plus récentes). */
 export const SORTS = [
-  { id: "", label: "Plus récentes" },
-  { id: "prix", label: "Budget croissant" },
-  { id: "prix-desc", label: "Budget décroissant" },
+  { id: "", label: "Plus récentes", short: "Récentes" },
+  { id: "prix", label: "Budget croissant", short: "Petit budget" },
+  { id: "prix-desc", label: "Budget décroissant", short: "Gros budget" },
 ]
 
 /** Longueur maximale de la recherche texte. */
@@ -36,3 +36,11 @@ export const SEARCH_MAX_LENGTH = 100
 
 /** Nombre de missions par page. */
 export const MISSIONS_PAGE_SIZE = 9
+
+
+/**
+ * Filtre d'urgence (paramètre `urgence`). Seule l'urgence haute existe en base
+ * (`urgency = 'high'`) : aucun palier « critique » n'est inventé.
+ * @type {ReadonlyArray<{ id: string, label: string, value: string }>}
+ */
+export const URGENCY_FILTERS = [{ id: "urgent", label: "Urgent", value: "high" }]

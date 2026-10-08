@@ -16,7 +16,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Couches : `tokens.css` dans `theme`, `components.css` et `layouts.css` dans `components` (reset dans la couche `base` imbriquée). 
 - `.ds` ne porte que les styles de racine (police Figtree, couleur encre, fond givre). Le reset et les sélecteurs de composants sont globaux, dans la couche `components` : les utilitaires Tailwind gardent la priorité, mais un nom de classe du système utilisé hors `.ds` est stylé. Ne jamais réutiliser un nom de classe du système dans un écran Tailwind. Avant d'ajouter une classe au système, vérifier par grep qu'elle n'existe pas déjà dans le code ancien ; sinon la préfixer `ds-`.
 - On consomme le système par ses classes (`.btn`, `.card`, `.badge`, `.field`, `.shell`...) et par `<Icon name="i-..." className="ic" />` (`src/components/design/icon.jsx`).
-- Anti-collision avec Tailwind : les classes qui portent un nom d'utilitaire sont préfixées `ds-` : `ds-grid`, `ds-container`, `ds-grow`, `ds-table`, `ds-table-wrap`, `ds-h1` à `ds-h4`, `ds-pulse`. `sr-only` vient de Tailwind.
+- Anti-collision avec Tailwind : les classes qui portent un nom d'utilitaire sont préfixées `ds-` : `ds-grid`, `ds-container`, `ds-grow`, `ds-table`, `ds-table-wrap`, `ds-h1` à `ds-h4`, `ds-pulse`, `ds-strong`, `ds-chip-select`, `ds-scrim-fixed`, `ds-select-bare`. `sr-only` vient de Tailwind.
 - Responsive : breakpoints 1024, 768 et 480 (media queries dans `tokens.css` et `layouts.css`). Classes `ds-desk-only` et `ds-mob-only` pour afficher selon la taille.
 - Couleurs en dur interdites : uniquement `var(--c-*)`. Pas de `style={{}}`, pas de `<style>` local.
 - Palette : bleu `#2F3BED`, citron `#C8F03C` (jamais en texte sur fond clair), encre `#0E0F1A`, givre `--c-givre`.
@@ -24,7 +24,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Icônes : sprite externe `public/sprite.svg`, référencé avec `?v=` (`SPRITE_VERSION`). Incrémenter la version si le sprite change.
 - Logo final et icônes PWA dans `public/`. Le `manifest.json` utilise `#2F3BED`.
 - Texte secondaire : `--c-ardoise` sur clair, `--c-brume` sur encre, blanc sur bleu ; taille `--t-para` (16 px, 15 px sous 768) ; jamais d'opacité sur du texte ; `--t-micro` (13 px) est le minimum absolu. Écart assumé avec maquettes/_system (RD-FIX-03).
-- Ne JAMAIS utiliser une classe Tailwind dont le nom existe dans le système de design (exemple : `grow` au lieu de `ds-grow`, erreur déjà commise). Tailwind ne génère que les classes présentes dans le code : une classe absente du code n'existe pas au build.
+- Ne JAMAIS utiliser une classe Tailwind dont le nom existe dans le système de design (exemple : oublier le préfixe de `ds-grow`, erreur déjà commise). Tailwind ne génère que les classes présentes dans le code : une classe absente du code n'existe pas au build.
 
 ## Cohabitation pendant la transition
 - Les espaces connectés (`(student)`, `(client)`, `(admin)`, `legal/*`) restent en Tailwind avec parité stricte avec `main`. Ne pas les toucher sauf portage complet d'un écran.

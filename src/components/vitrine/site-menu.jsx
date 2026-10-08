@@ -1,10 +1,9 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useRef } from "react"
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
-
-const FOCUSABLE = "a[href], button:not([disabled])"
+import { useModalFocus } from "@/hooks/use-modal-focus"
 
 // Menu plein écran mobile de la vitrine (design system Direction A, maquette V01).
 export function SiteMenu({ id, links, isActive, session, onClose, returnFocusRef }) {
@@ -12,38 +11,7 @@ export function SiteMenu({ id, links, isActive, session, onClose, returnFocusRef
   const closeRef = useRef(null)
   const { user, fullName, spaceHref, signOut } = session
 
-  useEffect(() => {
-    const returnTarget = returnFocusRef.current
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    closeRef.current?.focus()
-
-    function onKeyDown(e) {
-      if (e.key === "Escape") {
-        onClose()
-        return
-      }
-      if (e.key !== "Tab" || !ref.current) return
-      const items = ref.current.querySelectorAll(FOCUSABLE)
-      if (items.length === 0) return
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener("keydown", onKeyDown)
-
-    return () => {
-      document.removeEventListener("keydown", onKeyDown)
-      document.body.style.overflow = previousOverflow
-      returnTarget?.focus()
-    }
-  }, [onClose, returnFocusRef])
+  useModalFocus({ containerRef: ref, initialFocusRef: closeRef, returnFocusRef, onClose })
 
   async function handleSignOut() {
     onClose()
