@@ -2,4 +2,4 @@
 // Source de vérité des symboles : design-rebrand/maquettes/_system/sprite.html.
 // À modifier à chaque changement de public/sprite.svg : sert au cache-busting (?v=).
 
-export const SPRITE_VERSION = "fix05r1"
+export const SPRITE_VERSION = "262d9eb4"
