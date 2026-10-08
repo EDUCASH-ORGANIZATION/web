@@ -142,6 +142,7 @@
 
   /* ---------- En-tête fixe de la vitrine ---------- */
   --h-header: 88px; --h-header-compact: 64px;
+  --sticky-top: calc(var(--h-header-compact) + var(--s-4)); /* éléments collants sous l'en-tête fixe */
 }
 
 /* ---------- Echelle display responsive ----------
