@@ -309,7 +309,7 @@ export default async function MissionsPage({ searchParams }) {
                     ? noResultText({ q, type, ville, budgetLabel })
                     : "Cette page est vide. Reviens à la première page."}
                 </div>
-                <div className="row">
+                <div className="empty__actions">
                   <Link className="btn btn--primary" href="/missions">
                     {hasFilter ? "Effacer les filtres" : "Revenir à la première page"}
                   </Link>

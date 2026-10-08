@@ -268,6 +268,10 @@
 
 /* ---------- Une colonne ---------- */
 @media (max-width: 767.98px) {
+  .empty__actions { flex-direction: column; align-items: stretch; width: 100%; max-width: 320px; }
+  .empty__actions .btn { width: 100%; justify-content: center; }
+  .v02-void__actions { flex-direction: column; align-items: stretch; }
+  .v02-void__actions .btn { width: 100%; justify-content: center; }
   .v02-grid { grid-template-columns: minmax(0, 1fr); }
   .v02-title { font-size: var(--t-display-m); line-height: var(--lh-display); }
   .filterbar__count { margin-left: 0; width: 100%; }
@@ -583,9 +587,18 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .v09-prose dd { margin-bottom: 8px; }
 }
 
+/* Une colonne : ce bloc doit rester après le bloc 1023.98 ci-dessus (même spécificité, l'ordre décide) */
 /* ---------- Une colonne ---------- */
 @media (max-width: 767.98px) {
-  .v-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .v-figures { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+  .v-figures--3 .v-fig:last-child { grid-column: auto; }
+  .v-fig { min-height: 0; padding: var(--s-5); }
+  .v01-qual { min-height: 0; padding: var(--s-5); }
+  .v-cats { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+  .v-cat--big, .v-cat--lavande, .v-cat--wide { grid-column: auto; }
+  .v-cat { padding: var(--s-5); min-height: 0; }
+  .v05-guar { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+  .v05-g { padding: var(--s-5); }
   .v-fig__n { font-size: 48px; }
   .v-fig__t { font-size: var(--t-caption); }
   .v-fig__t b { font-size: var(--t-body-s); }
@@ -598,7 +611,7 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .v06-member .photo-ph { width: 84px; height: 84px; flex: none; border-radius: 18px; }
   .v06-member .photo-ph svg { width: 64px; height: 64px; }
   .v06-member__name { font-size: var(--t-body); }
-  .v07-themes { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 150px; overflow-x: auto; }
+  .v07-themes { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 150px; overflow-x: auto; padding: 4px; margin: -4px; scrollbar-width: none; }
   .v08-row2 { grid-template-columns: minmax(0, 1fr); }
 }
 
@@ -643,3 +656,11 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
    le compteur passe à la ligne au lieu de faire déborder la page. */
 .v02-mbar { flex-wrap: wrap; row-gap: 8px; }
 .v02-mbar .caption { white-space: nowrap; font-weight: var(--fw-bold); }
+
+
+/* =====================================================================
+   RD-FIX-06 : finitions mobile
+   ===================================================================== */
+/* Etat vide ou erreur : actions centrées (en mobile : colonne, voir « Une colonne ») */
+.empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-3); margin-top: 8px; }
+.empty .empty__actions .btn { margin-top: 0; }

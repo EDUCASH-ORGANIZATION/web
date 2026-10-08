@@ -496,7 +496,10 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 
 /* Filtres pilule */
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.chips--scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.chips--scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 5px; margin: -5px; }
+/* Le padding de 5 px garde l'anneau de focus entier ; ces contextes compensent la marge négative écrasée */
+.v02-types.chips--scroll { margin-top: calc(var(--s-5) - 5px); }
+.v-hero__chips.chips--scroll { margin-top: calc(var(--s-4) - 5px); }
 .chip { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: var(--r-pill); border: var(--b-champ); background: var(--c-blanc); font-size: var(--t-body-s); font-weight: var(--fw-bold); white-space: nowrap; cursor: pointer; flex: none; }
 .chip .ic { width: 16px; height: 16px; }
 .chip:hover, .chip.is-hover { border-color: var(--c-encre); }
