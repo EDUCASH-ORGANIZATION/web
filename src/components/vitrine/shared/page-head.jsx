@@ -6,8 +6,8 @@ const TONE_CLASS = {
 }
 
 const EYEBROW_CLASS = {
-  bleu: "eyebrow ds-text-bleu-100",
-  encre: "eyebrow ds-text-bleu-100",
+  bleu: "eyebrow ds-text-blanc",
+  encre: "eyebrow ds-text-blanc",
   citron: "eyebrow ds-text-encre",
 }
 

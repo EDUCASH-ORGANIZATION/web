@@ -239,7 +239,7 @@ export default async function MissionDetailPage({ params }) {
             <aside className="v03-apply ds-desk-only" aria-label="Postuler">
               <div className="v03-apply__top grid-bg">
                 <Icon name="sc-burst" className="scribble" />
-                <span className="body-s ds-opacity-90">Budget de la mission</span>
+                <span className="body-s">Budget de la mission</span>
                 <div className="amount amount--xl">{fmtInt(budget)}&#8239;<small>FCFA</small></div>
                 <div className="row">
                   <span className="badge badge--citron">{netLabel} {fmtInt(net)}&#8239;FCFA</span>
