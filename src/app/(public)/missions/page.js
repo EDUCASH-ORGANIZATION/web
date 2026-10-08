@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
 import { VitrineFooter } from "@/components/vitrine/vitrine-footer"
 import { Icon } from "@/components/design/icon"
+import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 import { MissionCard } from "@/components/vitrine/mission-card"
 import { MissionSearch, MissionFilterBar } from "@/components/vitrine/mission-explorer"
 import { MissionsPagination } from "@/components/vitrine/missions-pagination"
@@ -68,24 +69,72 @@ function PublishPromo() {
   )
 }
 
+// Titre du bandeau : « Trouve ta mission. » par défaut, sinon le type et/ou la ville filtrés.
+function HeroTitle({ type, ville }) {
+  if (!type && !ville) {
+    return <>Trouve<br /><span className="hl-citron">ta mission.</span></>
+  }
+  if (!ville) return <span className="hl-citron">{type}</span>
+  return <>{type || "Missions"}<br /><span className="hl-citron">à {ville}</span></>
+}
+
+// Phrase de l'état « aucun résultat » : reprend les filtres actifs (maquette V02).
+function noResultText({ q, type, ville, budgetLabel }) {
+  const parts = ["Aucune mission"]
+  if (type) parts.push(type === "Autre" ? "d'un autre type" : `de ${type.toLowerCase()}`)
+  if (q) parts.push(`pour « ${q} »`)
+  if (budgetLabel) parts.push(`au budget « ${budgetLabel} »`)
+  if (ville) parts.push(`à ${ville}`)
+  const wide = [ville && "la ville", budgetLabel && "le budget"].filter(Boolean).join(" ou ")
+  return `${parts.join(" ")} pour l'instant. ${wide ? `Élargis ${wide}.` : "Essaie d'élargir ta recherche."}`
+}
+
 // Replis du Suspense (useSearchParams) : même cadre que la version interactive, sans interaction.
 function MissionSearchFallback() {
   return (
-    <div className="search search--hero v02-search" aria-hidden="true">
-      <Icon name="i-search" className="ic" />
-      <input type="search" tabIndex={-1} readOnly placeholder="Cours de maths, livraison, saisie…" />
-      <span className="btn btn--primary btn--sm">Chercher</span>
+    <div aria-hidden="true">
+      <div className="search search--hero v02-search ds-desk-only">
+        <Icon name="i-search" className="ic" />
+        <input type="search" tabIndex={-1} readOnly placeholder="Cours de maths, livraison, saisie…" />
+        <span className="search__city">
+          <Icon name="i-map-pin" className="ic ic--16" />
+          <span>Toutes les villes</span>
+          <Icon name="i-chevron-down" className="ic ic--16" />
+        </span>
+        <span className="btn btn--primary btn--sm">Chercher</span>
+      </div>
+      <div className="search v02-search-m ds-mob-only">
+        <Icon name="i-search" className="ic" />
+        <input type="search" tabIndex={-1} readOnly placeholder="Cours, livraison, saisie…" />
+      </div>
+      <div className="v02-types chips chips--scroll on-bleu">
+        <span className="chip is-selected">Toutes</span>
+        {MISSION_TYPES.map((t) => (
+          <span key={t} className="chip">
+            <Icon name={TYPE_ICON[t] ?? "i-briefcase"} className="ic" />
+            {t}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
 
-function FilterBarFallback({ countLabel }) {
+function FilterBarFallback({ countLabel, countShort }) {
   return (
-    <div className="filterbar" aria-hidden="true">
-      <span className="skel skel--pill v02-skel-chip" />
-      <span className="skel skel--pill v02-skel-chip" />
-      <span className="skel skel--pill v02-skel-chip" />
-      <span className="filterbar__count">{countLabel}</span>
+    <div aria-hidden="true">
+      <div className="filterbar ds-desk-only">
+        <span className="skel skel--pill v02-skel-chip" />
+        <span className="skel skel--pill v02-skel-chip" />
+        <span className="skel skel--pill v02-skel-chip" />
+        <span className="filterbar__count">{countLabel}</span>
+      </div>
+      <div className="v02-mbar ds-mob-only">
+        <span className="btn btn--dark btn--sm"><Icon name="i-filter" className="ic" />Filtres</span>
+        <span className="skel skel--pill v02-skel-chip" />
+        <span className="ds-grow" />
+        <span className="caption">{countShort}</span>
+      </div>
     </div>
   )
 }
@@ -129,14 +178,18 @@ export default async function MissionsPage({ searchParams }) {
   const from = (page - 1) * MISSIONS_PAGE_SIZE
   query = query.range(from, from + MISSIONS_PAGE_SIZE - 1)
 
-  // Total des missions ouvertes sans filtre (chip du bandeau), requête de comptage seul.
-  const openQuery = supabase
-    .from("missions")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "open")
-    .or(notExpired)
+  // Total des missions ouvertes sans filtre (puce du bandeau). Sans filtre de contenu et en
+  // page 1, c'est déjà le total de la liste : pas de seconde requête.
+  const unfiltered = !(q || type || ville || budget || urgence) && page === 1
+  const openQuery = unfiltered
+    ? null
+    : supabase
+      .from("missions")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open")
+      .or(notExpired)
 
-  const [{ data: missions, count, error: queryError }, { count: openCount }] = await Promise.all([query, openQuery])
+  const [{ data: missions, count, error: queryError }, openResult] = await Promise.all([query, openQuery])
 
   // PGRST103 : page au-delà du dernier résultat, traitée comme une liste vide.
   const outOfRange = queryError?.code === "PGRST103"
@@ -144,12 +197,17 @@ export default async function MissionsPage({ searchParams }) {
   if (error) {
     console.error("[missions] list failed", { code: error.code, message: error.message })
   }
+  if (openResult?.error) {
+    console.error("[missions] open count failed", { code: openResult.error.code, message: openResult.error.message })
+  }
 
   const total = count ?? 0
   const hasFilter = Boolean(q || type || ville || budget || tri || urgence)
   const empty = !error && (!Array.isArray(missions) || missions.length === 0)
   const filters = { q, type, ville, budget, tri, urgence }
-  const openTotal = openCount ?? (hasFilter || page > 1 ? 0 : total)
+  // null : comptage indisponible, la puce est alors masquée.
+  const openTotal = unfiltered ? (error ? null : total) : (openResult?.error ? null : (openResult?.count ?? null))
+  const budgetLabel = BUDGET_RANGES.find((r) => r.id === budget)?.label
   const plural = (n) => (n > 1 ? "s" : "")
   const countLabel = error
     ? "Erreur de chargement"
@@ -171,11 +229,13 @@ export default async function MissionsPage({ searchParams }) {
           <Icon name="sc-loop" className="scribble v02-scribble ds-desk-only" />
           <div className="v02-head__row">
             <div>
-              <span className="v-hero__chip">
-                <b>{openTotal}</b>mission{plural(openTotal)} ouverte{plural(openTotal)}
-              </span>
+              {openTotal !== null && (
+                <span className="v-hero__chip">
+                  <b>{openTotal}</b>mission{plural(openTotal)} ouverte{plural(openTotal)}
+                </span>
+              )}
               <h1 className="display display--xl v02-title">
-                Trouve<br /><span className="hl-citron">ta mission.</span>
+                <HeroTitle type={type} ville={ville} />
               </h1>
             </div>
             <p className="body-l v02-lead ds-desk-only">
@@ -188,7 +248,7 @@ export default async function MissionsPage({ searchParams }) {
         </div>
 
         <div className="v02-body stack stack--6">
-          <Suspense fallback={<FilterBarFallback countLabel={countLabel} />}>
+          <Suspense fallback={<FilterBarFallback countLabel={countLabel} countShort={countShort} />}>
             <MissionFilterBar {...filters} total={total} countLabel={countLabel} countShort={countShort} />
           </Suspense>
 
@@ -203,31 +263,49 @@ export default async function MissionsPage({ searchParams }) {
             </div>
           )}
 
-          {!error && empty && (
+          {!error && empty && unfiltered && (
+            <div className="card v02-void">
+              <div>
+                <span className="eyebrow eyebrow--bleu">0 mission ouverte</span>
+                <h2 className="display display--l v02-void__title">
+                  C&rsquo;est calme.<br /><span className="hl-bleu">Pas pour longtemps.</span>
+                </h2>
+                <p className="muted body-l v02-void__text">
+                  Aucune mission n&rsquo;est ouverte en ce moment. Crée ton compte pour être prévenu dès qu&rsquo;une mission est publiée près de chez toi.
+                </p>
+                <div className="row v02-void__actions">
+                  <Link className="btn btn--primary btn--lg" href="/auth/register?role=student">Créer mon compte</Link>
+                  <Link className="btn btn--ghost" href="/auth/register?role=client">Vous avez une mission ? Publiez-la</Link>
+                </div>
+              </div>
+              <div className="empty__art v02-void__art">
+                <span className="ic-sq"><Icon name="i-briefcase" className="ic" /></span>
+                <Icon name="sc-burst" className="scribble scribble--bleu" />
+              </div>
+            </div>
+          )}
+
+          {!error && empty && !unfiltered && (
             <div className="card card--soft">
               <div className="empty">
                 <div className="empty__art">
-                  <span className="ic-sq"><Icon name={hasFilter || page > 1 ? "i-search" : "i-briefcase"} className="ic" /></span>
+                  <span className="ic-sq"><Icon name="i-search" className="ic" /></span>
                   <Icon name="sc-burst" className="scribble scribble--bleu v02-empty-scribble" />
                 </div>
-                {hasFilter || page > 1 ? (
-                  <>
-                    <div className="empty__title">Aucune mission ne correspond</div>
-                    <div className="empty__text">Essaie d&rsquo;élargir ta recherche ou d&rsquo;effacer les filtres.</div>
-                    <Link className="btn btn--primary" href="/missions">
-                      {hasFilter ? "Effacer les filtres" : "Revenir à la première page"}
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <div className="empty__title">Sois prêt·e pour les premières missions</div>
-                    <div className="empty__text">Crée ton profil étudiant pour être prévenu dès qu&rsquo;une mission ouvre près de toi.</div>
-                    <div className="row">
-                      <Link className="btn btn--primary" href="/auth/register?role=student">Créer mon compte étudiant</Link>
-                      <Link className="btn btn--secondary" href="/auth/register?role=client">Publier une mission</Link>
-                    </div>
-                  </>
-                )}
+                <div className="empty__title">Aucune mission ne correspond</div>
+                <div className="empty__text">
+                  {q || type || ville || budget || urgence
+                    ? noResultText({ q, type, ville, budgetLabel })
+                    : "Cette page est vide. Reviens à la première page."}
+                </div>
+                <div className="row">
+                  <Link className="btn btn--primary" href="/missions">
+                    {hasFilter ? "Effacer les filtres" : "Revenir à la première page"}
+                  </Link>
+                  {ville && (
+                    <Link className="btn btn--secondary" href={retryHref({ ...filters, ville: "" }, 1)}>Toutes les villes</Link>
+                  )}
+                </div>
               </div>
             </div>
           )}

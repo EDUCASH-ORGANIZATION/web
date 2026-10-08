@@ -1,8 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useState, useTransition } from "react"
+import { useCallback, useRef, useState, useTransition } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Icon } from "@/components/design/icon"
+import { useModalFocus } from "@/hooks/use-modal-focus"
 import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 import {
   MISSION_TYPES, CITIES, BUDGET_RANGES, SORTS, URGENCY_FILTERS, SEARCH_MAX_LENGTH,
@@ -35,21 +36,22 @@ const cx = (...parts) => parts.filter(Boolean).join(" ")
 // Barre de recherche et chips de type posées sur le bandeau bleu (maquette V02).
 export function MissionSearch({ q = "", type = "", ville = "" }) {
   const { navigate } = useMissionFilters()
+  const [city, setCity] = useState(ville)
+  const [syncedVille, setSyncedVille] = useState(ville)
+  if (ville !== syncedVille) {
+    setSyncedVille(ville)
+    setCity(ville)
+  }
+
+  const onSubmit = (e) => {
+    e.preventDefault()
+    const data = new FormData(e.currentTarget)
+    navigate({ q: data.get("q").toString().trim(), ville: city })
+  }
 
   return (
     <>
-      <form
-        role="search"
-        className="search search--hero v02-search"
-        onSubmit={(e) => {
-          e.preventDefault()
-          const data = new FormData(e.currentTarget)
-          navigate({
-            q: data.get("q").toString().trim(),
-            ville: (data.get("ville") ?? ville).toString(),
-          })
-        }}
-      >
+      <form role="search" className="search search--hero v02-search ds-desk-only" onSubmit={onSubmit}>
         <Icon name="i-search" className="ic" />
         <label className="sr-only" htmlFor="mission-q">Rechercher une mission</label>
         <input
@@ -61,16 +63,30 @@ export function MissionSearch({ q = "", type = "", ville = "" }) {
           placeholder="Cours de maths, livraison, saisie…"
           defaultValue={q}
         />
-        <label className="search__city ds-chip-select ds-desk-only">
+        <label className="search__city ds-chip-select">
           <Icon name="i-map-pin" className="ic ic--16" />
-          <span>{ville || "Toutes les villes"}</span>
+          <span>{city || "Toutes les villes"}</span>
           <Icon name="i-chevron-down" className="ic ic--16" />
-          <select key={ville} name="ville" aria-label="Ville" defaultValue={ville}>
+          <select name="ville" aria-label="Ville" value={city} onChange={(e) => setCity(e.target.value)}>
             <option value="">Toutes les villes</option>
             {CITIES.map((v) => <option key={v} value={v}>{v}</option>)}
           </select>
         </label>
         <button type="submit" className="btn btn--primary btn--sm">Chercher</button>
+      </form>
+
+      <form role="search" className="search v02-search-m ds-mob-only" onSubmit={onSubmit}>
+        <Icon name="i-search" className="ic" />
+        <label className="sr-only" htmlFor="mission-q-m">Rechercher une mission</label>
+        <input
+          key={q}
+          id="mission-q-m"
+          name="q"
+          type="search"
+          maxLength={SEARCH_MAX_LENGTH}
+          placeholder="Cours, livraison, saisie…"
+          defaultValue={q}
+        />
       </form>
 
       <div className="v02-types chips chips--scroll on-bleu">
@@ -138,17 +154,21 @@ export function MissionFilterBar({
   const { navigate, isPending } = useMissionFilters()
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  useEffect(() => {
-    if (!sheetOpen) return undefined
-    const onKey = (e) => { if (e.key === "Escape") setSheetOpen(false) }
-    document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
-  }, [sheetOpen])
+  const filtersButtonRef = useRef(null)
+  const sheetRef = useRef(null)
+  const closeSheet = useCallback(() => setSheetOpen(false), [])
+  useModalFocus({
+    active: sheetOpen,
+    containerRef: sheetRef,
+    returnFocusRef: filtersButtonRef,
+    onClose: closeSheet,
+  })
 
   const budgetRange = BUDGET_RANGES.find((b) => b.id === budget)
   const urgency = URGENCY_FILTERS.find((u) => u.id === urgence)
   const sort = SORTS.find((s) => s.id === tri) ?? SORTS[0]
   const hasFilter = Boolean(q || type || ville || budget || tri || urgence)
+  const sheetFilterCount = [ville, budget, urgence].filter(Boolean).length
 
   const pills = [
     q && { key: "q", label: `« ${q} »` },
@@ -206,8 +226,16 @@ export function MissionFilterBar({
       </div>
 
       <div className="v02-mbar ds-mob-only">
-        <button type="button" className="btn btn--dark btn--sm" aria-haspopup="dialog" onClick={() => setSheetOpen(true)}>
+        <button
+          ref={filtersButtonRef}
+          type="button"
+          className="btn btn--dark btn--sm"
+          aria-haspopup="dialog"
+          aria-expanded={sheetOpen}
+          onClick={() => setSheetOpen(true)}
+        >
           <Icon name="i-filter" className="ic" />Filtres
+          {sheetFilterCount > 0 && <span className="count count--citron">{sheetFilterCount}</span>}
         </button>
         {sortSelect(true)}
         <span className="ds-grow" />
@@ -237,15 +265,15 @@ export function MissionFilterBar({
       {isPending && <span className="filterbar__count muted" role="status">Chargement…</span>}
 
       {sheetOpen && (
-        <div className="scrim scrim--bottom ds-scrim-fixed" onClick={(e) => { if (e.target === e.currentTarget) setSheetOpen(false) }}>
-          <div className="sheet" role="dialog" aria-modal="true" aria-label="Filtres">
+        <div className="scrim scrim--bottom ds-scrim-fixed" onClick={(e) => { if (e.target === e.currentTarget) closeSheet() }}>
+          <div ref={sheetRef} className="sheet" role="dialog" aria-modal="true" aria-label="Filtres">
             <div className="sheet__grip" />
             <div className="modal__head">
               <div>
                 <div className="modal__title">Filtres</div>
                 <div className="modal__sub">{countLabel}</div>
               </div>
-              <button type="button" className="btn-icon btn-icon--sm" aria-label="Fermer" onClick={() => setSheetOpen(false)}>
+              <button type="button" className="btn-icon btn-icon--sm" aria-label="Fermer" onClick={closeSheet}>
                 <Icon name="i-x" className="ic" />
               </button>
             </div>
@@ -279,7 +307,7 @@ export function MissionFilterBar({
               {hasFilter && (
                 <button type="button" className="btn btn--ghost" onClick={() => navigate(CLEARED)}>Effacer les filtres</button>
               )}
-              <button type="button" className="btn btn--primary" onClick={() => setSheetOpen(false)}>
+              <button type="button" className="btn btn--primary" onClick={closeSheet}>
                 {total > 0 ? `Voir les ${total} mission${total > 1 ? "s" : ""}` : "Fermer"}
               </button>
             </div>
