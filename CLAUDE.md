@@ -23,6 +23,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Polices via `next/font` dans `layout.js` : variables `--font-anton`, `--font-figtree`, `--font-inter`, branchées sur `--f-display` (Anton) et `--f-text` (Figtree). Inter reste pour les espaces connectés pas encore refondus. Pas d'`@import` Google Fonts.
 - Icônes : sprite externe `public/sprite.svg`, référencé avec `?v=` (`SPRITE_VERSION`). Incrémenter la version si le sprite change.
 - Logo final et icônes PWA dans `public/`. Le `manifest.json` utilise `#2F3BED`.
+- Texte secondaire : `--c-ardoise` sur clair, `--c-brume` sur encre, blanc sur bleu ; taille `--t-para` (16 px, 15 px sous 768) ; jamais d'opacité sur du texte ; `--t-micro` (13 px) est le minimum absolu. Écart assumé avec maquettes/_system (RD-FIX-03).
 - Ne JAMAIS utiliser une classe Tailwind dont le nom existe dans le système de design (exemple : `grow` au lieu de `ds-grow`, erreur déjà commise). Tailwind ne génère que les classes présentes dans le code : une classe absente du code n'existe pas au build.
 
 ## Cohabitation pendant la transition

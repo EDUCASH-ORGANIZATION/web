@@ -328,7 +328,6 @@
 .ds-text-brume { color: var(--c-brume); }
 .ds-text-encre { color: var(--c-encre); }
 .ds-text-blanc { color: var(--c-blanc); }
-.ds-text-bleu-100 { color: var(--c-bleu-100); }
 .ds-text-citron { color: var(--c-citron); } /* uniquement sur fond sombre ou bleu */
 .ds-text-center { text-align: center; }
 .ds-text-right { text-align: right; }

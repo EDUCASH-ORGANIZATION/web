@@ -24,7 +24,7 @@
   /* Contrastes RD-FIX-03 (avant -> apres) :
        ardoise #5B5F73 -> #3A3E52 : blanc 6,31 -> 10,55 | givre 5,79 -> 9,69 | ligne 5,02 -> 8,39
        brume   #A6A9BD -> #C0C3D3 : encre 8,20 -> 10,88 | encre-800 7,18 -> 9,54 | encre-700 5,83 -> 7,74
-     brume ne s'utilise jamais sur le bleu (4,04:1) : utiliser bleu-100 (5,89:1 sur bleu, 7,31:1 sur bleu-700). */
+     brume ne s'utilise jamais sur le bleu (4,04:1) : utiliser bleu-100 (5,03:1 sur bleu, 6,23:1 sur bleu-700). Blanc sur bleu : 7,07:1. */
   --c-ardoise: #3A3E52;       /* texte secondaire sur clair (10,55:1 blanc, 9,69:1 givre) */
   --c-brume: #C0C3D3;         /* texte secondaire sur encre (10,88:1) */
   --c-acier: #8A8EA3;         /* bordure de champ (3,24:1) */
@@ -77,7 +77,7 @@
   --t-para: 16px;  --lh-para: 1.58;   /* paragraphe secondaire : 16 bureau, 15 mobile */
   --t-body-s: 14px;
   --t-caption: 14px;           /* légendes et méta : 14 minimum */
-  --t-micro: 13px;             /* minimum absolu, réservé aux libellés en capitales */
+  --t-micro: 13px;             /* minimum absolu, libellés et méta */
 
   /* Montants : Figtree, chiffres tabulaires, jamais Anton */
   --t-amount-xl: 44px;
