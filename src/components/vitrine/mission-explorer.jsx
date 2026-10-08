@@ -7,7 +7,7 @@ import {
   MISSION_TYPES, CITIES, BUDGET_RANGES, SORTS, SEARCH_MAX_LENGTH,
 } from "@/lib/constants/missions"
 
-export function MissionExplorer({ q = "", type = "", ville = "", budget = "", tri = "" }) {
+function useMissionFilters() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -23,6 +23,12 @@ export function MissionExplorer({ q = "", type = "", ville = "", budget = "", tr
     const qs = sp.toString()
     startTransition(() => router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false }))
   }, [router, pathname, searchParams])
+
+  return { navigate, isPending }
+}
+
+export function MissionSearch({ q = "", type = "" }) {
+  const { navigate } = useMissionFilters()
 
   const setType = (t) => navigate({ type: type === t ? "" : t })
 
@@ -63,13 +69,19 @@ export function MissionExplorer({ q = "", type = "", ville = "", budget = "", tr
           </button>
         ))}
       </div>
+    </>
+  )
+}
 
+export function MissionFilterBar({ q = "", type = "", ville = "", budget = "", tri = "", children }) {
+  const { navigate, isPending } = useMissionFilters()
+
+  return (
+    <>
       <div className="filterbar">
         <select aria-label="Ville" value={ville} onChange={(e) => navigate({ ville: e.target.value })} className="chip chip--dropdown">
-          {<>
-            <option value="">Toutes les villes</option>
-            {CITIES.map((v) => <option key={v} value={v}>{v}</option>)}
-          </>}
+          <option value="">Toutes les villes</option>
+          {CITIES.map((v) => <option key={v} value={v}>{v}</option>)}
         </select>
         <select aria-label="Budget" value={budget} onChange={(e) => navigate({ budget: e.target.value })} className="chip chip--dropdown">
           <option value="">Tous budgets</option>
@@ -83,6 +95,7 @@ export function MissionExplorer({ q = "", type = "", ville = "", budget = "", tr
             <Icon name="i-x" className="ic" /> Effacer les filtres
           </button>
         )}
+        {children}
       </div>
 
       {isPending && <span className="filterbar__count muted" role="status">Chargement…</span>}

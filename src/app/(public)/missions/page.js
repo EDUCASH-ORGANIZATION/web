@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
 import { VitrineFooter } from "@/components/vitrine/vitrine-footer"
 import { MissionCard } from "@/components/vitrine/mission-card"
-import { MissionExplorer } from "@/components/vitrine/mission-explorer"
+import { MissionSearch, MissionFilterBar } from "@/components/vitrine/mission-explorer"
 import { MissionsPagination } from "@/components/vitrine/missions-pagination"
 import {
   MISSION_TYPES,
@@ -100,14 +100,18 @@ export default async function MissionsPage({ searchParams }) {
             <p className="body-l">De vraies opportunités locales, payées via le séquestre EduCash.</p>
           </div>
           <Suspense fallback={null}>
-            <MissionExplorer {...filters} />
+            <MissionSearch q={filters.q} type={filters.type} />
           </Suspense>
         </div>
 
         <div className="v02-body stack stack--6">
-          <div className="filterbar__count" aria-live="polite">
-            {error ? "Erreur de chargement" : `${total} mission(s) ouverte(s)`}
-          </div>
+          <Suspense fallback={null}>
+            <MissionFilterBar {...filters}>
+              <span className="filterbar__count" aria-live="polite">
+                {error ? "Erreur de chargement" : `${total} mission(s) ouverte(s)`}
+              </span>
+            </MissionFilterBar>
+          </Suspense>
 
           {error && (
             <div className="card card--soft stack stack--3">
