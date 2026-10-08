@@ -13,7 +13,10 @@ vi.mock("next/navigation", () => ({
 const { MissionFilterBar } = await import("./mission-explorer")
 
 // Barre mobile seule (bloc .v02-mbar), pour ne pas confondre avec la barre bureau.
-const mobileBar = (html) => html.slice(html.indexOf("v02-mbar"), html.indexOf("</div>", html.indexOf("v02-mbar")))
+const mobileBar = (html) => {
+  const start = html.indexOf("v02-mbar")
+  return html.slice(start, html.indexOf("</div>", html.indexOf('class="caption"', start)))
+}
 
 describe("MissionFilterBar, barre mobile (non-régression débordement à 360-390 px)", () => {
   it("affiche le tri et le compteur compacts de la maquette V02", () => {

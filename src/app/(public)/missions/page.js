@@ -1,8 +1,7 @@
 import { Suspense } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
-import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
-import { VitrineFooter } from "@/components/vitrine/vitrine-footer"
+import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 import { Icon } from "@/components/design/icon"
 import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 import { MissionCard } from "@/components/vitrine/mission-card"
@@ -232,108 +231,102 @@ export default async function MissionsPage({ searchParams }) {
   cards.splice(Math.min(4, cards.length), 0, <PublishPromo key="publish-promo" />)
 
   return (
-    <div className="ds">
-      <VitrineNavbar />
-
-      <main>
-        <div className="v02-head grid-bg">
-          <Icon name="sc-loop" className="scribble v02-scribble ds-desk-only" />
-          <div className="v02-head__row">
-            <div>
-              {openTotal !== null && (
-                <span className="v-hero__chip">
-                  <b>{openTotal}</b>mission{plural(openTotal)} ouverte{plural(openTotal)}
-                </span>
-              )}
-              <h1 className="display display--xl v02-title">
-                <HeroTitle type={type} ville={ville} />
-              </h1>
-            </div>
-            <p className="body-l v02-lead ds-desk-only">
-              Seules les missions ouvertes et dans les temps s&rsquo;affichent. Le montant net est indiqué sur chaque carte.
-            </p>
+    <VitrinePage>
+      <div className="v02-head grid-bg">
+        <Icon name="sc-loop" className="scribble v02-scribble ds-desk-only" />
+        <div className="v02-head__row">
+          <div>
+            {openTotal !== null && (
+              <span className="v-hero__chip">
+                <b>{openTotal}</b>mission{plural(openTotal)} ouverte{plural(openTotal)}
+              </span>
+            )}
+            <h1 className="display display--xl v02-title">
+              <HeroTitle type={type} ville={ville} />
+            </h1>
           </div>
-          <Suspense fallback={<MissionSearchFallback />}>
-            <MissionSearch q={filters.q} type={filters.type} ville={filters.ville} />
-          </Suspense>
+          <p className="body-l v02-lead ds-desk-only">
+            Seules les missions ouvertes et dans les temps s&rsquo;affichent. Le montant net est indiqué sur chaque carte.
+          </p>
         </div>
+        <Suspense fallback={<MissionSearchFallback />}>
+          <MissionSearch q={filters.q} type={filters.type} ville={filters.ville} />
+        </Suspense>
+      </div>
 
-        <div className="v02-body stack stack--6">
-          <Suspense fallback={<FilterBarFallback countLabel={countLabel} countShort={countShort} />}>
-            <MissionFilterBar {...filters} total={total} countLabel={countLabel} countShort={countShort} />
-          </Suspense>
+      <div className="v02-body stack stack--6">
+        <Suspense fallback={<FilterBarFallback countLabel={countLabel} countShort={countShort} />}>
+          <MissionFilterBar {...filters} total={total} countLabel={countLabel} countShort={countShort} />
+        </Suspense>
 
-          {error && (
-            <div className="card card--soft">
-              <div className="empty empty--erreur">
-                <div className="empty__art"><span className="ic-sq"><Icon name="i-alert-triangle" className="ic" /></span></div>
-                <div className="empty__title">Impossible de charger les missions</div>
-                <div className="empty__text">Ce n&rsquo;est pas qu&rsquo;il n&rsquo;y a rien : le serveur n&rsquo;a pas répondu. Tes filtres sont conservés.</div>
-                <Link className="btn btn--primary" href={retryHref(filters, page)}><Icon name="i-refresh" className="ic" />Réessayer</Link>
+        {error && (
+          <div className="card card--soft">
+            <div className="empty empty--erreur">
+              <div className="empty__art"><span className="ic-sq"><Icon name="i-alert-triangle" className="ic" /></span></div>
+              <div className="empty__title">Impossible de charger les missions</div>
+              <div className="empty__text">Ce n&rsquo;est pas qu&rsquo;il n&rsquo;y a rien : le serveur n&rsquo;a pas répondu. Tes filtres sont conservés.</div>
+              <Link className="btn btn--primary" href={retryHref(filters, page)}><Icon name="i-refresh" className="ic" />Réessayer</Link>
+            </div>
+          </div>
+        )}
+
+        {!error && empty && unfiltered && (
+          <div className="card v02-void">
+            <div>
+              <span className="eyebrow eyebrow--bleu">0 mission ouverte</span>
+              <h2 className="display display--l v02-void__title">
+                C&rsquo;est calme.<br /><span className="hl-bleu">Pas pour longtemps.</span>
+              </h2>
+              <p className="muted body-l v02-void__text">
+                Aucune mission n&rsquo;est ouverte en ce moment. Crée ton compte pour être prévenu dès qu&rsquo;une mission est publiée près de chez toi.
+              </p>
+              <div className="row v02-void__actions">
+                <Link className="btn btn--primary btn--lg" href="/auth/register?role=student">Créer mon compte</Link>
+                <Link className="btn btn--ghost" href="/auth/register?role=client">Vous avez une mission ? Publiez-la</Link>
               </div>
             </div>
-          )}
-
-          {!error && empty && unfiltered && (
-            <div className="card v02-void">
-              <div>
-                <span className="eyebrow eyebrow--bleu">0 mission ouverte</span>
-                <h2 className="display display--l v02-void__title">
-                  C&rsquo;est calme.<br /><span className="hl-bleu">Pas pour longtemps.</span>
-                </h2>
-                <p className="muted body-l v02-void__text">
-                  Aucune mission n&rsquo;est ouverte en ce moment. Crée ton compte pour être prévenu dès qu&rsquo;une mission est publiée près de chez toi.
-                </p>
-                <div className="row v02-void__actions">
-                  <Link className="btn btn--primary btn--lg" href="/auth/register?role=student">Créer mon compte</Link>
-                  <Link className="btn btn--ghost" href="/auth/register?role=client">Vous avez une mission ? Publiez-la</Link>
-                </div>
-              </div>
-              <div className="empty__art v02-void__art">
-                <span className="ic-sq"><Icon name="i-briefcase" className="ic" /></span>
-                <Icon name="sc-burst" className="scribble scribble--bleu" />
-              </div>
+            <div className="empty__art v02-void__art">
+              <span className="ic-sq"><Icon name="i-briefcase" className="ic" /></span>
+              <Icon name="sc-burst" className="scribble scribble--bleu" />
             </div>
-          )}
+          </div>
+        )}
 
-          {!error && empty && !unfiltered && (
-            <div className="card card--soft">
-              <div className="empty">
-                <div className="empty__art">
-                  <span className="ic-sq"><Icon name="i-search" className="ic" /></span>
-                  <Icon name="sc-burst" className="scribble scribble--bleu v02-empty-scribble" />
-                </div>
-                <div className="empty__title">Aucune mission ne correspond</div>
-                <div className="empty__text">
-                  {q || type || ville || budget || urgence
-                    ? noResultText({ q, type, ville, budgetLabel })
-                    : "Cette page est vide. Reviens à la première page."}
-                </div>
-                <div className="empty__actions">
-                  <Link className="btn btn--primary" href="/missions">
-                    {hasFilter ? "Effacer les filtres" : "Revenir à la première page"}
-                  </Link>
-                  {ville && (
-                    <Link className="btn btn--secondary" href={retryHref({ ...filters, ville: "" }, 1)}>Toutes les villes</Link>
-                  )}
-                </div>
+        {!error && empty && !unfiltered && (
+          <div className="card card--soft">
+            <div className="empty">
+              <div className="empty__art">
+                <span className="ic-sq"><Icon name="i-search" className="ic" /></span>
+                <Icon name="sc-burst" className="scribble scribble--bleu v02-empty-scribble" />
+              </div>
+              <div className="empty__title">Aucune mission ne correspond</div>
+              <div className="empty__text">
+                {q || type || ville || budget || urgence
+                  ? noResultText({ q, type, ville, budgetLabel })
+                  : "Cette page est vide. Reviens à la première page."}
+              </div>
+              <div className="empty__actions">
+                <Link className="btn btn--primary" href="/missions">
+                  {hasFilter ? "Effacer les filtres" : "Revenir à la première page"}
+                </Link>
+                {ville && (
+                  <Link className="btn btn--secondary" href={retryHref({ ...filters, ville: "" }, 1)}>Toutes les villes</Link>
+                )}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {!error && !empty && (
-            <div className="v02-grid">
-              {cards}
-            </div>
-          )}
+        {!error && !empty && (
+          <div className="v02-grid">
+            {cards}
+          </div>
+        )}
 
-          {!error && !empty && (
-            <MissionsPagination page={page} pageSize={MISSIONS_PAGE_SIZE} total={total} params={filters} />
-          )}
-        </div>
-      </main>
-
-      <VitrineFooter />
-    </div>
+        {!error && !empty && (
+          <MissionsPagination page={page} pageSize={MISSIONS_PAGE_SIZE} total={total} params={filters} />
+        )}
+      </div>
+    </VitrinePage>
   )
 }

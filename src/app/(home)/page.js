@@ -4,6 +4,7 @@ import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 import { Faq } from "@/components/vitrine/shared/faq"
 import { CtaDouble, exampleRecap } from "@/components/vitrine/shared/cta-double"
 import { Icon } from "@/components/design/icon"
+import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
 import { HomeHero } from "@/components/vitrine/home/home-hero"
 import { HomeProofs } from "@/components/vitrine/home/home-proofs"
 import { HomePreview } from "@/components/vitrine/home/home-preview"
@@ -168,7 +169,7 @@ export default async function HomePage() {
   const cta = ctaProps(role)
 
   return (
-    <VitrinePage navbar={null} before={<HomeHero live={live} openMissions={figures.openMissions} role={role} />}>
+    <VitrinePage navbar={<VitrineNavbar tone="bleu" />} before={<HomeHero live={live} openMissions={figures.openMissions} role={role} />}>
       <HomeProofs rating={figures.rating} />
       <HomePreview missions={missions} openCount={openCount} error={previewError} />
       <HomeSteps />

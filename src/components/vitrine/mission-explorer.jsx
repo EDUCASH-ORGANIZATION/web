@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState, useTransition } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Icon } from "@/components/design/icon"
+import { Select } from "@/components/design/select"
 import { useModalFocus } from "@/hooks/use-modal-focus"
 import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 import {
@@ -30,6 +31,13 @@ function useMissionFilters() {
 
   return { navigate, isPending }
 }
+
+const withAll = (all, items) => [{ value: "", label: all }, ...items]
+const CITY_OPTIONS = withAll("Toutes les villes", CITIES.map((v) => ({ value: v, label: v })))
+const BUDGET_OPTIONS = withAll("Tous budgets", BUDGET_RANGES.map((b) => ({ value: b.id, label: b.label })))
+const URGENCY_OPTIONS = withAll("Toutes urgences", URGENCY_FILTERS.map((u) => ({ value: u.id, label: u.label })))
+const SORT_OPTIONS = SORTS.map((t) => ({ value: t.id, label: t.label }))
+const SORT_OPTIONS_SHORT = SORTS.map((t) => ({ value: t.id, label: t.label, triggerLabel: t.short }))
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
 
@@ -63,15 +71,18 @@ export function MissionSearch({ q = "", type = "", ville = "" }) {
           placeholder="Cours de maths, livraison, saisie…"
           defaultValue={q}
         />
-        <label className="search__city ds-chip-select">
+        <span className="search__city">
           <Icon name="i-map-pin" className="ic ic--16" />
-          <span>{city || "Toutes les villes"}</span>
-          <Icon name="i-chevron-down" className="ic ic--16" />
-          <select name="ville" aria-label="Ville" value={city} onChange={(e) => setCity(e.target.value)}>
-            <option value="">Toutes les villes</option>
-            {CITIES.map((v) => <option key={v} value={v}>{v}</option>)}
-          </select>
-        </label>
+          <Select
+            name="ville"
+            variant="bare"
+            aria-label="Ville"
+            placeholder="Toutes les villes"
+            options={CITY_OPTIONS}
+            value={city}
+            onChange={setCity}
+          />
+        </span>
         <button type="submit" className="btn btn--primary btn--sm">Chercher</button>
       </form>
 
@@ -115,14 +126,21 @@ export function MissionSearch({ q = "", type = "", ville = "" }) {
   )
 }
 
-// Chip déroulant : le libellé affiche la valeur choisie, le select natif le recouvre.
-function ChipSelect({ icon, label, ariaLabel, value, selected, onChange, small = false, children }) {
+// Chip déroulant : le libellé affiche la valeur choisie, ou `placeholder` sans valeur.
+function ChipSelect({ icon, title, ariaLabel, placeholder, value, options, onChange, small = false }) {
   return (
-    <label className={cx("chip chip--dropdown ds-chip-select", small && "chip--sm", selected && "is-selected")}>
-      <Icon name={icon} className="ic" />
-      <span>{label}</span>
-      <select aria-label={ariaLabel} value={value} onChange={onChange}>{children}</select>
-    </label>
+    <Select
+      variant="chip"
+      size={small ? "sm" : undefined}
+      icon={icon}
+      title={title}
+      aria-label={ariaLabel}
+      placeholder={placeholder}
+      options={options}
+      value={value}
+      selected={Boolean(value)}
+      onChange={onChange}
+    />
   )
 }
 
@@ -181,17 +199,17 @@ export function MissionFilterBar({
   ].filter(Boolean)
 
   const sortSelect = (small) => (
-    <ChipSelect
+    <Select
+      variant="chip"
+      size={small ? "sm" : undefined}
       icon="i-sort"
-      label={small ? sort.short : sort.label}
-      ariaLabel="Tri"
+      title="Trier par"
+      aria-label="Tri"
+      placeholder={small ? sort.short : sort.label}
+      options={small ? SORT_OPTIONS_SHORT : SORT_OPTIONS}
       value={tri}
-      selected={false}
-      small={small}
-      onChange={(e) => navigate({ tri: e.target.value })}
-    >
-      {SORTS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
-    </ChipSelect>
+      onChange={(v) => navigate({ tri: v })}
+    />
   )
 
   const count = (
@@ -202,26 +220,17 @@ export function MissionFilterBar({
     <>
       <div className="filterbar ds-desk-only">
         <ChipSelect
-          icon="i-map-pin" label={ville || "Ville"} ariaLabel="Ville" value={ville} selected={Boolean(ville)}
-          onChange={(e) => navigate({ ville: e.target.value })}
-        >
-          <option value="">Toutes les villes</option>
-          {CITIES.map((v) => <option key={v} value={v}>{v}</option>)}
-        </ChipSelect>
+          icon="i-map-pin" title="Ville" ariaLabel="Ville" placeholder="Ville"
+          options={CITY_OPTIONS} value={ville} onChange={(v) => navigate({ ville: v })}
+        />
         <ChipSelect
-          icon="i-banknote" label={budgetRange?.label ?? "Budget"} ariaLabel="Budget" value={budget} selected={Boolean(budget)}
-          onChange={(e) => navigate({ budget: e.target.value })}
-        >
-          <option value="">Tous budgets</option>
-          {BUDGET_RANGES.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-        </ChipSelect>
+          icon="i-banknote" title="Budget" ariaLabel="Budget" placeholder="Budget"
+          options={BUDGET_OPTIONS} value={budget} onChange={(v) => navigate({ budget: v })}
+        />
         <ChipSelect
-          icon="i-zap" label={urgency?.label ?? "Urgence"} ariaLabel="Urgence" value={urgence} selected={Boolean(urgence)}
-          onChange={(e) => navigate({ urgence: e.target.value })}
-        >
-          <option value="">Toutes urgences</option>
-          {URGENCY_FILTERS.map((u) => <option key={u.id} value={u.id}>{u.label}</option>)}
-        </ChipSelect>
+          icon="i-zap" title="Urgence" ariaLabel="Urgence" placeholder="Urgence"
+          options={URGENCY_OPTIONS} value={urgence} onChange={(v) => navigate({ urgence: v })}
+        />
         {sortSelect(false)}
         {count}
       </div>

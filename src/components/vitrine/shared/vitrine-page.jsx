@@ -7,7 +7,7 @@ import { VitrineFooter } from "../vitrine-footer"
 export function VitrinePage({ children, mainId = "contenu", navbar = <VitrineNavbar />, before = null }) {
   return (
     <div className="ds">
-      <a className="sr-only focus:not-sr-only btn btn--secondary" href={`#${mainId}`}>
+      <a className="ds-skip-link btn btn--secondary" href={`#${mainId}`}>
         Aller au contenu
       </a>
       {navbar}

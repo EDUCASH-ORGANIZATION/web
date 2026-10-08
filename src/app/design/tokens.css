@@ -137,13 +137,20 @@
   --bp-bureau: 1440px;   /* cadre navigateur */
 
   /* ---------- Couches ---------- */
-  --z-sticky: 10; --z-nav: 20; --z-drawer: 40; --z-modal: 50; --z-toast: 60;
+  --z-sticky: 10; --z-nav: 20; --z-menu: 30; --z-drawer: 40; --z-modal: 50; --z-toast: 60;
+  /* Échelle : contenu < sticky < en-tête (nav) < listes déroulantes (menu) < menu plein écran (drawer) < feuilles et modales < toasts */
+
+  /* ---------- En-tête fixe de la vitrine ---------- */
+  --h-header: 88px; --h-header-compact: 64px;
+  --sticky-top: calc(var(--h-header-compact) + var(--s-4)); /* éléments collants sous l'en-tête fixe */
 }
 
 /* ---------- Echelle display responsive ----------
    Les var() sont interdites dans la condition d'une @media : seuils en dur. */
 @media (max-width: 1023.98px) {
   :root {
+    --h-header: 64px;
+    --h-header-compact: 56px;
     --t-display-xxl: 88px;
     --t-display-xl: 72px;
     --t-display-l: 52px;

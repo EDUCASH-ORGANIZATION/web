@@ -1,14 +1,24 @@
 import Link from "next/link"
+import { preload } from "react-dom"
 import { Icon } from "@/components/design/icon"
+import { Select } from "@/components/design/select"
 import { SPRITE_VERSION } from "@/components/design/sprite"
 import { CITIES, MISSION_TYPES, SEARCH_MAX_LENGTH, netAmount } from "@/lib/constants/missions"
 import { formatFcfa } from "@/lib/vitrine/format"
-import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
 
 const POPULAR = ["Cours particuliers", "Livraison", "Saisie", "Babysitting"].filter((t) =>
   MISSION_TYPES.includes(t),
 )
 const EXAMPLE_BUDGET = 25000
+
+// Photo : Abraham Ocholi, Pexels (licence Pexels, attribution non requise), détourée puis exportée en WebP
+// (733 x 1240, déjà optimisée : pas de passage par l'optimiseur de next/image).
+// Le visuel est masqué sous 1024 px : un <picture> dont la seule source est réservée aux écrans larges
+// ne demande jamais l'image en mobile (le repli est un pixel transparent en data URI), alors que
+// next/image avec priority la préchargerait même masquée. Le préchargement est limité par `media`.
+const PIXEL = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+const HERO_PHOTO = { src: "/images/hero/portrait-hero.webp", width: 733, height: 1240 }
+const HERO_PHOTO_MEDIA = "(min-width: 1024px)"
 
 const SPRITE = `/sprite.svg?v=${SPRITE_VERSION}`
 
@@ -25,17 +35,22 @@ function ctasFor(role) {
   }
 }
 
+const CITY_OPTIONS = [
+  { value: "", label: "Toutes les villes" },
+  ...CITIES.map((c) => ({ value: c, label: c })),
+]
+
 function CitySelect({ id }) {
   return (
-    <>
-      <label className="sr-only" htmlFor={id}>Ville</label>
-      <select id={id} name="ville" className="select select--sm ds-select-bare" defaultValue="">
-        <option value="">Toutes les villes</option>
-        {CITIES.map((c) => (
-          <option key={c} value={c}>{c}</option>
-        ))}
-      </select>
-    </>
+    <Select
+      id={id}
+      name="ville"
+      variant="bare"
+      aria-label="Ville"
+      placeholder="Toutes les villes"
+      options={CITY_OPTIONS}
+      defaultValue=""
+    />
   )
 }
 
@@ -50,6 +65,7 @@ function Chip({ type }) {
 // Hero de l'accueil (maquette V01). La pastille affiche le compteur seulement en mode "live".
 export function HomeHero({ live, openMissions, role }) {
   const { primary, secondary } = ctasFor(role)
+  preload(HERO_PHOTO.src, { as: "image", media: HERO_PHOTO_MEDIA, fetchPriority: "high" })
   const chip = live ? (
     <span className="v-hero__chip">
       <b>{openMissions}</b>missions ouvertes en ce moment
@@ -62,8 +78,7 @@ export function HomeHero({ live, openMissions, role }) {
   )
 
   return (
-    <div className="hero grid-bg">
-      <VitrineNavbar tone="bleu" />
+    <div className="hero hero--under-header grid-bg">
       <div className="v-hero">
         <div>
           {chip}
@@ -139,11 +154,17 @@ export function HomeHero({ live, openMissions, role }) {
         </div>
 
         <div className="v-hero__visual" aria-hidden="true">
-          <div className="photo-ph">
-            <svg className="v01-ph-art" viewBox="0 0 64 64" focusable="false">
-              <use href={`${SPRITE}#av-1`} />
-            </svg>
-          </div>
+          <picture>
+            <source media={HERO_PHOTO_MEDIA} srcSet={HERO_PHOTO.src} />
+            <img
+              className="v-hero__photo"
+              src={PIXEL}
+              width={HERO_PHOTO.width}
+              height={HERO_PHOTO.height}
+              fetchPriority="high"
+              alt=""
+            />
+          </picture>
           <div className="push v-hero__push">
             <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={40} height={40} />
             <div>

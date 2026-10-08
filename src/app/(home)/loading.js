@@ -1,3 +1,4 @@
+import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 
 const CARDS = [0, 1, 2]
@@ -6,8 +7,8 @@ const CARDS = [0, 1, 2]
 // seul l'aperçu des missions attend les données.
 export default function HomeLoading() {
   return (
-    <VitrinePage>
-      <div className="hero grid-bg" aria-busy="true">
+    <VitrinePage navbar={<VitrineNavbar tone="bleu" />}>
+      <div className="hero hero--under-header grid-bg" aria-busy="true">
         <div className="v-hero">
           <div className="stack stack--4">
             <div className="skel skel--pill w-[150px] h-[28px]" />
