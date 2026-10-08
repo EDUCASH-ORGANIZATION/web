@@ -23,6 +23,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Polices via `next/font` dans `layout.js` : variables `--font-anton`, `--font-figtree`, `--font-inter`, branchées sur `--f-display` (Anton) et `--f-text` (Figtree). Inter reste pour les espaces connectés pas encore refondus. Pas d'`@import` Google Fonts.
 - Icônes : sprite externe `public/sprite.svg`, référencé avec `?v=` (`SPRITE_VERSION`). Incrémenter la version si le sprite change.
 - Logo final et icônes PWA dans `public/`. Le `manifest.json` utilise `#2F3BED`.
+- Ne JAMAIS utiliser une classe Tailwind dont le nom existe dans le système de design (exemple : `grow` au lieu de `ds-grow`, erreur déjà commise). Tailwind ne génère que les classes présentes dans le code : une classe absente du code n'existe pas au build.
 
 ## Cohabitation pendant la transition
 - Les espaces connectés (`(student)`, `(client)`, `(admin)`, `legal/*`) restent en Tailwind avec parité stricte avec `main`. Ne pas les toucher sauf portage complet d'un écran.
@@ -36,6 +37,13 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Profil public étudiant : `/talents/[id]` (remplace `/students/[id]`).
 - Nouvelles pages publiques en français : `/clients` et `/aide`.
 - Espace client sous `/client/...`, espace admin sous `/admin/...`.
+
+## Vitrine
+- Éditeur légal : BRANDYBEN (entreprise individuelle), données dans `src/components/vitrine/legal/legal-entity.js`. Ne jamais écrire « EduCash SAS ».
+- Pas de `loading.js` dans un segment qui appelle `notFound()`, sinon le statut devient 200 au lieu de 404.
+
+## Variables d'environnement
+- `CONTACT_INBOX_EMAIL` : destinataire du formulaire de contact (défaut `contact@educash.bj`). Les autres variables restent dans `.env.local`, jamais lu ni commité.
 
 ## Rôles
 - `student`, `client` et `admin`. Le rôle est dans `user_metadata.role`, `middleware.js` redirige selon ce rôle.
