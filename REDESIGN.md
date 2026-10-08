@@ -117,23 +117,50 @@ maintenance T05, `/offline` T06, PWA T07.
 5. Vérification : capture Chromium headless + contrôle visuel (voir skill
    `educash-maquettes`).
 
+## Vitrine publique (RD-01)
+
+- **Composants partagés** : `src/components/vitrine/shared/` (fil d'Ariane, en-tête
+  de page, FAQ, CTA double, note de séquestre, blocs d'état, page introuvable
+  de la vitrine). Les blocs propres à un écran sont dans
+  `src/components/vitrine/{home,clients,aide,contact,legal,talent,mission-detail}/`.
+- **Logique** : `src/lib/vitrine/` (formats, dates, chiffres, noms publics,
+  disponibilité d'une mission, CTA de candidature, redirections héritées), avec
+  tests Vitest à côté.
+- **Routes** : `/clients` (V05), `/aide` (V07), `/talents/[id]` (V04).
+  `/students/[id]` redirige en 308 vers `/talents/[id]`.
+- **Groupes de routes** : `(home)` porte `/` et son `loading.js`;
+  `(mission-detail)` porte `/missions/[id]` sans `loading.js` (voir la règle
+  ci-dessous). Ils isolent les squelettes de chargement des autres pages.
+- **Règle `loading.js`** : pas de `loading.js` dans un segment qui appelle
+  `notFound()`, sinon le statut HTTP devient 200 au lieu de 404.
+- **Éditeur légal** : BRANDYBEN (entreprise individuelle). Les informations
+  sont regroupées dans `src/components/vitrine/legal/legal-entity.js` et
+  partagées par les trois pages légales. Ne jamais écrire « EduCash SAS ».
+- **Formulaire de contact** : `/contact` envoie le message par e-mail (Resend)
+  via la server action `src/lib/actions/contact.actions.js`. Le destinataire
+  vient de la variable d'environnement `CONTACT_INBOX_EMAIL` (défaut
+  `contact@educash.bj`), jamais du formulaire.
+- **Dépendances 3D retirées** : `three`, `@react-three/fiber` et
+  `@react-three/drei` ne sont plus utilisées par la vitrine. MUI reste pour
+  l'authentification (`auth-shell`, `stack`, `theme`, `vitrine-provider`).
+
 ## Suivi des écrans
 
-États : porté, partiel, à faire. Fondation faite ; V02 fait (RD-00, avec la navbar
-et le footer de la vitrine) ; tout le reste à faire.
+États : porté, partiel, à faire. Fondation faite ; vitrine V01 à V09 faite (V02 en RD-00, le reste en RD-01) ;
+tout le reste à faire.
 
 ### Vitrine (V01 à V09)
 | Écran | Titre | État |
 |---|---|---|
-| V01 | Accueil | à faire (lot 1) |
+| V01 | Accueil | fait (RD-01) |
 | V02 | Missions publiques | fait (RD-00) |
-| V03 | Détail de mission public | à faire |
-| V04 | Profil public d'un étudiant | à faire |
-| V05 | Pour les clients | à faire |
-| V06 | À propos | à faire |
-| V07 | Aide et FAQ | à faire |
-| V08 | Contact | à faire |
-| V09 | Pages légales | à faire |
+| V03 | Détail de mission public | fait (RD-01) |
+| V04 | Profil public d'un étudiant | fait (RD-01) |
+| V05 | Pour les clients | fait (RD-01) |
+| V06 | À propos | fait (RD-01) |
+| V07 | Aide et FAQ | fait (RD-01) |
+| V08 | Contact | fait (RD-01) |
+| V09 | Pages légales | fait (RD-01) |
 
 ### Authentification (A01 à A08)
 | Écran | Titre | État |
