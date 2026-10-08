@@ -53,7 +53,7 @@ const theme = createTheme({
   shape: { borderRadius: 16 },
 
   typography: {
-    fontFamily: "var(--font-inter), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "var(--f-text), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
     h1: { fontWeight: 800, letterSpacing: "-0.025em", lineHeight: 1.05 },
     h2: { fontWeight: 800, letterSpacing: "-0.02em",  lineHeight: 1.12 },
     h3: { fontWeight: 800, letterSpacing: "-0.02em",  lineHeight: 1.15 },
