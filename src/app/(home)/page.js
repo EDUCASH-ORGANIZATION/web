@@ -2,6 +2,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 import { Faq } from "@/components/vitrine/shared/faq"
+import { HashScroll } from "@/components/vitrine/shared/hash-scroll"
 import { CtaDouble, exampleRecap } from "@/components/vitrine/shared/cta-double"
 import { Icon } from "@/components/design/icon"
 import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
@@ -170,6 +171,7 @@ export default async function HomePage() {
 
   return (
     <VitrinePage navbar={<VitrineNavbar tone="bleu" />} before={<HomeHero live={live} openMissions={figures.openMissions} role={role} />}>
+      <HashScroll />
       <HomeProofs rating={figures.rating} />
       <HomePreview missions={missions} openCount={openCount} error={previewError} />
       <HomeSteps />

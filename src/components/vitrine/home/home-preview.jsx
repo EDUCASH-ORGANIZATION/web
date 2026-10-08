@@ -3,6 +3,7 @@ import { Icon } from "@/components/design/icon"
 import { SPRITE_VERSION } from "@/components/design/sprite"
 import { MissionCard } from "../mission-card"
 import { StateBlock } from "../shared/state-block"
+import { AnchorLink } from "../shared/hash-scroll"
 
 const WAITING_POINTS = [
   { icon: "i-user-check", tone: "", label: "Profil prêt" },
@@ -27,7 +28,7 @@ function Empty() {
             Créer mon compte
             <span className="btn__dot"><Icon name="i-arrow-right" /></span>
           </Link>
-          <Link className="btn btn--ghost" href="/#etapes">Comment ça marche</Link>
+          <AnchorLink className="btn btn--ghost" href="/#etapes">Comment ça marche</AnchorLink>
         </div>
       </div>
       <ul className="v01-empty__list">
