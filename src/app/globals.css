@@ -3,6 +3,7 @@
    (maquettes/_system) : tokens.css (valeurs), components.css, layouts.css.
    Le thème Tailwind de l'ancien site (vert/ambre) est abandonné. */
 
+@import url("https://fonts.googleapis.com/css2?family=Anton&family=Figtree:ital,wght@0,300..900;1,400..700&display=swap");
 @import "tailwindcss";
 @import "./design/tokens.css";
 @import "./design/components.css";
