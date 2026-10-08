@@ -1,4 +1,5 @@
 import "./globals.css"
+import { DesignSprite } from "@/components/design/sprite"
 import { SupabaseProvider } from "@/components/shared/supabase-provider"
 import { Toaster } from "@/components/shared/toaster"
 import { PwaInstallBannerLoader } from "@/components/shared/pwa-install-banner-loader"
@@ -45,6 +46,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <DesignSprite />
         <SupabaseProvider>
           <Toaster>
             {children}
