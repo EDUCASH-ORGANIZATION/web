@@ -4,7 +4,7 @@ Ce document décrit comment le site EduCash est reconstruit de zéro sur la
 refonte validée. Les maquettes **écrasent** l'ancien code : rien n'est hérité
 du thème vert/ambre ni des composants Tailwind de l'ancienne version.
 
-- Branche : `feat/RD-00-redesign-stabilisation`
+- Branche : une branche `feat/<TASK_ID>-<slug>` par lot.
 - Source de vérité du design : `~/Desktop/EDUCASH/design-rebrand/maquettes/`
   (`INVENTAIRE.md` définit les écrans cibles, `_system/` le système de design,
   un `STATUS.md` par espace détaille l'avancement des planches).
@@ -19,8 +19,13 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
   `--c-citron #C8F03C`, `--c-encre #0E0F1A`, `--c-givre`, etc.
 - **Couches CSS** : `tokens.css` dans la couche `theme`, `components.css` et
   `layouts.css` dans la couche `components` (reset dans la couche `base`
-  imbriquée). Tout s'applique sous une racine `.ds`, pour ne jamais écraser les
-  utilitaires des espaces connectés.
+  imbriquée). `.ds` ne porte que les styles de racine (police Figtree, couleur
+  encre, fond givre). Le reset et les sélecteurs de composants sont globaux,
+  dans la couche `components` : les utilitaires Tailwind gardent la priorité,
+  mais un nom de classe du système utilisé hors `.ds` est stylé. Ne jamais
+  réutiliser un nom de classe du système dans un écran Tailwind. Avant d'ajouter
+  une classe au système, vérifier par grep qu'elle n'existe pas déjà dans le
+  code ancien ; sinon la préfixer `ds-`.
 - **Anti-collision Tailwind** : préfixe `ds-` pour les classes qui portent un
   nom d'utilitaire : `ds-grid`, `ds-container`, `ds-grow`, `ds-table`, `ds-table-wrap`,
   `ds-h1` à `ds-h4`, `ds-pulse`. `sr-only` est fourni par Tailwind.
@@ -114,14 +119,14 @@ maintenance T05, `/offline` T06, PWA T07.
 
 ## Suivi des écrans
 
-États : porté, partiel, à faire. Fondation faite ; V02 en cours de finition dans
-le lot RD-00 (navbar et footer de la vitrine faits) ; tout le reste à faire.
+États : porté, partiel, à faire. Fondation faite ; V02 fait (RD-00, avec la navbar
+et le footer de la vitrine) ; tout le reste à faire.
 
 ### Vitrine (V01 à V09)
 | Écran | Titre | État |
 |---|---|---|
 | V01 | Accueil | à faire (lot 1) |
-| V02 | Missions publiques | en cours de finition (RD-00) |
+| V02 | Missions publiques | fait (RD-00) |
 | V03 | Détail de mission public | à faire |
 | V04 | Profil public d'un étudiant | à faire |
 | V05 | Pour les clients | à faire |

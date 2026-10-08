@@ -7,13 +7,14 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - MUI 9 : gelé, en voie de retrait (vitrine historique). Ne pas l'étendre.
 - Supabase (`@supabase/ssr`), FedaPay, Resend, next-pwa. Déploiement Vercel.
 - Alias `@/` pour tous les imports. Server Components par défaut, `"use client"` seulement si nécessaire.
-- Formulaires : react-hook-form + zod. Commandes : `npm run dev`, `npm run build`, `npx eslint <fichiers>`. Aucun framework de test.
+- Formulaires : react-hook-form + zod. Commandes : `npm run dev`, `npm run build`, `npx eslint <fichiers>`.
+- Tests : Vitest, `npm test` (fichiers `src/**/*.test.{js,jsx}`, environnement node, config `vitest.config.mjs`).
 - Ne jamais commiter `public/sw.js` ni `public/workbox-*.js` (générés par next-pwa au build).
 
 ## Design system (Direction A)
 - Emplacement : `src/app/design/{tokens,components,layouts}.css`, importés par `src/app/globals.css`. Copie des maquettes `design-rebrand/maquettes/_system/` : ne pas le modifier hors d'une tâche dédiée.
-- Couches : `tokens.css` dans `theme`, `components.css` et `layouts.css` dans `components` (reset dans la couche `base` imbriquée). Les utilitaires Tailwind gardent donc la priorité.
-- Tout est appliqué sous une racine `.ds`. Hors `.ds`, le rendu est celui des espaces Tailwind (Inter, fond blanc).
+- Couches : `tokens.css` dans `theme`, `components.css` et `layouts.css` dans `components` (reset dans la couche `base` imbriquée). 
+- `.ds` ne porte que les styles de racine (police Figtree, couleur encre, fond givre). Le reset et les sélecteurs de composants sont globaux, dans la couche `components` : les utilitaires Tailwind gardent la priorité, mais un nom de classe du système utilisé hors `.ds` est stylé. Ne jamais réutiliser un nom de classe du système dans un écran Tailwind. Avant d'ajouter une classe au système, vérifier par grep qu'elle n'existe pas déjà dans le code ancien ; sinon la préfixer `ds-`.
 - On consomme le système par ses classes (`.btn`, `.card`, `.badge`, `.field`, `.shell`...) et par `<Icon name="i-..." className="ic" />` (`src/components/design/icon.jsx`).
 - Anti-collision avec Tailwind : les classes qui portent un nom d'utilitaire sont préfixées `ds-` : `ds-grid`, `ds-container`, `ds-grow`, `ds-table`, `ds-table-wrap`, `ds-h1` à `ds-h4`, `ds-pulse`. `sr-only` vient de Tailwind.
 - Responsive : breakpoints 1024, 768 et 480 (media queries dans `tokens.css` et `layouts.css`). Classes `ds-desk-only` et `ds-mob-only` pour afficher selon la taille.
@@ -27,6 +28,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Les espaces connectés (`(student)`, `(client)`, `(admin)`, `legal/*`) restent en Tailwind avec parité stricte avec `main`. Ne pas les toucher sauf portage complet d'un écran.
 - Les pages MUI sont à réécrire écran par écran, puis MUI sera retiré.
 - Règle pour tout nouvel écran : uniquement les classes du système sous une racine `.ds`, en reprenant la maquette de `/Users/brandonmedehou/Desktop/EDUCASH/design-rebrand/maquettes/`. Pas de Tailwind ni de MUI dans un écran refondu.
+- Exception tolérée : utilitaires Tailwind de dimension et de forme (w-*, h-*, max-w-*, rounded-full, object-cover) pour les squelettes de chargement et les images d'avatar, tant que le système ne fournit pas d'équivalent. Aucune couleur, aucun espacement de mise en page en Tailwind dans un écran refondu.
 - UX : l'étudiant est tutoyé, le client vouvoyé, l'admin se tutoie entre collègues.
 
 ## Routes cibles (décision 14 de INVENTAIRE.md)
@@ -37,6 +39,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 
 ## Rôles
 - `student`, `client` et `admin`. Le rôle est dans `user_metadata.role`, `middleware.js` redirige selon ce rôle.
+- `user_metadata` est modifiable par l'utilisateur : ne s'en servir que pour l'affichage ou la navigation, jamais pour une autorisation. L'autorité se vérifie côté serveur sur `profiles.role`. Le `middleware.js` actuel s'appuie encore sur `user_metadata` : dette de sécurité connue, à traiter dans un lot dédié.
 - L'admin ne peut jamais être auto-attribué (ni à l'inscription ni par mise à jour de profil). Un étudiant ne peut pas s'auto-vérifier.
 
 ## Données
