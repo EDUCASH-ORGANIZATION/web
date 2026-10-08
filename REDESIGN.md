@@ -263,3 +263,10 @@ tout le reste à faire.
 - `<Select>` (`src/components/design/select.jsx`) remplace le `<select>` natif sur la vitrine : accueil (ville du hero), `/missions` (ville, Ville, Budget, Urgence, Tri) et `/contact` (Sujet). Motif APG select-only combobox, liste `.menu` / `.menu__item` du système.
 - La maquette V02 montre les listes ouvertes (titre `.menu__title`, option cochée) et V08 la liste du sujet ; la liste du hero (sans maquette dédiée) reprend les mêmes styles.
 - Hors périmètre : les selects des espaces connectés (`(student)`, `(client)`, `(admin)`, `components/client|student|admin|profile|auth`) restent natifs, en parité Tailwind avec `main`. Ils adopteront `<Select>` à leur refonte.
+
+## En-tête fixe et photo du hero (RD-FIX-07)
+
+- En-tête fixe (`position: fixed`) sur toute la vitrine, avec un emplacement `.site-header-slot` qui réserve la hauteur (aucun décalage). Au-delà de 16 px de défilement (`useSyncExternalStore` sur le scroll) il passe en compact : hauteur `--h-header-compact`, fond blanc translucide avec `backdrop-filter` (repli blanc plein), bordure encre 2 px. Sur l'accueil (`tone="bleu"`) il reste transparent sur le hero puis devient l'en-tête blanc compact.
+- Échelle `z-index` (tokens) : sticky 10, nav (en-tête) 20, menu (listes du Select) 30, drawer (menu mobile plein écran) 40, modal (feuille Filtres) 50, toast 60. `scroll-padding-top` sur `html` pour les ancres.
+- Photo du hero : `public/images/hero/portrait-hero.webp` (733 x 1240, 57 Ko, transparence conservée). Crédit : Abraham Ocholi, Pexels (licence Pexels, attribution non requise). Chargée en `loading="lazy"` et préchargée uniquement à partir de 1024 px (`media`) : elle n'est jamais téléchargée quand le visuel est masqué.
+- Select : la liste s'ouvre vers le bas dès que la place suffit (168 px) et défile avec un plafond de hauteur ; elle ne remonte que si la place en bas est vraiment insuffisante.

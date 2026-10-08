@@ -2,11 +2,13 @@
 // Une option : { value, label, disabled? }. Les index portent sur le tableau d'options.
 
 export const TYPEAHEAD_RESET_MS = 500
-export const MENU_ITEM_HEIGHT = 40
+export const MENU_ITEM_HEIGHT = 42
 export const MENU_PADDING = 14
 export const MENU_MAX_HEIGHT = 280
 export const MENU_MIN_WIDTH = 220
 export const VIEWPORT_MARGIN = 8
+export const MENU_GAP = 6
+export const MENU_MIN_HEIGHT = 168
 
 const isEnabled = (options, i) => i >= 0 && i < options.length && !options[i].disabled
 
@@ -87,14 +89,20 @@ export function keyIntent({ key, altKey = false, ctrlKey = false, metaKey = fals
   }
 }
 
-// Place la liste sous le déclencheur, ou au-dessus s'il manque de la place en bas ;
-// aligne sur la fin si elle déborderait à droite. `rect` : getBoundingClientRect du déclencheur.
+// Place la liste sous le déclencheur ; la remonte au-dessus seulement si la place en bas est vraiment
+// insuffisante (moins de MENU_MIN_HEIGHT) et que le haut en offre davantage. Quand la liste ne tient
+// pas en entier mais que la place est suffisante, elle reste où elle est avec `maxHeight` (défilement).
+// Aligne sur la fin si elle déborderait à droite. `rect` : getBoundingClientRect du déclencheur.
+// `maxHeight` vaut null quand la liste tient avec sa hauteur naturelle.
 export function choosePlacement({ rect, viewportWidth, viewportHeight, count, menuWidth = MENU_MIN_WIDTH }) {
-  const menuHeight = Math.min(MENU_MAX_HEIGHT, count * MENU_ITEM_HEIGHT + MENU_PADDING)
-  const below = viewportHeight - rect.bottom - VIEWPORT_MARGIN
-  const above = rect.top - VIEWPORT_MARGIN
-  const vertical = below < menuHeight && above > below ? "top" : "bottom"
+  const needed = Math.min(MENU_MAX_HEIGHT, count * MENU_ITEM_HEIGHT + MENU_PADDING)
+  const below = Math.max(0, viewportHeight - rect.bottom - VIEWPORT_MARGIN - MENU_GAP)
+  const above = Math.max(0, rect.top - VIEWPORT_MARGIN - MENU_GAP)
+  const needsRoom = below < needed
+  const up = needsRoom && below < Math.min(needed, MENU_MIN_HEIGHT) && above > below
+  const room = up ? above : below
+  const maxHeight = needed > room ? Math.floor(room) : null
   const overflowsRight = rect.left + menuWidth > viewportWidth - VIEWPORT_MARGIN
   const fitsEnd = rect.right - menuWidth >= VIEWPORT_MARGIN
-  return { vertical, horizontal: overflowsRight && fitsEnd ? "end" : "start" }
+  return { vertical: up ? "top" : "bottom", horizontal: overflowsRight && fitsEnd ? "end" : "start", maxHeight }
 }

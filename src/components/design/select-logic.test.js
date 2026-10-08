@@ -108,12 +108,31 @@ describe("placement", () => {
 
   it("ouvre vers le bas s'il y a de la place", () => {
     const rect = { left: 16, right: 120, top: 100, bottom: 140 }
-    expect(choosePlacement({ ...base, rect })).toEqual({ vertical: "bottom", horizontal: "start" })
+    expect(choosePlacement({ ...base, rect })).toEqual({ vertical: "bottom", horizontal: "start", maxHeight: null })
   })
 
   it("ouvre vers le haut s'il n'y a pas la place en bas", () => {
     const rect = { left: 16, right: 120, top: 700, bottom: 740 }
     expect(choosePlacement({ ...base, rect }).vertical).toBe("top")
+  })
+
+  it("reste en bas, plafonnée, quand la place suffit sans contenir toute la liste", () => {
+    const rect = { left: 56, right: 160, top: 650, bottom: 688 }
+    const placement = choosePlacement({ ...base, viewportWidth: 1440, viewportHeight: 900, count: 5, rect })
+    expect(placement.vertical).toBe("bottom")
+    expect(placement.maxHeight).toBe(900 - 688 - 8 - 6)
+  })
+
+  it("ne plafonne pas la liste quand elle tient en entier", () => {
+    const rect = { left: 16, right: 120, top: 100, bottom: 140 }
+    expect(choosePlacement({ ...base, rect }).maxHeight).toBeNull()
+  })
+
+  it("plafonne la liste au-dessus à la place disponible en haut", () => {
+    const rect = { left: 16, right: 120, top: 150, bottom: 190 }
+    const placement = choosePlacement({ ...base, viewportHeight: 230, count: 8, rect })
+    expect(placement.vertical).toBe("top")
+    expect(placement.maxHeight).toBe(150 - 8 - 6)
   })
 
   it("reste en bas si le haut est encore plus étroit", () => {

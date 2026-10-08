@@ -1,15 +1,23 @@
+import Image from "next/image"
 import Link from "next/link"
+import { preload } from "react-dom"
 import { Icon } from "@/components/design/icon"
 import { Select } from "@/components/design/select"
 import { SPRITE_VERSION } from "@/components/design/sprite"
 import { CITIES, MISSION_TYPES, SEARCH_MAX_LENGTH, netAmount } from "@/lib/constants/missions"
 import { formatFcfa } from "@/lib/vitrine/format"
-import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
 
 const POPULAR = ["Cours particuliers", "Livraison", "Saisie", "Babysitting"].filter((t) =>
   MISSION_TYPES.includes(t),
 )
 const EXAMPLE_BUDGET = 25000
+
+// Photo : Abraham Ocholi, Pexels (licence Pexels, attribution non requise), détourée puis exportée en WebP.
+// Le visuel est masqué sous 1024 px : le chargement est donc différé (loading="lazy", un élément
+// en display: none n'est jamais demandé) et le préchargement est limité aux écrans larges par `media`.
+// L'image est déjà optimisée : `unoptimized` garde la même URL pour le préchargement.
+const HERO_PHOTO = { src: "/images/hero/portrait-hero.webp", width: 733, height: 1240 }
+const HERO_PHOTO_MEDIA = "(min-width: 1024px)"
 
 const SPRITE = `/sprite.svg?v=${SPRITE_VERSION}`
 
@@ -56,6 +64,7 @@ function Chip({ type }) {
 // Hero de l'accueil (maquette V01). La pastille affiche le compteur seulement en mode "live".
 export function HomeHero({ live, openMissions, role }) {
   const { primary, secondary } = ctasFor(role)
+  preload(HERO_PHOTO.src, { as: "image", media: HERO_PHOTO_MEDIA, fetchPriority: "high" })
   const chip = live ? (
     <span className="v-hero__chip">
       <b>{openMissions}</b>missions ouvertes en ce moment
@@ -69,7 +78,6 @@ export function HomeHero({ live, openMissions, role }) {
 
   return (
     <div className="hero grid-bg">
-      <VitrineNavbar tone="bleu" />
       <div className="v-hero">
         <div>
           {chip}
@@ -145,11 +153,17 @@ export function HomeHero({ live, openMissions, role }) {
         </div>
 
         <div className="v-hero__visual" aria-hidden="true">
-          <div className="photo-ph">
-            <svg className="v01-ph-art" viewBox="0 0 64 64" focusable="false">
-              <use href={`${SPRITE}#av-1`} />
-            </svg>
-          </div>
+          <Image
+            className="v-hero__photo"
+            src={HERO_PHOTO.src}
+            width={HERO_PHOTO.width}
+            height={HERO_PHOTO.height}
+            sizes="372px"
+            loading="lazy"
+            fetchPriority="high"
+            unoptimized
+            alt=""
+          />
           <div className="push v-hero__push">
             <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={40} height={40} />
             <div>

@@ -54,6 +54,7 @@ export function Select({
   const rootRef = useRef(null)
   const triggerRef = useRef(null)
   const bufferRef = useRef(null)
+  const menuRef = useRef(null)
 
   const setTriggerRef = (node) => {
     triggerRef.current = node
@@ -63,13 +64,16 @@ export function Select({
 
   const openList = (index) => {
     const rect = triggerRef.current.getBoundingClientRect()
-    setPlacement(choosePlacement({
+    const next = choosePlacement({
       rect,
       viewportWidth: document.documentElement.clientWidth,
       viewportHeight: window.innerHeight,
       count: options.length + (title ? 1 : 0),
       menuWidth: variant === "field" ? rect.width : MENU_MIN_WIDTH,
-    }))
+    })
+    // Plafond mesuré en pixels : la liste défile quand la place disponible est plus courte qu'elle.
+    if (menuRef.current) menuRef.current.style.maxHeight = next.maxHeight === null ? "" : `${next.maxHeight}px`
+    setPlacement(next)
     setActive(index ?? initialActive(options, current))
     setOpen(true)
   }
@@ -195,6 +199,7 @@ export function Select({
       </button>
       <div
         id={listId}
+        ref={menuRef}
         role="listbox"
         className="menu ds-select__menu"
         hidden={!open}
