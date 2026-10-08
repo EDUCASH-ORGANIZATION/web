@@ -52,8 +52,8 @@
   --c-bleu-clair-600: #A9AEFF;
 
   /* ---------- Typographie ---------- */
-  --f-display: "Anton", Impact, "Arial Narrow", sans-serif;   /* titres courts en capitales */
-  --f-text: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif; /* tout le reste, montants compris */
+  --f-display: var(--font-anton), Impact, "Arial Narrow", sans-serif;   /* titres courts en capitales */
+  --f-text: var(--font-figtree), system-ui, -apple-system, "Segoe UI", sans-serif; /* tout le reste, montants compris */
   --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   /* Échelle display (Anton, toujours en capitales, 6 mots max) */
@@ -131,4 +131,24 @@
 
   /* ---------- Couches ---------- */
   --z-sticky: 10; --z-nav: 20; --z-drawer: 40; --z-modal: 50; --z-toast: 60;
+}
+
+/* ---------- Echelle display responsive ----------
+   Les var() sont interdites dans la condition d'une @media : seuils en dur. */
+@media (max-width: 1023.98px) {
+  :root {
+    --t-display-xxl: 88px;
+    --t-display-xl: 72px;
+    --t-display-l: 52px;
+    --t-display-m: 40px;
+  }
+}
+@media (max-width: 480px) {
+  :root {
+    --t-display-xxl: 52px;
+    --t-display-xl: 48px;
+    --t-display-l: 40px;
+    --t-display-m: 36px;
+    --t-display-s: 24px;
+  }
 }
