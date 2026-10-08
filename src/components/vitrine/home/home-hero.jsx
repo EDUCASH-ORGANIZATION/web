@@ -3,6 +3,7 @@ import { Icon } from "@/components/design/icon"
 import { SPRITE_VERSION } from "@/components/design/sprite"
 import { CITIES, MISSION_TYPES, SEARCH_MAX_LENGTH, netAmount } from "@/lib/constants/missions"
 import { formatFcfa } from "@/lib/vitrine/format"
+import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
 
 const POPULAR = ["Cours particuliers", "Livraison", "Saisie", "Babysitting"].filter((t) =>
   MISSION_TYPES.includes(t),
@@ -28,7 +29,7 @@ function CitySelect({ id }) {
   return (
     <>
       <label className="sr-only" htmlFor={id}>Ville</label>
-      <select id={id} name="ville" className="select select--sm" defaultValue="">
+      <select id={id} name="ville" className="select select--sm ds-select-bare" defaultValue="">
         <option value="">Toutes les villes</option>
         {CITIES.map((c) => (
           <option key={c} value={c}>{c}</option>
@@ -62,6 +63,7 @@ export function HomeHero({ live, openMissions, role }) {
 
   return (
     <div className="hero grid-bg">
+      <VitrineNavbar tone="bleu" />
       <div className="v-hero">
         <div>
           {chip}

@@ -2,7 +2,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 import { Faq } from "@/components/vitrine/shared/faq"
-import { CtaDouble } from "@/components/vitrine/shared/cta-double"
+import { CtaDouble, exampleRecap } from "@/components/vitrine/shared/cta-double"
 import { Icon } from "@/components/design/icon"
 import { HomeHero } from "@/components/vitrine/home/home-hero"
 import { HomeProofs } from "@/components/vitrine/home/home-proofs"
@@ -78,15 +78,20 @@ function ctaProps(role) {
         </>
       ),
       text: "Crée ton profil gratuitement, postule près de ta fac et encaisse sur ton MoMo.",
+      secondary: role === "student" ? undefined : { href: "/missions", label: "Voir les missions" },
+      badge: role ? undefined : { value: "0 FCFA", caption: "pour t'inscrire" },
       ...student,
     },
     client: {
+      tag: "Particulier, PME, association",
       title: (
         <>
           Une mission ?<br /><span className="hl-citron">Un étudiant vérifié.</span>
         </>
       ),
       text: "Publiez votre besoin en deux minutes. Le budget reste bloqué jusqu'à ce que vous validiez le travail.",
+      secondary: role === "student" ? undefined : { href: "/clients", label: "Pour les clients" },
+      recap: exampleRecap(),
       ...client,
     },
   }
@@ -161,7 +166,7 @@ export default async function HomePage() {
   const cta = ctaProps(role)
 
   return (
-    <VitrinePage>
+    <VitrinePage navbar={null}>
       <HomeHero live={live} openMissions={figures.openMissions} role={role} />
       <HomeProofs rating={figures.rating} />
       <HomePreview missions={missions} openCount={openCount} error={previewError} />

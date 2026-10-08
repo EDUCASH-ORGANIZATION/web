@@ -99,7 +99,11 @@ export default function TermsPage() {
         <p>Il est strictement interdit de :</p>
         <ul>
           <li>Publier des missions illégales ou contraires aux bonnes mœurs</li>
-          <li>Contourner la plateforme pour effectuer des paiements directs</li>
+          <li>
+            Contourner la plateforme pour régler le service (la rémunération de l’étudiant) en dehors
+            d’EduCash. Cette interdiction ne vise pas le paiement direct des achats au vendeur, autorisé
+            dans les conditions de la clause <a className="link" href="#achats">Missions avec achats</a>
+          </li>
           <li>Harceler, discriminer ou menacer d’autres utilisateurs</li>
           <li>Créer de faux profils ou fournir des informations mensongères</li>
           <li>Utiliser la plateforme à des fins commerciales non autorisées</li>

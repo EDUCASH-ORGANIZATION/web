@@ -98,10 +98,9 @@ export const AIDE_THEMES = [
       },
       {
         id: "retrait-echec",
-        question: "Mon retrait a échoué, j'ai perdu l'argent ?",
+        question: "Mon retrait a échoué, que faire ?",
         answer: [
-          "Non. Si un retrait échoue, ton solde reste disponible sur ton portefeuille. Vérifie le numéro saisi et réessaie.",
-          "Si le problème continue, écris-nous en précisant la date et le montant.",
+          "Vérifie d'abord le numéro saisi. Si un retrait échoue, contacte-nous depuis la page Contact en précisant la date et le montant : l'équipe vérifie l'opération avec FedaPay.",
         ],
         links: [{ href: "/contact", label: "Nous contacter" }],
       },

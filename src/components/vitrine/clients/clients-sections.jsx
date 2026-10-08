@@ -222,7 +222,7 @@ export function ClientFaq() {
 
 export function ClientsCta({ publishHref }) {
   return (
-    <div className="v-cta2 v-cta2--m">
+    <div className="v-cta2 v-cta2--single">
       <div className="v-cta v-cta--bleu v05-cta grid-bg on-bleu">
         <span className="badge badge--citron ds-self-start">Deux minutes pour publier</span>
         <h2 className="display display--xl">Publiez votre<br /><span className="hl-citron">première mission.</span></h2>
