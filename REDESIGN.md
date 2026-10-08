@@ -40,6 +40,8 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
 - **Pas de couleur en dur** : seulement `var(--c-*)`. Le citron n'est jamais
   utilisé en texte sur fond clair.
 - **Texte secondaire** : `--c-ardoise` sur clair, `--c-brume` sur encre, blanc sur bleu ; taille `--t-para` (16 px, 15 px sous 768) ; jamais d'opacité sur du texte ; `--t-micro` (13 px) est le minimum absolu. Écart assumé avec maquettes/_system (RD-FIX-03).
+- **Titres Anton** : interligne via `--lh-display` (1.14 minimum, 1.16 en xxl), sauf chiffres sans accents. Écart assumé avec maquettes/_system (RD-FIX-05).
+- **Logos d'opérateurs** : vrais logos MTN et Moov dans `public/logos/operators/`, affichés via `OperatorLogo`, à la place des pastilles typographiques des maquettes (RD-FIX-05).
 - Les composants se consomment par les **classes** du système (`.btn`, `.card`,
   `.bento-card`, `.shell`, `.chat`, `.badge`, `.field`...), comme dans les
   maquettes. Index : `maquettes/_system/index.html`.
