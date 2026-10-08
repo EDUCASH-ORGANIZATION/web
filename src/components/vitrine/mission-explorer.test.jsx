@@ -1,0 +1,45 @@
+import { describe, expect, it, vi } from "vitest"
+import { readFileSync } from "node:fs"
+import path from "node:path"
+import { renderToStaticMarkup } from "react-dom/server"
+import { SORTS } from "@/lib/constants/missions"
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/missions",
+  useSearchParams: () => new URLSearchParams(),
+}))
+
+const { MissionFilterBar } = await import("./mission-explorer")
+
+// Barre mobile seule (bloc .v02-mbar), pour ne pas confondre avec la barre bureau.
+const mobileBar = (html) => html.slice(html.indexOf("v02-mbar"), html.indexOf("</div>", html.indexOf("v02-mbar")))
+
+describe("MissionFilterBar, barre mobile (non-régression débordement à 360-390 px)", () => {
+  it("affiche le tri et le compteur compacts de la maquette V02", () => {
+    const html = renderToStaticMarkup(
+      <MissionFilterBar total={128} countLabel="128 missions ouvertes" countShort="128 missions" />,
+    )
+    const bar = mobileBar(html)
+    expect(bar).toContain("<span>Récentes</span>")
+    expect(bar).not.toContain("<span>Plus récentes</span>")
+    expect(bar).toContain(">128 missions</span>")
+    expect(bar).not.toContain("ouvertes")
+    // La barre bureau garde les libellés longs.
+    expect(html).toContain("<span>Plus récentes</span>")
+    expect(html).toContain("128 missions ouvertes")
+  })
+
+  it("tous les tris ont un libellé court, plus court que le libellé complet", () => {
+    for (const s of SORTS) {
+      expect(s.short).toBeTruthy()
+      expect(s.short.length).toBeLessThanOrEqual(12)
+      expect(s.short.length).toBeLessThan(s.label.length)
+    }
+  })
+
+  it("la barre mobile peut passer à la ligne au lieu de déborder", () => {
+    const css = readFileSync(path.resolve(import.meta.dirname, "../../app/design/layouts.css"), "utf8")
+    expect(css).toMatch(/\.v02-mbar\s*\{[^}]*flex-wrap:\s*wrap/)
+  })
+})

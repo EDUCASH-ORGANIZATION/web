@@ -26,9 +26,9 @@ export const BUDGET_RANGES = [
 
 /** Options de tri ("" = plus récentes). */
 export const SORTS = [
-  { id: "", label: "Plus récentes" },
-  { id: "prix", label: "Budget croissant" },
-  { id: "prix-desc", label: "Budget décroissant" },
+  { id: "", label: "Plus récentes", short: "Récentes" },
+  { id: "prix", label: "Budget croissant", short: "Petit budget" },
+  { id: "prix-desc", label: "Budget décroissant", short: "Gros budget" },
 ]
 
 /** Longueur maximale de la recherche texte. */

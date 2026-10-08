@@ -156,6 +156,8 @@ export default async function MissionsPage({ searchParams }) {
     : hasFilter
       ? `${total} mission${plural(total)}`
       : `${total} mission${plural(total)} ouverte${plural(total)}`
+  // Barre mobile : compteur compact, comme la maquette V02 (« 38 missions »).
+  const countShort = error ? "Erreur" : `${total} mission${plural(total)}`
   const cards = Array.isArray(missions) ? missions.map((m) => <MissionCard key={m.id} mission={m} />) : []
   // Encart « Publier une mission » en 5e position (en dernier s'il y a moins de 4 cartes).
   cards.splice(Math.min(4, cards.length), 0, <PublishPromo key="publish-promo" />)
@@ -187,7 +189,7 @@ export default async function MissionsPage({ searchParams }) {
 
         <div className="v02-body stack stack--6">
           <Suspense fallback={<FilterBarFallback countLabel={countLabel} />}>
-            <MissionFilterBar {...filters} total={total} countLabel={countLabel} />
+            <MissionFilterBar {...filters} total={total} countLabel={countLabel} countShort={countShort} />
           </Suspense>
 
           {error && (

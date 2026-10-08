@@ -623,4 +623,7 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
 .v02-promo__cta { margin-top: auto; align-self: flex-start; }
 .v02-empty-scribble { right: -4px; top: -6px; width: 46px; height: 46px; }
 .v02-skel-chip { width: 110px; height: 38px; }
+/* Barre mobile : libellés compacts (maquette V02) ; si la place manque malgré tout,
+   le compteur passe à la ligne au lieu de faire déborder la page. */
+.v02-mbar { flex-wrap: wrap; row-gap: 8px; }
 .v02-mbar .caption { white-space: nowrap; font-weight: var(--fw-bold); }

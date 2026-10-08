@@ -133,7 +133,7 @@ function OptionChips({ options, value, onPick }) {
 // et feuille du bas en mobile, pastilles de filtres actifs supprimables.
 export function MissionFilterBar({
   q = "", type = "", ville = "", budget = "", tri = "", urgence = "",
-  total = 0, countLabel = "",
+  total = 0, countLabel = "", countShort = "",
 }) {
   const { navigate, isPending } = useMissionFilters()
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -162,7 +162,7 @@ export function MissionFilterBar({
   const sortSelect = (small) => (
     <ChipSelect
       icon="i-sort"
-      label={sort.label}
+      label={small ? sort.short : sort.label}
       ariaLabel="Tri"
       value={tri}
       selected={false}
@@ -211,7 +211,7 @@ export function MissionFilterBar({
         </button>
         {sortSelect(true)}
         <span className="ds-grow" />
-        <span className="caption" aria-live="polite">{countLabel}</span>
+        <span className="caption" aria-live="polite">{countShort || countLabel}</span>
       </div>
 
       {pills.length > 0 && (
