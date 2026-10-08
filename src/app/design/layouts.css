@@ -1,0 +1,219 @@
+/* =====================================================================
+   EduCash - layouts.css
+   Gabarits de mise en page. Chaque gabarit existe en version bureau
+   (dans .frame-desk, 1440 px) et mobile (dans .frame-phone, 390 px).
+   Pas de @media : on choisit explicitement la classe bureau ou mobile.
+   ===================================================================== */
+
+/* ---------- Logo (fichiers SVG livrés, jamais redessinés) ---------- */
+.logo { display: block; height: 32px; width: auto; flex: none; }
+.logo--sm { height: 26px; }
+.logo--lg { height: 44px; }
+.logo-sym { display: block; width: 32px; height: 32px; flex: none; }
+.logo-sym--sm { width: 26px; height: 26px; }
+/* Dans un conteneur en colonne, le logo garde sa largeur naturelle */
+.auth__brand > .logo, .sidebar__brand > .logo, .site-footer__brand > .logo, .stack > .logo { align-self: flex-start; }
+
+/* =====================================================================
+   A. VITRINE : EN-TÊTE ET FOOTER
+   ===================================================================== */
+.site { background: var(--c-givre); min-height: 100%; }
+.site-header { display: flex; align-items: center; gap: var(--s-8); height: 88px; padding: 0 var(--s-10); background: var(--c-blanc); border-bottom: var(--b-ligne); position: relative; z-index: var(--z-nav); }
+.site-header__nav { display: flex; gap: 4px; background: var(--c-givre); border-radius: var(--r-pill); padding: 5px; }
+.site-header__nav a { padding: 9px 18px; border-radius: var(--r-pill); font-weight: var(--fw-bold); font-size: var(--t-body-s); white-space: nowrap; }
+.site-header__nav a:hover, .site-header__nav a.is-hover { background: var(--c-blanc); }
+.site-header__nav a.is-active { background: var(--c-encre); color: var(--c-blanc); }
+.site-header__actions { margin-left: auto; display: flex; align-items: center; gap: var(--s-3); }
+.site-header__login { font-weight: var(--fw-xbold); font-size: var(--t-body-s); padding: 0 10px; }
+/* Variante posée sur le hero bleu (accueil) */
+.site-header--bleu { background: transparent; border-bottom: 0; color: var(--c-blanc); }
+.site-header--bleu .site-header__nav { background: rgba(255,255,255,.12); }
+.site-header--bleu .site-header__nav a:hover, .site-header--bleu .site-header__nav a.is-hover { background: rgba(255,255,255,.16); }
+.site-header--bleu .site-header__nav a.is-active { background: var(--c-blanc); color: var(--c-bleu); }
+/* Mobile */
+.site-header--m { height: 64px; padding: 0 var(--s-4); gap: var(--s-3); }
+.site-header--m .site-header__actions { gap: 8px; }
+
+/* Menu mobile ouvert (tiroir plein écran) */
+.site-menu { position: absolute; inset: 0; background: var(--c-bleu); color: var(--c-blanc); z-index: var(--z-drawer); display: flex; flex-direction: column; padding: 0 var(--s-4) var(--s-6); }
+.site-menu__top { height: 64px; display: flex; align-items: center; justify-content: space-between; }
+.site-menu__links { display: flex; flex-direction: column; margin-top: var(--s-6); }
+.site-menu__links a { font-family: var(--f-display); text-transform: uppercase; font-size: 40px; line-height: 1.15; padding: 6px 0; border-bottom: 2px solid rgba(255,255,255,.18); display: flex; justify-content: space-between; align-items: center; }
+.site-menu__links a.is-active { color: var(--c-citron); }
+.site-menu__foot { margin-top: auto; display: flex; flex-direction: column; gap: var(--s-3); }
+
+/* Hero vitrine (cadre arrondi bleu façon forma studio) */
+.hero { margin: var(--s-4); border-radius: var(--r-xl); background-color: var(--c-bleu); color: var(--c-blanc); position: relative; overflow: hidden; padding: 0 var(--s-14) var(--s-16); }
+.hero--m { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); padding: 0 var(--s-4) var(--s-8); }
+
+/* Sections vitrine */
+.section { padding: var(--s-20) var(--s-14) 0; }
+.section--m { padding: var(--s-12) var(--s-4) 0; }
+.section__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-6); margin-bottom: var(--s-8); }
+.container { max-width: 1240px; margin: 0 auto; }
+
+/* Footer */
+.site-footer { background: var(--c-encre); color: var(--c-blanc); margin: var(--s-20) var(--s-4) var(--s-4); border-radius: var(--r-xl); padding: var(--s-12) var(--s-14) var(--s-8); }
+.site-footer__top { display: grid; grid-template-columns: 1.4fr repeat(4, 1fr); gap: var(--s-8); }
+.site-footer__pitch { font-family: var(--f-display); text-transform: uppercase; font-size: 40px; line-height: .95; margin-top: var(--s-5); }
+.site-footer__pitch span { color: var(--c-citron); }
+.site-footer__col h4 { font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: .14em; text-transform: uppercase; color: var(--c-brume); margin-bottom: var(--s-3); }
+.site-footer__col a { display: block; font-weight: var(--fw-semibold); font-size: var(--t-body-s); padding: 5px 0; }
+.site-footer__col a:hover { color: var(--c-citron); }
+.site-footer__pay { display: flex; align-items: center; gap: var(--s-5); flex-wrap: wrap; margin-top: var(--s-10); padding: var(--s-5) 0; border-top: 2px solid var(--c-encre-700); border-bottom: 2px solid var(--c-encre-700); font-size: var(--t-body-s); color: var(--c-brume); }
+.site-footer__pay .payer { color: var(--c-blanc); }
+.site-footer__legal { display: flex; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; margin-top: var(--s-5); font-size: var(--t-caption); color: var(--c-brume); }
+.site-footer--m { margin: var(--s-12) 0 0; border-radius: var(--r-xl) var(--r-xl) 0 0; padding: var(--s-8) var(--s-4) var(--s-6); }
+.site-footer--m .site-footer__top { grid-template-columns: 1fr 1fr; gap: var(--s-6); }
+.site-footer--m .site-footer__brand { grid-column: 1 / -1; }
+.site-footer--m .site-footer__pitch { font-size: 32px; }
+.site-footer--m .site-footer__legal { flex-direction: column; gap: 6px; }
+
+/* =====================================================================
+   B. AUTHENTIFICATION : panneau de marque + formulaire
+   ===================================================================== */
+.auth { display: grid; grid-template-columns: 560px 1fr; min-height: 900px; background: var(--c-givre); }
+.auth__brand { margin: var(--s-4); border-radius: var(--r-xl); background: var(--c-bleu); color: var(--c-blanc); padding: var(--s-10); display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.auth__brand--client { background: var(--c-encre); }
+.auth__points { margin-top: auto; display: flex; flex-direction: column; gap: var(--s-4); }
+.auth__point { display: flex; gap: 12px; align-items: flex-start; font-size: var(--t-body-s); }
+.auth__main { display: flex; flex-direction: column; padding: var(--s-6) var(--s-10); }
+.auth__back { display: inline-flex; align-items: center; gap: 8px; font-weight: var(--fw-bold); font-size: var(--t-body-s); }
+.auth__form { width: 440px; margin: auto; display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-8) 0; }
+.auth--m { display: flex; flex-direction: column; min-height: 100%; background: var(--c-blanc); }
+.auth--m .auth__top { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--s-4); border-bottom: var(--b-ligne); }
+.auth--m .auth__form { width: auto; margin: 0; padding: var(--s-6) var(--s-4); }
+
+/* =====================================================================
+   C. SHELL CONNECTÉ BUREAU (étudiant, client, admin)
+   Inspiré du tableau de bord « intelly » : l'app est posée dans un grand
+   cadre arrondi, avec du vide autour ; la sidebar encre est un panneau
+   arrondi décollé des bords ; le contenu commence par une barre de
+   recherche pilule à filtres et des boutons ronds.
+   Structure :
+   .shell > .shell__frame > aside.sidebar + .shell__main > header.topbar + (.dash | .page)
+   ===================================================================== */
+.shell { min-height: 900px; height: 100%; padding: var(--s-4); background: var(--c-givre); position: relative; display: flex; }
+.shell__frame { flex: 1; min-width: 0; display: grid; grid-template-columns: var(--w-sidebar) minmax(0, 1fr); gap: var(--s-6); padding: var(--s-3); background: var(--c-blanc); border: var(--b-encre); border-radius: var(--r-xl); position: relative; overflow: hidden; }
+
+/* Sidebar flottante encre */
+.sidebar { background: var(--c-encre); color: var(--c-blanc); border-radius: var(--r-l); display: flex; flex-direction: column; padding: var(--s-6) var(--s-3) var(--s-3); gap: 2px; position: relative; min-height: 0; }
+.sidebar__brand { display: flex; flex-direction: column; gap: 6px; padding: 0 10px var(--s-5); }
+.sidebar__space { font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: .14em; text-transform: uppercase; color: var(--c-citron); }
+.sidebar__cta { margin: 0 4px var(--s-3); }
+.sidebar__nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar__group { font-size: var(--t-micro); font-weight: var(--fw-bold); letter-spacing: .02em; color: var(--c-brume); padding: var(--s-4) 12px 6px; }
+.sidebar__group:first-child { padding-top: 0; }
+.nav-item { display: flex; align-items: center; gap: 12px; height: 42px; padding: 0 12px; border-radius: var(--r-pill); font-weight: var(--fw-semibold); font-size: var(--t-body-s); color: var(--c-blanc); cursor: pointer; }
+.nav-item .ic { width: 20px; height: 20px; color: var(--c-brume); }
+.nav-item .count { margin-left: auto; background: var(--c-bleu); color: var(--c-blanc); }
+.nav-item .count--erreur { background: var(--c-erreur); }
+.nav-item:hover, .nav-item.is-hover { background: var(--c-encre-700); }
+.nav-item.is-active { background: var(--c-citron); color: var(--c-encre); font-weight: var(--fw-xbold); }
+.nav-item.is-active .ic { color: var(--c-encre); }
+.nav-item.is-active .count { background: var(--c-encre); color: var(--c-citron); }
+.nav-item.is-focus { box-shadow: var(--sh-focus-sombre); }
+/* Mini carte portefeuille de la sidebar (jamais en rouge, audit étudiant 27) */
+.side-wallet { margin: auto 4px 0; border-radius: var(--r-m); background: var(--c-bleu); color: var(--c-blanc); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.side-wallet__label { font-size: var(--t-micro); font-weight: var(--fw-bold); display: flex; align-items: center; gap: 6px; color: var(--c-bleu-100); }
+.side-wallet .amount { font-size: var(--t-amount-s); }
+.side-wallet__sub { font-size: var(--t-micro); color: var(--c-bleu-100); }
+.side-wallet--encre { background: var(--c-encre-700); }
+.sidebar__foot { display: flex; flex-direction: column; gap: 2px; padding-top: var(--s-3); border-top: 2px solid var(--c-encre-700); margin-top: var(--s-3); }
+
+/* Zone de contenu */
+.shell__main { display: flex; flex-direction: column; min-width: 0; min-height: 0; gap: var(--s-4); padding: var(--s-2) var(--s-3) var(--s-1) 0; position: relative; }
+.topbar { display: flex; align-items: center; gap: var(--s-3); min-height: 52px; position: relative; z-index: var(--z-sticky); }
+.topbar__actions { margin-left: auto; display: flex; align-items: center; gap: var(--s-2); }
+.topbar__stamp { font-size: var(--t-micro); color: var(--c-ardoise); font-weight: var(--fw-semibold); margin-right: 4px; }
+/* Bouton rond profil */
+.avatar-btn { width: 44px; height: 44px; border-radius: 50%; border: var(--b-encre); padding: 2px; display: inline-grid; place-items: center; cursor: pointer; background: var(--c-blanc); flex: none; }
+.avatar-btn .avatar { width: 36px; height: 36px; font-size: 13px; }
+.avatar-btn:hover, .avatar-btn.is-hover { background: var(--c-givre); }
+.avatar-btn.is-focus { box-shadow: var(--sh-focus); }
+
+/* Barre de recherche pilule avec filtres en chips */
+.searchbar { flex: 1; max-width: 760px; display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 6px 0 6px; border: var(--b-encre); border-radius: var(--r-pill); background: var(--c-blanc); }
+.searchbar__icon { width: 40px; height: 40px; border-radius: 50%; background: var(--c-citron); display: grid; place-items: center; flex: none; }
+.searchbar__icon .ic { width: 18px; height: 18px; }
+.searchbar input { flex: 1; min-width: 80px; border: 0; outline: 0; background: transparent; font-size: var(--t-body-s); }
+.searchbar input::placeholder { color: var(--c-ardoise); opacity: 1; }
+.searchbar__in { font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-ardoise); padding-left: 10px; border-left: var(--b-ligne); white-space: nowrap; }
+.searchbar__chips { display: flex; gap: 4px; flex: none; }
+.searchbar__chips .chip { height: 32px; padding: 0 12px; font-size: var(--t-caption); border-width: 1.5px; }
+.searchbar:focus-within, .searchbar.is-focus { box-shadow: var(--sh-focus); }
+
+/* Pages ordinaires */
+.page { display: flex; flex-direction: column; gap: var(--s-6); min-height: 0; }
+.page__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+.page__title { font-size: var(--t-h1); font-weight: var(--fw-xbold); letter-spacing: -.02em; line-height: 1.15; }
+.page__sub { color: var(--c-ardoise); margin-top: 4px; }
+.page__grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--s-6); align-items: start; }
+.block-title { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); margin-bottom: var(--s-3); }
+.block-title h2, .block-title .display { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; font-size: var(--t-display-s); line-height: 1; }
+.block-title--sans { margin-bottom: 10px; }
+.block-title--sans h2 { font-family: var(--f-text); text-transform: none; font-size: var(--t-h3); font-weight: var(--fw-xbold); letter-spacing: -.01em; }
+.block-title a { font-size: var(--t-body-s); font-weight: var(--fw-xbold); color: var(--c-bleu); }
+
+/* Tableau de bord : accueil, bento, liste + détail, colonne calendrier */
+.dash { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 336px; gap: var(--s-6); }
+.dash__main { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; }
+.dash__side { display: flex; flex-direction: column; gap: var(--s-4); min-height: 0; }
+.hello { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-6); }
+.hello__title { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; font-size: 48px; line-height: .92; letter-spacing: .005em; }
+.hello__title span { color: var(--c-bleu); }
+.hello__text { margin-top: 6px; color: var(--c-ardoise); font-size: var(--t-body); max-width: 640px; line-height: 1.45; }
+.hello__text b { color: var(--c-encre); }
+.hello__link { font-size: var(--t-body-s); font-weight: var(--fw-xbold); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: var(--s-4); min-height: 0; }
+
+/* =====================================================================
+   D. SHELL CONNECTÉ MOBILE : header + bottom nav 5 onglets
+   ===================================================================== */
+.mshell { position: relative; min-height: 100%; background: var(--c-givre); display: flex; flex-direction: column; }
+.mtopbar { height: var(--h-topbar-m); display: flex; align-items: center; gap: var(--s-3); padding: 0 var(--s-4); background: var(--c-givre); position: sticky; top: 0; z-index: var(--z-sticky); }
+.mtopbar__title { font-weight: var(--fw-xbold); font-size: var(--t-h4); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtopbar__actions { margin-left: auto; display: flex; align-items: center; gap: var(--s-2); }
+.mtopbar--white { background: var(--c-blanc); border-bottom: var(--b-ligne); }
+.mtopbar--sub .mtopbar__title { text-align: center; }
+.mtopbar__hello { flex: 1; line-height: 1.2; }
+.mtopbar__hello small { display: block; font-size: var(--t-caption); color: var(--c-ardoise); }
+.mtopbar__hello b { font-size: var(--t-h3); font-weight: var(--fw-xbold); display: flex; align-items: center; gap: 6px; }
+.mpage { padding: var(--s-2) var(--s-4) calc(var(--h-bottomnav) + 40px); display: flex; flex-direction: column; gap: var(--s-5); }
+.mpage--nonav { padding-bottom: var(--s-6); }
+
+/* Bottom nav : barre encre flottante, onglet actif en pilule citron */
+.bottom-nav { position: absolute; left: 10px; right: 10px; bottom: 34px; height: var(--h-bottomnav); border-radius: var(--r-pill); background: var(--c-encre); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; padding: 0 6px; z-index: var(--z-nav); }
+.bnav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; height: 58px; border-radius: 29px; color: var(--c-brume); font-size: 11px; font-weight: var(--fw-bold); position: relative; cursor: pointer; letter-spacing: .01em; }
+.bnav-item .ic { width: 22px; height: 22px; }
+.bnav-item.is-active { background: var(--c-citron); color: var(--c-encre); font-weight: var(--fw-xbold); margin: 0 2px; }
+.bnav-item.is-focus { box-shadow: var(--sh-focus-sombre); }
+.bnav-item__dot { position: absolute; top: 8px; right: calc(50% - 18px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--r-pill); background: var(--c-erreur); color: var(--c-blanc); font-size: 10px; font-weight: var(--fw-xbold); display: grid; place-items: center; border: 2px solid var(--c-encre); }
+.bnav-item--fab .bnav-fab { width: 52px; height: 52px; border-radius: 50%; background: var(--c-bleu); color: var(--c-blanc); display: grid; place-items: center; border: 2px solid var(--c-blanc); }
+.bnav-item--fab { color: var(--c-blanc); gap: 0; }
+.bnav-item--fab .bnav-label { display: none; }
+/* Barre d'action collée en bas (postuler, enregistrer), au-dessus du geste */
+.action-bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px var(--s-4) 40px; background: var(--c-blanc); border-top: var(--b-encre); display: flex; align-items: center; gap: var(--s-3); z-index: var(--z-nav); }
+
+/* =====================================================================
+   E. SHELL ADMIN BUREAU ET MOBILE
+   Bureau : même shell que l'étudiant et le client (.shell), avec le libellé
+   « Administration » et l'heure des données dans la topbar.
+   ===================================================================== */
+.shell--admin .sidebar__space { color: var(--c-bleu-clair); }
+
+/* Admin mobile : header encre + menu tiroir + bottom nav */
+.mtopbar--admin { background: var(--c-encre); color: var(--c-blanc); position: relative; }
+.mtopbar--admin .btn-icon { background: transparent; border-color: var(--c-encre-700); color: var(--c-blanc); }
+.mtopbar--admin .btn-icon__dot { border-color: var(--c-encre); }
+.admin-menu { position: absolute; inset: 0; z-index: var(--z-drawer); background: rgba(14,15,26,.55); display: flex; }
+.admin-menu__panel { width: 320px; background: var(--c-encre); color: var(--c-blanc); display: flex; flex-direction: column; padding: var(--s-4); gap: 4px; border-right: 2px solid var(--c-citron); overflow: auto; }
+.admin-menu__panel .nav-item { color: var(--c-blanc); }
+.admin-menu__panel .nav-item .ic { color: var(--c-brume); }
+.admin-menu__panel .nav-item.is-active { background: var(--c-citron); color: var(--c-encre); }
+.admin-menu__panel .nav-item.is-active .ic { color: var(--c-encre); }
+.admin-menu__panel .sidebar__group { color: var(--c-brume); }
+.admin-menu__panel .nav-item .count { background: var(--c-erreur); }
+
+/* Fond de contenu par défaut pour les écrans mobiles sans shell */
+.mscreen { min-height: 100%; background: var(--c-givre); position: relative; display: flex; flex-direction: column; }
