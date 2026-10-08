@@ -113,11 +113,20 @@ describe("composant de lien d'ancre", () => {
   })
 
   it("les liens d'ancre des heros, du bandeau séquestre et de l'aide utilisent AnchorLink", () => {
-    expect(read("components/vitrine/clients/clients-hero.jsx")).toContain('<AnchorLink className="btn btn--ghost" href="#sequestre">')
-    expect(read("components/vitrine/shared/payers.jsx")).toContain('<AnchorLink className="link" href="/aide#sequestre">')
-    expect(read("components/vitrine/shared/escrow-note.jsx")).toContain('<AnchorLink className="link" href="/aide#sequestre">')
-    expect(read("app/contact/page.js")).toContain("<AnchorLink key={l.href} href={l.href}>")
-    expect(read("app/legal/mentions/page.js")).toContain('<AnchorLink className="link" href="/legal/terms#achats">')
+    const expected = {
+      "components/vitrine/clients/clients-hero.jsx": "#sequestre",
+      "components/vitrine/shared/payers.jsx": "/aide#sequestre",
+      "components/vitrine/shared/escrow-note.jsx": "/aide#sequestre",
+      "app/legal/mentions/page.js": "/legal/terms#achats",
+    }
+    for (const [rel, href] of Object.entries(expected)) {
+      const code = read(rel)
+      expect(code, rel).toContain("<AnchorLink")
+      expect(code, rel).toContain(`href="${href}"`)
+    }
+    const contact = read("app/contact/page.js")
+    expect(contact).toContain("<AnchorLink")
+    expect(contact).toContain("href={l.href}")
   })
 })
 

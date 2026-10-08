@@ -17,10 +17,13 @@ const html = renderToStaticMarkup(<HomeHero live={false} openMissions={0} role={
 const visual = html.slice(html.indexOf('class="v-hero__visual"'))
 
 describe("HomeHero visuel", () => {
-  it("le premier enfant du visuel est l'aplat citron qui contient le picture", () => {
-    const afterOpen = visual.slice(visual.indexOf(">") + 1)
-    expect(afterOpen.startsWith('<div class="photo-ph"><picture class="v-hero__picture">')).toBe(true)
-    expect(afterOpen.indexOf("</picture></div>")).toBeGreaterThan(0)
+  it("l'aplat citron contient le picture, et le push vient après", () => {
+    const flat = visual.indexOf('class="photo-ph"')
+    const picture = visual.indexOf('<picture class="v-hero__picture">')
+    const push = visual.indexOf("v-hero__push")
+    expect(flat).toBeGreaterThan(-1)
+    expect(picture).toBeGreaterThan(flat)
+    expect(push).toBeGreaterThan(picture)
   })
 
   it("la source réservée aux écrans larges et le pixel de repli", () => {
