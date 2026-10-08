@@ -4,8 +4,8 @@ import path from "node:path"
 
 const ROOT = path.resolve(import.meta.dirname, "../../..")
 const DIRS = ["src/components/vitrine", "src/app/legal", "src/app/about", "src/app/contact", "src/app/(home)", "src/app/(public)", "src/app/(mission-detail)"]
-// auth-shell.jsx est preexistant et hors perimetre de ce lot.
-const SKIP = new Set(["src/components/vitrine/auth-shell.jsx"])
+// Fichiers MUI historiques (auth-shell, stack, theme, provider), preexistants.
+const SKIP = new Set(["src/components/vitrine/auth-shell.jsx", "src/components/vitrine/stack.jsx", "src/components/vitrine/theme.js", "src/components/vitrine/vitrine-provider.jsx"])
 
 function walk(dir, out = []) {
   const abs = path.join(ROOT, dir)
