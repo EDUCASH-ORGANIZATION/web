@@ -120,7 +120,7 @@ export function Hero({ students = 0 }) {
             </Stack>
           </Stack>
 
-          {/* Colonne 3D — masquée sur mobile */}
+          {/* Colonne 3D - masquée sur mobile */}
           <Box sx={{ display: { xs: "none", md: "block" }, position: "relative", height: { md: 600 }, order: { xs: -1, md: 0 } }}>
             <Box sx={{ position: "absolute", inset: "8% 12%", borderRadius: "50%",
               background: `radial-gradient(circle, ${BRAND.green}33 0%, transparent 65%)`, filter: "blur(30px)" }} />

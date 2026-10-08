@@ -24,7 +24,7 @@ const STUDENT_STEPS = [
 ]
 
 const CLIENT_STEPS = [
-  { icon: GroupAddRoundedIcon, title: "Crée ton compte", description: "Inscris-toi en 2 minutes. Particulier, entreprise ou association — on a tout prévu." },
+  { icon: GroupAddRoundedIcon, title: "Crée ton compte", description: "Inscris-toi en 2 minutes. Particulier, entreprise ou association - on a tout prévu." },
   { icon: DescriptionRoundedIcon, title: "Décris ton besoin", description: "Publie une mission avec le budget, la ville et le type de prestation. Reçois des candidatures rapidement." },
   { icon: CreditCardRoundedIcon, title: "Paye en sécurité", description: "Règle via FedaPay. Le paiement est libéré uniquement quand vous validez ensemble la mission." },
 ]

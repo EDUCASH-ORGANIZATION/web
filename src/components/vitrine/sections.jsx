@@ -58,7 +58,7 @@ const TESTIMONIALS = [
   { initial: "A", color: BRAND.amber, name: "Adjoua Koffi", role: "Gérante · Boutique Mode, Cotonou",
     quote: "J'avais besoin d'aide pour gérer mon Instagram. J'ai trouvé un étudiant compétent en moins de 24h. Paiement simple, mission réussie." },
   { initial: "S", color: BRAND.violet, name: "Serge Dossou", role: "Directeur · PME Logistique, Porto-Novo",
-    quote: "La qualité des profils est impressionnante. On a confié notre community management à un étudiant — résultats au-delà de nos attentes." },
+    quote: "La qualité des profils est impressionnante. On a confié notre community management à un étudiant - résultats au-delà de nos attentes." },
 ]
 
 // ─── Bandeau statistiques ─────────────────────────────────────────────────────
