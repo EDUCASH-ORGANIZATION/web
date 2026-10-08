@@ -33,6 +33,7 @@ export default async function ContactPage({ searchParams }) {
   return (
     <VitrinePage>
       <div className="v08-head grid-bg">
+        {/* Pastille 24 h demandée par l'utilisateur (RD-FIX-03b), seule exception du test de garde. */}
         <div className="v08-badge">
           <div>
             <b>24&nbsp;h</b>
