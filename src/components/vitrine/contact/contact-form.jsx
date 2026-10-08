@@ -21,7 +21,7 @@ function FieldError({ id, message }) {
   )
 }
 
-export function ContactForm({ defaultSubject = "" }) {
+export function ContactForm({ defaultSubject = "", defaultMessage = "" }) {
   const {
     register,
     handleSubmit,
@@ -32,7 +32,7 @@ export function ContactForm({ defaultSubject = "" }) {
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(contactSchema),
-    defaultValues: { name: "", email: "", subject: defaultSubject, message: "", [HONEYPOT_FIELD]: "" },
+    defaultValues: { name: "", email: "", subject: defaultSubject, message: defaultMessage, [HONEYPOT_FIELD]: "" },
   })
   const [serverError, setServerError] = useState("")
   const [sent, setSent] = useState(null)
@@ -107,7 +107,7 @@ export function ContactForm({ defaultSubject = "" }) {
   return (
     <form className="v08-form" onSubmit={handleSubmit(onSubmit)} noValidate aria-busy={isSubmitting}>
       <div>
-        <h2 className="h2">Envoyer un message</h2>
+        <h2 className="ds-h2">Envoyer un message</h2>
         <p className="body-s muted v08-form__lead">Tous les champs sont obligatoires.</p>
       </div>
 

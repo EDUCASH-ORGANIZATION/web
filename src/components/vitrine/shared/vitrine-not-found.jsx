@@ -6,7 +6,7 @@ export function VitrineNotFound({ title, text, backHref, backLabel }) {
   return (
     <VitrinePage>
       <section className="section">
-        <div className="container">
+        <div className="ds-container">
           <StateBlock
             title={title}
             titleAs="h1"

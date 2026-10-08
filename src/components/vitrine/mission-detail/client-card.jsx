@@ -15,9 +15,9 @@ function initialsOf(name) {
 /**
  * Carte « À propos du client ». Le nom est abrégé (prénom et initiale)
  * pour un visiteur, complet pour un utilisateur connecté (Q7).
- * @param {{ profile: { full_name?: string|null, city?: string|null, rating?: number|null, missions_done?: number|null }|null, viewerLoggedIn: boolean }} props
+ * @param {{ profile: { full_name?: string|null, city?: string|null, rating?: number|null, missions_done?: number|null }|null, viewerLoggedIn: boolean, reportHref: string }} props
  */
-export function ClientCard({ profile, viewerLoggedIn }) {
+export function ClientCard({ profile, viewerLoggedIn, reportHref }) {
   const hasName = Boolean(profile?.full_name?.trim())
   const name = hasName
     ? publicDisplayName(profile.full_name, { full: viewerLoggedIn })
@@ -29,14 +29,14 @@ export function ClientCard({ profile, viewerLoggedIn }) {
     <div className="card">
       <div className="card__head">
         <h2 className="card__title">À propos du client</h2>
-        <Link className="link body-s" href="/contact?sujet=signalement">
+        <Link className="link body-s" href={reportHref}>
           <Icon name="i-flag" className="ic ic--16" />Signaler
         </Link>
       </div>
       <div className="row row--nowrap ds-gap-4">
         <span className="avatar avatar--lg avatar--citron" aria-hidden="true">{initialsOf(name)}</span>
         <div className="ds-grow">
-          <div className="h4">{name}</div>
+          <div className="ds-h4">{name}</div>
           {profile?.city ? <div className="caption">{profile.city}</div> : null}
         </div>
         {rating > 0 || done > 0 ? (

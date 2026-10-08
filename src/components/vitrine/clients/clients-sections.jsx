@@ -31,7 +31,7 @@ function SectionHead({ eyebrow, children, aside }) {
 export function EscrowSteps() {
   return (
     <section className="section" id="sequestre">
-      <div className="container">
+      <div className="ds-container">
         <SectionHead
           eyebrow="Le séquestre"
           aside={
@@ -97,7 +97,7 @@ export function EscrowSteps() {
 export function Commission() {
   return (
     <section className="section">
-      <div className="container">
+      <div className="ds-container">
         <SectionHead eyebrow={`${COMMISSION_PERCENT} %, et c'est tout`}>
           Une commission.<br /><span className="hl-bleu">Affichée.</span>
         </SectionHead>
@@ -112,7 +112,7 @@ export function Commission() {
           </div>
           <div className="v05-bill">
             <div className="v05-bill__total">
-              <span className="h3">Vous payez le budget affiché</span>
+              <span className="ds-h3">Vous payez le budget affiché</span>
               <span className="amount amount--xl">{formatFcfa(EXAMPLE_BUDGET)}</span>
             </div>
             <div
@@ -148,7 +148,7 @@ export function Commission() {
 export function MissionTypes({ publishHref }) {
   return (
     <section className="section">
-      <div className="container">
+      <div className="ds-container">
         <SectionHead
           eyebrow={`${TYPE_CARDS.length} types de missions`}
           aside={<p className="muted ds-text-right">Chaque carte mène à la publication d&apos;une mission.</p>}
@@ -178,7 +178,7 @@ export function MissionTypes({ publishHref }) {
 export function Guarantees() {
   return (
     <section className="section">
-      <div className="container">
+      <div className="ds-container">
         <SectionHead eyebrow="Garanties">Si ça coince,<br /><span className="hl-bleu">on est là.</span></SectionHead>
         <div className="v05-guar">
           {GUARANTEES.map((g) => (
@@ -203,7 +203,7 @@ export function ClientFaq() {
   }))
   return (
     <section className="section">
-      <div className="container">
+      <div className="ds-container">
         <SectionHead
           eyebrow="Questions de clients"
           aside={

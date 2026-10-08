@@ -47,4 +47,36 @@ describe("garde-fous de contenu vitrine", () => {
     expect(src).toMatch(/achats/)
     expect(src).toMatch(/Missions avec achats/)
   })
+
+  it("chaque classe utilisee existe dans le design system", () => {
+    const known = new Set()
+    const cssDir = path.join(ROOT, "src/app/design")
+    for (const f of fs.readdirSync(cssDir).filter((n) => n.endsWith(".css"))) {
+      for (const m of fs.readFileSync(path.join(cssDir, f), "utf8").matchAll(/\.(-?[A-Za-z_][\w-]*)/g)) known.add(m[1])
+    }
+    const allowed = (c) => /^(w|h|max-w)-/.test(c) || ["rounded-full", "object-cover", "sr-only", "focus:not-sr-only", "ds"].includes(c)
+    const unknown = []
+    for (const f of files.filter((n) => /\.jsx?$/.test(n))) {
+      for (const m of read(f).matchAll(/className=(?:"([^"]*)"|\{?`([^`]*)`)/g)) {
+        const text = (m[1] ?? m[2]).replace(/\$\{[^}]*\}/g, " ")
+        for (const c of text.split(/\s+/).filter(Boolean)) {
+          // Fragments de gabarits dynamiques (btn--${x}, v06-val--${x}) : non verifiables.
+          if (/[$?"]|--$/.test(c)) continue
+          if (!known.has(c) && !allowed(c)) unknown.push(`${f}: ${c}`)
+        }
+      }
+    }
+    expect([...new Set(unknown)]).toEqual([])
+  })
+
+  it("aucune classe generique du design system n'est utilisee en dehors de lui", () => {
+    const banned = new Set(["container", "grow", "grid", "table", "h1", "h2", "h3", "h4"])
+    const hits = []
+    for (const f of files.filter((n) => /\.jsx?$/.test(n))) {
+      for (const m of read(f).matchAll(/className=(?:"([^"]*)"|\{?`([^`]*)`)/g)) {
+        for (const c of (m[1] ?? m[2]).split(/\s+/)) if (banned.has(c)) hits.push(`${f}: ${c}`)
+      }
+    }
+    expect(hits).toEqual([])
+  })
 })

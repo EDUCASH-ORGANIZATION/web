@@ -3,6 +3,7 @@ import { Icon } from "@/components/design/icon"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 import { ContactForm } from "@/components/vitrine/contact/contact-form"
 import { CONTACT_SUBJECTS } from "@/lib/contact/schema"
+import { safeNextPath } from "@/lib/utils/safe-next"
 
 export const metadata = {
   title: "Contact",
@@ -25,6 +26,9 @@ export default async function ContactPage({ searchParams }) {
   const sp = (await searchParams) ?? {}
   const requested = first(sp.sujet)
   const defaultSubject = CONTACT_SUBJECTS.some((s) => s.id === requested) ? requested : ""
+
+  const ref = safeNextPath(first(sp.ref))
+  const defaultMessage = defaultSubject === "signalement" && ref ? `Page concernée : ${ref}\n\n` : ""
 
   return (
     <VitrinePage>
@@ -52,7 +56,7 @@ export default async function ContactPage({ searchParams }) {
       </div>
 
       <section className="section ds-pt-8">
-        <div className="container">
+        <div className="ds-container">
           <div className="v08-grid">
             <div className="v08-infos">
               <div className="v08-info">
@@ -101,7 +105,7 @@ export default async function ContactPage({ searchParams }) {
                 </Link>
               </div>
             </div>
-            <ContactForm defaultSubject={defaultSubject} />
+            <ContactForm defaultSubject={defaultSubject} defaultMessage={defaultMessage} />
           </div>
         </div>
       </section>
