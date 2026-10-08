@@ -13,12 +13,6 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-
-  /* Alias utilitaires compatibles Tailwind, mappes sur les jetons Direction A */
-  --color-bleu: var(--c-bleu);
-  --color-citron: var(--c-citron);
-  --color-encre: var(--c-encre);
-  --color-givre: var(--c-givre);
 }
 
 @theme inline {
