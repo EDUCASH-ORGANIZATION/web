@@ -121,12 +121,9 @@ describe("composant de lien d'ancre", () => {
     }
     for (const [rel, href] of Object.entries(expected)) {
       const code = read(rel)
-      expect(code, rel).toContain("<AnchorLink")
-      expect(code, rel).toContain(`href="${href}"`)
+      expect(code, rel).toMatch(new RegExp(`<AnchorLink[^>]*href="${href}"`))
     }
-    const contact = read("app/contact/page.js")
-    expect(contact).toContain("<AnchorLink")
-    expect(contact).toContain("href={l.href}")
+    expect(read("app/contact/page.js")).toMatch(/<AnchorLink[^>]*href=\{l\.href\}/)
   })
 })
 
