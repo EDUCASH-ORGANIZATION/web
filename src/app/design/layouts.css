@@ -598,7 +598,7 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .v06-member .photo-ph { width: 84px; height: 84px; flex: none; border-radius: 18px; }
   .v06-member .photo-ph svg { width: 64px; height: 64px; }
   .v06-member__name { font-size: var(--t-body); }
-  .v07-themes { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 150px; overflow-x: auto; }
+  .v07-themes { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 150px; overflow-x: auto; padding: 4px 8px 8px 4px; margin: -4px -8px -8px -4px; scrollbar-width: none; }
   .v08-row2 { grid-template-columns: minmax(0, 1fr); }
 }
 
