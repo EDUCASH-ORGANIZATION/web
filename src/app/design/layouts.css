@@ -364,6 +364,8 @@
 /* ---------- Lien d'évitement (masqué, visible au focus) ---------- */
 .ds-skip-link { position: fixed; left: var(--s-2); top: var(--s-2); z-index: var(--z-toast); transform: translateY(-200%); }
 .ds-skip-link:focus, .ds-skip-link:focus-visible { transform: none; }
+/* Cible du lien d'évitement (tabIndex -1) : reçoit le focus sans contour. */
+.ds main[tabindex="-1"]:focus { outline: none; }
 
 /* ---------- Pied de page : lien de la page active (fond encre) ---------- */
 .site-footer__col a.is-active, .site-footer__col a[aria-current="page"] { color: var(--c-citron); }

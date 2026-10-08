@@ -12,7 +12,7 @@ export function VitrinePage({ children, mainId = "contenu", navbar = <VitrineNav
       </a>
       {navbar}
       {before}
-      <main id={mainId}>{children}</main>
+      <main id={mainId} tabIndex={-1}>{children}</main>
       <VitrineFooter />
     </div>
   )
