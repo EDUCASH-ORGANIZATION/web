@@ -112,6 +112,8 @@ export function Select({
     })
     if (intent === "none") return
     if (intent !== "tab") e.preventDefault()
+    // Échap ferme seulement la liste : une modale ou une feuille parente reste ouverte.
+    if (intent === "close") e.stopPropagation()
 
     switch (intent) {
       case "open": openList(); break
@@ -142,9 +144,30 @@ export function Select({
     return () => document.removeEventListener("pointerdown", onPointerDown)
   }, [open])
 
+  // Comme un select natif, la liste se ferme quand la page défile ou que la fenêtre change de taille
+  // (le défilement interne de la liste ne la ferme pas).
   useEffect(() => {
-    if (open && active >= 0) {
-      document.getElementById(optionId(active))?.scrollIntoView({ block: "nearest" })
+    if (!open) return undefined
+    const onScroll = (e) => {
+      if (!menuRef.current?.contains(e.target)) closeList()
+    }
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true })
+    window.addEventListener("resize", closeList)
+    return () => {
+      window.removeEventListener("scroll", onScroll, { capture: true })
+      window.removeEventListener("resize", closeList)
+    }
+  }, [open])
+
+  // Fait défiler la liste elle-même (jamais un conteneur parent) jusqu'à l'option active.
+  useEffect(() => {
+    const menu = menuRef.current
+    const option = open && active >= 0 ? document.getElementById(optionId(active)) : null
+    if (menu && option) {
+      if (option.offsetTop < menu.scrollTop) menu.scrollTop = option.offsetTop
+      else if (option.offsetTop + option.offsetHeight > menu.scrollTop + menu.clientHeight) {
+        menu.scrollTop = option.offsetTop + option.offsetHeight - menu.clientHeight
+      }
     }
   // optionId dépend seulement de uid
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,7 +187,7 @@ export function Select({
       data-vertical={placement.vertical}
       data-horizontal={placement.horizontal}
     >
-      {name ? <input type="hidden" name={name} value={current} /> : null}
+      {name ? <input type="hidden" name={name} value={current} disabled={disabled} /> : null}
       <button
         ref={setTriggerRef}
         id={id}
@@ -188,6 +211,10 @@ export function Select({
           else openList()
         }}
         onKeyDown={onKeyDown}
+        onKeyUp={(e) => {
+          // Firefox active un bouton à la levée d'Espace : sans ceci la liste s'ouvrirait puis se fermerait.
+          if (e.key === " ") e.preventDefault()
+        }}
         onBlur={(e) => {
           if (!rootRef.current?.contains(e.relatedTarget)) closeList()
           onBlur?.(e)
