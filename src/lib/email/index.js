@@ -1,4 +1,4 @@
-"use server"
+import "server-only"
 
 import { Resend } from "resend"
 import WelcomeStudent        from "./templates/welcome-student.jsx"
