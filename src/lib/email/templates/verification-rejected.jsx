@@ -91,7 +91,7 @@ export default function VerificationRejected({
 
           {/* ── CTA ───────────────────────────────────────────────── */}
           <Section style={{ textAlign: "center", margin: "24px 0" }}>
-            <Button href={appUrl + "/student/profile/edit"} style={buttonAmber}>
+            <Button href={appUrl + "/profile/verify"} style={buttonAmber}>
               Soumettre un nouveau document →
             </Button>
           </Section>
