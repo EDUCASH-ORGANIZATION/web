@@ -18,7 +18,7 @@ export function StateBlock({ kind = "empty", title, text, actions = [], titleAs:
       <Title className="empty__title">{title}</Title>
       {text ? <div className="empty__text">{text}</div> : null}
       {actions.length > 0 ? (
-        <div className="row ds-justify-center">
+        <div className="empty__actions">
           {actions.map(({ href, label, variant = "primary" }) => (
             <Link key={`${href}-${label}`} className={`btn btn--${variant} btn--sm`} href={href}>
               {label}

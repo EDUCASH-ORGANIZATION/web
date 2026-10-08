@@ -643,3 +643,17 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
    le compteur passe à la ligne au lieu de faire déborder la page. */
 .v02-mbar { flex-wrap: wrap; row-gap: 8px; }
 .v02-mbar .caption { white-space: nowrap; font-weight: var(--fw-bold); }
+
+
+/* =====================================================================
+   RD-FIX-06 : finitions mobile
+   ===================================================================== */
+/* Etat vide ou erreur : actions centrées, de même largeur en mobile */
+.empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-3); margin-top: 8px; }
+.empty .empty__actions .btn { margin-top: 0; }
+@media (max-width: 767.98px) {
+  .empty__actions { flex-direction: column; align-items: stretch; width: 100%; max-width: 320px; }
+  .empty__actions .btn { width: 100%; justify-content: center; }
+  .v02-void__actions { flex-direction: column; align-items: stretch; }
+  .v02-void__actions .btn { width: 100%; justify-content: center; }
+}
