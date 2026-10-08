@@ -49,6 +49,15 @@ describe("garde-fous de contenu vitrine", () => {
     expect(hits).toEqual([])
   })
 
+  it("le libelle de la pastille 24 h n'apparait que dans la page contact", () => {
+    const EXCEPTIONS = { "src/app/contact/page.js": "pastille 24 h demandée par l'utilisateur (RD-FIX-03b)" }
+    const badge = /24(\s|&nbsp;|\u00a0)*h\s*ouvrées/
+    const hits = files
+      .filter((f) => /\.jsx?$/.test(f))
+      .filter((f) => badge.test(read(f).replace(/<[^>]*>/g, " ").replace(/\{\/\*[\s\S]*?\*\/\}/g, " ")))
+    expect(hits).toEqual(Object.keys(EXCEPTIONS))
+  })
+
   it("les mentions legales portent l'identite BRANDYBEN", () => {
     const src = read("src/components/vitrine/legal/legal-entity.js") + read("src/app/legal/mentions/page.js")
     expect(src).toContain("BRANDYBEN")
