@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { Icon } from "@/components/design/icon"
 import { useVitrineSession } from "@/hooks/use-vitrine-session"
 import { SiteMenu } from "./site-menu"
+import { AnchorLink } from "./shared/hash-scroll"
 
 const MENU_ID = "site-menu"
 
@@ -82,14 +83,14 @@ export function VitrineNavbar({ tone = "blanc" }) {
             {DESKTOP_LINKS.map(({ label, href }) => {
               const active = isActive(href)
               return (
-                <Link
+                <AnchorLink
                   key={label}
                   href={href}
                   className={active ? "is-active" : undefined}
                   aria-current={active ? "page" : undefined}
                 >
                   {label}
-                </Link>
+                </AnchorLink>
               )
             })}
           </nav>
