@@ -1,4 +1,3 @@
-import Image from "next/image"
 import Link from "next/link"
 import { preload } from "react-dom"
 import { Icon } from "@/components/design/icon"
@@ -12,10 +11,12 @@ const POPULAR = ["Cours particuliers", "Livraison", "Saisie", "Babysitting"].fil
 )
 const EXAMPLE_BUDGET = 25000
 
-// Photo : Abraham Ocholi, Pexels (licence Pexels, attribution non requise), détourée puis exportée en WebP.
-// Le visuel est masqué sous 1024 px : le chargement est donc différé (loading="lazy", un élément
-// en display: none n'est jamais demandé) et le préchargement est limité aux écrans larges par `media`.
-// L'image est déjà optimisée : `unoptimized` garde la même URL pour le préchargement.
+// Photo : Abraham Ocholi, Pexels (licence Pexels, attribution non requise), détourée puis exportée en WebP
+// (733 x 1240, déjà optimisée : pas de passage par l'optimiseur de next/image).
+// Le visuel est masqué sous 1024 px : un <picture> dont la seule source est réservée aux écrans larges
+// ne demande jamais l'image en mobile (le repli est un pixel transparent en data URI), alors que
+// next/image avec priority la préchargerait même masquée. Le préchargement est limité par `media`.
+const PIXEL = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
 const HERO_PHOTO = { src: "/images/hero/portrait-hero.webp", width: 733, height: 1240 }
 const HERO_PHOTO_MEDIA = "(min-width: 1024px)"
 
@@ -77,7 +78,7 @@ export function HomeHero({ live, openMissions, role }) {
   )
 
   return (
-    <div className="hero grid-bg">
+    <div className="hero hero--under-header grid-bg">
       <div className="v-hero">
         <div>
           {chip}
@@ -153,17 +154,17 @@ export function HomeHero({ live, openMissions, role }) {
         </div>
 
         <div className="v-hero__visual" aria-hidden="true">
-          <Image
-            className="v-hero__photo"
-            src={HERO_PHOTO.src}
-            width={HERO_PHOTO.width}
-            height={HERO_PHOTO.height}
-            sizes="372px"
-            loading="lazy"
-            fetchPriority="high"
-            unoptimized
-            alt=""
-          />
+          <picture>
+            <source media={HERO_PHOTO_MEDIA} srcSet={HERO_PHOTO.src} />
+            <img
+              className="v-hero__photo"
+              src={PIXEL}
+              width={HERO_PHOTO.width}
+              height={HERO_PHOTO.height}
+              fetchPriority="high"
+              alt=""
+            />
+          </picture>
           <div className="push v-hero__push">
             <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={40} height={40} />
             <div>
