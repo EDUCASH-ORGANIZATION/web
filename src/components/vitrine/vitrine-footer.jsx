@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { FooterLink } from "./footer-link"
+import { PayerOperators } from "./shared/payers"
 
 // Pied de page public de la vitrine (design system Direction A, maquette V01).
 export function VitrineFooter() {
@@ -38,8 +39,7 @@ export function VitrineFooter() {
       <div className="site-footer__pay">
         Paiements opérés par
         <span className="payer payer--fedapay"><span className="payer__mark">F</span>FedaPay</span>
-        <span className="payer payer--mtn"><span className="payer__mark">MTN</span>MTN MoMo</span>
-        <span className="payer payer--moov"><span className="payer__mark">M</span>Moov Money</span>
+        <PayerOperators />
         <span className="ds-grow" />
         Commission unique de 12 %, prélevée sur le paiement de l’étudiant
       </div>

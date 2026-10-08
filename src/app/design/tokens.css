@@ -68,6 +68,8 @@
   --t-display-s: 28px;        /* titres de bloc dans l'app ("EN COURS", "POUR TOI") */
 
   /* Échelle texte (Figtree) */
+  --lh-display: 1.14;       /* interligne des titres Anton (accents des majuscules) */
+  --lh-display-xxl: 1.16;
   --t-h1: 32px;   --lh-h1: 1.15;   /* titre de page dans l'app */
   --t-h2: 24px;   --lh-h2: 1.2;
   --t-h3: 20px;   --lh-h3: 1.25;

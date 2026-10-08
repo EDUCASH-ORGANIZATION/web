@@ -20,12 +20,12 @@
 .ds { min-height: 100%; font-family: var(--f-text); font-size: var(--t-body); line-height: var(--lh-body); color: var(--c-encre); background: var(--c-givre); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 
 /* ---------- Utilitaires typographiques ---------- */
-.display { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; line-height: 1.06; letter-spacing: .005em; }
-.display--xxl { font-size: var(--t-display-xxl); line-height: .88; }
-.display--xl { font-size: var(--t-display-xl); line-height: 1; }
-.display--l { font-size: var(--t-display-l); line-height: 1; }
-.display--m { font-size: var(--t-display-m); line-height: 1; }
-.display--s { font-size: var(--t-display-s); line-height: 1; }
+.display { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; line-height: var(--lh-display); letter-spacing: .005em; }
+.display--xxl { font-size: var(--t-display-xxl); line-height: var(--lh-display-xxl); }
+.display--xl { font-size: var(--t-display-xl); line-height: var(--lh-display); }
+.display--l { font-size: var(--t-display-l); line-height: var(--lh-display); }
+.display--m { font-size: var(--t-display-m); line-height: var(--lh-display); }
+.display--s { font-size: var(--t-display-s); line-height: var(--lh-display); }
 .hl-citron { color: var(--c-citron); }      /* mot surligné sur bleu ou encre */
 .hl-bleu { color: var(--c-bleu); }          /* mot surligné sur clair */
 .ds-h1 { font-size: var(--t-h1); line-height: var(--lh-h1); font-weight: var(--fw-xbold); letter-spacing: -.02em; }
@@ -819,7 +819,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .sticker--round { border-radius: 50%; }
 .sticker .ic { width: 32px; height: 32px; }
 .roundel { width: 140px; height: 140px; flex: none; }
-.roundel text { font-family: var(--f-display); font-size: 15px; letter-spacing: 2.4px; text-transform: uppercase; }
+.roundel text { font-family: var(--f-display); font-size: 13px; letter-spacing: 2.4px; text-transform: uppercase; }
 .spin { animation: spin 18s linear infinite; transform-origin: center; }
 .grid-bg { background-image: linear-gradient(rgba(255,255,255,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.09) 1px, transparent 1px); background-size: 56px 56px; }
 
@@ -827,12 +827,10 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .photo-ph { border-radius: var(--r-l); background: var(--c-citron); border: var(--b-encre); position: relative; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
 .photo-ph__note { position: absolute; left: 12px; right: 12px; top: 12px; border: 2px dashed rgba(14,15,26,.55); border-radius: var(--r-s); padding: 8px 10px; font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: .06em; text-transform: uppercase; background: rgba(255,255,255,.55); }
 
-/* Logos de partenaires de paiement (pastilles typographiques, pas de logos officiels) */
+/* Partenaires de paiement : vrais logos MTN et Moov (OperatorLogo), pastille typographique pour FedaPay */
 .payer { display: inline-flex; align-items: center; gap: 8px; font-weight: var(--fw-xbold); font-size: var(--t-body-s); }
 .payer__mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 9px; font-weight: var(--fw-black); flex: none; }
-.payer--mtn .payer__mark { background: #FFCB05; color: var(--c-encre); }
-.payer--moov .payer__mark { background: #0065B3; color: var(--c-blanc); }
-.payer--celtiis .payer__mark { background: #6A2C91; color: var(--c-blanc); }
+.payer__logo { height: 36px; width: auto; object-fit: contain; flex: none; display: block; }
 .payer--fedapay .payer__mark { background: var(--c-encre); color: var(--c-blanc); }
 .site-footer .payer--fedapay .payer__mark { background: var(--c-blanc); color: var(--c-encre); }
 
@@ -1031,7 +1029,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .v-cat__ex { font-size: var(--t-para); line-height: var(--lh-para); color: var(--c-ardoise); margin-top: 4px; }
 .v-cat__shape { position: absolute; right: -30px; bottom: -40px; width: 170px; height: 170px; z-index: -1; color: var(--c-ligne-2); }
 .v-cat--big { grid-row: span 2; background: var(--c-bleu); color: var(--c-blanc); }
-.v-cat--big .v-cat__name { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; font-size: var(--t-display-l); line-height: .92; letter-spacing: .005em; }
+.v-cat--big .v-cat__name { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; font-size: var(--t-display-l); line-height: var(--lh-display); letter-spacing: .005em; }
 .v-cat--big .v-cat__ex { color: var(--c-blanc); font-size: var(--t-body); }
 .v-cat--big .v-cat__go { background: var(--c-citron); color: var(--c-encre); }
 .v-cat--big .v-cat__shape { color: rgba(255,255,255,.1); width: 320px; height: 320px; right: -60px; bottom: -80px; }
@@ -1188,7 +1186,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .v04-wrap { padding: var(--s-6) var(--s-14) 0; }
 .v04-hero { margin: var(--s-4); border-radius: var(--r-xl); background-color: var(--c-bleu); color: var(--c-blanc); padding: var(--s-12) var(--s-14); position: relative; overflow: hidden; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-10); align-items: center; }
 .v04-hero .avatar--xl { width: 168px; height: 168px; }
-.v04-name { font-family: var(--f-display); text-transform: uppercase; font-size: 112px; line-height: 1; }
+.v04-name { font-family: var(--f-display); text-transform: uppercase; font-size: 112px; line-height: var(--lh-display); }
 .v04-name span { color: var(--c-citron); }
 .v04-facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: var(--s-4); font-weight: var(--fw-bold); }
 .v04-facts span { display: inline-flex; align-items: center; gap: 6px; }
@@ -1306,12 +1304,13 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .v06-pay { display: flex; gap: var(--s-6); align-items: center; flex-wrap: wrap; }
 .v06-pay .payer { font-size: var(--t-h4); }
 .v06-pay .payer__mark { width: 44px; height: 44px; font-size: 12px; }
+.v06-pay .payer__logo { height: 52px; }
 .v06-band .payer { color: var(--c-blanc); }
 .v06-band .payer--fedapay .payer__mark { background: var(--c-blanc); color: var(--c-encre); }
 /* mobile */
 .v06-m .v06-head { padding-top: 130px !important; }
 .v06-m .v06-head { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); border-width: 0 0 2px; padding: var(--s-8) var(--s-4); min-height: 0; }
-.v06-m .v06-head .roundel { width: 100px; height: 100px; right: 16px; top: 16px; }
+.v06-m .v06-head .roundel { width: 120px; height: 120px; right: 12px; top: 12px; }
 .v06-m .v06-story, .v06-m .v06-vals, .v06-m .v06-team, .v06-m .v06-cities { grid-template-columns: 1fr; gap: 10px; }
 .v06-m .v06-story p { font-size: var(--t-body); }
 .v06-m .v06-val { min-height: 0; padding: var(--s-5); border-radius: 20px; }
@@ -1493,7 +1492,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .a-setrow .switch { font-size: 0; gap: 0; }
 .a-object { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: var(--r-m); background: var(--c-givre); }
 /* Titre Anton sur deux lignes avec majuscule accentuée en 2e ligne : interligne élargi */
-.a-display--accent { line-height: 1.12; }
+.a-display--accent { line-height: var(--lh-display); }
 
 /* =========================================================
    COMPOSANTS D'ESPACE REMONTÉS DES MAQUETTES : etudiant
@@ -1827,6 +1826,5 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .t-sub__label { font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-ardoise); }
 /* Ajouts transverses (préfixe .t-) */
 .t-on-bleu { color: var(--c-blanc); }
-.t-on-bleu .display { line-height: 1.12; }
 .t-on-bleu .caption { color: var(--c-blanc); font-weight: var(--fw-semibold); }
 .t-on-bleu .banner { color: var(--c-encre); }
