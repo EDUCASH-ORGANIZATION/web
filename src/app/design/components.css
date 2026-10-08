@@ -830,9 +830,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 /* Logos de partenaires de paiement (pastilles typographiques, pas de logos officiels) */
 .payer { display: inline-flex; align-items: center; gap: 8px; font-weight: var(--fw-xbold); font-size: var(--t-body-s); }
 .payer__mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 9px; font-weight: var(--fw-black); flex: none; }
-.payer--mtn .payer__mark { background: #FFCB05; color: var(--c-encre); }
-.payer--moov .payer__mark { background: #0065B3; color: var(--c-blanc); }
-.payer--celtiis .payer__mark { background: #6A2C91; color: var(--c-blanc); }
+.payer__logo { height: 36px; width: auto; object-fit: contain; flex: none; display: block; }
 .payer--fedapay .payer__mark { background: var(--c-encre); color: var(--c-blanc); }
 .site-footer .payer--fedapay .payer__mark { background: var(--c-blanc); color: var(--c-encre); }
 
@@ -1306,6 +1304,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .v06-pay { display: flex; gap: var(--s-6); align-items: center; flex-wrap: wrap; }
 .v06-pay .payer { font-size: var(--t-h4); }
 .v06-pay .payer__mark { width: 44px; height: 44px; font-size: 12px; }
+.v06-pay .payer__logo { height: 52px; }
 .v06-band .payer { color: var(--c-blanc); }
 .v06-band .payer--fedapay .payer__mark { background: var(--c-blanc); color: var(--c-encre); }
 /* mobile */
