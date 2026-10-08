@@ -19,7 +19,7 @@ import { Stack } from "@/components/vitrine/stack"
 import { login } from "@/lib/actions/auth.actions"
 import { useToast } from "@/components/shared/toaster"
 
-export function LoginForm() {
+export function LoginForm({ next }) {
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState(null)
   const { toast } = useToast()
@@ -42,6 +42,7 @@ export function LoginForm() {
     const formData = new FormData()
     formData.set("email", values.email)
     formData.set("password", values.password)
+    formData.set("next", next ?? "")
 
     const result = await login(formData)
 
