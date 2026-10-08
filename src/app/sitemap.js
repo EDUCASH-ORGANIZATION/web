@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 
 export default async function sitemap() {
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj"
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.educash.bj"
 
   const supabase = await createClient()
   const { data: missions } = await supabase

@@ -7,6 +7,6 @@ export default function robots() {
         disallow: ["/admin/", "/api/"],
       },
     ],
-    sitemap: (process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj") + "/sitemap.xml",
+    sitemap: (process.env.NEXT_PUBLIC_APP_URL || "https://www.educash.bj") + "/sitemap.xml",
   }
 }

@@ -30,9 +30,9 @@ function pick(value, allowed) {
   return allowed.includes(v) ? v : ""
 }
 
-// Échappe les caractères spéciaux de LIKE (\, % et _) pour une recherche littérale.
+// Échappe les caractères spéciaux de LIKE (\, %, _ et *) pour une recherche littérale.
 function escapeLike(text) {
-  return text.replace(/[\\%_]/g, (c) => `\\${c}`)
+  return text.replace(/[\\%_*]/g, (c) => `\\${c}`)
 }
 
 // Date du jour (AAAA-MM-JJ) au fuseau du Bénin.
@@ -55,7 +55,7 @@ export default async function MissionsPage({ searchParams }) {
 
   let query = supabase
     .from("missions")
-    .select("*", { count: "exact" })
+    .select("id, title, type, city, budget, urgency, deadline, created_at", { count: "exact" })
     .eq("status", "open")
     .or(`deadline.is.null,deadline.gte.${todayInBenin()}`)
 

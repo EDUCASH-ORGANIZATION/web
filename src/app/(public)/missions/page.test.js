@@ -54,6 +54,10 @@ describe("MissionsPage paramètres hostiles", () => {
     await run({ q: "a_b\\c" })
     expect(find("ilike")[0][2]).toBe("%a\\_b\\\\c%")
   })
+  it("échappe * dans q", async () => {
+    await run({ q: "a*b" })
+    expect(find("ilike")[0][2]).toBe("%a\\*b%")
+  })
   it("tronque q à 100 caractères", async () => {
     await run({ q: "x".repeat(500) })
     expect(find("ilike")[0][2]).toBe(`%${"x".repeat(100)}%`)
