@@ -1,8 +1,28 @@
 import "./globals.css"
-import { DesignSprite } from "@/components/design/sprite"
+import { Anton, Figtree, Inter } from "next/font/google"
 import { SupabaseProvider } from "@/components/shared/supabase-provider"
 import { Toaster } from "@/components/shared/toaster"
 import { PwaInstallBannerLoader } from "@/components/shared/pwa-install-banner-loader"
+
+const anton = Anton({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-anton",
+})
+
+const figtree = Figtree({
+  weight: ["400", "500", "600", "700", "800", "900"],
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-figtree",
+})
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+})
 
 export const viewport = {
   width: "device-width",
@@ -14,16 +34,18 @@ export const viewport = {
 export const metadata = {
   title: {
     default: "EduCash",
-    template: "%s — EduCash",
+    template: "%s - EduCash",
   },
   description: "Missions ponctuelles rémunérées pour les étudiants au Bénin",
   manifest: "/manifest.json",
   icons: {
-    icon:  [
-      { url: "/favicon.png",       sizes: "32x32",   type: "image/png" },
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-48.png", sizes: "48x48", type: "image/png" },
     ],
-    apple: [{ url: "/icons/icon-192.png", sizes: "192x192" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   appleWebApp: {
     capable: true,
@@ -34,19 +56,18 @@ export const metadata = {
     siteName: "EduCash",
     locale: "fr_BJ",
     type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
 }
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fr" className="h-full antialiased" suppressHydrationWarning>
+    <html lang="fr" className={`${anton.variable} ${figtree.variable} ${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <DesignSprite />
+      <body className="min-h-full flex flex-col font-[family-name:var(--font-inter)]" suppressHydrationWarning>
         <SupabaseProvider>
           <Toaster>
             {children}
