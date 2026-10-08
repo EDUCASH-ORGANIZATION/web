@@ -70,7 +70,9 @@ describe("garde-fous de contenu vitrine", () => {
   })
 
   it("aucune classe generique du design system n'est utilisee en dehors de lui", () => {
-    const banned = new Set(["container", "grow", "grid", "table", "h1", "h2", "h3", "h4"])
+    // Noms assembles : un nom de classe Tailwind ecrit en clair dans ce fichier serait scanne
+    // par Tailwind, qui generait alors l'utilitaire et ferait diverger le rendu.
+    const banned = new Set(["con" + "tainer", "gr" + "ow", "gr" + "id", "ta" + "ble", "h1", "h2", "h3", "h4"])
     const hits = []
     for (const f of files.filter((n) => /\.jsx?$/.test(n))) {
       for (const m of read(f).matchAll(/className=(?:"([^"]*)"|\{?`([^`]*)`)/g)) {
