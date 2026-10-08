@@ -260,6 +260,16 @@ html:has(.site-header) { scroll-padding-top: calc(var(--h-header-compact) + var(
   .site-header__nav { display: none; }
   .site-header__burger { display: inline-grid; }
 }
+/* Hero de l'accueil (.hero--under-header, les autres pages gardent la maquette) entre 1024 et 1359.98 px :
+   retrait réduit (l'en-tête transparent suit le même retrait), colonne visuelle plus étroite et gap resserré,
+   pour que le titre garde de l'air avant l'aplat citron et que la barre de recherche reste lisible. */
+@media (min-width: 1024px) and (max-width: 1359.98px) {
+  .hero.hero--under-header { padding-left: var(--s-8); padding-right: var(--s-8); }
+  .site-header.site-header--bleu { padding-left: calc(var(--s-4) + var(--s-8)); padding-right: calc(var(--s-4) + var(--s-8)); }
+  .v-hero { grid-template-columns: minmax(0, 1fr) clamp(340px, 33vw, 470px); gap: var(--s-6); }
+  .v-hero__push { width: clamp(272px, 28vw, 316px); }
+  .v-hero__card { width: clamp(216px, 22vw, 250px); }
+}
 
 /* ---------- Focus clavier ---------- */
 .chip:focus-visible, .tab:focus-visible, .nav-item:focus-visible, .page-btn:focus-visible,
@@ -393,6 +403,9 @@ html:has(.site-header) { scroll-padding-top: calc(var(--h-header-compact) + var(
 .ds-skip-link:focus, .ds-skip-link:focus-visible { transform: none; }
 /* Cible du lien d'évitement (tabIndex -1) : reçoit le focus sans contour. */
 .ds main[tabindex="-1"]:focus { outline: none; }
+/* Cibles d'ancre (sections, tabindex -1 posé par le script de défilement) : focus programmatique sans contour.
+   Les champs, boutons et liens sont exclus : ils gardent leur propre style de focus. */
+.ds :not(input, select, textarea, button, a)[id][tabindex="-1"]:focus { outline: none; }
 
 /* ---------- Pied de page : lien de la page active (fond encre) ---------- */
 .site-footer__col a.is-active, .site-footer__col a[aria-current="page"] { color: var(--c-citron); }
@@ -419,7 +432,8 @@ summary.v-faq__q:focus-visible { outline: none; box-shadow: var(--sh-focus); bor
 .v-cta__scribble { position: absolute; right: 70px; top: 60px; width: 90px; height: 80px; }
 .v05-cta .v-cta__scribble { right: 220px; top: auto; bottom: 90px; }
 .v-cta__title--low { margin-top: 120px; }
-.v-hero__photo { position: absolute; right: 0; bottom: 0; height: 100%; width: auto; max-width: 100%; object-fit: contain; object-position: bottom right; }
+.v-hero__picture { display: flex; align-items: flex-end; justify-content: center; box-sizing: border-box; width: 100%; height: 100%; padding-top: var(--s-6); }
+.v-hero__photo { display: block; height: 100%; width: auto; max-width: 100%; object-fit: contain; object-position: center bottom; }
 .v-hero__visual .v01-burst { right: -6px; top: -30px; }
 .v01-split { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: var(--s-14); align-items: start; }
 .v01-split__scribble { width: 90px; height: 80px; margin: var(--s-7) 0 0 220px; }

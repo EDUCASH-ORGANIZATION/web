@@ -4,6 +4,7 @@ import { useRef } from "react"
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { useModalFocus } from "@/hooks/use-modal-focus"
+import { AnchorLink } from "./shared/hash-scroll"
 
 // Menu plein écran mobile de la vitrine (design system Direction A, maquette V01).
 export function SiteMenu({ id, links, isActive, session, onClose, returnFocusRef }) {
@@ -42,7 +43,7 @@ export function SiteMenu({ id, links, isActive, session, onClose, returnFocusRef
         {links.map(({ label, href }) => {
           const active = isActive(href)
           return (
-            <Link
+            <AnchorLink
               key={label}
               href={href}
               className={active ? "is-active" : undefined}
@@ -51,7 +52,7 @@ export function SiteMenu({ id, links, isActive, session, onClose, returnFocusRef
             >
               {label}
               {active ? <Icon name="i-arrow-right" /> : null}
-            </Link>
+            </AnchorLink>
           )
         })}
       </nav>

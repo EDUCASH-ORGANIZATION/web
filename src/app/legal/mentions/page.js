@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { AnchorLink } from "@/components/vitrine/shared/hash-scroll"
 import { LEGAL_ENTITY } from "@/components/vitrine/legal/legal-entity"
 import { LegalLayout } from "@/components/vitrine/legal/legal-layout"
 import { LegalSection, LegalFacts } from "@/components/vitrine/legal/legal-section"
@@ -92,7 +92,7 @@ export default function MentionsPage() {
         <p>
           Les paiements d’achats effectués hors plateforme, du client au vendeur par Mobile Money,
           ne relèvent pas d’EduCash. Voir l’article 5 des{" "}
-          <Link className="link" href="/legal/terms#achats">conditions d’utilisation</Link>.
+          <AnchorLink className="link" href="/legal/terms#achats">conditions d’utilisation</AnchorLink>.
         </p>
       </LegalSection>
 
