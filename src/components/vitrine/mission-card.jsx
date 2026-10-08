@@ -16,6 +16,25 @@ function fmtInt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
 }
 
+function fmtDateLabel(value) {
+  if (!value) return null
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  const day = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
+  return `Avant le ${day}`
+}
+
+function fmtPublished(value) {
+  if (!value) return null
+  const diff = Date.now() - new Date(value).getTime()
+  if (Number.isNaN(diff)) return null
+  const days = Math.floor(diff / 86400000)
+  const hours = Math.floor(diff / 3600000)
+  if (days > 0) return `Publiée il y a ${days} j`
+  if (hours > 0) return `Publiée il y a ${hours} h`
+  return "Publiée à l'instant"
+}
+
 /**
  * Carte mission de la refonte (classe .mission du design system).
  * Composant serveur : rend un lien.
@@ -24,7 +43,9 @@ export function MissionCard({ mission }) {
   const budget = mission.budget ?? 0
   const net = Math.round(budget * 0.88)
   const isUrgent = mission.urgency === "high"
-  const typeIcon = TYPE_ICON[mission.type] ?? "i-wrench"
+  const typeIcon = TYPE_ICON[mission.type] ?? "i-briefcase"
+  const dateLabel = fmtDateLabel(mission.deadline ?? mission.deadline_at)
+  const published = fmtPublished(mission.created_at)
 
   return (
     <Link className="mission mission--link" href={`/missions/${mission.id}`}>
@@ -44,8 +65,8 @@ export function MissionCard({ mission }) {
         {mission.city && (
           <span><Icon name="i-map-pin" className="ic" />{mission.city}</span>
         )}
-        <span><Icon name="i-calendar" className="ic" />Avant le {mission.deadline}</span>
-        <span><Icon name="i-clock" className="ic" />Publiée il y a 2 j</span>
+        {dateLabel && <span><Icon name="i-calendar" className="ic" />{dateLabel}</span>}
+        {published && <span><Icon name="i-clock" className="ic" />{published}</span>}
       </div>
       <div className="mission__foot">
         <div className="mission__price">
