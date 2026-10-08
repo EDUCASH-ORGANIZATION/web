@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { AnchorLink } from "./hash-scroll"
 import { Icon } from "@/components/design/icon"
 
 const COPY = {
@@ -16,7 +16,7 @@ export function EscrowNote({ audience = "student" }) {
       </span>
       <span className="caption">
         {COPY[audience] ?? COPY.student}{" "}
-        <Link className="link" href="/aide#sequestre">En savoir plus</Link>
+        <AnchorLink className="link" href="/aide#sequestre">En savoir plus</AnchorLink>
       </span>
     </div>
   )

@@ -100,6 +100,27 @@ describe("ancres du site public", () => {
   })
 })
 
+describe("composant de lien d'ancre", () => {
+  it("aucun lien next/link ne porte une ancre en dur : ils passent par AnchorLink", () => {
+    const errors = []
+    for (const full of sourceFiles(SRC)) {
+      const rel = path.relative(SRC, full).split(path.sep).join("/")
+      if (KNOWN_EXCEPTIONS.has(rel) || SKIPPED_DIRS.some((re) => re.test(rel))) continue
+      const code = readFileSync(full, "utf8")
+      for (const match of code.matchAll(/<Link\b[^>]*href=\{?"[^"]*#[^"]*"/g)) errors.push(`${rel}: ${match[0]}`)
+    }
+    expect(errors).toEqual([])
+  })
+
+  it("les liens d'ancre des heros, du bandeau séquestre et de l'aide utilisent AnchorLink", () => {
+    expect(read("components/vitrine/clients/clients-hero.jsx")).toContain('<AnchorLink className="btn btn--ghost" href="#sequestre">')
+    expect(read("components/vitrine/shared/payers.jsx")).toContain('<AnchorLink className="link" href="/aide#sequestre">')
+    expect(read("components/vitrine/shared/escrow-note.jsx")).toContain('<AnchorLink className="link" href="/aide#sequestre">')
+    expect(read("app/contact/page.js")).toContain("<AnchorLink key={l.href} href={l.href}>")
+    expect(read("app/legal/mentions/page.js")).toContain('<AnchorLink className="link" href="/legal/terms#achats">')
+  })
+})
+
 describe("ancres dynamiques", () => {
   it("lien d'évitement : #contenu est l'id du main par défaut", () => {
     const code = read("components/vitrine/shared/vitrine-page.jsx")

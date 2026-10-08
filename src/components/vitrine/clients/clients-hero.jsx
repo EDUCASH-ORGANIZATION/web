@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { AnchorLink } from "../shared/hash-scroll"
 import { Icon } from "@/components/design/icon"
 import { formatFcfa } from "@/lib/vitrine/format"
 import { Scribble, Shape } from "./scribble"
@@ -28,7 +29,7 @@ export function ClientsHero({ publishHref }) {
               Publier une mission
               <span className="btn__dot"><Icon name="i-arrow-right" /></span>
             </Link>
-            <Link className="btn btn--ghost" href="#sequestre">Comment ça marche</Link>
+            <AnchorLink className="btn btn--ghost" href="#sequestre">Comment ça marche</AnchorLink>
           </div>
           <div className="v05-facts">
             <span className="v05-fact"><Icon name="i-banknote" />Budget dès {formatFcfa(MIN_BUDGET)}</span>

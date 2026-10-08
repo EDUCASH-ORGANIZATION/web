@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { AnchorLink } from "@/components/vitrine/shared/hash-scroll"
 import { Icon } from "@/components/design/icon"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 import { ContactForm } from "@/components/vitrine/contact/contact-form"
@@ -85,10 +86,10 @@ export default async function ContactPage({ searchParams }) {
               <div className="v08-help">
                 <b>Ta réponse est peut-être déjà là</b>
                 {HELP_LINKS.map((l) => (
-                  <Link key={l.href} href={l.href}>
+                  <AnchorLink key={l.href} href={l.href}>
                     {l.label}
                     <Icon name="i-arrow-right" />
-                  </Link>
+                  </AnchorLink>
                 ))}
                 <Link className="link" href="/aide">
                   Toute l&apos;aide

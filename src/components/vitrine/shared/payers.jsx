@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { AnchorLink } from "./hash-scroll"
 import { OperatorLogo } from "./operator-logo"
 
 // Opérateurs de retrait branchés (MTN et Moov). Celtiis n'est pas affiché : pas de retrait Celtiis pour l'instant.
@@ -22,7 +22,7 @@ export function Payers({ withEscrow = false }) {
       {withEscrow ? (
         <p className="body-s ds-text-brume ds-mt-3">
           Le budget est bloqué en séquestre jusqu’à la fin de la mission.{" "}
-          <Link className="link" href="/aide#sequestre">Comment ça marche</Link>
+          <AnchorLink className="link" href="/aide#sequestre">Comment ça marche</AnchorLink>
         </p>
       ) : null}
     </>
