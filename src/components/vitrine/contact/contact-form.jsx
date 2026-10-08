@@ -2,13 +2,15 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useForm, useWatch } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Icon } from "@/components/design/icon"
+import { Select } from "@/components/design/select"
 import { sendContactMessage } from "@/lib/actions/contact.actions"
 import { CONTACT_LIMITS, CONTACT_SUBJECTS, HONEYPOT_FIELD, contactSchema } from "@/lib/contact/schema"
 import { formatCount, submitContact } from "./submit"
 
+const SUBJECT_OPTIONS = CONTACT_SUBJECTS.map((s) => ({ value: s.id, label: s.label }))
 const FIELD_NAMES = ["name", "email", "subject", "message"]
 
 function FieldError({ id, message }) {
@@ -37,7 +39,6 @@ export function ContactForm({ defaultSubject = "", defaultMessage = "" }) {
   const [serverError, setServerError] = useState("")
   const [sent, setSent] = useState(null)
 
-  const subject = useWatch({ control, name: "subject" })
   const messageLength = (useWatch({ control, name: "message" }) ?? "").length
   const errorCount = FIELD_NAMES.filter((n) => errors[n]).length
 
@@ -167,23 +168,28 @@ export function ContactForm({ defaultSubject = "", defaultMessage = "" }) {
       </div>
 
       <div className="field">
-        <label className="field__label" htmlFor="contact-subject">
+        <label className="field__label" id="contact-subject-label" htmlFor="contact-subject">
           Sujet <span className="req">*</span>
         </label>
-        <select
-          id="contact-subject"
-          className={`select${subject ? "" : " is-placeholder"}${errors.subject ? " is-error" : ""}`}
-          aria-invalid={errors.subject ? "true" : undefined}
-          aria-describedby={errors.subject ? "contact-subject-error" : undefined}
-          {...register("subject")}
-        >
-          <option value="">Choisir un sujet</option>
-          {CONTACT_SUBJECTS.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+        <Controller
+          control={control}
+          name="subject"
+          render={({ field }) => (
+            <Select
+              ref={field.ref}
+              id="contact-subject"
+              options={SUBJECT_OPTIONS}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              placeholder="Choisir un sujet"
+              aria-labelledby="contact-subject-label"
+              aria-describedby={errors.subject ? "contact-subject-error" : undefined}
+              invalid={Boolean(errors.subject)}
+              required
+            />
+          )}
+        />
         <FieldError id="contact-subject-error" message={errors.subject?.message} />
       </div>
 

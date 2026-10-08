@@ -257,3 +257,9 @@ tout le reste à faire.
   relevées à l'exploration initiale.
 - Séquestre / FedaPay conformes aux décisions produit (recharger/retirer via
   FedaPay ; fin de mission en deux temps ; achats hors plateforme).
+
+## Select maison (RD-FIX-07)
+
+- `<Select>` (`src/components/design/select.jsx`) remplace le `<select>` natif sur la vitrine : accueil (ville du hero), `/missions` (ville, Ville, Budget, Urgence, Tri) et `/contact` (Sujet). Motif APG select-only combobox, liste `.menu` / `.menu__item` du système.
+- La maquette V02 montre les listes ouvertes (titre `.menu__title`, option cochée) et V08 la liste du sujet ; la liste du hero (sans maquette dédiée) reprend les mêmes styles.
+- Hors périmètre : les selects des espaces connectés (`(student)`, `(client)`, `(admin)`, `components/client|student|admin|profile|auth`) restent natifs, en parité Tailwind avec `main`. Ils adopteront `<Select>` à leur refonte.

@@ -8,7 +8,8 @@ const { ContactForm } = await import("./contact-form")
 describe("ContactForm", () => {
   it("rend le formulaire vide avec les 6 sujets et le honeypot masque", () => {
     const html = renderToStaticMarkup(<ContactForm />)
-    expect(html.match(/<option /g)).toHaveLength(7)
+    expect(html.match(/role="option"/g)).toHaveLength(6)
+    expect(html).toContain("Choisir un sujet")
     expect(html).toContain('name="website"')
     expect(html).toContain('tabindex="-1"')
     expect(html).toContain("0 / 1 000")

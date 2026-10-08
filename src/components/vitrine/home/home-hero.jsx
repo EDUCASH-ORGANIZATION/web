@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
+import { Select } from "@/components/design/select"
 import { SPRITE_VERSION } from "@/components/design/sprite"
 import { CITIES, MISSION_TYPES, SEARCH_MAX_LENGTH, netAmount } from "@/lib/constants/missions"
 import { formatFcfa } from "@/lib/vitrine/format"
@@ -25,17 +26,22 @@ function ctasFor(role) {
   }
 }
 
+const CITY_OPTIONS = [
+  { value: "", label: "Toutes les villes" },
+  ...CITIES.map((c) => ({ value: c, label: c })),
+]
+
 function CitySelect({ id }) {
   return (
-    <>
-      <label className="sr-only" htmlFor={id}>Ville</label>
-      <select id={id} name="ville" className="select select--sm ds-select-bare" defaultValue="">
-        <option value="">Toutes les villes</option>
-        {CITIES.map((c) => (
-          <option key={c} value={c}>{c}</option>
-        ))}
-      </select>
-    </>
+    <Select
+      id={id}
+      name="ville"
+      variant="bare"
+      aria-label="Ville"
+      placeholder="Toutes les villes"
+      options={CITY_OPTIONS}
+      defaultValue=""
+    />
   )
 }
 
