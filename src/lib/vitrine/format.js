@@ -24,3 +24,12 @@ export function formatDateFr(isoOrDate) {
     timeZone: dateOnly ? "UTC" : BENIN_TZ,
   }).format(date)
 }
+
+/**
+ * Entier avec séparateur de milliers, sans unité, ex. "12 500".
+ * @param {number|null|undefined} n
+ * @returns {string}
+ */
+export function fmtInt(n) {
+  return new Intl.NumberFormat("fr-FR").format(n ?? 0)
+}

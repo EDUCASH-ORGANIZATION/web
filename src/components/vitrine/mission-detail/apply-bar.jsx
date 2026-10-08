@@ -1,9 +1,6 @@
 import Link from "next/link"
+import { fmtInt } from "@/lib/vitrine/format"
 import { primaryButtonClass, VerifyHint } from "./apply-panel"
-
-function fmtInt(n) {
-  return new Intl.NumberFormat("fr-FR").format(n ?? 0)
-}
 
 /**
  * Barre de candidature fixe sur mobile : même objet `applyCta` que la colonne bureau.

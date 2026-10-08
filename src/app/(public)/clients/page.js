@@ -1,3 +1,4 @@
+import { COMMISSION_RATE } from "@/lib/constants/missions"
 import { createClient } from "@/lib/supabase/server"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 import { ClientsHero } from "@/components/vitrine/clients/clients-hero"
@@ -10,10 +11,11 @@ import {
   ClientsCta,
 } from "@/components/vitrine/clients/clients-sections"
 
+const COMMISSION = Math.round(COMMISSION_RATE * 100)
+
 export const metadata = {
   title: "Pour les clients",
-  description:
-    "Publiez une petite mission et choisissez un étudiant vérifié au Bénin. Votre budget reste bloqué jusqu'à ce que vous validiez le travail, avec une commission unique de 12 %.",
+  description: `Publiez une petite mission et choisissez un étudiant vérifié au Bénin. Votre budget reste bloqué jusqu'à ce que vous validiez le travail, avec une commission unique de ${COMMISSION} %.`,
   openGraph: { url: "/clients" },
 }
 

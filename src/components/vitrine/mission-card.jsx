@@ -1,21 +1,8 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { netAmount } from "@/lib/constants/missions"
-
-// Icône par type de mission (reprise de la maquette V02)
-const TYPE_ICON = {
-  "Babysitting": "i-baby",
-  "Livraison": "i-bike",
-  "Saisie": "i-keyboard",
-  "Community Management": "i-megaphone",
-  "Traduction": "i-languages",
-  "Cours particuliers": "i-book",
-  "Autre": "i-briefcase",
-}
-
-function fmtInt(n) {
-  return new Intl.NumberFormat("fr-FR").format(n ?? 0)
-}
+import { fmtInt } from "@/lib/vitrine/format"
+import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 
 function fmtDateLabel(value) {
   if (!value) return null

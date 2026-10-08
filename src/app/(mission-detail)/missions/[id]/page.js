@@ -15,25 +15,12 @@ import { isUuid } from "@/lib/vitrine/ids"
 import { todayInBenin } from "@/lib/vitrine/dates"
 import { missionAvailability, CLOSED_REASON_LABELS } from "@/lib/vitrine/mission-availability"
 import { applyCta } from "@/lib/vitrine/apply-cta"
-import { formatDateFr } from "@/lib/vitrine/format"
-
-const TYPE_ICON = {
-  "Babysitting": "i-baby",
-  "Livraison": "i-bike",
-  "Saisie": "i-keyboard",
-  "Community Management": "i-megaphone",
-  "Traduction": "i-languages",
-  "Cours particuliers": "i-book",
-  "Autre": "i-briefcase",
-}
+import { formatDateFr, fmtInt } from "@/lib/vitrine/format"
+import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 
 const URGENCY_LABEL = { high: "Urgent", medium: "Cette semaine" }
 
 const DESCRIPTION_MAX = 155
-
-function fmtInt(n) {
-  return new Intl.NumberFormat("fr-FR").format(n ?? 0)
-}
 
 // Description de métadonnée : texte aplati, 155 caractères au plus.
 function summarize(text, fallback) {
@@ -154,6 +141,7 @@ export default async function MissionDetailPage({ params }) {
   const commissionPct = Math.round(COMMISSION_RATE * 100)
   const isEmployerView = role === "client" || role === "admin"
   const netLabel = isEmployerView ? "L'étudiant touche" : "Tu touches"
+  const reportHref = `/contact?sujet=signalement&ref=${encodeURIComponent(`/missions/${mission.id}`)}`
   const typeIcon = TYPE_ICON[mission.type] ?? "i-briefcase"
   const urgencyLabel = URGENCY_LABEL[mission.urgency]
   const paragraphs = (mission.description ?? "").split(/\n+/).map((p) => p.trim()).filter(Boolean)
@@ -238,11 +226,11 @@ export default async function MissionDetailPage({ params }) {
               ))}
             </div>
 
-            <ClientCard profile={clientRes.data ?? null} viewerLoggedIn={Boolean(user)} />
+            <ClientCard profile={clientRes.data ?? null} viewerLoggedIn={Boolean(user)} reportHref={reportHref} />
 
             <SimilarMissions missions={similarRes.data ?? []} type={mission.type} />
 
-            <Link className="link body-s ds-self-start" href="/contact?sujet=signalement">
+            <Link className="link body-s ds-self-start" href={reportHref}>
               <Icon name="i-flag" className="ic ic--16" />Signaler cette mission
             </Link>
           </div>

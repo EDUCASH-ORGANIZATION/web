@@ -1,7 +1,10 @@
+import { COMMISSION_RATE } from "@/lib/constants/missions"
 import { SPRITE_VERSION } from "@/components/design/sprite"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 import { Payers } from "@/components/vitrine/shared/payers"
 import { CtaDouble, exampleRecap } from "@/components/vitrine/shared/cta-double"
+
+const COMMISSION = Math.round(COMMISSION_RATE * 100)
 
 export const metadata = {
   title: "À propos",
@@ -21,7 +24,7 @@ const VALUES = [
     tone: "blanc",
     shape: "sh-circle",
     title: "Transparence",
-    text: "Commission de 12 % affichée partout, montant net visible avant de postuler, aucun chiffre gonflé sur ce site.",
+    text: `Commission de ${COMMISSION} % affichée partout, montant net visible avant de postuler, aucun chiffre gonflé sur ce site.`,
   },
   {
     tone: "encre",
