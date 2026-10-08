@@ -819,7 +819,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .sticker--round { border-radius: 50%; }
 .sticker .ic { width: 32px; height: 32px; }
 .roundel { width: 140px; height: 140px; flex: none; }
-.roundel text { font-family: var(--f-display); font-size: 15px; letter-spacing: 2.4px; text-transform: uppercase; }
+.roundel text { font-family: var(--f-display); font-size: 13px; letter-spacing: 2.4px; text-transform: uppercase; }
 .spin { animation: spin 18s linear infinite; transform-origin: center; }
 .grid-bg { background-image: linear-gradient(rgba(255,255,255,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.09) 1px, transparent 1px); background-size: 56px 56px; }
 
@@ -1311,7 +1311,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 /* mobile */
 .v06-m .v06-head { padding-top: 130px !important; }
 .v06-m .v06-head { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); border-width: 0 0 2px; padding: var(--s-8) var(--s-4); min-height: 0; }
-.v06-m .v06-head .roundel { width: 100px; height: 100px; right: 16px; top: 16px; }
+.v06-m .v06-head .roundel { width: 120px; height: 120px; right: 12px; top: 12px; }
 .v06-m .v06-story, .v06-m .v06-vals, .v06-m .v06-team, .v06-m .v06-cities { grid-template-columns: 1fr; gap: 10px; }
 .v06-m .v06-story p { font-size: var(--t-body); }
 .v06-m .v06-val { min-height: 0; padding: var(--s-5); border-radius: 20px; }

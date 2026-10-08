@@ -538,7 +538,7 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .v05-cta { min-height: 0; }
 
   .v06-head { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); border-width: 0 0 2px; padding: 130px var(--s-4) var(--s-8); min-height: 0; }
-  .v06-head .roundel { width: 100px; height: 100px; right: 16px; top: 16px; }
+  .v06-head .roundel { width: 120px; height: 120px; right: 12px; top: 12px; }
   .v06-scribble { display: none; }
   .v06-story { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .v06-story p { font-size: var(--t-body); }
