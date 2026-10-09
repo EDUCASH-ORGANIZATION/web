@@ -457,8 +457,7 @@ summary.v-faq__q:focus-visible { outline: none; box-shadow: var(--sh-focus); bor
 .v04-review .caption { display: block; }
 .v04-act > .caption { text-align: center; }
 
-/* V05 à V09 : formes décoratives (position propre à chaque écran) */
-.v05-scribble { right: 20px; top: 0; width: 64px; height: 64px; }
+/* V06 à V09 : formes décoratives (position propre à chaque écran) */
 .v06-scribble { right: 300px; top: 110px; width: 150px; height: 70px; }
 .v07-scribble--a { right: 120px; top: 70px; width: 110px; height: 110px; }
 .v07-scribble--b { right: 60px; bottom: 60px; width: 70px; height: 70px; }
@@ -561,7 +560,7 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .v04-scribble { display: none; }
 
   .v05-grid { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); padding-top: var(--s-5); }
-  .v05-visual, .v05-scribble { display: none; }
+  .v05-visual { display: none; }
   .v05-lead { margin-top: var(--s-3); }
   .v05-ctas { margin-top: var(--s-5); }
   .v05-facts { margin-top: var(--s-4); }
