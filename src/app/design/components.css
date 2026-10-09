@@ -1230,7 +1230,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .v05-recap { position: absolute; right: 0; bottom: 70px; width: 300px; background: var(--c-citron); border: var(--b-encre); border-radius: var(--r-l); box-shadow: var(--sh-dur); padding: 16px 18px; transform: rotate(4deg); z-index: 3; display: flex; flex-direction: column; gap: 8px; }
 .v05-recap .recap { background: var(--c-blanc); }
 .v05-visual .roundel { position: absolute; left: 0; bottom: 0; z-index: 4; }
-.v05-visual > .scribble { position: absolute; }
+.v05-visual > .photo-ph { position: absolute; inset: 0 0 56px 56px; border-radius: var(--r-xl); }
 .v05-split { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: var(--s-10); align-items: center; }
 .v05-bill { border: var(--b-encre); border-radius: var(--r-xl); background: var(--c-blanc); box-shadow: var(--sh-dur-l); padding: var(--s-10); display: flex; flex-direction: column; gap: var(--s-6); }
 .v05-bar { display: flex; height: 92px; border: var(--b-encre); border-radius: var(--r-l); overflow: hidden; }

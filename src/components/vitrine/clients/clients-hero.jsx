@@ -1,12 +1,22 @@
 import Link from "next/link"
+import { preload } from "react-dom"
 import { AnchorLink } from "../shared/hash-scroll"
 import { Icon } from "@/components/design/icon"
 import { formatFcfa } from "@/lib/vitrine/format"
 import { Scribble, Shape } from "./scribble"
 import { COMMISSION_PERCENT, EXAMPLE_BUDGET, EXAMPLE_COMMISSION, MIN_BUDGET } from "./clients-content"
 
+// Photo : Daniel Sunga, Pexels (licence Pexels, attribution non requise), détourée en local puis exportée en WebP
+// (562 x 920, déjà optimisée : pas de passage par l'optimiseur de next/image). Même mécanique que l'accueil :
+// la photo se pose sur l'aplat citron `photo-ph`, et un <picture> dont la seule source est réservée aux écrans
+// larges ne demande jamais l'image sous 1024 px (le repli est un pixel transparent en data URI).
+const PIXEL = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+const CLIENT_PHOTO = { src: "/images/clients/portrait-client.webp", width: 562, height: 920 }
+const CLIENT_PHOTO_MEDIA = "(min-width: 1024px)"
+
 // Hero client (maquette V05). Le faux profil étudiant de la planche est omis (décision 20).
 export function ClientsHero({ publishHref }) {
+  preload(CLIENT_PHOTO.src, { as: "image", media: CLIENT_PHOTO_MEDIA })
   return (
     <div className="hero v05-hero grid-bg">
       <div className="v05-grid">
@@ -38,6 +48,18 @@ export function ClientsHero({ publishHref }) {
           </div>
         </div>
         <div className="v05-visual" aria-hidden="true">
+          <div className="photo-ph">
+            <picture className="v-hero__picture">
+              <source media={CLIENT_PHOTO_MEDIA} srcSet={CLIENT_PHOTO.src} />
+              <img
+                className="v-hero__photo"
+                src={PIXEL}
+                width={CLIENT_PHOTO.width}
+                height={CLIENT_PHOTO.height}
+                alt=""
+              />
+            </picture>
+          </div>
           <div className="v05-recap">
             <span className="eyebrow">Exemple de mission</span>
             <div className="recap">
@@ -49,7 +71,6 @@ export function ClientsHero({ publishHref }) {
             </span>
           </div>
           <Shape name="roundel" className="roundel spin" />
-          <Scribble name="sc-burst" className="v05-scribble" />
         </div>
       </div>
     </div>
