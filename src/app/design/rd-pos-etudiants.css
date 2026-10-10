@@ -1,2 +1,19 @@
 /* RD-POS-01 ST-08 : styles propres a cette sous-tache (prefixe v-etu-).
    Fichier de travail, replie dans components.css et layouts.css par ST-13. */
+
+/* Retrait et verification : deux cartes cote a cote, une colonne sous 768 px. */
+.v-etu-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
+.v-etu-duo > .card { align-content: start; }
+
+/* Services : le type Demarches occupe deux colonnes (la grille compte un type de plus que la maquette),
+   et la carte « Autre » prend toute la derniere ligne sur grand ecran. */
+@media (min-width: 1024px) {
+  .v-etu-cats { grid-auto-rows: 150px; }
+  .v-etu-cats .v-cat--wide { grid-column: 1 / -1; }
+}
+@media (min-width: 768px) {
+  .v-etu-cat--span2 { grid-column: span 2; }
+}
+@media (max-width: 767.98px) {
+  .v-etu-duo { grid-template-columns: minmax(0, 1fr); }
+}
