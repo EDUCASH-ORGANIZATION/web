@@ -1,34 +1,32 @@
-import Box from "@mui/material/Box"
-import Typography from "@mui/material/Typography"
-import MuiLink from "@mui/material/Link"
-import MarkEmailReadRoundedIcon from "@mui/icons-material/MarkEmailReadRounded"
+import { cookies } from "next/headers"
+import { VerifyEmailPanel } from "@/components/auth/verify-email-panel"
 import { AuthShell } from "@/components/vitrine/auth-shell"
-import { Stack } from "@/components/vitrine/stack"
-import { BRAND } from "@/components/vitrine/theme"
+import { PENDING_EMAIL_COOKIE } from "@/lib/auth/cookies"
+import { audienceFor, registerHref } from "@/lib/auth/destinations"
+import { SIGNUP_ROLES } from "@/lib/auth/schemas"
+import { safeNextPath } from "@/lib/utils/safe-next"
 
-export const metadata = { title: "Vérifiez votre email — EduCash" }
+export const metadata = { title: "Vérifiez votre email" }
 
-export default function VerifyEmailPage() {
+function first(value) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+export default async function VerifyEmailPage({ searchParams }) {
+  const params = await searchParams
+  const rawRole = first(params?.role)
+  const role = SIGNUP_ROLES.includes(rawRole) ? rawRole : null
+  const next = safeNextPath(first(params?.next))
+  // Page neutre sans rôle connu : vouvoiement (l'accueil parle aux clients).
+  const audience = role ?? audienceFor({ next }, "client")
+
+  const cookieStore = await cookies()
+  // L'adresse vient du cookie httpOnly posé à l'inscription, jamais de l'URL.
+  const email = cookieStore.get(PENDING_EMAIL_COOKIE)?.value || null
+
   return (
-    <AuthShell maxWidth={440}>
-      <Stack spacing={2.5} sx={{ alignItems: "center", textAlign: "center" }}>
-        <Box sx={{ width: 72, height: 72, borderRadius: "50%", bgcolor: BRAND.greenSoft, color: BRAND.green,
-          display: "grid", placeItems: "center" }}>
-          <MarkEmailReadRoundedIcon sx={{ fontSize: 36 }} />
-        </Box>
-
-        <Typography variant="h5" sx={{ fontWeight: 800 }}>Vérifiez votre email</Typography>
-
-        <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
-          Un email de confirmation vous a été envoyé. Cliquez sur le lien dans l&apos;email pour activer
-          votre compte et compléter votre profil.
-        </Typography>
-
-        <Typography variant="caption" sx={{ color: "text.disabled" }}>
-          Vous n&apos;avez pas reçu d&apos;email ?{" "}
-          <MuiLink href="/auth/register" sx={{ fontWeight: 700 }}>Réessayer</MuiLink>
-        </Typography>
-      </Stack>
+    <AuthShell audience={audience} backHref={registerHref({ role, next })} backLabel="Retour à l'inscription">
+      <VerifyEmailPanel email={email} audience={audience} role={role} next={next} />
     </AuthShell>
   )
 }
