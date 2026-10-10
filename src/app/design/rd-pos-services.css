@@ -1,2 +1,26 @@
 /* RD-POS-01 ST-06 : styles propres a cette sous-tache (prefixe v-cat, v-achats).
    Fichier de travail, replie dans components.css et layouts.css par ST-13. */
+
+/* Grille de services a 8 cartes (7 + « Autre besoin »), 3 colonnes au-dessus de 1024 px :
+   Marche et achats sur 2 lignes a gauche, 4 cartes a droite, puis Traduction + Demarches (double),
+   puis « Autre besoin » sur toute la largeur. Aucun trou. */
+.v-cat--double { grid-column: span 2; }
+.v-cat--wide { grid-column: 1 / -1; }
+
+/* Tablette : 2 colonnes. Les cartes simples vont par paires, seules la grande carte et « Autre besoin » prennent
+   les deux colonnes (la regle de layouts.css qui etalait la carte lavande laisserait un trou). */
+@media (max-width: 1023.98px) {
+  .v-cat--double, .v-cat--lavande { grid-column: auto; }
+  .v-cat--wide { grid-column: span 2; }
+}
+
+/* Mobile : une colonne, toutes les cartes sur une ligne. */
+@media (max-width: 767.98px) {
+  .v-cat--wide { grid-column: auto; }
+}
+
+/* Bloc « Le marche a votre place » : texte plus large que la maquette standard, empile sous 1024 px
+   (regle .v05-split de layouts.css). */
+@media (min-width: 1024px) {
+  .v-achats-split { grid-template-columns: 460px minmax(0, 1fr); }
+}

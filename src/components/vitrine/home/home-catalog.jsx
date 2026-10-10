@@ -1,48 +1,60 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { SPRITE_VERSION } from "@/components/design/sprite"
-import { MISSION_TYPES } from "@/lib/constants/missions"
+import { MISSION_TYPES, MISSION_TYPE_TAGLINES, missionTypeLabel } from "@/lib/constants/missions"
+import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
+import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
+import { formatFcfa } from "@/lib/vitrine/format"
+import { publishHref } from "@/lib/utils/publish-prefill"
 
 const SPRITE = `/sprite.svg?v=${SPRITE_VERSION}`
 const OTHER = "Autre"
 
-// Présentation de chaque type (icône, forme, teinte, exemples) reprise de la maquette V01.
+// Présentation de chaque type (forme, teinte, exemple vouvoyé) reprise de la maquette V01 v3.
+// Les libellés, accroches et icônes viennent des dictionnaires partagés.
 const TYPE_STYLE = {
-  "Cours particuliers": {
-    icon: "i-book", shape: "sh-burst", card: " v-cat--big", sq: "",
-    example: "Maths, anglais, physique, préparation au BEPC et au BAC.",
-  },
   "Livraison": {
-    icon: "i-bike", shape: "sh-circle", card: "", sq: " ic-sq--givre",
-    example: "Colis, courses, documents en zem ou à pied.",
+    shape: "sh-burst", card: " v-cat--big", sq: "",
+    example: "Dantokpa, Ganhi, Saint-Michel : l'étudiant fait vos achats et vous rapporte tout.",
   },
-  "Saisie": {
-    icon: "i-keyboard", shape: "sh-quarter", card: " v-cat--encre", sq: "",
-    example: "Excel, fiches clients, transcription.",
+  "Cours particuliers": {
+    shape: "sh-circle", card: "", sq: " ic-sq--givre",
+    example: "Répétiteur de maths, anglais, physique. Devoirs du soir, BEPC et BAC.",
   },
   "Babysitting": {
-    icon: "i-baby", shape: "sh-heart", card: " v-cat--citron", sq: " ic-sq--encre",
-    example: "Garde après l'école, sorties, soirées.",
+    shape: "sh-heart", card: " v-cat--citron", sq: " ic-sq--encre",
+    example: "Sortie d'école, soirée, samedi : quelqu'un de sûr avec les enfants.",
   },
-  "Traduction": {
-    icon: "i-languages", shape: "sh-tri", card: "", sq: " ic-sq--givre",
-    example: "Français, anglais, fongbé, yoruba.",
+  "Saisie": {
+    shape: "sh-quarter", card: " v-cat--encre", sq: "",
+    example: "Factures sur Excel pour une boutique, courriers, CV, mise en page d'un dossier.",
   },
   "Community Management": {
-    icon: "i-megaphone", shape: "sh-star", card: " v-cat--lavande", sq: " ic-sq--blanc",
-    example: "Page Facebook, visuels, publications.",
+    shape: "sh-star", card: " v-cat--lavande", sq: " ic-sq--blanc",
+    example: "La page Facebook de votre commerce, visuels et publications.",
+  },
+  "Traduction": {
+    shape: "sh-tri", card: "", sq: " ic-sq--givre",
+    example: "Français, anglais, fon, yoruba : documents, courriers, sous-titres.",
+  },
+  "Démarches": {
+    shape: "sh-cross", card: " v-cat--double", sq: " ic-sq--givre",
+    example: "Déposer un dossier, faire la queue à la mairie, à la SBEE ou à la banque.",
   },
 }
-const FALLBACK_STYLE = { icon: "i-briefcase", shape: "sh-circle", card: "", sq: " ic-sq--givre", example: "" }
+const FALLBACK_STYLE = { shape: "sh-circle", card: "", sq: " ic-sq--givre", example: "" }
+const OTHER_EXAMPLE = "Un inventaire, un coup de main pour une cérémonie : décrivez-le."
 
-// Ordre de la maquette : la grille est composée autour de « Cours particuliers ».
-const ORDER = ["Cours particuliers", "Livraison", "Saisie", "Babysitting", "Traduction", "Community Management"]
+// Ordre d'affichage : la grille est composée autour de la carte « Marché et achats ».
+const ORDER = [
+  "Livraison", "Cours particuliers", "Babysitting", "Saisie", "Community Management", "Traduction", "Démarches",
+]
 
-function typeHref(type) {
-  return `/missions?type=${encodeURIComponent(type)}`
+function cardLabel(type) {
+  return `Publier une mission : ${missionTypeLabel(type)}`
 }
 
-// Catalogue des types de missions (maquette V01). Chaque carte filtre /missions sur le type.
+// Services de l'accueil (maquette V01 v3). Chaque carte ouvre la publication avec le service choisi.
 export function HomeCatalog() {
   const known = ORDER.filter((t) => MISSION_TYPES.includes(t))
   const extra = MISSION_TYPES.filter((t) => t !== OTHER && !ORDER.includes(t))
@@ -52,47 +64,47 @@ export function HomeCatalog() {
     <section className="section" id="services">
       <div className="section__head">
         <div>
-          <span className="eyebrow eyebrow--bleu">{MISSION_TYPES.length} types de missions</span>
+          <span className="eyebrow eyebrow--bleu">Services</span>
           <h2 className="display display--xl ds-mt-3">
-            Des petites missions.<br /><span className="hl-bleu">Du vrai cash.</span>
+            Ce que vous<br /><span className="hl-bleu">pouvez confier.</span>
           </h2>
         </div>
         <p className="muted ds-measure-s ds-text-right">
-          Chaque carte ouvre la liste des missions filtrée sur ce type.
+          Chaque carte ouvre la publication avec le service déjà choisi. Vous fixez le budget, dès{" "}
+          {formatFcfa(MIN_DEPOSIT_AMOUNT)}.
         </p>
       </div>
       <div className="v-cats">
         {types.map((type) => {
           const s = TYPE_STYLE[type] ?? FALLBACK_STYLE
+          const tagline = MISSION_TYPE_TAGLINES[type]
           return (
-            <Link
-              key={type}
-              className={`v-cat${s.card}`}
-              href={typeHref(type)}
-              aria-label={`Voir les missions ${type}`}
-            >
+            <Link key={type} className={`v-cat${s.card}`} href={publishHref({ type })} aria-label={cardLabel(type)}>
               <svg className="v-cat__shape" aria-hidden="true" focusable="false">
                 <use href={`${SPRITE}#${s.shape}`} />
               </svg>
               <div className="v-cat__top">
-                <span className={`ic-sq${s.sq}`}><Icon name={s.icon} /></span>
+                <span className={`ic-sq${s.sq}`}><Icon name={TYPE_ICON[type] ?? "i-briefcase"} /></span>
                 <span className="v-cat__go"><Icon name="i-arrow-up-right" /></span>
               </div>
               <div>
-                <div className="v-cat__name">{type}</div>
-                {s.example ? <div className="v-cat__ex">{s.example}</div> : null}
+                <div className="v-cat__name">{missionTypeLabel(type)}</div>
+                {s.example ? (
+                  <div className="v-cat__ex">
+                    {tagline ? <><b>{tagline}.</b>{" "}</> : null}
+                    {s.example}
+                  </div>
+                ) : null}
               </div>
             </Link>
           )
         })}
         {MISSION_TYPES.includes(OTHER) ? (
-          <Link className="v-cat v-cat--wide" href={typeHref(OTHER)} aria-label={`Voir les missions ${OTHER}`}>
-            <span className="ic-sq ic-sq--lg ic-sq--blanc"><Icon name="i-sparkles" /></span>
+          <Link className="v-cat v-cat--wide" href={publishHref({ type: OTHER })} aria-label={cardLabel(OTHER)}>
+            <span className="ic-sq ic-sq--lg ic-sq--blanc"><Icon name={TYPE_ICON[OTHER]} /></span>
             <div className="ds-grow">
-              <div className="v-cat__name">{OTHER}</div>
-              <div className="v-cat__ex">
-                Aide à un déménagement, inventaire, hôtesse d&rsquo;un jour : tout ce qui ne rentre pas ailleurs.
-              </div>
+              <div className="v-cat__name">{missionTypeLabel(OTHER)}</div>
+              <div className="v-cat__ex">{OTHER_EXAMPLE}</div>
             </div>
             <span className="v-cat__go"><Icon name="i-arrow-up-right" /></span>
           </Link>
