@@ -81,8 +81,9 @@ export function ReadyScreen({ destination }) {
 const ROLE_LABELS = { student: "étudiant", admin: "administrateur" }
 
 /**
- * Session incorrecte (connecté avec un autre rôle) ou compte suspendu : explication et sorties.
- * @param {{ status: "wrong_role" | "suspended", role?: string | null, email?: string | null }} props
+ * Session incorrecte (connecté avec un autre rôle), compte suspendu ou profil illisible
+ * (`error`) : explication et sorties.
+ * @param {{ status: "wrong_role" | "suspended" | "error", role?: string | null, email?: string | null }} props
  */
 export function WrongSessionScreen({ status, role, email }) {
   const roleLabel = ROLE_LABELS[role]
@@ -96,7 +97,12 @@ export function WrongSessionScreen({ status, role, email }) {
             <Icon name="i-user-check" />
           </span>
         </div>
-        {status === "suspended" ? (
+        {status === "error" ? (
+          <>
+            <h1 className="ds-h2">Profil indisponible</h1>
+            <p className="muted body-s">{"Nous n'avons pas pu charger votre profil. Rechargez la page dans un instant."}</p>
+          </>
+        ) : status === "suspended" ? (
           <>
             <h1 className="ds-h2">Votre compte est suspendu</h1>
             <p className="muted body-s">Vous ne pouvez pas publier de missions pour le moment. Contactez-nous pour en savoir plus.</p>
@@ -113,7 +119,7 @@ export function WrongSessionScreen({ status, role, email }) {
           </>
         )}
       </div>
-      {status === "suspended" ? (
+      {status === "error" ? null : status === "suspended" ? (
         <Link className="btn btn--primary btn--block" href="/contact">
           Nous contacter
         </Link>

@@ -13,7 +13,12 @@ const SUPABASE_URL = "https://abc.supabase.co"
 const UID = "user-1"
 
 // Faux client Supabase : enregistre les écritures et sert un profil prédéfini.
-function fakeSupabase({ user = { id: UID, user_metadata: {} }, profile = null, updateRows = [{ user_id: UID }] } = {}) {
+function fakeSupabase({
+  user = { id: UID, user_metadata: {} },
+  profile = null,
+  profileError = null,
+  updateRows = [{ user_id: UID }],
+} = {}) {
   const calls = { update: [], insert: [], upsert: [], updateUser: [] }
   const supabase = {
     auth: {
@@ -26,7 +31,7 @@ function fakeSupabase({ user = { id: UID, user_metadata: {} }, profile = null, u
     from: vi.fn((table) => {
       if (table === "profiles") {
         return {
-          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: profile }) }) }),
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: profileError ? null : profile, error: profileError }) }) }),
           update: (cols) => {
             calls.update.push({ table, cols })
             return { eq: () => ({ select: async () => ({ data: updateRows, error: null }) }) }
@@ -109,6 +114,11 @@ describe("getOnboardingState", () => {
   it("metadata admin mais profil étudiant : étudiant, jamais admin", async () => {
     use({ user: { id: UID, user_metadata: { role: "admin" } }, profile: studentProfile })
     expect(await getOnboardingState("student")).toMatchObject({ status: "ok", role: "student" })
+  })
+
+  it("lecture du profil impossible : error, sans rôle déduit des métadonnées", async () => {
+    use({ user: { id: UID, user_metadata: { role: "student" } }, profileError: { message: "permission denied" } })
+    expect(await getOnboardingState("student")).toMatchObject({ status: "error", role: null, profile: null })
   })
 
   it("compte suspendu : suspended", async () => {

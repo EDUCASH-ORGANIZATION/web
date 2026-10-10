@@ -286,6 +286,29 @@ describe("page serveur", () => {
     expect(html).not.toContain("Étape 1 sur 3")
   })
 
+  it("profil illisible : écran d'erreur propre, jamais de 500 ni d'assistant", async () => {
+    getOnboardingState.mockResolvedValue({ status: "error", role: null, user: { id: "u1" }, profile: null })
+    const html = renderToStaticMarkup(await StudentOnboardingPage(params()))
+    expect(html).toContain("Profil indisponible")
+    expect(html).not.toContain("Session incorrecte")
+    expect(html).not.toContain("Étape 1 sur 3")
+  })
+
+  it("parcours de l'incident : étudiant arrivé avec un next de publication client, assistant rendu sans ce next", async () => {
+    getOnboardingState.mockResolvedValue({
+      status: "ok",
+      profileComplete: false,
+      role: "student",
+      user: { id: "u1" },
+      profile: { role: "student", full_name: null, city: null, is_suspended: false },
+    })
+    const html = renderToStaticMarkup(
+      await StudentOnboardingPage(params({ next: "/client/missions/new", etape: ["2", "3"] }))
+    )
+    expect(html).toContain("Étape 1 sur 3")
+    expect(html).not.toContain("/client/missions/new")
+  })
+
   it("étudiant à compléter : rend l'assistant dans la coquille étudiante", async () => {
     getOnboardingState.mockResolvedValue({
       status: "ok",

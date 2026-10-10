@@ -45,13 +45,14 @@ function failure(audience, code, extra = {}) {
  * État d'un écran d'onboarding, lu côté serveur.
  * @param {"student" | "client"} expectedRole
  * @returns {Promise<{
- *   status: "unauthenticated" | "wrong_role" | "suspended" | "ok",
+ *   status: "unauthenticated" | "error" | "wrong_role" | "suspended" | "ok",
  *   user: object | null,
  *   role: "student" | "client" | "admin" | null,
  *   profile: object | null,
  *   profileComplete: boolean,
  * }>} `wrong_role` : l'utilisateur est connecté avec un autre rôle (ou un rôle inconnu) ;
- *   `role` permet d'orienter vers son espace via `dashboardFor`.
+ *   `role` permet d'orienter vers son espace via `dashboardFor` ;
+ *   `error` : lecture du profil impossible (aucun rôle déduit, l'écran affiche un état d'erreur).
  */
 export async function getOnboardingState(expectedRole) {
   const supabase = await createClient()
@@ -62,8 +63,9 @@ export async function getOnboardingState(expectedRole) {
     return { status: "unauthenticated", user: null, role: null, profile: null, profileComplete: false }
   }
 
-  const { role, profile, profileComplete } = await getServerRole(supabase, user)
+  const { role, profile, profileComplete, error } = await getServerRole(supabase, user)
   const base = { user, role, profile, profileComplete }
+  if (error) return { status: "error", ...base }
   if (role !== expectedRole) return { status: "wrong_role", ...base }
   if (profile?.is_suspended) return { status: "suspended", ...base }
   return { status: "ok", ...base }
