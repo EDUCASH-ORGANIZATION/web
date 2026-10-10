@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { getServerRole } from "@/lib/auth/server-role"
 import {
   Wallet, TrendingUp, ArrowDownLeft, ArrowUpRight, Clock,
 } from "lucide-react"
@@ -34,7 +35,9 @@ function KpiCard({ label, value, sub, icon: Icon, color, bg }) {
 export default async function AdminWalletsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.user_metadata?.role !== "admin") redirect("/auth/login")
+  if (!user) redirect("/auth/login")
+  const { role } = await getServerRole(supabase, user)
+  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
 
   const firstOfMonth = new Date()
   firstOfMonth.setDate(1)

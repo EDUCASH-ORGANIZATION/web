@@ -6,6 +6,7 @@ import {
   ShieldAlert, ShieldCheck, ArrowRight, Clock,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
+import { getServerRole } from "@/lib/auth/server-role"
 
 export const metadata = { title: "Dashboard — Admin EduCash" }
 
@@ -62,7 +63,9 @@ function BarChart({ rows }) {
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.user_metadata?.role !== "admin") redirect("/auth/login")
+  if (!user) redirect("/auth/login")
+  const { role } = await getServerRole(supabase, user)
+  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
 
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)

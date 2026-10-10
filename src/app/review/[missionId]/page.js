@@ -46,19 +46,7 @@ async function createReview(reviewedId, missionId, role, formData) {
     return { error: "Impossible d'enregistrer votre avis." }
   }
 
-  // Recalcule la moyenne
-  const { data: allReviews } = await supabase
-    .from("reviews")
-    .select("rating")
-    .eq("reviewed_id", reviewedId)
-
-  if (allReviews?.length) {
-    const avg = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
-    await supabase
-      .from("profiles")
-      .update({ rating: Math.round(avg * 10) / 10 })
-      .eq("user_id", reviewedId)
-  }
+  // La note moyenne du profil noté est recalculée en base (trigger recompute_profile_rating)
 
   const { revalidatePath } = await import("next/cache")
   revalidatePath(`/talents/${reviewedId}`)

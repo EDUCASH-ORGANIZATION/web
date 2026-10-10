@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { getServerRole } from "@/lib/auth/server-role"
 import { VerificationsTabs } from "@/components/admin/verifications-tabs"
 
 export const metadata = { title: "Vérifications — Admin EduCash" }
@@ -7,7 +8,9 @@ export const metadata = { title: "Vérifications — Admin EduCash" }
 export default async function AdminVerificationsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.user_metadata?.role !== "admin") redirect("/auth/login")
+  if (!user) redirect("/auth/login")
+  const { role } = await getServerRole(supabase, user)
+  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
 
   // Requête 1 : tous les profils étudiants
   let { data: profilesData, error: profilesError } = await supabase
