@@ -1,130 +1,129 @@
 "use server"
 
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { isDisposableEmail } from "@/lib/utils/email"
-import { safeNextPath, isNextAllowedForRole } from "@/lib/utils/safe-next"
+import { mapAuthError, authErrorMessage } from "@/lib/auth/errors"
+import { makeLoginSchema, makeRegisterSchema, parseFormData } from "@/lib/auth/schemas"
+import { getServerRole } from "@/lib/auth/server-role"
+import { PENDING_EMAIL_COOKIE, pendingEmailCookieOptions } from "@/lib/auth/cookies"
+import { formAudience } from "@/lib/auth/form-audience"
+import { authRedirectUrl, resolvePostAuth, withNext } from "@/lib/auth/destinations"
+import { safeNextPath } from "@/lib/utils/safe-next"
 
-const VALID_ROLES = ["student", "client"]
+/**
+ * Contrat commun des actions de formulaire (useActionState) : l'état précédent est le premier
+ * argument, le FormData le second. En cas de succès elles redirigent (jamais de retour).
+ *
+ * @typedef {object} AuthActionState
+ * @property {Record<string, string>} [fieldErrors] message par champ (email, password, role, cgu...)
+ * @property {string} [formError] message affichable au-dessus du formulaire, adapté à l'audience
+ * @property {string} [code] invalid_credentials | email_not_confirmed | rate_limited | session_expired |
+ *   network | email_taken | suspended | unknown
+ * @property {string} [contactHref] lien d'aide (code suspended seulement)
+ */
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function validateEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+function text(formData, key) {
+  return formData.get(key)?.toString() ?? ""
 }
 
-function validatePassword(password) {
-  if (password.length < 8) return "Le mot de passe doit contenir au moins 8 caractères."
-  if (!/[A-Z]/.test(password)) return "Le mot de passe doit contenir au moins une majuscule."
-  if (!/[a-z]/.test(password)) return "Le mot de passe doit contenir au moins une minuscule."
-  if (!/[0-9]/.test(password)) return "Le mot de passe doit contenir au moins un chiffre."
-  if (!/[^A-Za-z0-9]/.test(password)) return "Le mot de passe doit contenir au moins un caractère spécial."
-  return null
-}
-
-function dashboardFor(role) {
-  if (role === "client") return "/client/dashboard"
-  if (role === "admin")  return "/admin/dashboard"
-  return "/dashboard"
-}
-
-function mapAuthError(message = "") {
-  const normalized = message.toLowerCase().trim()
-  if (normalized.includes("user already registered")) {
-    return "Cette adresse email est déjà utilisée. Connecte-toi ou utilise une autre adresse."
-  }
-  if (normalized.includes("invalid login credentials")) {
-    return "Email ou mot de passe incorrect."
-  }
-  if (normalized.includes("email not confirmed") || normalized.includes("email address not confirmed")) {
-    return "L'adresse email n'a pas encore été confirmée. Vérifie ta boîte de réception."
-  }
-  if (normalized.includes("over email send rate limit") || normalized.includes("rate limit")) {
-    return "Trop de tentatives. Réessaie dans quelques minutes."
-  }
-  if (normalized.includes("user not found") || normalized.includes("invalid email")) {
-    return "Aucun compte n'est associé à cette adresse email."
-  }
-  if (normalized.includes("jwt") || normalized.includes("token")) {
-    return "Ta session a expiré. Reconnecte-toi."
-  }
-  if (normalized.includes("network")) {
-    return "Problème de connexion. Vérifie ton internet et réessaie."
-  }
-  // Fallback : message générique si l'erreur est en anglais brute
-  return message
+function appUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj"
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
-export async function login(formData) {
-  const email = formData.get("email")?.toString().trim() ?? ""
-  const password = formData.get("password")?.toString() ?? ""
-
-  if (!email) return { error: "L'adresse email est requise." }
-  if (!validateEmail(email)) return { error: "L'adresse email n'est pas valide." }
-  if (!password) return { error: "Le mot de passe est requis." }
-  if (password.length < 8) return { error: "Le mot de passe doit contenir au moins 8 caractères." }
+/**
+ * Connexion. Champs : email, password, next (facultatif), role ou audience (facultatif).
+ * @param {AuthActionState | null} _prevState
+ * @param {FormData} formData
+ * @returns {Promise<AuthActionState>}
+ */
+export async function login(_prevState, formData) {
+  const audience = formAudience(formData)
+  const parsed = parseFormData(makeLoginSchema(audience), formData)
+  if (!parsed.ok) return { fieldErrors: parsed.fieldErrors }
 
   const supabase = await createClient()
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data)
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) {
+    const { code, message } = mapAuthError(error, audience)
+    return { code, formError: message }
+  }
 
-  if (error) return { error: mapAuthError(error.message) }
+  // Le rôle d'autorisation vient de profiles, jamais de user_metadata.
+  const { role, profile, profileComplete } = await getServerRole(supabase, data.user)
 
-  const role = data.user?.user_metadata?.role ?? "student"
-  const target = safeNextPath(formData.get("next")?.toString())
-  if (target && isNextAllowedForRole(target, role)) redirect(target)
-  redirect(dashboardFor(role))
+  if (profile?.is_suspended) {
+    await supabase.auth.signOut()
+    return {
+      code: "suspended",
+      formError: authErrorMessage("suspended", audience),
+      contactHref: "/contact",
+    }
+  }
+
+  redirect(resolvePostAuth({ role, profileComplete, next: text(formData, "next") }))
 }
 
-export async function register(formData) {
-  const email = formData.get("email")?.toString().trim() ?? ""
-  const password = formData.get("password")?.toString() ?? ""
-  const confirmPassword = formData.get("confirmPassword")?.toString() ?? ""
-  const role = formData.get("role")?.toString() ?? ""
+/**
+ * Inscription. Champs : role (student | client), email, password, confirmPassword, cgu, next (facultatif).
+ * Redirige vers /auth/verify-email (role et next en requête, jamais l'email) ou vers l'onboarding
+ * quand Supabase ouvre une session immédiate.
+ * @param {AuthActionState | null} _prevState
+ * @param {FormData} formData
+ * @returns {Promise<AuthActionState>}
+ */
+export async function register(_prevState, formData) {
+  const audience = formAudience(formData)
+  const parsed = parseFormData(makeRegisterSchema(audience), formData)
+  if (!parsed.ok) return { fieldErrors: parsed.fieldErrors }
 
-  if (!email) return { error: "L'adresse email est requise." }
-  if (!validateEmail(email)) return { error: "L'adresse email n'est pas valide." }
-  if (isDisposableEmail(email)) return { error: "Les adresses email temporaires ou jetables ne sont pas acceptées." }
-  if (!password) return { error: "Le mot de passe est requis." }
-  const passwordError = validatePassword(password)
-  if (passwordError) return { error: passwordError }
-  if (confirmPassword !== password) return { error: "Les mots de passe ne correspondent pas." }
-  if (!VALID_ROLES.includes(role)) return { error: "Le rôle sélectionné est invalide." }
+  const { email, password, role } = parsed.data
+  const next = safeNextPath(text(formData, "next"))
 
   const supabase = await createClient()
 
   // Déconnecter toute session existante avant de créer un nouveau compte
-  // (évite que le formulaire de profil tourne sous la mauvaise identité)
-  const { data: { user: existingUser } } = await supabase.auth.getUser()
+  // (évite que l'onboarding tourne sous la mauvaise identité)
+  const {
+    data: { user: existingUser },
+  } = await supabase.auth.getUser()
   if (existingUser) await supabase.auth.signOut()
-
-  // emailRedirectTo : après confirmation email, Supabase redirige vers
-  // /auth/callback qui échange le code et redirige vers la bonne page d'onboarding.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj"
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { role },
-      emailRedirectTo: `${appUrl}/auth/callback`,
+      emailRedirectTo: authRedirectUrl({ appUrl: appUrl(), flow: "signup", next }),
     },
   })
 
   if (error) {
-    console.error("[register] Supabase error:", JSON.stringify(error))
-    return { error: mapAuthError(error.message) }
+    const { code, message } = mapAuthError(error, audience)
+    return code === "email_taken"
+      ? { code, fieldErrors: { email: message } }
+      : { code, formError: message }
   }
 
-  // Si Supabase requiert une confirmation email, data.session est null
-  // → on redirige vers une page d'attente plutôt que vers le formulaire de profil
+  // Adresse déjà inscrite : Supabase renvoie un faux utilisateur sans identité.
+  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    return {
+      code: "email_taken",
+      fieldErrors: { email: authErrorMessage("email_taken", audience) },
+    }
+  }
+
+  // Confirmation par email requise : pas de session, on attend sur l'écran de vérification.
   if (!data.session) {
-    redirect("/auth/verify-email")
+    const cookieStore = await cookies()
+    cookieStore.set(PENDING_EMAIL_COOKIE, email, pendingEmailCookieOptions())
+    redirect(withNext(`/auth/verify-email?role=${role}`, next))
   }
 
-  redirect(role === "client" ? "/auth/register/client" : "/auth/register/student")
+  redirect(resolvePostAuth({ role, profileComplete: false, next }))
 }
 
 export async function logout() {
