@@ -42,7 +42,7 @@ export function HydratedSubmit({
       aria-busy={pending || undefined}
       onClick={handleClick}
     >
-      <span>{children}</span>
+      {children}
     </button>
   )
 }

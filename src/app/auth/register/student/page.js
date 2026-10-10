@@ -80,7 +80,7 @@ export default async function StudentOnboardingPage({ searchParams }) {
   const { profile } = state
 
   return (
-    <AuthShell audience="student" brand={BRAND}>
+    <AuthShell audience="student" brand={BRAND} signOutAction={logout}>
       <OnboardingWizard
         userId={state.user.id}
         next={next}

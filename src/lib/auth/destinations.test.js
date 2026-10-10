@@ -9,6 +9,7 @@ import {
   resolvePostAuth,
   authRedirectUrl,
   linkErrorCause,
+  knownRole,
 } from "./destinations.js"
 import { safeNextPath, isNextAllowedForRole } from "@/lib/utils/safe-next"
 
@@ -180,5 +181,23 @@ describe("linkErrorCause", () => {
   it("lit des URLSearchParams", () => {
     expect(linkErrorCause(new URLSearchParams("error=access_denied&error_code=otp_expired"))).toBe("expire")
     expect(linkErrorCause(new URLSearchParams(""))).toBe("invalide")
+  })
+})
+
+describe("knownRole", () => {
+  it("accepte un role explicite student ou client", () => {
+    expect(knownRole("student", undefined)).toBe("student")
+    expect(knownRole("client", undefined)).toBe("client")
+  })
+
+  it("ignore admin et les valeurs inconnues", () => {
+    expect(knownRole("admin", undefined)).toBeNull()
+    expect(knownRole("", undefined)).toBeNull()
+  })
+
+  it("déduit le public d'un next", () => {
+    expect(knownRole(undefined, PUBLISH)).toBe("client")
+    expect(knownRole(undefined, "/dashboard")).toBe("student")
+    expect(knownRole(undefined, "/missions")).toBeNull()
   })
 })

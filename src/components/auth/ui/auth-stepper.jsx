@@ -8,10 +8,12 @@ import { Icon } from "@/components/design/icon"
  *   current: number,
  *   compact?: boolean,
  *   showCaption?: boolean,
+ *   errorSteps?: number[],
  * }} props `current` est 1-indexé ; les étapes précédentes sont marquées faites.
+ * `errorSteps` (numéros 1-indexés) marque les étapes en erreur (`is-error`).
  * `compact` force l'affichage réduit (sous 768 px il est déjà appliqué par la feuille de style).
  */
-export function AuthStepper({ steps, current, compact = false, showCaption = true }) {
+export function AuthStepper({ steps, current, compact = false, showCaption = true, errorSteps = [] }) {
   return (
     <>
       <nav className={`stepper${compact ? " stepper--compact" : ""}`} aria-label="Étapes">
@@ -19,11 +21,12 @@ export function AuthStepper({ steps, current, compact = false, showCaption = tru
           const number = index + 1
           const done = number < current
           const isCurrent = number === current
+          const hasError = errorSteps.includes(number)
           return (
             <Fragment key={label}>
               {index > 0 && <span className={`step__line${isCurrent || done ? " is-done" : ""}`} />}
-              <div className={`step${done ? " is-done" : ""}${isCurrent ? " is-current" : ""}`} aria-current={isCurrent ? "step" : undefined}>
-                <span className="step__dot">{done ? <Icon name="i-check" /> : number}</span>
+              <div className={`step${done ? " is-done" : ""}${isCurrent ? " is-current" : ""}${hasError ? " is-error" : ""}`} aria-current={isCurrent ? "step" : undefined}>
+                <span className="step__dot">{done && !hasError ? <Icon name="i-check" /> : number}</span>
                 <span className="step__label">{label}</span>
               </div>
             </Fragment>

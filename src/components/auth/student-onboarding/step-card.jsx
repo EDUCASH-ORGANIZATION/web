@@ -1,11 +1,12 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
 import { AuthStepper } from "@/components/auth/ui/auth-stepper"
 import { FieldError } from "@/components/auth/ui/field-error"
 import { FormBanner } from "@/components/auth/ui/form-banner"
-import { STEP_LABELS, StepSubmit } from "./step-identity"
+import { HydratedSubmit } from "@/components/auth/ui/hydrated-submit"
+import { STEP_LABELS } from "./step-identity"
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 export const AVATAR_TYPES = ["image/jpeg", "image/png"]
@@ -56,6 +57,7 @@ export function validateUpload(file, accepted, kind) {
  */
 export function StepCard({ card, cardError = "", formError = "", pending, onPickCard, onBack, onSubmit, onSkip }) {
   const fileRef = useRef(null)
+  const [confirmSkip, setConfirmSkip] = useState(false)
 
   function handleSubmit(event) {
     event.preventDefault()
@@ -143,15 +145,36 @@ export function StepCard({ card, cardError = "", formError = "", pending, onPick
       </ul>
 
       <div className="stack stack--3">
-        <StepSubmit block pending={pending}>
+        {confirmSkip && card && (
+          <FormBanner
+            tone="alerte"
+            title="Ta carte ne sera pas envoyée"
+            actions={
+              <>
+                <button className="btn btn--secondary btn--sm" type="button" disabled={pending} onClick={onSubmit}>
+                  Envoyer la carte
+                </button>
+                <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={onSkip}>
+                  Continuer sans la carte
+                </button>
+              </>
+            }
+          >
+            {`Tu as choisi « ${card.name} ». Si tu continues sans l'envoyer, elle ne sera pas enregistrée.`}
+          </FormBanner>
+        )}
+        <HydratedSubmit className="btn btn--primary btn--block" pending={pending}>
           {card ? "Envoyer et terminer" : "Terminer"}
-        </StepSubmit>
+          <span className="btn__dot">
+            <Icon name="i-arrow-right" />
+          </span>
+        </HydratedSubmit>
         <div className="row row--between">
           <button className="btn btn--secondary" type="button" disabled={pending} onClick={onBack}>
             <Icon name="i-arrow-left" />
             Retour
           </button>
-          <button className="btn btn--ghost" type="button" disabled={pending} onClick={onSkip}>
+          <button className="btn btn--ghost" type="button" disabled={pending} onClick={() => (card ? setConfirmSkip(true) : onSkip())}>
             Plus tard
           </button>
         </div>

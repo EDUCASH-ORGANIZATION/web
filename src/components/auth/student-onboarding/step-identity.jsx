@@ -5,33 +5,12 @@ import { Icon } from "@/components/design/icon"
 import { AuthStepper } from "@/components/auth/ui/auth-stepper"
 import { FieldError } from "@/components/auth/ui/field-error"
 import { FormBanner } from "@/components/auth/ui/form-banner"
-import { useHydrated } from "@/components/auth/ui/hydrated-submit"
+import { HydratedSubmit } from "@/components/auth/ui/hydrated-submit"
 import { PhoneInput } from "@/components/auth/ui/phone-input"
 import { CITIES } from "@/lib/supabase/database.constants"
 import { BIO_MAX } from "@/lib/auth/schemas"
 
 export const STEP_LABELS = ["Identité", "Études", "Carte étudiante"]
-
-/**
- * Bouton d'envoi des étapes : inactif tant que la page n'est pas hydratée (aucun envoi natif
- * possible avant que le JavaScript soit prêt) ; le point fléché reste un enfant direct du bouton.
- */
-export function StepSubmit({ children, pending = false, block = false }) {
-  const hydrated = useHydrated()
-  return (
-    <button
-      type="submit"
-      className={`btn btn--primary${block ? " btn--block" : ""}${pending ? " is-loading" : ""}`}
-      disabled={!hydrated}
-      aria-busy={pending || undefined}
-    >
-      {children}
-      <span className="btn__dot">
-        <Icon name="i-arrow-right" />
-      </span>
-    </button>
-  )
-}
 
 function describedBy(id, errors, name, extra) {
   return [errors[name] ? `${id}-error` : null, extra].filter(Boolean).join(" ") || undefined
@@ -193,7 +172,12 @@ export function StepIdentity({ values, errors, avatar, avatarError = "", formErr
 
       <div className="row row--between">
         <span className="ds-grow" />
-        <StepSubmit>Continuer</StepSubmit>
+        <HydratedSubmit className="btn btn--primary">
+          Continuer
+          <span className="btn__dot">
+            <Icon name="i-arrow-right" />
+          </span>
+        </HydratedSubmit>
       </div>
     </form>
   )

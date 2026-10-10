@@ -34,6 +34,8 @@ export const BRAND_PANELS = {
  * (retour + logo) et une seule colonne, par media query (un seul DOM).
  *
  * Les enfants portent eux-mêmes la classe `auth__form` (le plus souvent le <form>).
+ * `signOutAction` (action serveur) remplace le lien de retour par « Se déconnecter »
+ * (onboardings, où l'utilisateur est déjà connecté).
  * Compatibilité avec les pages MUI de `main` : `title` et `subtitle` enveloppent alors
  * les enfants dans un `auth__form` ; `maxWidth` est ignoré.
  *
@@ -41,6 +43,7 @@ export const BRAND_PANELS = {
  *   audience?: "student" | "client",
  *   backHref?: string,
  *   backLabel?: string,
+ *   signOutAction?: (formData: FormData) => void | Promise<void>,
  *   brand?: { lines: string[], highlight: string, points?: { icon: string, title: string, text: string }[] },
  *   title?: string,
  *   subtitle?: string,
@@ -52,6 +55,7 @@ export function AuthShell({
   audience = "student",
   backHref = "/",
   backLabel = "Retour à l'accueil",
+  signOutAction,
   brand,
   title,
   subtitle,
@@ -95,16 +99,33 @@ export function AuthShell({
         </div>
         <div className="auth__main">
           <div className="auth__top">
-            <Link className="btn-icon btn-icon--sm btn-icon--plain" href={backHref} aria-label={backLabel}>
-              <Icon name="i-arrow-left" />
-            </Link>
+            {signOutAction ? (
+              <form action={signOutAction} method="post">
+                <button className="btn-icon btn-icon--sm btn-icon--plain" type="submit" aria-label="Se déconnecter">
+                  <Icon name="i-logout" />
+                </button>
+              </form>
+            ) : (
+              <Link className="btn-icon btn-icon--sm btn-icon--plain" href={backHref} aria-label={backLabel}>
+                <Icon name="i-arrow-left" />
+              </Link>
+            )}
             <img className="logo logo--sm" src="/logo-horizontal-bleu.svg" alt="EduCash" width={139} height={26} />
             <span className="a-spacer" />
           </div>
-          <Link className="auth__back" href={backHref}>
-            <Icon name="i-arrow-left" className="ic ic--20" />
-            {backLabel}
-          </Link>
+          {signOutAction ? (
+            <form action={signOutAction} method="post">
+              <button className="auth__back a-linkbtn" type="submit">
+                <Icon name="i-logout" className="ic ic--20" />
+                Se déconnecter
+              </button>
+            </form>
+          ) : (
+            <Link className="auth__back" href={backHref}>
+              <Icon name="i-arrow-left" className="ic ic--20" />
+              {backLabel}
+            </Link>
+          )}
           {legacy ? (
             <div className="auth__form">
               <div>

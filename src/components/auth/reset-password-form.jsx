@@ -45,6 +45,16 @@ export function ResetPasswordForm({ email = "" }) {
   const [clientErrors, setClientErrors] = useState(null)
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
+  const [seenState, setSeenState] = useState(state)
+
+  // Après une erreur renvoyée par le serveur, les deux champs sont vidés (jamais de mot de passe conservé).
+  if (state !== seenState) {
+    setSeenState(state)
+    if (state && state.status !== "updated") {
+      setPassword("")
+      setConfirm("")
+    }
+  }
 
   if (state?.status === "updated") {
     return (

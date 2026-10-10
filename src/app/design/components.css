@@ -1448,6 +1448,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .check__sub.a-err-text, .a-err-text { color: var(--c-erreur); font-weight: var(--fw-bold); }
 .a-center { text-align: center; align-items: center; }
 .a-spacer { width: 36px; flex: none; }
+.a-linkbtn { background: none; border: 0; padding: 0; font-family: inherit; color: inherit; cursor: pointer; }
 .a-screen--blanc { background: var(--c-blanc); }
 .a-screen--bleu { background: var(--c-bleu); }
 .a-status--bleu { --status-bg: var(--c-bleu); }

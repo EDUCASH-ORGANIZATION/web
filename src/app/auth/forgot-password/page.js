@@ -1,7 +1,7 @@
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form"
 import { AuthShell, BRAND_PANELS } from "@/components/vitrine/auth-shell"
-import { audienceFor, loginHref } from "@/lib/auth/destinations"
-import { isNextAllowedForRole, safeNextPath } from "@/lib/utils/safe-next"
+import { knownRole, loginHref } from "@/lib/auth/destinations"
+import { safeNextPath } from "@/lib/utils/safe-next"
 
 export const metadata = {
   title: "Mot de passe oublié",
@@ -9,14 +9,6 @@ export const metadata = {
 
 function first(value) {
   return Array.isArray(value) ? value[0] : value
-}
-
-// Public connu : role explicite, ou next sous /client (client) ou dans l'espace étudiant (student).
-function knownRole(role, next) {
-  if (role === "student" || role === "client") return role
-  if (audienceFor({ next }, null)) return "client"
-  if (next && isNextAllowedForRole(next, "student") && !isNextAllowedForRole(next, "client")) return "student"
-  return null
 }
 
 export default async function ForgotPasswordPage({ searchParams }) {

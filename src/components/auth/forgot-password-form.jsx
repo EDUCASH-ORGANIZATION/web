@@ -18,7 +18,7 @@ const COPY = {
     sentTitle: "Regarde ta boîte mail",
     sentLead: "Si un compte existe pour",
     sentEnd: ", tu vas recevoir un lien pour choisir un nouveau mot de passe.",
-    hint: "Rien reçu ? Regarde dans les spams, ou vérifie l'adresse saisie.",
+    hint: "Rien reçu ? Regarde dans les spams, ou vérifie l'adresse indiquée.",
   },
   client: {
     lead: "Saisissez l'adresse de votre compte. Nous vous envoyons un lien pour en choisir un nouveau.",
@@ -26,7 +26,7 @@ const COPY = {
     sentTitle: "Regardez votre boîte mail",
     sentLead: "Si un compte existe pour",
     sentEnd: ", vous allez recevoir un lien pour choisir un nouveau mot de passe.",
-    hint: "Rien reçu ? Regardez dans les spams, ou vérifiez l'adresse saisie.",
+    hint: "Rien reçu ? Regardez dans les spams, ou vérifiez l'adresse indiquée.",
   },
 }
 

@@ -6,7 +6,8 @@ import { FieldError } from "@/components/auth/ui/field-error"
 import { FormBanner } from "@/components/auth/ui/form-banner"
 import { AVAILABILITY_PRESETS, STUDY_LEVELS } from "@/lib/auth/schemas"
 import { MISSION_TYPE_OPTIONS } from "@/lib/constants/missions"
-import { STEP_LABELS, StepSubmit } from "./step-identity"
+import { HydratedSubmit } from "@/components/auth/ui/hydrated-submit"
+import { STEP_LABELS } from "./step-identity"
 
 /** Valeur de l'option « autre établissement » dans la liste. */
 export const OTHER_SCHOOL = "__other__"
@@ -153,7 +154,12 @@ export function StepStudies({ values, errors, universities, formError = "", onCh
           Retour
         </button>
         <span className="ds-grow" />
-        <StepSubmit>Continuer</StepSubmit>
+        <HydratedSubmit className="btn btn--primary">
+          Continuer
+          <span className="btn__dot">
+            <Icon name="i-arrow-right" />
+          </span>
+        </HydratedSubmit>
       </div>
     </form>
   )

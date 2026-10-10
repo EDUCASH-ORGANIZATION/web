@@ -66,6 +66,18 @@ export function audienceFor({ role, next } = {}, fallback = "student") {
 }
 
 /**
+ * Public connu d'un écran neutre : role explicite (student ou client), sinon déduit de `next`
+ * (sous /client : client ; espace étudiant seul : student), sinon null.
+ * @returns {"student" | "client" | null}
+ */
+export function knownRole(role, next) {
+  if (role === "student" || role === "client") return role
+  if (audienceFor({ next }, null)) return "client"
+  if (next && isNextAllowedForRole(next, "student") && !isNextAllowedForRole(next, "client")) return "student"
+  return null
+}
+
+/**
  * Où envoyer un utilisateur authentifié.
  * Profil incomplet -> onboarding (next conservé s'il est autorisé), sinon next autorisé,
  * sinon tableau de bord. Un rôle inconnu n'obtient jamais de next.

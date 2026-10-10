@@ -61,4 +61,15 @@ describe("AuthShell", () => {
     expect(html).toContain("<p>contenu</p>")
     expect(html).not.toContain("maxWidth")
   })
+
+  it("remplace le lien de retour par « Se déconnecter » avec signOutAction", () => {
+    const html = renderToStaticMarkup(
+      <AuthShell audience="student" signOutAction={() => {}}>
+        <div />
+      </AuthShell>
+    )
+    expect(text(html)).toContain("Se déconnecter")
+    expect(html).toContain('aria-label="Se déconnecter"')
+    expect(html).not.toContain("Retour à l")
+  })
 })

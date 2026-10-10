@@ -82,6 +82,15 @@ describe("FormBanner", () => {
 })
 
 describe("HydratedSubmit", () => {
+  it("n'enveloppe pas les enfants dans un span", () => {
+    const html = renderToStaticMarkup(
+      <HydratedSubmit>
+        Continuer<span className="btn__dot" />
+      </HydratedSubmit>
+    )
+    expect(html).toMatch(/>Continuer<span class="btn__dot">/)
+  })
+
   it("est désactivé côté serveur (avant hydratation)", () => {
     const html = renderToStaticMarkup(<HydratedSubmit>Se connecter</HydratedSubmit>)
     expect(html).toMatch(/<button[^>]*type="submit"/)
@@ -201,5 +210,11 @@ describe("MailboxLink", () => {
     expect(html).toContain('rel="noopener noreferrer"')
     expect(html).toContain("Ouvrir ma messagerie")
     expect(renderToStaticMarkup(<MailboxLink email="sena@exemple.bj" />)).toBe("")
+  })
+
+  it("marque les étapes en erreur", () => {
+    const html = renderToStaticMarkup(<AuthStepper steps={["A", "B", "C"]} current={3} errorSteps={[1]} />)
+    expect(html).toContain("step is-done is-error")
+    expect(html.match(/is-error/g)).toHaveLength(1)
   })
 })
