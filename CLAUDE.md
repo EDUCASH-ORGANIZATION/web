@@ -4,7 +4,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 
 ## Stack
 - Next 16.2 (App Router, Turbopack), React 19, Tailwind 4 (`@tailwindcss/postcss`), JavaScript uniquement (pas de `.ts` ni `.tsx`).
-- MUI 9 : gelé, en voie de retrait (vitrine historique). Ne pas l'étendre.
+- MUI et Emotion : retirés du projet (RD-02). Ne pas les réintroduire.
 - Supabase (`@supabase/ssr`), FedaPay (jamais nommé dans les textes visibles de la vitrine), Resend, next-pwa. Déploiement Vercel.
 - Alias `@/` pour tous les imports. Server Components par défaut, `"use client"` seulement si nécessaire.
 - Formulaires : react-hook-form + zod. Commandes : `npm run dev`, `npm run build`, `npx eslint <fichiers>`.
@@ -31,8 +31,8 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 
 ## Cohabitation pendant la transition
 - Les espaces connectés (`(student)`, `(client)`, `(admin)`, `legal/*`) restent en Tailwind avec parité stricte avec `main`. Ne pas les toucher sauf portage complet d'un écran.
-- Les pages MUI sont à réécrire écran par écran, puis MUI sera retiré.
-- Règle pour tout nouvel écran : uniquement les classes du système sous une racine `.ds`, en reprenant la maquette de `/Users/brandonmedehou/Desktop/EDUCASH/design-rebrand/maquettes/`. Pas de Tailwind ni de MUI dans un écran refondu.
+- L'authentification (`/auth/*`) est refondue sur le design system (RD-02) ; plus aucune page MUI.
+- Règle pour tout nouvel écran : uniquement les classes du système sous une racine `.ds`, en reprenant la maquette de `/Users/brandonmedehou/Desktop/EDUCASH/design-rebrand/maquettes/`. Pas de Tailwind dans un écran refondu.
 - Exception tolérée : utilitaires Tailwind de dimension et de forme (w-*, h-*, max-w-*, rounded-full, object-cover) pour les squelettes de chargement et les images d'avatar, tant que le système ne fournit pas d'équivalent. Aucune couleur, aucun espacement de mise en page en Tailwind dans un écran refondu.
 - UX : l'étudiant est tutoyé, le client vouvoyé, l'admin se tutoie entre collègues. Deux publics seulement : les clients (familles, salariés, fonctionnaires, entreprises : même compte) sur `/`, les étudiants sur `/etudiants`. Pas de page ni de bloc « Entreprises ».
 
@@ -51,9 +51,16 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - `CONTACT_INBOX_EMAIL` : destinataire du formulaire de contact (défaut `contact@educash.bj`). Les autres variables restent dans `.env.local`, jamais lu ni commité.
 
 ## Rôles
-- `student`, `client` et `admin`. Le rôle est dans `user_metadata.role`, `middleware.js` redirige selon ce rôle.
-- `user_metadata` est modifiable par l'utilisateur : ne s'en servir que pour l'affichage ou la navigation, jamais pour une autorisation. L'autorité se vérifie côté serveur sur `profiles.role`. Le `middleware.js` actuel s'appuie encore sur `user_metadata` : dette de sécurité connue, à traiter dans un lot dédié.
-- L'admin ne peut jamais être auto-attribué (ni à l'inscription ni par mise à jour de profil). Un étudiant ne peut pas s'auto-vérifier.
+- `student`, `client` et `admin`. `middleware.js` redirige encore selon `user_metadata.role` (navigation seulement).
+- `user_metadata` est modifiable par l'utilisateur : ne s'en servir que pour l'affichage ou la navigation, jamais pour une autorisation. Toute autorisation lit `profiles.role` côté serveur via `getServerRole(supabase, user)` (`src/lib/auth/server-role.js`) : le repli sur `user_metadata` est limité à student et client, jamais admin. La garde admin (layout et `assertAdmin`) exige `profiles.role = 'admin'`.
+- Dette connue : le middleware, les layouts étudiant et client et les autres server actions s'appuient encore sur `user_metadata`. Lot dédié RD-SEC-01.
+- L'admin ne peut jamais être auto-attribué (ni à l'inscription ni par mise à jour de profil). Un étudiant ne peut pas s'auto-vérifier. Les onboardings écrivent une liste blanche de colonnes (jamais `role`, `is_verified`, `is_suspended`, `verified_until`).
+
+## Authentification
+- Formulaires d'auth : action serveur (`useActionState`) ou `method="post"`, bouton `HydratedSubmit` inactif avant hydratation. Jamais de GET portant des identifiants.
+- Cookies httpOnly `ec_pending_email` (adresse rappelée sur la page de vérification) et `ec_recovery` (autorise le nouveau mot de passe). Jamais d'email ni de mot de passe dans une URL.
+- `next` toujours validé par `safeNextPath` et `isNextAllowedForRole`. Destinations dans `src/lib/auth/destinations.js`, schémas zod dans `src/lib/auth/schemas.js` (téléphone béninois 10 chiffres commençant par 01, stocké `+22901XXXXXXXX`).
+- Aucune durée de validité de lien ni délai d'examen de carte affichés. Garde-fous : `vitrine-content.guard.test.js` (auth incluse) et `auth-emails.guard.test.js`.
 
 ## Données
 - Accès aux données uniquement via `src/lib/actions` (server actions) et `src/lib/supabase/{client,server}.js`. Pas de couche `services` séparée.

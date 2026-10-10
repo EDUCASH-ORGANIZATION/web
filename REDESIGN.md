@@ -61,7 +61,7 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
 
 - Les espaces connectés restent en Tailwind avec parité stricte avec `main`
   (Inter, fond blanc, mode sombre) tant qu'un écran n'est pas porté.
-- Les pages MUI sont à réécrire, puis MUI sera retiré.
+- Plus aucune page MUI : MUI et Emotion sont retirés du projet (RD-02).
 - Nouvel écran : uniquement les classes du système sous `.ds`, d'après la
   maquette de `design-rebrand/maquettes/`.
 
@@ -144,13 +144,13 @@ maintenance T05, `/offline` T06, PWA T07.
   vient de la variable d'environnement `CONTACT_INBOX_EMAIL` (défaut
   `contact@educash.bj`), jamais du formulaire.
 - **Dépendances 3D retirées** : `three`, `@react-three/fiber` et
-  `@react-three/drei` ne sont plus utilisées par la vitrine. MUI reste pour
-  l'authentification (`auth-shell`, `stack`, `theme`, `vitrine-provider`).
+  `@react-three/drei` ne sont plus utilisées par la vitrine. MUI a été retiré
+  avec la refonte de l'authentification (RD-02).
 
 ## Suivi des écrans
 
 États : porté, partiel, à faire. Fondation faite ; vitrine V01 à V09 faite (V02 en RD-00, le reste en RD-01) ;
-tout le reste à faire.
+authentification A01 à A08 faite (RD-02) ; tout le reste à faire.
 
 ### Vitrine (V01 à V09)
 | Écran | Titre | État |
@@ -168,14 +168,14 @@ tout le reste à faire.
 ### Authentification (A01 à A08)
 | Écran | Titre | État |
 |---|---|---|
-| A01 | Connexion | à faire |
-| A02 | Inscription | à faire |
-| A03 | Vérification de l'email | à faire |
-| A04 | Lien de confirmation invalide ou expiré | à faire |
-| A05 | Mot de passe oublié | à faire |
-| A06 | Nouveau mot de passe | à faire |
-| A07 | Onboarding étudiant | à faire |
-| A08 | Onboarding client | à faire |
+| A01 | Connexion | fait (RD-02) |
+| A02 | Inscription | fait (RD-02) |
+| A03 | Vérification de l'email | fait (RD-02) |
+| A04 | Lien de confirmation invalide ou expiré | fait (RD-02) |
+| A05 | Mot de passe oublié | fait (RD-02) |
+| A06 | Nouveau mot de passe | fait (RD-02) |
+| A07 | Onboarding étudiant | fait (RD-02) |
+| A08 | Onboarding client | fait (RD-02) |
 
 ### Étudiant (E01 à E13)
 | Écran | Titre | État |
@@ -300,5 +300,17 @@ tout le reste à faire.
 - Opérateurs : MTN MoMo, Moov Money et Celtiis Cash sont affichés ensemble partout où la vitrine les liste (décision de l'utilisateur). Les fenêtres de recharge et de retrait des espaces connectés ne proposent pas Celtiis (non supporté fonctionnellement) : à traiter dans un lot dédié.
 - Le prestataire de paiement n'est jamais nommé dans les textes visibles de la vitrine, des pages légales et des emails (« notre prestataire de paiement agréé »). À faire relire par un juriste.
 - Vocabulaire : plus de « livraison », « course(s) », « coursier(s) », « saisie » ni « Bientôt » dans les textes vitrine et les emails ; « commission » est réservé aux 12 %. Garde-fous : `vitrine-content.guard.test.js` (mots bannis, lien `/clients`) et `vocabulary.render.test.jsx` (texte rendu des sections de `/` et `/etudiants`).
-- Pré-remplissage de la publication : `parsePublishPrefill` et `publishHref` (`src/lib/utils/publish-prefill.js`) ; `/client/missions/new` lit `besoin`, `ville` et `type` (valeurs hors liste ignorées). Le middleware conserve la requête dans `next` pour un visiteur non connecté. Le pré-remplissage n'est pas transmis à travers l'inscription ni l'écran « portefeuille insuffisant » (lot auth suivant).
+- Pré-remplissage de la publication : `parsePublishPrefill` et `publishHref` (`src/lib/utils/publish-prefill.js`) ; `/client/missions/new` lit `besoin`, `ville` et `type` (valeurs hors liste ignorées). Le middleware conserve la requête dans `next` pour un visiteur non connecté. Le pré-remplissage traverse l'inscription et l'écran « portefeuille insuffisant » depuis RD-02.
 - Styles du lot repliés en fin de `components.css` (règles) et de `layouts.css` (media queries, après le dernier bloc 1023.98 : voir `layouts-order.test.js`).
+
+## Authentification (RD-02)
+
+- Écrans A01 à A08 sous une racine `.ds` avec le gabarit `.auth` (une seule colonne sous 1024 px, un seul DOM). Panneau bleu pour l'étudiant (tutoiement), panneau encre `auth__brand--client` pour le client (vouvoiement). Les pages neutres (`/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/link-expired`) vouvoient tant que le public est inconnu. `AuthShell` (`src/components/vitrine/auth-shell.jsx`) prend `audience`, `brand`, `backHref`, `backLabel` et `signOutAction` (lien « Se déconnecter » en haut des onboardings). Composants partagés dans `src/components/auth/ui/`.
+- Routes : `/auth/login`, `/auth/register` (`?role=student|client`, `next`), `/auth/verify-email`, `/auth/link-expired?cause=expire|utilise|autre-appareil|invalide`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/confirm` (code PKCE ou `token_hash`), `/auth/callback` (liens déjà envoyés, délègue au même gestionnaire), `/auth/register/student` et `/auth/register/client` (onboardings, session requise).
+- Formulaires à action serveur (`useActionState`, POST) avec `HydratedSubmit` : bouton inactif tant que la page n'est pas hydratée, jamais d'identifiants dans l'URL. Validation zod côté client et côté serveur (`src/lib/auth/schemas.js`). Téléphone béninois : 10 chiffres commençant par 01, stocké en `+22901XXXXXXXX`.
+- Cookies httpOnly : `ec_pending_email` (adresse rappelée sur A03, jamais dans l'URL) et `ec_recovery` (autorise A06, 15 min).
+- Rôle : seuls `student` et `client` à l'inscription ; l'autorité se lit sur `profiles.role` par `getServerRole` (`src/lib/auth/server-role.js`). Garde admin (layout et `assertAdmin`) sur `profiles.role = 'admin'`. Les onboardings écrivent une liste blanche de colonnes, jamais `role`, `is_verified`, `is_suspended` ni `verified_until`. Reste au lot RD-SEC-01 : autorité serveur dans le middleware, les layouts étudiant et client et toutes les server actions.
+- `next` : `safeNextPath` et `isNextAllowedForRole` à chaque étape ; le pré-remplissage de publication (`besoin`, `ville`, `type`) survit à la connexion, l'inscription, la confirmation, l'onboarding client et l'écran « portefeuille insuffisant » (`ResumePublishLink`).
+- Emails : gabarits Supabase de confirmation et de réinitialisation dans `supabase/templates/` (à coller dans le tableau de bord, Redirect URLs `https://www.educash.bj/auth/**` et `https://educash.bj/auth/**`), gabarits Resend sans tiret cadratin. Aucune durée de validité affichée.
+- Garde-fous : `vitrine-content.guard.test.js` scanne `src/app/auth` et `src/components/auth` (formulaires, délais, couleurs, accès aux tables), `auth-emails.guard.test.js` scanne tous les gabarits Resend.
+- Reporté : second champ « Votre nom » (contact PME ou association) de l'onboarding client.
