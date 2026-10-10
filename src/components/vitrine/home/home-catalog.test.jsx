@@ -8,6 +8,9 @@ vi.mock("next/link", () => ({
   ),
 }))
 
+// Comportement des paiements ouverts : l'état « en cours d'activation » a ses propres tests (*.paused.test.*).
+vi.stubEnv("PAYMENTS_ENABLED", "true")
+
 const { HomeCatalog } = await import("./home-catalog")
 
 const html = renderToStaticMarkup(<HomeCatalog />)

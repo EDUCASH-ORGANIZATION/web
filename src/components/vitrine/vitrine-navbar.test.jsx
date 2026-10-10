@@ -9,6 +9,9 @@ const state = vi.hoisted(() => ({ pathname: "/", session: null }))
 vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }))
 vi.mock("@/hooks/use-vitrine-session", () => ({ useVitrineSession: () => state.session }))
 
+// Comportement des paiements ouverts : l'état « en cours d'activation » a ses propres tests (*.paused.test.*).
+vi.stubEnv("PAYMENTS_ENABLED", "true")
+
 const { VitrineNavbar } = await import("./vitrine-navbar")
 
 const visitor = { user: null, role: null, fullName: null, avatarUrl: null, initials: "?", spaceHref: "/dashboard", signOut: vi.fn() }

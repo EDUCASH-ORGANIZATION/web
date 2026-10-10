@@ -5,7 +5,8 @@ import { MISSION_TYPES, MISSION_TYPE_TAGLINES, missionTypeLabel } from "@/lib/co
 import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
 import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 import { formatFcfa } from "@/lib/vitrine/format"
-import { publishHref } from "@/lib/utils/publish-prefill"
+import { paymentsEnabled } from "@/lib/constants/payments"
+import { publishEntryHref } from "@/lib/utils/publish-prefill"
 
 const SPRITE = `/sprite.svg?v=${SPRITE_VERSION}`
 const OTHER = "Autre"
@@ -59,6 +60,7 @@ export function HomeCatalog() {
   const known = ORDER.filter((t) => MISSION_TYPES.includes(t))
   const extra = MISSION_TYPES.filter((t) => t !== OTHER && !ORDER.includes(t))
   const types = [...known, ...extra]
+  const open = paymentsEnabled()
 
   return (
     <section className="section" id="services">
@@ -70,8 +72,17 @@ export function HomeCatalog() {
           </h2>
         </div>
         <p className="muted ds-measure-s ds-text-right">
-          Chaque carte ouvre la publication avec le service déjà choisi. Vous fixez le budget, dès{" "}
-          {formatFcfa(MIN_DEPOSIT_AMOUNT)}.
+          {open ? (
+            <>
+              Chaque carte ouvre la publication avec le service déjà choisi. Vous fixez le budget, dès{" "}
+              {formatFcfa(MIN_DEPOSIT_AMOUNT)}.
+            </>
+          ) : (
+            <>
+              La publication est en cours d&rsquo;activation. Choisissez un service et laissez votre email : nous vous
+              prévenons à l&rsquo;ouverture.
+            </>
+          )}
         </p>
       </div>
       <div className="v-cats">
@@ -79,7 +90,7 @@ export function HomeCatalog() {
           const s = TYPE_STYLE[type] ?? FALLBACK_STYLE
           const tagline = MISSION_TYPE_TAGLINES[type]
           return (
-            <Link key={type} className={`v-cat${s.card}`} href={publishHref({ type })} aria-label={cardLabel(type)}>
+            <Link key={type} className={`v-cat${s.card}`} href={publishEntryHref(open, { type })} aria-label={cardLabel(type)}>
               <svg className="v-cat__shape" aria-hidden="true" focusable="false">
                 <use href={`${SPRITE}#${s.shape}`} />
               </svg>
@@ -100,7 +111,7 @@ export function HomeCatalog() {
           )
         })}
         {MISSION_TYPES.includes(OTHER) ? (
-          <Link className="v-cat v-cat--wide" href={publishHref({ type: OTHER })} aria-label={cardLabel(OTHER)}>
+          <Link className="v-cat v-cat--wide" href={publishEntryHref(open, { type: OTHER })} aria-label={cardLabel(OTHER)}>
             <span className="ic-sq ic-sq--lg ic-sq--blanc"><Icon name={TYPE_ICON[OTHER]} /></span>
             <div className="ds-grow">
               <div className="v-cat__name">{missionTypeLabel(OTHER)}</div>

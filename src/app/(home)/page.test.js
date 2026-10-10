@@ -42,6 +42,9 @@ vi.mock("@/components/vitrine/home/home-catalog", () => ({ HomeCatalog: () => <s
 vi.mock("@/components/vitrine/home/home-achats", () => ({ HomeAchats: () => <section id="achats" /> }))
 vi.mock("@/components/vitrine/shared/hash-scroll", () => ({ HashScroll: () => null }))
 
+// Comportement des paiements ouverts : l'état « en cours d'activation » a ses propres tests (*.paused.test.*).
+vi.stubEnv("PAYMENTS_ENABLED", "true")
+
 const { default: HomePage, metadata } = await import("./page")
 
 async function render(user, role) {

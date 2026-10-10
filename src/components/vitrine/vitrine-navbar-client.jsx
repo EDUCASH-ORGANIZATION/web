@@ -1,0 +1,213 @@
+"use client"
+
+import { useCallback, useRef, useState, useSyncExternalStore } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Icon } from "@/components/design/icon"
+import { useVitrineSession } from "@/hooks/use-vitrine-session"
+import { publishEntryHref } from "@/lib/utils/publish-prefill"
+import { SiteMenu } from "./site-menu"
+import { AnchorLink } from "./shared/hash-scroll"
+
+const MENU_ID = "site-menu"
+
+// Liens de navigation selon le public, dans le même ordre dans l'en-tête et dans le burger.
+// « Comment ça marche » vit dans le pied de page.
+const MAIN_LINKS = {
+  clients: [
+    { label: "Services", href: "/#services" },
+    { label: "Aide", href: "/aide" },
+    { label: "À propos", href: "/about" },
+    { label: "Contact", href: "/contact" },
+  ],
+  etudiants: [
+    { label: "Missions", href: "/missions" },
+    { label: "Aide", href: "/aide" },
+    { label: "À propos", href: "/about" },
+    { label: "Contact", href: "/contact" },
+  ],
+}
+
+const STUDENTS_PATH = "/etudiants"
+const STUDENT_REGISTER_HREF = "/auth/register?role=student"
+const STUDENT_MISSIONS_HREF = "/student/missions"
+
+// Liens vers l'autre public : les clients voient « Vous êtes étudiant ? » dans l'en-tête, les étudiants
+// retrouvent « Vous avez une mission ? » dans le menu burger seulement.
+const CLIENTS_LINK = { label: "Vous avez une mission ?", href: "/" }
+const STUDENT_LINK = { label: "Vous êtes étudiant ?", href: STUDENTS_PATH }
+
+// Seuil de défilement (px) au-delà duquel l'en-tête passe en compact.
+const COMPACT_SCROLL_Y = 16
+
+function subscribeScroll(onChange) {
+  window.addEventListener("scroll", onChange, { passive: true })
+  return () => window.removeEventListener("scroll", onChange)
+}
+const getScrolled = () => window.scrollY > COMPACT_SCROLL_Y
+const getScrolledOnServer = () => false
+
+// Les liens avec ancre ou paramètre ne sont jamais actifs. « /missions » reste actif sur le détail
+// « /missions/<id> » ; les autres liens (« / », « /aide ») exigent une égalité stricte.
+const PREFIX_ACTIVE_HREFS = new Set(["/missions"])
+
+function isActivePath(pathname, href) {
+  if (href.includes("?") || href.includes("#")) return false
+  if (PREFIX_ACTIVE_HREFS.has(href)) return pathname === href || pathname.startsWith(`${href}/`)
+  return pathname === href
+}
+
+// En-tête public de la vitrine (design system Direction A, maquettes V01 et V02).
+// .ds ne porte que les styles de racine (police, encre, fond) : la racine le porte,
+// car la navbar est aussi montée sur des pages encore en MUI. Les sélecteurs de
+// composants sont globaux (couche components).
+// En-tête fixe : l'emplacement (.site-header-slot) réserve la hauteur pour éviter tout décalage,
+// l'en-tête passe en compact dès que la page a défilé.
+// tone="bleu" : en-tête transparent posé sur un hero bleu (accueil, maquette V01), logo blanc et
+// actions on-bleu. Une fois la page défilée, il devient l'en-tête compact blanc standard.
+// Seuil propre à l'en-tête (layouts.css) : sous 1360 px, la navigation passe dans le menu burger et
+// les actions restent visibles ; sous 1024 px, les actions bureau (ds-desk-only) cèdent la place à « S'inscrire ».
+// audience : « clients » (défaut) ou « etudiants », qui change les liens, le lien vers l'autre public et le bouton accent.
+export function VitrineNavbarClient({ tone = "blanc", audience = "clients", paymentsEnabled = false }) {
+  const pathname = usePathname()
+  const session = useVitrineSession()
+  const { user, role, fullName, avatarUrl, initials, spaceHref } = session
+  const burgerRef = useRef(null)
+  // Le menu est lié à la route où il a été ouvert : un changement de route le ferme.
+  const [openedOn, setOpenedOn] = useState(null)
+  const menuOpen = openedOn === pathname
+  const closeMenu = useCallback(() => setOpenedOn(null), [])
+
+  const isActive = (href) => isActivePath(pathname, href)
+  const forStudents = audience === "etudiants"
+  // Paiements ouverts : la publication (le visiteur non connecté est renvoyé vers la connexion par le
+  // middleware, qui conserve la destination). Sinon l'écran public « Publication en cours d'activation ».
+  const publishHref = publishEntryHref(paymentsEnabled)
+  const mainLinks = MAIN_LINKS[forStudents ? "etudiants" : "clients"]
+  const studentActive = isActive(STUDENT_LINK.href)
+  const scrolled = useSyncExternalStore(subscribeScroll, getScrolled, getScrolledOnServer)
+  const bleu = tone === "bleu" && !scrolled
+  const accountLabel = fullName ? `Mon espace, compte de ${fullName}` : "Mon espace"
+
+  const headerClass = ["ds site-header", bleu ? "site-header--bleu" : "", scrolled ? "is-compact" : ""]
+    .filter(Boolean)
+    .join(" ")
+
+  return (
+    <>
+      <div className={tone === "bleu" ? "site-header-slot site-header-slot--bleu" : "site-header-slot"}>
+        <header className={headerClass}>
+          <Link className="site-header__brand" href="/" aria-label="EduCash, accueil">
+            <img
+              className="logo"
+              src={bleu ? "/logo-horizontal-blanc.svg" : "/logo-horizontal-bleu.svg"}
+              alt="EduCash"
+              width={534}
+              height={100}
+            />
+          </Link>
+          <nav className="site-header__nav ds-desk-only" aria-label="Navigation principale">
+            {mainLinks.map(({ label, href }) => {
+              const active = isActive(href)
+              return (
+                <AnchorLink
+                  key={label}
+                  href={href}
+                  className={active ? "is-active" : undefined}
+                  aria-current={active ? "page" : undefined}
+                >
+                  {label}
+                </AnchorLink>
+              )
+            })}
+          </nav>
+          <div className={bleu ? "site-header__actions on-bleu" : "site-header__actions"}>
+            {forStudents ? null : (
+              <Link
+                className={studentActive ? "site-header__student is-active ds-desk-only" : "site-header__student ds-desk-only"}
+                href={STUDENT_LINK.href}
+                aria-current={studentActive ? "page" : undefined}
+              >
+                <Icon name="i-graduation" />
+                {STUDENT_LINK.label}
+              </Link>
+            )}
+            {user ? (
+              <>
+                {role === "client" ? (
+                  <Link className="btn btn--accent btn--sm ds-desk-only" href={publishHref}>
+                    Publier une mission
+                    <span className="btn__dot"><Icon name="i-arrow-right" /></span>
+                  </Link>
+                ) : null}
+                {role === "student" ? (
+                  <Link className="btn btn--accent btn--sm ds-desk-only" href={STUDENT_MISSIONS_HREF}>
+                    Voir les missions pour moi
+                    <span className="btn__dot"><Icon name="i-arrow-right" /></span>
+                  </Link>
+                ) : null}
+                <Link className="btn btn--primary btn--sm ds-desk-only" href={spaceHref}>
+                  <Icon name="i-grid" />
+                  Mon espace
+                </Link>
+                <Link className="avatar-btn ds-desk-only" href={spaceHref} aria-label={accountLabel}>
+                  <span className="avatar">
+                    {avatarUrl ? (
+                      <img className="rounded-full object-cover" src={avatarUrl} alt="" width={36} height={36} />
+                    ) : (
+                      initials
+                    )}
+                  </span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link className="site-header__login ds-desk-only" href="/auth/login">Se connecter</Link>
+                {forStudents ? (
+                  <>
+                    <Link className="btn btn--accent btn--sm ds-desk-only" href={STUDENT_REGISTER_HREF}>
+                      Créer mon compte
+                      <span className="btn__dot"><Icon name="i-arrow-right" /></span>
+                    </Link>
+                    <Link className="btn btn--primary btn--sm ds-mob-only" href={STUDENT_REGISTER_HREF}>S&rsquo;inscrire</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link className="btn btn--accent btn--sm ds-desk-only" href={publishHref}>
+                      Publier une mission
+                      <span className="btn__dot"><Icon name="i-arrow-right" /></span>
+                    </Link>
+                    <Link className="btn btn--primary btn--sm ds-mob-only" href={publishHref}>Publier</Link>
+                  </>
+                )}
+              </>
+            )}
+            <button
+              ref={burgerRef}
+              type="button"
+              className="btn-icon btn-icon--sm site-header__burger"
+              aria-label="Ouvrir le menu"
+              aria-expanded={menuOpen}
+              aria-controls={MENU_ID}
+              onClick={() => setOpenedOn(pathname)}
+            >
+              <Icon name="i-menu" />
+            </button>
+          </div>
+        </header>
+      </div>
+      {menuOpen ? (
+        <SiteMenu
+          id={MENU_ID}
+          links={[...mainLinks, { ...(forStudents ? CLIENTS_LINK : STUDENT_LINK), switchAudience: true }]}
+          isActive={isActive}
+          session={session}
+          audience={audience}
+          publishHref={publishHref}
+          onClose={closeMenu}
+          returnFocusRef={burgerRef}
+        />
+      ) : null}
+    </>
+  )
+}

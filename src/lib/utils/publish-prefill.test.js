@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { PUBLISH_PATH, PUBLISH_RESUME_KEY, parsePublishPrefill, publishHref, resumePublishHref } from "./publish-prefill.js"
+import { PUBLISH_PATH, PUBLISH_PAUSED_PATH, PUBLISH_RESUME_KEY, parsePublishPrefill, publishEntryHref, publishHref, resumePublishHref } from "./publish-prefill.js"
 
 describe("parsePublishPrefill", () => {
   it("lit besoin, ville et type valides", () => {
@@ -92,5 +92,16 @@ describe("resumePublishHref", () => {
   })
   it("expose la clé de stockage", () => {
     expect(PUBLISH_RESUME_KEY).toBe("ec_publish_resume")
+  })
+})
+
+describe("publishEntryHref", () => {
+  it("paiements ouverts : publication avec pré-remplissage", () => {
+    expect(publishEntryHref(true)).toBe(PUBLISH_PATH)
+    expect(publishEntryHref(true, { type: "Livraison" })).toBe(publishHref({ type: "Livraison" }))
+  })
+  it("paiements coupés : écran public de pause, sans pré-remplissage", () => {
+    expect(publishEntryHref(false, { type: "Livraison" })).toBe(PUBLISH_PAUSED_PATH)
+    expect(PUBLISH_PAUSED_PATH).toBe("/publication")
   })
 })

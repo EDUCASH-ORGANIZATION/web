@@ -1,11 +1,28 @@
 "use client"
 
 import Link from "next/link"
-import { Plus, ArrowDown, Wallet } from "lucide-react"
+import { Plus, ArrowDown, Wallet, Clock } from "lucide-react"
 import { MIN_WITHDRAWAL_AMOUNT } from "@/lib/supabase/database.constants"
+import { PAYMENTS_PENDING_COPY } from "@/lib/constants/payments"
 
 function fmt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
+}
+
+// Remplace les boutons de recharge et de retrait tant que les paiements sont coupés (tu/vous selon l'espace).
+export function PaymentsPendingNotice({ role }) {
+  const copy = PAYMENTS_PENDING_COPY.wallet
+  return (
+    <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3" role="status">
+      <Clock size={16} className="text-amber-600 shrink-0 mt-0.5" />
+      <div>
+        <p className="text-sm font-bold text-amber-900">{copy.title}</p>
+        <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+          {role === "student" ? copy.student : copy.client}
+        </p>
+      </div>
+    </div>
+  )
 }
 
 export function WalletCard({
@@ -14,6 +31,7 @@ export function WalletCard({
   available = 0,
   role,
   showActions = false,
+  paymentsEnabled = false,
   onDeposit,
   onWithdraw,
 }) {
@@ -69,7 +87,9 @@ export function WalletCard({
       )}
 
       {/* ── Actions ───────────────────────────────────────────────── */}
-      {showActions && (
+      {showActions && !paymentsEnabled && <PaymentsPendingNotice role={role} />}
+
+      {showActions && paymentsEnabled && (
         <div className="flex flex-col gap-2">
           {role === "client" && (
             <>

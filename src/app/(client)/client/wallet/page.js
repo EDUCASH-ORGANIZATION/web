@@ -8,6 +8,7 @@ import {
   getWalletStats,
 } from "@/lib/actions/wallet.actions"
 import { WalletClientShell } from "@/components/client/wallet-shell"
+import { paymentsEnabled } from "@/lib/constants/payments"
 import { ResumePublishLink } from "@/components/client/resume-publish-link"
 
 export const metadata = { title: "Mon Wallet — EduCash" }
@@ -79,6 +80,7 @@ export default async function ClientWalletPage({ searchParams }) {
         transactions={transactions}
         stats={stats}
         activeMissions={activeMissions ?? []}
+        paymentsEnabled={paymentsEnabled()}
       />
     </div>
   )
