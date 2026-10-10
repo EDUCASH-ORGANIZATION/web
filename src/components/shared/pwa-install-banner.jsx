@@ -1,89 +1,161 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { Download, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useRef, useState } from "react"
+import { Icon } from "@/components/design/icon"
+import {
+  INSTALL_SNOOZE_MS,
+  INSTALL_STORAGE_KEY,
+  decideInstallPrompt,
+  installCopy,
+  isIosSafariAgent,
+  parseInstallState,
+  remainingSessionDelay,
+} from "./install-prompt-logic"
 
-const DISMISSED_KEY = "pwa_banner_dismissed_until"
-const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 jours
+const VISIT_FLAG = "educash:install-prompt:visit-counted"
 
-export function PwaInstallBanner() {
-  const [isVisible, setIsVisible] = useState(false)
-  const deferredPromptRef = useRef(null)
+function readState() {
+  return parseInstallState(window.localStorage.getItem(INSTALL_STORAGE_KEY))
+}
+
+function writeState(patch) {
+  const next = { ...readState(), ...patch }
+  window.localStorage.setItem(INSTALL_STORAGE_KEY, JSON.stringify(next))
+  return next
+}
+
+function countVisitOnce() {
+  if (window.sessionStorage.getItem(VISIT_FLAG)) return
+  window.sessionStorage.setItem(VISIT_FLAG, "1")
+  writeState({ visits: readState().visits + 1 })
+}
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
+}
+
+function isMobileDevice() {
+  return window.matchMedia("(pointer: coarse)").matches && window.matchMedia("(max-width: 1023px)").matches
+}
+
+// Invitation discrète, rendue dans le flux de la page (jamais en superposition)
+// pour ne masquer ni la barre de navigation mobile ni les boutons d'action.
+export function PwaInstallBanner({ space }) {
+  const [mode, setMode] = useState(null)
+  const promptRef = useRef(null)
+  const startRef = useRef(0)
 
   useEffect(() => {
-    // Ne pas afficher si déjà dismissé récemment
-    const dismissedUntil = localStorage.getItem(DISMISSED_KEY)
-    if (dismissedUntil && Date.now() < Number(dismissedUntil)) return
+    startRef.current = Date.now()
+    let timer = null
+    let disposed = false
 
-    const handler = (e) => {
-      e.preventDefault()
-      deferredPromptRef.current = e
-      setIsVisible(true)
+    const evaluate = () => {
+      if (disposed) return
+      try {
+        const decision = decideInstallPrompt({
+          space,
+          isMobile: isMobileDevice(),
+          standalone: isStandalone(),
+          hasNativePrompt: promptRef.current !== null,
+          isIosSafari: isIosSafariAgent(window.navigator.userAgent),
+          state: readState(),
+          sessionMs: Date.now() - startRef.current,
+        })
+        setMode(decision.show ? decision.mode : null)
+      } catch {
+        setMode(null)
+      }
     }
 
-    window.addEventListener("beforeinstallprompt", handler)
-    return () => window.removeEventListener("beforeinstallprompt", handler)
-  }, [])
+    try {
+      countVisitOnce()
+    } catch {
+      // stockage indisponible : l'invitation reste simplement masquée
+      return undefined
+    }
+
+    const onPrompt = (event) => {
+      event.preventDefault()
+      promptRef.current = event
+      evaluate()
+    }
+    const onInstalled = () => {
+      promptRef.current = null
+      try {
+        writeState({ installed: true })
+      } catch {
+        // sans importance
+      }
+      setMode(null)
+    }
+
+    window.addEventListener("beforeinstallprompt", onPrompt)
+    window.addEventListener("appinstalled", onInstalled)
+    evaluate()
+    const delay = remainingSessionDelay(0)
+    if (delay > 0) timer = window.setTimeout(evaluate, delay)
+
+    return () => {
+      disposed = true
+      if (timer) window.clearTimeout(timer)
+      window.removeEventListener("beforeinstallprompt", onPrompt)
+      window.removeEventListener("appinstalled", onInstalled)
+    }
+  }, [space])
+
+  const copy = installCopy(space)
+  if (!mode || !copy) return null
 
   const handleInstall = async () => {
-    const prompt = deferredPromptRef.current
+    const prompt = promptRef.current
     if (!prompt) return
     prompt.prompt()
     const { outcome } = await prompt.userChoice
+    promptRef.current = null
     if (outcome === "accepted") {
-      deferredPromptRef.current = null
-      setIsVisible(false)
+      writeState({ installed: true })
     }
+    setMode(null)
   }
 
-  const handleDismiss = () => {
-    localStorage.setItem(DISMISSED_KEY, String(Date.now() + DISMISS_DURATION_MS))
-    setIsVisible(false)
+  const handleLater = () => {
+    writeState({ snoozedUntil: Date.now() + INSTALL_SNOOZE_MS })
+    setMode(null)
   }
 
-  if (!isVisible) return null
+  const handleClose = () => {
+    writeState({ dismissed: true })
+    setMode(null)
+  }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white border-t border-gray-200 shadow-lg">
-      <div className="flex items-start gap-3 max-w-lg mx-auto">
-        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#1A6B4A] flex items-center justify-center">
-          <Download size={20} className="text-white" />
+    <section className="card card--sm card--soft ds-install" aria-label={copy.title}>
+      <span className="toast__icon ds-install__icon">
+        <Icon name="i-download" className="ic" />
+      </span>
+      <div className="ds-install__body">
+        <p className="ds-install__title">{copy.title}</p>
+        <p className="ds-install__text">{mode === "ios" ? copy.ios : copy.native}</p>
+        <div className="ds-install__actions">
+          {mode === "native" && (
+            <button type="button" className="btn btn--primary btn--sm" onClick={handleInstall}>
+              {copy.install}
+            </button>
+          )}
+          <button type="button" className="btn btn--ghost btn--sm" onClick={handleLater}>
+            {copy.later}
+          </button>
         </div>
-
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900">
-            Installer EduCash
-          </p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Accède à tes missions directement depuis ton écran d&apos;accueil
-          </p>
-          <div className="flex items-center gap-2 mt-3">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleInstall}
-            >
-              Installer l&apos;application
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDismiss}
-            >
-              Plus tard
-            </Button>
-          </div>
-        </div>
-
-        <button
-          onClick={handleDismiss}
-          className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-          aria-label="Fermer"
-        >
-          <X size={16} />
-        </button>
       </div>
-    </div>
+      <button
+        type="button"
+        className="btn-icon btn-icon--sm btn-icon--plain ds-install__close"
+        onClick={handleClose}
+        aria-label={copy.close}
+      >
+        <Icon name="i-x" className="ic" />
+      </button>
+    </section>
   )
 }

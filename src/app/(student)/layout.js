@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { Sidebar } from "@/components/shared/sidebar"
 import { StudentHeader } from "@/components/shared/student-header"
+import { PwaInstallBannerLoader } from "@/components/shared/pwa-install-banner-loader"
 import { BottomNav } from "@/components/shared/bottom-nav"
 
 export default async function StudentLayout({ children }) {
@@ -50,6 +51,7 @@ export default async function StudentLayout({ children }) {
           userId={user.id}
         />
         <main className="flex-1 pb-20 lg:pb-0 overflow-auto">
+          <PwaInstallBannerLoader space="student" />
           {children}
         </main>
       </div>
