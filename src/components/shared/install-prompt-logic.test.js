@@ -57,6 +57,14 @@ describe("decideInstallPrompt", () => {
     expect(decide({ hasNativePrompt: false }).show).toBe(false)
     expect(decide({ hasNativePrompt: false, isIosSafari: true })).toEqual({ show: true, mode: "ios" })
   })
+  it("tells whether the prompt can ever show (infinite session, native prompt assumed)", () => {
+    const ever = (over) => decide({ hasNativePrompt: true, sessionMs: Infinity, ...over }).show
+    expect(ever({ state: { ...EMPTY_INSTALL_STATE, visits: 1 } })).toBe(true)
+    expect(ever({ isMobile: false })).toBe(false)
+    expect(ever({ standalone: true })).toBe(false)
+    expect(ever({ state: { ...EMPTY_INSTALL_STATE, dismissed: true } })).toBe(false)
+    expect(ever({ state: { ...EMPTY_INSTALL_STATE, snoozedUntil: NOW + 1 } })).toBe(false)
+  })
   it("applies the same conditions on iOS", () => {
     const ios = { hasNativePrompt: false, isIosSafari: true }
     expect(decide({ ...ios, isMobile: false }).show).toBe(false)

@@ -1892,5 +1892,5 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .ds-install__title { font-weight: var(--fw-xbold); font-size: var(--t-body-s); }
 .ds-install__text { color: var(--c-ardoise); font-size: var(--t-para); margin-top: var(--s-1); }
 .ds-install__actions { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-3); }
-.ds-install__close { margin: calc(var(--s-2) * -1) calc(var(--s-2) * -1) 0 0; }
+.ds-install__close { width: 44px; height: 44px; margin: calc(var(--s-3) * -1) calc(var(--s-3) * -1) 0 0; }
 @media (min-width: 1024px) { .ds-install { display: none; } }

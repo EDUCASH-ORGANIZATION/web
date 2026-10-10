@@ -38,6 +38,15 @@ function isMobileDevice() {
   return window.matchMedia("(pointer: coarse)").matches && window.matchMedia("(max-width: 1023px)").matches
 }
 
+// Écrit l'état sans jamais lever : l'invitation se masque même si le stockage échoue.
+function persist(patch) {
+  try {
+    writeState(patch)
+  } catch {
+    // stockage indisponible
+  }
+}
+
 // Invitation discrète, rendue dans le flux de la page (jamais en superposition)
 // pour ne masquer ni la barre de navigation mobile ni les boutons d'action.
 export function PwaInstallBanner({ space }) {
@@ -50,18 +59,31 @@ export function PwaInstallBanner({ space }) {
     let timer = null
     let disposed = false
 
+    const decideWith = (overrides) =>
+      decideInstallPrompt({
+        space,
+        isMobile: isMobileDevice(),
+        standalone: isStandalone(),
+        hasNativePrompt: promptRef.current !== null,
+        isIosSafari: isIosSafariAgent(window.navigator.userAgent),
+        state: readState(),
+        sessionMs: Date.now() - startRef.current,
+        ...overrides,
+      })
+
+    // Vrai si l'invitation peut un jour s'afficher sur cet appareil, avec cet état.
+    const canEverShow = () => {
+      try {
+        return decideWith({ hasNativePrompt: true, sessionMs: Infinity }).show
+      } catch {
+        return false
+      }
+    }
+
     const evaluate = () => {
       if (disposed) return
       try {
-        const decision = decideInstallPrompt({
-          space,
-          isMobile: isMobileDevice(),
-          standalone: isStandalone(),
-          hasNativePrompt: promptRef.current !== null,
-          isIosSafari: isIosSafariAgent(window.navigator.userAgent),
-          state: readState(),
-          sessionMs: Date.now() - startRef.current,
-        })
+        const decision = decideWith({})
         setMode(decision.show ? decision.mode : null)
       } catch {
         setMode(null)
@@ -76,6 +98,7 @@ export function PwaInstallBanner({ space }) {
     }
 
     const onPrompt = (event) => {
+      if (!canEverShow()) return
       event.preventDefault()
       promptRef.current = event
       evaluate()
@@ -94,7 +117,7 @@ export function PwaInstallBanner({ space }) {
     window.addEventListener("appinstalled", onInstalled)
     evaluate()
     const delay = remainingSessionDelay(0)
-    if (delay > 0) timer = window.setTimeout(evaluate, delay)
+    if (delay > 0 && canEverShow()) timer = window.setTimeout(evaluate, delay)
 
     return () => {
       disposed = true
@@ -110,22 +133,25 @@ export function PwaInstallBanner({ space }) {
   const handleInstall = async () => {
     const prompt = promptRef.current
     if (!prompt) return
-    prompt.prompt()
-    const { outcome } = await prompt.userChoice
-    promptRef.current = null
-    if (outcome === "accepted") {
-      writeState({ installed: true })
+    try {
+      prompt.prompt()
+      const { outcome } = await prompt.userChoice
+      if (outcome === "accepted") persist({ installed: true })
+    } catch {
+      // invitation du navigateur indisponible : on masque simplement
+    } finally {
+      promptRef.current = null
+      setMode(null)
     }
-    setMode(null)
   }
 
   const handleLater = () => {
-    writeState({ snoozedUntil: Date.now() + INSTALL_SNOOZE_MS })
+    persist({ snoozedUntil: Date.now() + INSTALL_SNOOZE_MS })
     setMode(null)
   }
 
   const handleClose = () => {
-    writeState({ dismissed: true })
+    persist({ dismissed: true })
     setMode(null)
   }
 
