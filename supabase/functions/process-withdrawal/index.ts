@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 import { extractBearerToken, corsHeaders } from "../_shared/auth.js"
+import { paymentsGuard } from "../_shared/payments-flag.js"
 import { validateWithdrawalBody, canWithdraw } from "./validate.js"
 
 const CORS = corsHeaders(Deno.env.get("APP_URL"))
@@ -15,6 +16,10 @@ const json = (data: unknown, status = 200) =>
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
+
+  // Paiements fermes par defaut : avant toute authentification, lecture de corps ou appel externe
+  const closed = paymentsGuard(Deno.env.get("PAYMENTS_ENABLED"), CORS)
+  if (closed) return closed
 
   try {
     // Authentification : jeton de session de l'utilisateur, jamais la cle anon seule

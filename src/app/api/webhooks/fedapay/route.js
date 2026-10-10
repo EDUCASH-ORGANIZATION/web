@@ -10,6 +10,11 @@ function fmt(n) {
 // ─── POST /api/webhooks/fedapay ───────────────────────────────────────────────
 
 export async function POST(request) {
+  // Paiements fermes par defaut : avant toute lecture du corps
+  if (process.env.PAYMENTS_ENABLED !== "true") {
+    return Response.json({ error: "Paiements désactivés" }, { status: 503 })
+  }
+
   const payload = await request.text()
   const signature = request.headers.get("x-fedapay-signature")
 
