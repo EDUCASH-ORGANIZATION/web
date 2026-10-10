@@ -11,15 +11,20 @@ import { AnchorLink } from "./shared/hash-scroll"
 
 const MENU_ID = "site-menu"
 
-// Liens de navigation selon le public. « Comment ça marche » vit dans le pied de page.
+// Liens de navigation selon le public, dans le même ordre dans l'en-tête et dans le burger.
+// « Comment ça marche » vit dans le pied de page.
 const MAIN_LINKS = {
   clients: [
     { label: "Services", href: "/#services" },
     { label: "Aide", href: "/aide" },
+    { label: "À propos", href: "/about" },
+    { label: "Contact", href: "/contact" },
   ],
   etudiants: [
     { label: "Missions", href: "/missions" },
     { label: "Aide", href: "/aide" },
+    { label: "À propos", href: "/about" },
+    { label: "Contact", href: "/contact" },
   ],
 }
 

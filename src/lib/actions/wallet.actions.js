@@ -27,6 +27,12 @@ async function readFnError(error, fallback) {
   }
 }
 
+// Jeton de session de l'utilisateur courant (null si pas de session).
+async function getAccessToken(supabase) {
+  const { data } = await supabase.auth.getSession()
+  return data?.session?.access_token ?? null
+}
+
 // ─── getWallet ────────────────────────────────────────────────────────────────
 
 export async function getWallet(userId) {
@@ -71,16 +77,19 @@ export async function initiateDeposit({ amount }) {
   if (!user) return { error: "Non authentifié" }
 
   const supabase = await createClient()
+  const accessToken = await getAccessToken(supabase)
+  if (!accessToken) return { error: "Session expirée. Reconnectez-vous." }
 
   const { data, error } = await supabase.functions.invoke(
     "create-deposit-transaction",
     {
-      body: { userId: user.id, amount },
-      headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}` },
+      body: { amount },
+      headers: { Authorization: `Bearer ${accessToken}` },
     }
   )
 
   if (error) {
+    if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
     const message = await readFnError(error, "Erreur lors de l'initiation du dépôt")
     console.error("[initiateDeposit]", message)
     return { error: message }
@@ -105,16 +114,20 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
   if (available < amount) return { error: "Solde insuffisant" }
 
   const supabase = await createClient()
+  const accessToken = await getAccessToken(supabase)
+  if (!accessToken) return { error: "Session expirée. Reconnectez-vous." }
 
+  // L'identité n'est jamais envoyée : la fonction la déduit du jeton de session
   const { data, error } = await supabase.functions.invoke(
     "process-withdrawal",
     {
-      body: { userId: user.id, amount, phone, operator },
-      headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}` },
+      body: { amount, phone, operator },
+      headers: { Authorization: `Bearer ${accessToken}` },
     }
   )
 
   if (error) {
+    if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
     const message = await readFnError(error, "Erreur lors du retrait")
     console.error("[initiateWithdrawal]", message)
     return { error: message }
