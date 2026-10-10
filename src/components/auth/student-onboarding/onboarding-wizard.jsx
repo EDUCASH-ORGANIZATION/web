@@ -10,9 +10,10 @@ import { StepIdentity } from "./step-identity"
 import { OTHER_SCHOOL, StepStudies } from "./step-studies"
 import { AVATAR_TYPES, CARD_TYPES, StepCard, validateUpload } from "./step-card"
 import { WelcomeScreen } from "./welcome-screen"
+import { LAST_STEP, parseStep } from "./wizard-steps"
 
 export const ONBOARDING_PATH = "/auth/register/student"
-export const LAST_STEP = 3
+export { LAST_STEP, parseStep }
 
 export const EMPTY_VALUES = {
   fullName: "",
@@ -79,12 +80,6 @@ export function validateStep(step, values) {
   if (step === 1) return firstIssues(makeStudentIdentitySchema().safeParse(identityInput(values)))
   if (step === 2) return firstIssues(makeStudentStudiesSchema().safeParse(studiesInput(values)))
   return {}
-}
-
-/** Étape demandée dans l'URL (`?etape=`), bornée à 1-3 ; toute valeur invalide donne 1. */
-export function parseStep(raw) {
-  const value = Number.parseInt(Array.isArray(raw) ? raw[0] : raw, 10)
-  return Number.isInteger(value) && value >= 1 && value <= LAST_STEP ? value : 1
 }
 
 /** Première étape incomplète avant `LAST_STEP`, ou `LAST_STEP` si les étapes 1 et 2 sont valides. */

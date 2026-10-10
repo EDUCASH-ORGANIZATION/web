@@ -218,6 +218,14 @@ describe("page /auth/register/client", () => {
     expect(html).not.toContain("Pour qui publiez-vous")
   })
 
+  it("profil illisible : écran d'erreur propre, jamais de 500 ni d'assistant", async () => {
+    state.value = { status: "error", user: { id: "u1", email: "awa@exemple.bj" }, role: null, profile: null, profileComplete: false }
+    const html = await render({ next: "/client/missions/new" })
+    expect(text(html)).toContain("Profil indisponible")
+    expect(text(html)).not.toContain("n'est pas un compte client")
+    expect(html).not.toContain("Pour qui publiez-vous")
+  })
+
   it("profil à compléter : assistant dans la coquille client", async () => {
     state.value = { status: "ok", user: { id: "u1" }, role: "client", profile: null, profileComplete: false }
     const html = await render({ etape: "1" })

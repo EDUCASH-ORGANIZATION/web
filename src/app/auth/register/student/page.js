@@ -1,13 +1,14 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { OnboardingWizard, parseStep } from "@/components/auth/student-onboarding/onboarding-wizard"
+import { OnboardingWizard } from "@/components/auth/student-onboarding/onboarding-wizard"
+import { parseStep } from "@/components/auth/student-onboarding/wizard-steps"
 import { AuthShell } from "@/components/vitrine/auth-shell"
 import { Icon } from "@/components/design/icon"
 import { logout } from "@/lib/actions/auth.actions"
 import { getOnboardingState } from "@/lib/actions/onboarding.actions"
 import { getUniversities } from "@/lib/actions/university.actions"
 import { dashboardFor, loginHref, resolvePostAuth } from "@/lib/auth/destinations"
-import { safeNextPath } from "@/lib/utils/safe-next"
+import { isNextAllowedForRole, safeNextPath } from "@/lib/utils/safe-next"
 
 export const metadata = {
   title: "Mon profil étudiant",
@@ -20,6 +21,18 @@ const BRAND = {
     { icon: "i-lock", title: "Tes infos restent privées.", text: "Le client voit ton prénom, ta ville et ton badge, jamais ton numéro avant d'être retenu." },
     { icon: "i-search", title: "Les missions d'abord.", text: "Tu vois toutes les missions dès la fin de l'inscription." },
   ],
+}
+
+const BLOCKED = {
+  suspended: { title: "Compte suspendu", text: "Ton compte est suspendu. Contacte-nous pour en savoir plus." },
+  wrong_role: {
+    title: "Session incorrecte",
+    text: "Cette page est réservée aux étudiants. Reconnecte-toi avec ton compte étudiant.",
+  },
+  error: {
+    title: "Profil indisponible",
+    text: "Nous n'avons pas pu charger ton profil. Recharge la page dans un instant.",
+  },
 }
 
 const first = (value) => (Array.isArray(value) ? value[0] : value)
@@ -50,7 +63,9 @@ function Blocked({ title, text, role }) {
 
 export default async function StudentOnboardingPage({ searchParams }) {
   const params = await searchParams
-  const next = safeNextPath(first(params?.next))
+  const requested = safeNextPath(first(params?.next))
+  // Un next d'un autre espace (ex. /client/missions/new) n'est pas transmis à l'étudiant.
+  const next = requested && isNextAllowedForRole(requested, "student") ? requested : undefined
   const state = await getOnboardingState("student")
 
   if (state.status === "unauthenticated") redirect(loginHref({ next }))
@@ -59,18 +74,10 @@ export default async function StudentOnboardingPage({ searchParams }) {
   }
 
   if (state.status !== "ok") {
-    const suspended = state.status === "suspended"
+    const blocked = BLOCKED[state.status] ?? BLOCKED.wrong_role
     return (
       <AuthShell audience="student" brand={BRAND}>
-        <Blocked
-          role={state.role}
-          title={suspended ? "Compte suspendu" : "Session incorrecte"}
-          text={
-            suspended
-              ? "Ton compte est suspendu. Contacte-nous pour en savoir plus."
-              : "Cette page est réservée aux étudiants. Reconnecte-toi avec ton compte étudiant."
-          }
-        />
+        <Blocked role={state.role} title={blocked.title} text={blocked.text} />
       </AuthShell>
     )
   }
