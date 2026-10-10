@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { createClient } from "@/lib/supabase/server"
 import { getWallet } from "@/lib/actions/wallet.actions"
 import { WalletCard } from "@/components/shared/wallet-card"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 export const metadata = { title: "Dashboard — EduCash" }
 
@@ -46,7 +47,7 @@ function DashboardMissionCard({ mission }) {
       {/* Badges */}
       <div className="px-4 pt-4 flex items-center justify-between gap-2">
         <span className={`text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-lg ${color.bg} ${color.text}`}>
-          {isUrgent ? "Urgent" : mission.type}
+          {isUrgent ? "Urgent" : missionTypeLabel(mission.type)}
         </span>
         <span className="text-[13px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg whitespace-nowrap">
           {budget} FCFA

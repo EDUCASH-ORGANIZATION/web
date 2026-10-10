@@ -5,6 +5,7 @@ import Link from "next/link"
 import { FileText, CheckCircle, XCircle, MessageSquare, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import clsx from "clsx"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 const TYPE_COLORS = {
   "Babysitting":          "bg-pink-100 text-pink-700",
@@ -56,7 +57,7 @@ function ApplicationCard({ application }) {
       <div className="flex flex-wrap items-center gap-2">
         {type && (
           <span className={clsx("px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wide", typeClass)}>
-            {type}
+            {missionTypeLabel(type)}
           </span>
         )}
         {city && (

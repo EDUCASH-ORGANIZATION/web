@@ -13,7 +13,7 @@ import { CardUploadZone } from "@/components/auth/card-upload-zone"
 import { useToast } from "@/components/shared/toaster"
 import { updateStudentProfileWithCard } from "@/lib/actions/profile.actions"
 import { getUniversities } from "@/lib/actions/university.actions"
-import { CITIES } from "@/lib/supabase/database.constants"
+import { CITIES, missionTypeLabel } from "@/lib/constants/missions"
 import { COUNTRY_CODES, parsePhone, formatPhone, normalizeBeninPhone, validatePhone } from "@/lib/utils/phone"
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ const AVAILABILITY_PRESETS = [
 
 const SKILLS_LIST = [
   "Babysitting", "Livraison", "Saisie",
-  "Community Management", "Traduction", "Cours particuliers",
+  "Community Management", "Traduction", "Cours particuliers", "Démarches",
   "Mathématiques", "Physique-Chimie", "Informatique", "Rédaction Web",
   "Microsoft Excel", "AutoCAD", "Comptabilité", "Marketing", "Autre",
 ]
@@ -683,7 +683,7 @@ export default function ProfileEditPage() {
                     }`}
                   >
                     {selected && <Check size={11} />}
-                    {skill}
+                    {missionTypeLabel(skill)}
                   </button>
                 )
               })}

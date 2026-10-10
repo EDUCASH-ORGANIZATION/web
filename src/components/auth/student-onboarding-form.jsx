@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { saveStudentProfile } from "@/lib/actions/profile.actions"
 import { CITIES, MISSION_TYPES } from "@/lib/supabase/database.constants"
+import { missionTypeLabel } from "@/lib/constants/missions"
 import clsx from "clsx"
 
 export function StudentOnboardingForm() {
@@ -117,7 +118,7 @@ export function StudentOnboardingForm() {
                     : "bg-white text-gray-600 border-gray-300 hover:border-[#1A6B4A] hover:text-[#1A6B4A]"
                 )}
               >
-                {skill}
+                {missionTypeLabel(skill)}
               </button>
             )
           })}

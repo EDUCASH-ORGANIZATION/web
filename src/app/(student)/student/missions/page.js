@@ -4,7 +4,8 @@ import { redirect } from "next/navigation"
 import { MapPin, Zap, Calendar, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
-import { MISSION_TYPES, CITIES } from "@/lib/supabase/database.constants"
+import { CITIES } from "@/lib/supabase/database.constants"
+import { MISSION_TYPE_OPTIONS, missionTypeLabel } from "@/lib/constants/missions"
 import { MissionsFiltersSidebar } from "@/components/student/missions-filters-sidebar"
 import { PromoCard } from "@/components/student/promo-card"
 import { SortSelect } from "@/components/student/sort-select"
@@ -53,7 +54,7 @@ function MissionCard({ mission }) {
       {/* Header */}
       <div className="px-5 pt-5 flex items-start justify-between gap-3">
         <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1.5 rounded-xl ${color.bg} ${color.text}`}>
-          {mission.type}
+          {missionTypeLabel(mission.type)}
         </span>
         <div className="text-right shrink-0">
           <span className="text-xl font-black text-[#1A6B4A] leading-none">
@@ -238,7 +239,7 @@ export default async function StudentMissionsPage({ searchParams }) {
       {/* ── Chips catégories ──────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-100 px-4 lg:px-6 py-3">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5">
-          {[{ label: "Toutes", value: "" }, ...MISSION_TYPES.map((t) => ({ label: t, value: t }))].map(({ label, value }) => {
+          {[{ label: "Toutes", value: "" }, ...MISSION_TYPE_OPTIONS].map(({ label, value }) => {
             const isActive = type === value
             return (
               <Link
