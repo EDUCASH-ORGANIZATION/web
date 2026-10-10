@@ -1,9 +1,13 @@
 // Pré-remplissage de la publication de mission depuis la vitrine.
 // JS pur : importable par les composants serveur et client.
 import { CITIES, MISSION_TYPES } from "../supabase/database.constants.js"
+import { safeNextPath } from "./safe-next.js"
 
 /** Page de publication d'une mission (espace client). */
 export const PUBLISH_PATH = "/client/missions/new"
+
+/** Clé sessionStorage du lien de reprise de publication (même onglet). */
+export const PUBLISH_RESUME_KEY = "ec_publish_resume"
 
 const TITLE_MAX_LENGTH = 80
 
@@ -45,4 +49,19 @@ export function publishHref({ besoin, ville, type } = {}) {
   if (type) query.set("type", type)
   const qs = query.toString()
   return qs ? `${PUBLISH_PATH}?${qs}` : PUBLISH_PATH
+}
+
+/**
+ * Lien de reprise sûr : chemin interne (`safeNextPath`) qui est la page de publication
+ * elle-même, avec ou sans requête. Toute autre valeur donne null.
+ * @param {unknown} raw
+ * @returns {string|null}
+ */
+export function resumePublishHref(raw) {
+  const path = safeNextPath(raw)
+  if (!path) return null
+  const rest = path.slice(PUBLISH_PATH.length)
+  if (!path.startsWith(PUBLISH_PATH)) return null
+  if (rest !== "" && rest[0] !== "?" && rest[0] !== "#") return null
+  return path
 }

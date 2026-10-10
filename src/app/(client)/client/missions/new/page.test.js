@@ -65,6 +65,18 @@ describe("NewMissionPage", () => {
     expect(findElement(tree, "NewMissionForm")).toBeNull()
   })
 
+  it("transmet le lien de reprise à la porte seulement si un champ est pré-rempli", async () => {
+    getWallet.mockResolvedValue({ available: 0 })
+    const withPrefill = await NewMissionPage({
+      searchParams: Promise.resolve({ besoin: "Faire le marché", ville: "Cotonou", type: "Livraison" }),
+    })
+    expect(findElement(withPrefill, "WalletRequiredGate").props.resumeHref).toBe(
+      "/client/missions/new?besoin=Faire+le+march%C3%A9&ville=Cotonou&type=Livraison",
+    )
+    const without = await NewMissionPage({ searchParams: Promise.resolve({ ville: "Paris" }) })
+    expect(findElement(without, "WalletRequiredGate").props.resumeHref).toBeUndefined()
+  })
+
   it("redirige vers la connexion sans utilisateur", async () => {
     getCurrentUser.mockResolvedValue(null)
     await expect(NewMissionPage({ searchParams: Promise.resolve({}) })).rejects.toThrow("redirect:/auth/login")

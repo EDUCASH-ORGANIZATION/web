@@ -25,7 +25,7 @@ describe("applyCta", () => {
     expect(r.primary.href).toContain("%2Fstudent%2Fmissions%2F")
     expect(r.secondary).toEqual({
       label: "Créer un compte étudiant",
-      href: "/auth/register?role=student",
+      href: `/auth/register?role=student&next=${encodeURIComponent(`/student/missions/${ID}`)}`,
     })
   })
   it("étudiant ayant déjà postulé", () => {

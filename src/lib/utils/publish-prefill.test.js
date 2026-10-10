@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { PUBLISH_PATH, parsePublishPrefill, publishHref } from "./publish-prefill.js"
+import { PUBLISH_PATH, PUBLISH_RESUME_KEY, parsePublishPrefill, publishHref, resumePublishHref } from "./publish-prefill.js"
 
 describe("parsePublishPrefill", () => {
   it("lit besoin, ville et type valides", () => {
@@ -63,5 +63,34 @@ describe("publishHref", () => {
       city: "Porto-Novo",
       type: "Démarches",
     })
+  })
+})
+
+describe("resumePublishHref", () => {
+  it("accepte la page de publication avec son pré-remplissage", () => {
+    expect(resumePublishHref("/client/missions/new?besoin=Repas&ville=Cotonou")).toBe(
+      "/client/missions/new?besoin=Repas&ville=Cotonou",
+    )
+    expect(resumePublishHref(PUBLISH_PATH)).toBe(PUBLISH_PATH)
+  })
+  it("refuse les redirections ouvertes et les autres chemins", () => {
+    for (const bad of [
+      "//evil",
+      "https://evil.test/client/missions/new",
+      "/client/wallet",
+      "/auth/login?next=/client/missions/new",
+      "/client/missions/newest",
+      "/client/missions/new/../../x",
+      "/\\evil",
+      "",
+      null,
+      undefined,
+      42,
+    ]) {
+      expect(resumePublishHref(bad)).toBeNull()
+    }
+  })
+  it("expose la clé de stockage", () => {
+    expect(PUBLISH_RESUME_KEY).toBe("ec_publish_resume")
   })
 })
