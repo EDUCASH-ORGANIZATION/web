@@ -252,9 +252,11 @@ html:has(.site-header) { scroll-padding-top: calc(var(--h-header-compact) + var(
   .ds-desk-only { display: none !important; }
   .site-header__burger { display: inline-grid; }
 }
-/* Seuil propre à l'en-tête : 1359.98 px. L'en-tête complet (logo 171 + navigation 482 + actions 444
-   + espacements) demande 1241 px, et 1305 px sur l'accueil dont le retrait s'aligne sur le hero.
-   Entre 1024 et 1359.98 px, la navigation passe dans le menu burger et les actions restent visibles.
+/* Seuil propre à l'en-tête : 1359.98 px. Mesures avec 4 liens (Services ou Missions, Aide, À propos, Contact) :
+   logo 171 + espace 32 + navigation 361 + actions 501 (visiteur clients, le plus large sans compte) = 1065 px,
+   plus 144 px de retrait sur l'accueil : 1209 px minimum. À 1360 px il reste 150 px entre la navigation et
+   les actions : le seuil tient, sans débordement. Entre 1024 et 1359.98 px, la navigation passe dans le menu
+   burger et les actions restent visibles.
    Sous 1024 px, le mode mobile (ds-desk-only / ds-mob-only) prend le relais. */
 @media (max-width: 1359.98px) {
   .site-header__nav { display: none; }

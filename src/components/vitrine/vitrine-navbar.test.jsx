@@ -85,6 +85,33 @@ describe("VitrineNavbar", () => {
     expect(other).not.toMatch(/<a href="\/missions"[^>]*aria-current/)
   })
 
+  // Extrait les libellés du bloc de navigation principale, dans l'ordre d'affichage.
+  function navLabels(html) {
+    const nav = html.match(/<nav class="site-header__nav[^>]*>(.*?)<\/nav>/)[1]
+    return [...nav.matchAll(/<a [^>]*>([^<]*)<\/a>/g)].map((m) => m[1])
+  }
+
+  it("clients : Services, Aide, À propos, Contact dans cet ordre", () => {
+    const html = render({}, visitor, "/")
+    expect(navLabels(html)).toEqual(["Services", "Aide", "À propos", "Contact"])
+    expect(html).toContain('href="/about"')
+    expect(html).toContain('href="/contact"')
+  })
+
+  it("étudiants : Missions, Aide, À propos, Contact dans cet ordre", () => {
+    const html = render({ audience: "etudiants" }, visitor, "/etudiants")
+    expect(navLabels(html)).toEqual(["Missions", "Aide", "À propos", "Contact"])
+  })
+
+  it("À propos et Contact sont actifs sur leur page seulement", () => {
+    const about = render({}, visitor, "/about")
+    expect(about).toMatch(/<a href="\/about"[^>]*aria-current="page"[^>]*>À propos<\/a>/)
+    expect(about).not.toMatch(/<a href="\/contact"[^>]*aria-current/)
+    const contact = render({ audience: "etudiants" }, visitor, "/contact")
+    expect(contact).toMatch(/<a href="\/contact"[^>]*aria-current="page"[^>]*>Contact<\/a>/)
+    expect(contact).not.toMatch(/<a href="\/about"[^>]*aria-current/)
+  })
+
   it("client connecté : Publier une mission puis Mon espace", () => {
     const html = render({}, client)
     expect(html.indexOf("Publier une mission")).toBeGreaterThan(-1)
