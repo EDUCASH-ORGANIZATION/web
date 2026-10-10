@@ -23,6 +23,7 @@ const MESSAGES = {
     unauthenticated: "Ta session a expiré. Connecte-toi pour continuer.",
     wrong_role: "Cette page est réservée aux étudiants. Reconnecte-toi avec ton compte étudiant.",
     suspended: "Ton compte est suspendu. Contacte-nous pour en savoir plus.",
+    already_done: "Ton profil est déjà complété.",
     invalid: "Certaines informations ne sont pas valides. Vérifie les champs signalés.",
     save_failed: "Nous n'avons pas pu enregistrer ton profil. Réessaie dans un instant.",
   },
@@ -30,6 +31,7 @@ const MESSAGES = {
     unauthenticated: "Votre session a expiré. Connectez-vous pour continuer.",
     wrong_role: "Cette page est réservée aux clients. Reconnectez-vous avec votre compte client.",
     suspended: "Votre compte est suspendu. Contactez-nous pour en savoir plus.",
+    already_done: "Votre profil est déjà complété.",
     invalid: "Certaines informations ne sont pas valides. Vérifiez les champs signalés.",
     save_failed: "Nous n'avons pas pu enregistrer votre profil. Réessayez dans un instant.",
   },
@@ -105,16 +107,24 @@ function asObject(payload) {
 }
 
 // Contexte commun : utilisateur, rôle serveur attendu, profil existant.
-async function loadContext(expectedRole) {
+async function loadContext(expectedRole, next) {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: failure(expectedRole, "unauthenticated") }
 
-  const { role, profile } = await getServerRole(supabase, user)
+  const { role, profile, profileComplete } = await getServerRole(supabase, user)
   if (role !== expectedRole) return { error: failure(expectedRole, "wrong_role") }
   if (profile?.is_suspended) return { error: failure(expectedRole, "suspended") }
+  // L'onboarding ne se rejoue pas : un profil complet ne peut plus être réécrit par cette action.
+  if (profileComplete) {
+    return {
+      error: failure(expectedRole, "already_done", {
+        destination: resolvePostAuth({ role: expectedRole, profileComplete: true, next }),
+      }),
+    }
+  }
   return { supabase, user, profile }
 }
 
@@ -144,7 +154,7 @@ async function writeProfile({ supabase, user, profile, role, columns }) {
  */
 export async function completeStudentOnboarding(payload) {
   const input = asObject(payload)
-  const context = await loadContext("student")
+  const context = await loadContext("student", input.next)
   if (context.error) return context.error
   const { supabase, user, profile } = context
 
@@ -200,7 +210,7 @@ export async function completeStudentOnboarding(payload) {
  */
 export async function completeClientOnboarding(payload) {
   const input = asObject(payload)
-  const context = await loadContext("client")
+  const context = await loadContext("client", input.next)
   if (context.error) return context.error
   const { supabase, user, profile } = context
 

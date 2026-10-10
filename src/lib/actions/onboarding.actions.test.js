@@ -215,6 +215,17 @@ describe("completeStudentOnboarding", () => {
     expect(calls.update).toHaveLength(0)
   })
 
+  it("profil déjà complet : already_done sans écriture, avec destination", async () => {
+    const { calls } = use({ profile: { ...studentProfile, full_name: "Sèna", city: "Cotonou" } })
+    expect(await completeStudentOnboarding(studentPayload)).toMatchObject({
+      ok: false,
+      code: "already_done",
+      destination: "/dashboard",
+    })
+    expect(calls.update).toHaveLength(0)
+    expect(calls.insert).toHaveLength(0)
+  })
+
   it("admin : refusé", async () => {
     const { calls } = use({ profile: { ...studentProfile, role: "admin" } })
     expect(await completeStudentOnboarding(studentPayload)).toMatchObject({ ok: false, code: "wrong_role" })
@@ -300,6 +311,17 @@ describe("completeClientOnboarding", () => {
     const next = "/client/missions/new?besoin=Repas&ville=Cotonou"
     const result = await completeClientOnboarding({ ...clientPayload, next })
     expect(result.destination).toBe(next)
+  })
+
+  it("client avec profil déjà complet : already_done sans écriture", async () => {
+    const { calls } = use({ profile: { ...clientProfile, full_name: "Dossou", city: "Cotonou" } })
+    expect(await completeClientOnboarding(clientPayload)).toMatchObject({
+      ok: false,
+      code: "already_done",
+      destination: "/client/dashboard",
+    })
+    expect(calls.update).toHaveLength(0)
+    expect(calls.updateUser).toHaveLength(0)
   })
 
   it("étudiant : wrong_role sans écriture", async () => {
