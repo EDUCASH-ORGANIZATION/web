@@ -322,7 +322,7 @@ export function ConversationView({
 
   // ── Helpers affichage ─────────────────────────────────────────────────────
   const backHref  = userRole === "client" ? "/client/messages" : "/messages"
-  const payHref   = `/client/payment/${missionId}`
+  const missionHref = `/client/missions/${missionId}`
 
   const interlocuteurIsVerified    = interlocuteur?.is_verified    ?? false
   const interlocuteurVerifiedUntil = interlocuteur?.verified_until ?? null
@@ -373,15 +373,15 @@ export function ConversationView({
       {missionStatus === "in_progress" && userRole === "client" && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-3">
           <p className="text-xs text-amber-800">
-            Mission en cours. Confirmez la fin pour procéder au paiement.
+            Mission en cours. Confirmez la fin pour libérer le paiement.
           </p>
           <button
             type="button"
-            onClick={() => router.push(payHref)}
+            onClick={() => router.push(missionHref)}
             className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors touch-manipulation"
           >
             <CreditCard size={12} />
-            Confirmer et payer →
+            Confirmer la fin →
           </button>
         </div>
       )}

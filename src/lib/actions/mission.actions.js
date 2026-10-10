@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { callWalletRpc } from "@/lib/wallet/wallet-rpc"
+import { paymentsEnabled } from "@/lib/constants/payments"
 import {
   CITIES,
   COMMISSION_RATE,
@@ -19,11 +20,6 @@ const ERR_PAYMENTS_OFF = "La publication de missions est en cours d'activation."
 // Colonnes publiques de `profiles` (aucune colonne privée : phone, fcm_token, rejection_reason...).
 const PUBLIC_PROFILE_COLUMNS =
   "id, user_id, full_name, city, avatar_url, bio, role, is_verified, verified_until, rating, missions_done, is_suspended, created_at, updated_at"
-
-// Drapeau serveur : les paiements sont coupés tant que PAYMENTS_ENABLED n'est pas "true".
-function paymentsEnabled() {
-  return process.env.PAYMENTS_ENABLED === "true"
-}
 
 /**
  * Fonds encore réservés pour une mission : réservation moins remboursements déjà passés.
