@@ -97,7 +97,7 @@ export function AuthShell({
             ))}
           </div>
         </div>
-        <div className="auth__main">
+        <main id="contenu" className="auth__main">
           <div className="auth__top">
             {signOutAction ? (
               <form action={signOutAction}>
@@ -137,7 +137,7 @@ export function AuthShell({
           ) : (
             children
           )}
-        </div>
+        </main>
       </div>
     </div>
   )
