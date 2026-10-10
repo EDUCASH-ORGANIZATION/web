@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser, logout } from "@/lib/actions/auth.actions"
 import { getMyProfile } from "@/lib/actions/profile.actions"
 
-export const metadata = { title: "Mon profil — EduCash" }
+export const metadata = { title: "Mon profil - EduCash" }
 
 function fmt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)

@@ -32,7 +32,7 @@ export default function PaymentReceivedWallet({
           </Section>
 
           <Text style={text}>
-            Ces fonds sont disponibles dans votre wallet EduCash.
+            Ces fonds sont disponibles dans votre portefeuille EduCash.
           </Text>
 
           <Button href={`${APP_URL}/student/wallet`} style={button}>

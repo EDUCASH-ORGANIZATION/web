@@ -11,7 +11,7 @@ import { PromoCard } from "@/components/student/promo-card"
 import { SortSelect } from "@/components/student/sort-select"
 import { ScrollToResults } from "@/components/shared/scroll-to-results"
 
-export const metadata = { title: "Missions — EduCash" }
+export const metadata = { title: "Missions - EduCash" }
 
 const PAGE_SIZE = 9
 

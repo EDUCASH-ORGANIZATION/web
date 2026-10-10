@@ -171,7 +171,7 @@ function VerificationBanner({ profile, studentProfile, cardFile, onCardFileChang
           <p className="text-sm font-black text-amber-900">Vérification en cours</p>
           <p className="text-xs text-amber-700 mt-0.5">
             Ton dossier a été soumis le{" "}
-            <span className="font-semibold">{fmtDate(submittedAt)}</span> — notre équipe l&apos;examine.
+            <span className="font-semibold">{fmtDate(submittedAt)}</span> - notre équipe l&apos;examine.
           </p>
           <p className="text-xs text-amber-600 mt-1">
             Délai habituel : 24 à 48 heures.
@@ -392,7 +392,7 @@ export default function ProfileEditPage() {
 
       toast({
         message: cardFile
-          ? "Profil sauvegardé — ta carte est en cours d'examen."
+          ? "Profil sauvegardé - ta carte est en cours d'examen."
           : "Profil mis à jour avec succès.",
         type: "success",
       })
@@ -482,7 +482,7 @@ export default function ProfileEditPage() {
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900">Photo de profil</p>
-              <p className="text-xs text-gray-400 mt-0.5">JPG, PNG ou WEBP — max 3 Mo</p>
+              <p className="text-xs text-gray-400 mt-0.5">JPG, PNG ou WEBP - max 3 Mo</p>
               <button
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
@@ -605,7 +605,7 @@ export default function ProfileEditPage() {
                 <option value="">Sélectionner un établissement</option>
                 {universities.map((u) => (
                   <option key={u.id} value={u.name}>
-                    {u.short_name ? `${u.short_name} — ${u.name}` : u.name}
+                    {u.short_name ? `${u.short_name} - ${u.name}` : u.name}
                   </option>
                 ))}
                 <option value="__other__">Autre établissement</option>

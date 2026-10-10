@@ -70,7 +70,7 @@ export function RejectModal({ userId, name, onClose }) {
           </div>
         </div>
 
-        {/* Champ libre — "Autre motif" uniquement */}
+        {/* Champ libre - "Autre motif" uniquement */}
         {isOther && (
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-gray-700">
@@ -86,7 +86,7 @@ export function RejectModal({ userId, name, onClose }) {
           </div>
         )}
 
-        {/* Message complémentaire — motifs standards */}
+        {/* Message complémentaire - motifs standards */}
         {reason && !isOther && (
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-gray-700">
@@ -123,7 +123,7 @@ export function RejectModal({ userId, name, onClose }) {
             </p>
             <p className="text-xs text-gray-700">
               <span className="font-semibold">Motif :</span>{" "}
-              {isOther ? (customMessage || "—") : reason}
+              {isOther ? (customMessage || "-") : reason}
             </p>
             {customMessage && !isOther && (
               <p className="text-xs text-gray-700">

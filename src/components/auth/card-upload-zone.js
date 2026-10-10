@@ -108,7 +108,7 @@ export function CardUploadZone({ onFileSelect, file }) {
           <div className="text-center">
             <p className="text-sm font-bold text-gray-700">Uploade ta carte étudiante</p>
             <p className="text-xs text-gray-400 mt-0.5">
-              Photo ou scan — JPG, PNG, PDF — max 10 MB
+              Photo ou scan - JPG, PNG, PDF - max 10 MB
             </p>
           </div>
           <p className="text-xs text-[#1A6B4A] font-semibold">

@@ -13,7 +13,7 @@ import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
 import { paymentsEnabled } from "@/lib/constants/payments"
 import { missionTypeLabel } from "@/lib/constants/missions"
 
-export const metadata = { title: "Espace client — EduCash" }
+export const metadata = { title: "Espace client - EduCash" }
 
 function formatMoney(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
@@ -179,7 +179,7 @@ export default async function ClientDashboardPage() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-amber-900">
-              {paymentsOpen ? "Votre wallet est vide ou insuffisant" : "Publication en cours d'activation"}
+              {paymentsOpen ? "Votre portefeuille est vide ou insuffisant" : "Publication en cours d'activation"}
             </p>
             <p className="text-xs text-amber-700 mt-0.5">
               {paymentsOpen

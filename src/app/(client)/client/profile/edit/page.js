@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { getMyProfile } from "@/lib/actions/profile.actions"
 import { ClientEditForm } from "@/components/profile/client-edit-form"
 
-export const metadata = { title: "Modifier mon profil — EduCash" }
+export const metadata = { title: "Modifier mon profil - EduCash" }
 
 export default async function ClientProfileEditPage() {
   const user = await getCurrentUser()

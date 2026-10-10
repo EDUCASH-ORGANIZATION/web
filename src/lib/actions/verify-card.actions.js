@@ -88,15 +88,15 @@ ou
         return parsed
       }
     } catch {
-      // GPT n'a pas retourné du JSON valide — on laisse passer (fail-open)
+      // GPT n'a pas retourné du JSON valide - on laisse passer (fail-open)
       console.warn("[verifyStudentCardWithAI] Réponse GPT non-JSON :", raw)
-      return { valid: true, reason: "Vérification inconcluante — examen manuel requis." }
+      return { valid: true, reason: "Vérification inconcluante - examen manuel requis." }
     }
 
-    return { valid: true, reason: "Vérification inconcluante — examen manuel requis." }
+    return { valid: true, reason: "Vérification inconcluante - examen manuel requis." }
   } catch (err) {
     console.error("[verifyStudentCardWithAI]", err)
     // Fail-open : en cas d'erreur API, on laisse passer et l'admin vérifie
-    return { valid: true, reason: "Erreur IA — examen manuel requis." }
+    return { valid: true, reason: "Erreur IA - examen manuel requis." }
   }
 }

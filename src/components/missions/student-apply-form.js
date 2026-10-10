@@ -10,7 +10,7 @@ function formatBudget(n) {
 }
 
 /**
- * Formulaire de candidature — état calculé côté serveur, soumission côté client.
+ * Formulaire de candidature - état calculé côté serveur, soumission côté client.
  *
  * @param {{
  *   missionId: string,

@@ -10,7 +10,7 @@ import {
 import { StudentWalletShell } from "@/components/student/wallet-shell"
 import { paymentsEnabled } from "@/lib/constants/payments"
 
-export const metadata = { title: "Mes gains — EduCash" }
+export const metadata = { title: "Mes gains - EduCash" }
 
 export default async function StudentWalletPage() {
   const user = await getCurrentUser()

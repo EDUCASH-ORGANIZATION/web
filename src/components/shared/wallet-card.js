@@ -47,7 +47,7 @@ export function WalletCard({
         <div className="w-8 h-8 rounded-lg bg-[#f0faf5] flex items-center justify-center shrink-0">
           <Wallet size={16} className="text-[#1A6B4A]" />
         </div>
-        <p className="text-sm text-gray-500 font-medium">Mon wallet EduCash</p>
+        <p className="text-sm text-gray-500 font-medium">Mon portefeuille EduCash</p>
       </div>
 
       {/* ── Solde disponible ──────────────────────────────────────── */}

@@ -69,7 +69,7 @@ export async function getMyStudentProfile() {
 
 /**
  * Met à jour le profil d'un étudiant connecté.
- * L'avatar est uploadé côté client — on reçoit ici uniquement son URL (string).
+ * L'avatar est uploadé côté client - on reçoit ici uniquement son URL (string).
  *
  * @param {{ fullName, city, phone, bio, school, level, availability, skills: string[], avatarUrl?: string }} data
  */
@@ -153,7 +153,7 @@ export async function saveStudentCardUrl(cardUrl) {
 
 /**
  * Met à jour le profil étudiant ET la carte si une nouvelle est fournie.
- * L'avatar et la carte sont uploadés côté client — on reçoit les URLs.
+ * L'avatar et la carte sont uploadés côté client - on reçoit les URLs.
  *
  * @param {{
  *   fullName: string,
@@ -230,7 +230,7 @@ export async function updateStudentProfileWithCard(data) {
 
 /**
  * Met à jour le profil d'un client connecté.
- * L'avatar est uploadé côté client — on reçoit ici uniquement son URL (string).
+ * L'avatar est uploadé côté client - on reçoit ici uniquement son URL (string).
  *
  * @param {{ fullName, city, phone, companyName, avatarUrl?: string }} data
  */

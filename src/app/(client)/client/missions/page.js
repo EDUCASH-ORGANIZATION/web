@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { createClient } from "@/lib/supabase/server"
 import { missionTypeLabel } from "@/lib/constants/missions"
 
-export const metadata = { title: "Mes missions — EduCash" }
+export const metadata = { title: "Mes missions - EduCash" }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
