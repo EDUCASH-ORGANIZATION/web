@@ -10,11 +10,17 @@ function fmt(n) {
 // ─── POST /api/webhooks/fedapay ───────────────────────────────────────────────
 
 export async function POST(request) {
+  const webhookSecret = process.env.FEDAPAY_WEBHOOK_SECRET
+  if (!webhookSecret) {
+    console.error("[webhook/fedapay] FEDAPAY_WEBHOOK_SECRET non configuré - webhook désactivé")
+    return new Response("Service Unavailable", { status: 503 })
+  }
+
   const payload = await request.text()
   const signature = request.headers.get("x-fedapay-signature")
 
   // Vérifie la signature HMAC-SHA256
-  const expectedSig = createHmac("sha256", process.env.FEDAPAY_WEBHOOK_SECRET)
+  const expectedSig = createHmac("sha256", webhookSecret)
     .update(payload)
     .digest("hex")
 
