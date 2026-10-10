@@ -10,9 +10,12 @@ const read = (rel) => readFileSync(path.join(SRC, rel), "utf8")
 
 // Route d'ancre -> fichiers qui rendent ses ids.
 const ROUTE_FILES = {
-  "/": ["components/vitrine/home/home-steps.jsx"],
+  "/": [
+    "components/vitrine/home/home-steps.jsx",
+    "components/vitrine/home/home-catalog.jsx",
+    "components/vitrine/home/home-achats.jsx",
+  ],
   "/aide": ["components/vitrine/aide/aide-content.js"],
-  "/clients": ["components/vitrine/clients/clients-sections.jsx"],
   "/legal/terms": ["app/legal/terms/page.js"],
 }
 
@@ -66,7 +69,7 @@ const anchors = collectAnchors()
 describe("ancres du site public", () => {
   it("trouve les ancres connues", () => {
     const hrefs = anchors.map((a) => a.href)
-    for (const expected of ["/#etapes", "/aide#sequestre", "/aide#retraits", "/aide#achats", "#sequestre", "/legal/terms#achats", "#achats"]) {
+    for (const expected of ["/#etapes", "/aide#sequestre", "/aide#retraits", "/aide#achats", "/legal/terms#achats", "#achats"]) {
       expect(hrefs).toContain(expected)
     }
   })
@@ -79,7 +82,6 @@ describe("ancres du site public", () => {
         // Lien local "#id" : la page qui l'écrit, ou le dossier de la fonctionnalité qui rend ses ids.
         const page = pageRoute(file)
         files = [file, ...(ROUTE_FILES[page] ?? [])]
-        if (file === "components/vitrine/clients/clients-hero.jsx") files.push(...ROUTE_FILES["/clients"])
       } else {
         files = ROUTE_FILES[route]
         if (!files) {
@@ -114,7 +116,6 @@ describe("composant de lien d'ancre", () => {
 
   it("les liens d'ancre des heros, du bandeau séquestre et de l'aide utilisent AnchorLink", () => {
     const expected = {
-      "components/vitrine/clients/clients-hero.jsx": "#sequestre",
       "components/vitrine/shared/payers.jsx": "/aide#sequestre",
       "components/vitrine/shared/escrow-note.jsx": "/aide#sequestre",
       "app/legal/mentions/page.js": "/legal/terms#achats",

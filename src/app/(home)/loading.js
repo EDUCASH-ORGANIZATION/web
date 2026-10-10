@@ -1,13 +1,10 @@
 import { VitrineNavbar } from "@/components/vitrine/vitrine-navbar"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 
-const CARDS = [0, 1, 2]
-
-// Squelette de l'accueil : le hero et les blocs statiques s'affichent tout de suite,
-// seul l'aperçu des missions attend les données.
+// Squelette de l'accueil : reprend le hero bleu. Aucun id d'ancre, la page réelle prend le relais.
 export default function HomeLoading() {
   return (
-    <VitrinePage navbar={<VitrineNavbar tone="bleu" />}>
+    <VitrinePage audience="clients" navbar={<VitrineNavbar tone="bleu" audience="clients" />}>
       <div className="hero hero--under-header grid-bg" aria-busy="true">
         <div className="v-hero">
           <div className="stack stack--4">
@@ -18,26 +15,6 @@ export default function HomeLoading() {
           </div>
         </div>
       </div>
-      <section className="section">
-        <div className="v02-grid">
-          {CARDS.map((i) => (
-            <div key={i} className="skel-card">
-              <div className="row row--between">
-                <span className="skel skel--pill w-[150px] h-[28px]" />
-                <span className="skel skel--pill w-[70px] h-[22px]" />
-              </div>
-              <span className="skel skel--title w-[90%]" />
-              <span className="skel skel--text w-[60%]" />
-              <span className="skel skel--text w-[45%]" />
-              <div className="divider divider--dash" />
-              <div className="row row--between">
-                <span className="skel skel--title w-[120px] h-[28px]" />
-                <span className="skel skel--pill w-[64px] h-[36px]" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
     </VitrinePage>
   )
 }
