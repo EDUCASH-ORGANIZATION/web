@@ -269,6 +269,8 @@ html:has(.site-header) { scroll-padding-top: calc(var(--h-header-compact) + var(
   .v-hero { grid-template-columns: minmax(0, 1fr) clamp(340px, 33vw, 470px); gap: var(--s-6); }
   .v-hero__push { width: clamp(272px, 28vw, 316px); }
   .v-hero__card { width: clamp(216px, 22vw, 250px); }
+  /* Titre sur 3 lignes : « est précieux. » (5,4 em de large) doit tenir dans la colonne de texte. */
+  .hero--under-header .display--xxl { font-size: min(var(--t-display-xxl), 9.4vw); }
 }
 
 /* ---------- Focus clavier ---------- */
