@@ -1,9 +1,8 @@
 import Image from "next/image"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { getServerRole } from "@/lib/auth/server-role"
-import { createClient as createAdminClient } from "@supabase/supabase-js"
+import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
 import { ChevronLeft, ChevronRight, ShieldCheck, Users, UserX } from "lucide-react"
 import { SuspendButton } from "@/components/admin/suspend-button"
 
@@ -18,11 +17,9 @@ const ROLE_CONFIG = {
 }
 
 export default async function AdminUsersPage({ searchParams }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
-  const { role } = await getServerRole(supabase, user)
-  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
+  const auth = await requireRole(["admin"])
+  if (auth.error) redirect("/auth/login")
+  const { supabase } = auth
 
   // ── Fix Next.js 16 : await searchParams ───────────────────────
   const { page: pageParam, role: roleFilter } = await searchParams
@@ -30,10 +27,7 @@ export default async function AdminUsersPage({ searchParams }) {
   const from = (page - 1) * PAGE_SIZE
   const to   = from + PAGE_SIZE - 1
 
-  const admin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  )
+  const admin = createServiceClient()
 
   let query = supabase
     .from("profiles")
@@ -60,9 +54,9 @@ export default async function AdminUsersPage({ searchParams }) {
 
   // Counts par rôle pour les filtres
   const [{ count: studentCount }, { count: clientCount }, { count: suspendedCount }] = await Promise.all([
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student"),
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "client"),
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_suspended", true),
+    admin.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "student"),
+    admin.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "client"),
+    admin.from("profiles").select("user_id", { count: "exact", head: true }).eq("is_suspended", true),
   ])
 
   function buildHref(p, role) {

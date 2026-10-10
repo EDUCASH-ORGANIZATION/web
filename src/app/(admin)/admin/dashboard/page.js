@@ -5,8 +5,8 @@ import {
   Users, Briefcase, CheckCircle, TrendingUp,
   ShieldAlert, ShieldCheck, ArrowRight, Clock,
 } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
-import { getServerRole } from "@/lib/auth/server-role"
+import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
 
 export const metadata = { title: "Dashboard — Admin EduCash" }
 
@@ -61,11 +61,11 @@ function BarChart({ rows }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AdminDashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
-  const { role } = await getServerRole(supabase, user)
-  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
+  const auth = await requireRole(["admin"])
+  if (auth.error) redirect("/auth/login")
+  const { supabase } = auth
+
+  const service = createServiceClient()
 
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -86,12 +86,12 @@ export default async function AdminDashboardPage() {
     { data: pendingProfiles },
     { data: recentUsers },
   ] = await Promise.all([
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student"),
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "client"),
+    service.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "student"),
+    service.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "client"),
     supabase.from("missions").select("*", { count: "exact", head: true }),
     supabase.from("missions").select("*", { count: "exact", head: true }).eq("status", "open"),
     supabase.from("missions").select("*", { count: "exact", head: true }).eq("status", "done"),
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student").eq("is_verified", false),
+    service.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "student").eq("is_verified", false),
     supabase.from("transactions").select("commission").eq("status", "paid"),
     supabase.from("missions").select("id, title, created_at, status").gte("created_at", sevenDaysAgoIso).order("created_at", { ascending: true }),
     supabase.from("profiles").select("user_id, full_name, avatar_url, created_at").eq("role", "student").eq("is_verified", false).order("created_at", { ascending: false }).limit(5),

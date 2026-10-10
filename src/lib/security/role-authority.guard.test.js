@@ -13,6 +13,10 @@ const ALLOWED_CODE = ["src/lib/auth/server-role.js"]
 
 const FIXED_FILES = ["middleware.js", "src/app/(student)/layout.js", "src/app/(client)/layout.js"]
 
+const ADMIN_PAGES = ["dashboard", "verifications", "users", "missions", "wallets"].map(
+  (name) => `src/app/(admin)/admin/${name}/page.js`
+)
+
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
     const full = path.join(dir, name)
@@ -33,7 +37,8 @@ function guardedFiles() {
   const actions = walk(path.join(ROOT, "src/lib/actions")).filter(
     (f) => /\.(js|jsx)$/.test(f) && !/\.test\.(js|jsx)$/.test(f)
   )
-  return [...FIXED_FILES.map((f) => path.join(ROOT, f)), ...actions]
+  const adminPages = ADMIN_PAGES.map((f) => path.join(ROOT, f))
+  return [...adminPages, ...FIXED_FILES.map((f) => path.join(ROOT, f)), ...actions]
 }
 
 describe("garde-fou role-authority", () => {
@@ -47,6 +52,19 @@ describe("garde-fou role-authority", () => {
   it("surveille bien le middleware, les deux layouts et les server actions", () => {
     const files = guardedFiles().map((f) => path.relative(ROOT, f))
     expect(files).toEqual(expect.arrayContaining([...FIXED_FILES, "src/lib/actions/auth.actions.js"]))
+  })
+
+  it("surveille les 5 pages admin", () => {
+    const files = guardedFiles().map((f) => path.relative(ROOT, f))
+    expect(files).toEqual(expect.arrayContaining(ADMIN_PAGES))
+  })
+
+  it("chaque page admin passe par requireRole(['admin']) avant toute lecture", () => {
+    for (const rel of ADMIN_PAGES) {
+      const source = readFileSync(path.join(ROOT, rel), "utf8")
+      expect(source, rel).toMatch(/requireRole\(\["admin"\]\)/)
+      expect(source, rel).not.toMatch(/getServerRole/)
+    }
   })
 
   it("aucun user_metadata dans le code du middleware, des layouts et des actions", () => {
