@@ -85,10 +85,8 @@ export default function MentionsPage() {
 
       <LegalSection {...SECTIONS.paiements}>
         <p>
-          Les paiements sur la plateforme EduCash sont traités par <strong>FedaPay</strong>,
-          prestataire de services de paiement agréé en Afrique de l’Ouest.
+          Les paiements sur la plateforme EduCash sont traités par un prestataire de services de paiement agréé en Afrique de l’Ouest.
         </p>
-        <LegalFacts items={[{ label: "Site FedaPay", value: "fedapay.com" }]} />
         <p>
           Les paiements d’achats effectués hors plateforme, du client au vendeur par Mobile Money,
           ne relèvent pas d’EduCash. Voir l’article 5 des{" "}

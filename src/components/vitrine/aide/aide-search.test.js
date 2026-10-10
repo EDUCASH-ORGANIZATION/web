@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { AIDE_THEMES, PAYMENT_WARNING } from "./aide-content"
+import { AIDE_THEMES, ESCROW_STEPS, PAYMENT_WARNING } from "./aide-content"
 import { filterThemes, normalize } from "./aide-search"
 
 const ids = (themes) => themes.flatMap((theme) => theme.items.map((item) => item.id))
@@ -51,5 +51,11 @@ describe("contenu de l'aide", () => {
   it("a des identifiants de question uniques", () => {
     const all = ids(AIDE_THEMES)
     expect(new Set(all).size).toBe(all.length)
+  })
+
+  it("ne nomme pas le prestataire de paiement et évite le vocabulaire banni", () => {
+    const text = JSON.stringify([AIDE_THEMES, ESCROW_STEPS])
+    expect(text).not.toMatch(/fedapay|livraison|coursier|saisie\b|\bcourses?\b/i)
+    expect(text).not.toContain('"/clients"')
   })
 })
