@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
-import { Scribble } from "@/components/vitrine/clients/scribble"
+import { Scribble } from "@/components/vitrine/shared/scribble"
 import { COMMISSION_RATE } from "@/lib/constants/missions"
 import { formatFcfa } from "@/lib/vitrine/format"
 

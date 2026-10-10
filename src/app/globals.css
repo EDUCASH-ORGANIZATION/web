@@ -9,6 +9,11 @@
 @import "./design/tokens.css" layer(theme);
 @import "./design/components.css" layer(components);
 @import "./design/layouts.css" layer(components);
+@import "./design/rd-pos-chrome.css" layer(components);
+@import "./design/rd-pos-hero.css" layer(components);
+@import "./design/rd-pos-services.css" layer(components);
+@import "./design/rd-pos-home.css" layer(components);
+@import "./design/rd-pos-etudiants.css" layer(components);
 
 /* Docs projet hors scan : leurs mentions de classes (ex. `grow`) generaient des utilitaires. */
 @source not "../../CLAUDE.md";
