@@ -30,6 +30,9 @@ export const CITIES = /** @type {const} */ ([
 // ─── Commission ───────────────────────────────────────────────────────────────
 export const COMMISSION_RATE = 0.12
 
+// Budget minimal d'une mission (XOF), aligné sur le minimum de dépôt
+export const MIN_MISSION_BUDGET = 2000
+
 // ─── Wallet ───────────────────────────────────────────────────────────────────
 export const WALLET_TRANSACTION_TYPES = [
   "deposit",    // recharge client
