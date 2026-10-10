@@ -2,6 +2,70 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
+import { requireUser } from "@/lib/auth/require-role"
+
+// Colonnes de la ligne de l'appelant, lues côté serveur : les colonnes privées (phone,
+// rejection_reason, verification_submitted_at, card_url) ne sont plus lisibles avec la session.
+const MY_PROFILE_COLUMNS =
+  "user_id, full_name, city, avatar_url, bio, role, is_verified, verified_until, phone, rejection_reason, verification_submitted_at"
+const MY_STUDENT_PROFILE_COLUMNS =
+  "user_id, school, level, skills, availability, card_url"
+
+/**
+ * Lit la ligne `profiles` de l'utilisateur connecté, colonnes privées comprises.
+ * Le filtre sur `user.id` vient de la session, jamais d'un paramètre.
+ *
+ * @returns {Promise<{ profile: object | null } | { error: string }>}
+ */
+export async function getMyProfile() {
+  try {
+    const auth = await requireUser()
+    if (auth.error) return { error: auth.error }
+
+    const { data, error } = await createServiceClient()
+      .from("profiles")
+      .select(MY_PROFILE_COLUMNS)
+      .eq("user_id", auth.user.id)
+      .maybeSingle()
+
+    if (error) {
+      console.error("[getMyProfile]", error.message)
+      return { error: "Impossible de charger ton profil." }
+    }
+    return { profile: data ?? null }
+  } catch (err) {
+    console.error("[getMyProfile]", err)
+    return { error: "Impossible de charger ton profil." }
+  }
+}
+
+/**
+ * Lit la ligne `student_profiles` de l'utilisateur connecté, `card_url` comprise.
+ *
+ * @returns {Promise<{ studentProfile: object | null } | { error: string }>}
+ */
+export async function getMyStudentProfile() {
+  try {
+    const auth = await requireUser()
+    if (auth.error) return { error: auth.error }
+
+    const { data, error } = await createServiceClient()
+      .from("student_profiles")
+      .select(MY_STUDENT_PROFILE_COLUMNS)
+      .eq("user_id", auth.user.id)
+      .maybeSingle()
+
+    if (error) {
+      console.error("[getMyStudentProfile]", error.message)
+      return { error: "Impossible de charger ton profil." }
+    }
+    return { studentProfile: data ?? null }
+  } catch (err) {
+    console.error("[getMyStudentProfile]", err)
+    return { error: "Impossible de charger ton profil." }
+  }
+}
 
 /**
  * Met à jour le profil d'un étudiant connecté.

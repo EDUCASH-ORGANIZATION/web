@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import {
@@ -6,6 +7,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
+import { getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { logout } from "@/lib/actions/auth.actions"
 import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 import { missionTypeLabel } from "@/lib/constants/missions"
@@ -90,9 +92,18 @@ export default async function StudentProfilePage() {
     { data: studentProfile },
     { data: reviews },
     { data: transactions },
+    { studentProfile: ownStudentProfile },
   ] = await Promise.all([
-    supabase.from("profiles").select("*").eq("user_id", user.id).single(),
-    supabase.from("student_profiles").select("*").eq("user_id", user.id).single(),
+    supabase
+      .from("profiles")
+      .select("user_id, full_name, city, avatar_url, bio, role, is_verified, verified_until, rating, missions_done, created_at")
+      .eq("user_id", user.id)
+      .single(),
+    supabase
+      .from("student_profiles")
+      .select("user_id, school, level, skills, availability")
+      .eq("user_id", user.id)
+      .single(),
     supabase
       .from("reviews")
       .select("*, profiles!reviewer_id(full_name, avatar_url)")
@@ -103,6 +114,7 @@ export default async function StudentProfilePage() {
       .select("amount_student")
       .eq("student_id", user.id)
       .eq("status", "paid"),
+    getMyStudentProfile(),
   ])
 
   const totalEarned  = (transactions ?? []).reduce((s, t) => s + (t.amount_student ?? 0), 0)
@@ -110,7 +122,7 @@ export default async function StudentProfilePage() {
   const missionsDone = profile?.missions_done ?? 0
   const rating       = profile?.rating ?? 0
   const isVerified   = profile?.is_verified ?? false
-  const hasCard      = !!studentProfile?.card_url
+  const hasCard      = !!ownStudentProfile?.card_url
 
   return (
     <div className="p-6 lg:p-8 max-w-[1100px] mx-auto flex flex-col gap-6">
