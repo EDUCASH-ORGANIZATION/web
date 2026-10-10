@@ -715,3 +715,34 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
 .ds-select[data-vertical="top"] .ds-select__menu { top: auto; bottom: calc(100% + 6px); }
 .ds-select[data-horizontal="end"]:not(.ds-select--field) .ds-select__menu { left: auto; right: 0; }
 .ds-select__menu .menu__item.is-selected.is-hover { box-shadow: inset 0 0 0 2px var(--c-bleu); }
+
+/* RD-POS-01 : media queries du repositionnement vitrine. */
+
+/* Tablette : 2 colonnes. Les cartes simples vont par paires, seules la grande carte et « Autre besoin » prennent
+   les deux colonnes (la regle plus haut qui etalait la carte lavande laisserait un trou). */
+@media (max-width: 1023.98px) {
+  .v-cat--double, .v-cat--lavande { grid-column: auto; }
+  .v-cat--wide { grid-column: span 2; }
+}
+
+/* Bloc « Le marche a votre place » : texte plus large que la maquette standard, empile sous 1024 px
+   (regle .v05-split). */
+@media (min-width: 1024px) {
+  .v-achats-split { grid-template-columns: 460px minmax(0, 1fr); }
+}
+
+/* /etudiants, services : le type Demarches occupe deux colonnes (un type de plus que la maquette),
+   et la carte « Autre » prend toute la derniere ligne sur grand ecran. */
+@media (min-width: 1024px) {
+  .v-etu-cats { grid-auto-rows: 150px; }
+  .v-etu-cats .v-cat--wide { grid-column: 1 / -1; }
+}
+@media (min-width: 768px) {
+  .v-etu-cat--span2 { grid-column: span 2; }
+}
+
+/* Mobile : une colonne. */
+@media (max-width: 767.98px) {
+  .v-cat--wide { grid-column: auto; }
+  .v-etu-duo { grid-template-columns: minmax(0, 1fr); }
+}

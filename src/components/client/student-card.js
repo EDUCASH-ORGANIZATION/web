@@ -8,6 +8,7 @@ import { Star, Loader2, CheckCircle } from "lucide-react"
 import clsx from "clsx"
 import { acceptApplication, rejectApplication } from "@/lib/actions/application.actions"
 import { useToast } from "@/components/shared/toaster"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 // ─── Étoiles de rating ───────────────────────────────────────────────────────
 
@@ -185,7 +186,7 @@ export function StudentCard({ application, missionId, onStatusChange }) {
         <div className="flex flex-wrap gap-1.5">
           {skills.map((skill) => (
             <span key={skill} className="px-2 py-0.5 rounded-full bg-[#f0faf5] text-[#1A6B4A] text-[11px] font-medium">
-              {skill}
+              {missionTypeLabel(skill)}
             </span>
           ))}
         </div>

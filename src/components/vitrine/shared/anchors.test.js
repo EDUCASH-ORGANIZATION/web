@@ -69,7 +69,7 @@ const anchors = collectAnchors()
 describe("ancres du site public", () => {
   it("trouve les ancres connues", () => {
     const hrefs = anchors.map((a) => a.href)
-    for (const expected of ["/#etapes", "/aide#sequestre", "/aide#retraits", "/aide#achats", "/legal/terms#achats", "#achats"]) {
+    for (const expected of ["/#etapes", "/#services", "/aide#sequestre", "/aide#retraits", "/aide#achats", "/legal/terms#achats", "#achats"]) {
       expect(hrefs).toContain(expected)
     }
   })

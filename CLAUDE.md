@@ -5,7 +5,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 ## Stack
 - Next 16.2 (App Router, Turbopack), React 19, Tailwind 4 (`@tailwindcss/postcss`), JavaScript uniquement (pas de `.ts` ni `.tsx`).
 - MUI 9 : gelé, en voie de retrait (vitrine historique). Ne pas l'étendre.
-- Supabase (`@supabase/ssr`), FedaPay, Resend, next-pwa. Déploiement Vercel.
+- Supabase (`@supabase/ssr`), FedaPay (jamais nommé dans les textes visibles de la vitrine), Resend, next-pwa. Déploiement Vercel.
 - Alias `@/` pour tous les imports. Server Components par défaut, `"use client"` seulement si nécessaire.
 - Formulaires : react-hook-form + zod. Commandes : `npm run dev`, `npm run build`, `npx eslint <fichiers>`.
 - Tests : Vitest, `npm test` (fichiers `src/**/*.test.{js,jsx}`, environnement node, config `vitest.config.mjs`).
@@ -34,17 +34,18 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Les pages MUI sont à réécrire écran par écran, puis MUI sera retiré.
 - Règle pour tout nouvel écran : uniquement les classes du système sous une racine `.ds`, en reprenant la maquette de `/Users/brandonmedehou/Desktop/EDUCASH/design-rebrand/maquettes/`. Pas de Tailwind ni de MUI dans un écran refondu.
 - Exception tolérée : utilitaires Tailwind de dimension et de forme (w-*, h-*, max-w-*, rounded-full, object-cover) pour les squelettes de chargement et les images d'avatar, tant que le système ne fournit pas d'équivalent. Aucune couleur, aucun espacement de mise en page en Tailwind dans un écran refondu.
-- UX : l'étudiant est tutoyé, le client vouvoyé, l'admin se tutoie entre collègues.
+- UX : l'étudiant est tutoyé, le client vouvoyé, l'admin se tutoie entre collègues. Deux publics seulement : les clients (familles, salariés, fonctionnaires, entreprises : même compte) sur `/`, les étudiants sur `/etudiants`. Pas de page ni de bloc « Entreprises ».
 
 ## Routes cibles (décision 14 de INVENTAIRE.md)
 - Espace étudiant entièrement sous `/student/...` (`/dashboard`, `/applications`, `/messages`, `/wallet`, `/profile` y déménagent, avec redirections depuis les anciennes URL).
 - Profil public étudiant : `/talents/[id]` (remplace `/students/[id]`).
-- Nouvelles pages publiques en français : `/clients` et `/aide`.
+- Nouvelles pages publiques en français : `/etudiants` et `/aide`. `/clients` n'existe plus : `middleware.js` le redirige en 308 vers `/` (l'accueil parle aux clients).
 - Espace client sous `/client/...`, espace admin sous `/admin/...`.
 
 ## Vitrine
 - Éditeur légal : BRANDYBEN (entreprise individuelle), données dans `src/components/vitrine/legal/legal-entity.js`. Ne jamais écrire « EduCash SAS ».
 - Pas de `loading.js` dans un segment qui appelle `notFound()`, sinon le statut devient 200 au lieu de 404.
+- Mots bannis dans les textes vitrine, légaux et emails : « livraison », « course(s) », « coursier(s) », « saisie », « Bientôt » (opérateurs), et le nom du prestataire de paiement (« notre prestataire de paiement agréé »). « Commission » est réservé aux 12 %. Garde-fous : `vitrine-content.guard.test.js`, `vocabulary.render.test.jsx`.
 
 ## Variables d'environnement
 - `CONTACT_INBOX_EMAIL` : destinataire du formulaire de contact (défaut `contact@educash.bj`). Les autres variables restent dans `.env.local`, jamais lu ni commité.
@@ -60,7 +61,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 
 ## Métier
 - Commission EduCash 12 % : `COMMISSION_RATE` et `netAmount()` dans `src/lib/constants/missions.js` (valeurs de `src/lib/supabase/database.constants.js`). Ne jamais écrire 0.12 en dur.
-- Villes : Cotonou, Porto-Novo, Abomey-Calavi. Types de missions : voir `MISSION_TYPES`.
+- Villes : Cotonou, Porto-Novo, Abomey-Calavi. Types de missions : voir `MISSION_TYPES` (valeurs en base, ne pas les renommer). Pour les afficher, toujours passer par `missionTypeLabel()` et `MISSION_TYPE_LABELS` de `src/lib/constants/missions.js` (Livraison s'affiche « Marché et achats ») ; jamais de `{mission.type}` brut (garde-fou `mission-type-display.guard.test.js`).
 - Statuts mission : `open`, `in_progress`, `done`, `cancelled`. Candidature : `pending`, `accepted`, `rejected`. Transaction : `pending`, `paid`, `failed`, `refunded`.
 
 ## Sécurité

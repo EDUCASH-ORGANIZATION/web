@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
+import { MISSION_TYPES } from "@/lib/constants/missions"
 
 const ROOT = path.resolve(import.meta.dirname, "../../..")
 const DIRS = ["src/components/vitrine", "src/app/legal", "src/app/about", "src/app/contact", "src/app/(home)", "src/app/(public)", "src/app/(mission-detail)"]
@@ -19,6 +20,19 @@ function walk(dir, out = []) {
 }
 const files = DIRS.flatMap((d) => walk(d))
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8")
+
+// Texte "rendu" d'un fichier : commentaires retirés, et jetons exacts égaux à une valeur de MISSION_TYPES
+// (valeurs en base, jamais affichées telles quelles) ignorés.
+const TYPE_TOKENS = new RegExp(`(["'\`])(?:${MISSION_TYPES.map((v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\1`, "g")
+function visibleText(file) {
+  return read(file)
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[\s;,])\/\/.*$/gm, "$1")
+    .replace(TYPE_TOKENS, '""')
+}
+
+const EMAIL_DIR = "src/lib/email/templates"
+const emailFiles = walk(EMAIL_DIR).filter((f) => /\.jsx?$/.test(f))
 
 describe("garde-fous de contenu vitrine", () => {
   it("scanne des fichiers", () => expect(files.length).toBeGreaterThan(30))
@@ -102,6 +116,27 @@ describe("garde-fous de contenu vitrine", () => {
         for (const c of (m[1] ?? m[2]).split(/\s+/)) if (banned.has(c)) hits.push(`${f}: ${c}`)
       }
     }
+    expect(hits).toEqual([])
+  })
+
+  it("aucun mot banni dans les textes vitrine (livraison, course, coursier, saisie, prestataire de paiement, Bientôt)", () => {
+    const banned = /livraisons?|coursiers?|\bcourses?\b|saisies?\b|fedapay|bient[ôo]t/i
+    const hits = []
+    for (const f of files.filter((n) => /\.jsx?$/.test(n))) {
+      const m = visibleText(f).match(banned)
+      if (m) hits.push(`${f}: ${m[0]}`)
+    }
+    expect(hits).toEqual([])
+  })
+
+  it("aucun lien vers /clients (redirigé vers l'accueil)", () => {
+    const hits = files.filter((f) => /\.jsx?$/.test(f) && /["'`]\/clients(?:[/?#"'`])/.test(visibleText(f)))
+    expect(hits).toEqual([])
+  })
+
+  it("les gabarits d'email ne nomment pas le prestataire de paiement et n'affichent aucun mot banni", () => {
+    expect(emailFiles.length).toBeGreaterThan(5)
+    const hits = emailFiles.filter((f) => /fedapay|livraisons?|coursiers?|\bcourses?\b|saisies?\b/i.test(visibleText(f)))
     expect(hits).toEqual([])
   })
 })

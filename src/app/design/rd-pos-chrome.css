@@ -1,9 +1,0 @@
-/* RD-POS-01 ST-04 : styles propres a cette sous-tache (prefixe site-header__, site-menu__, site-footer__).
-   Fichier de travail, replie dans components.css et layouts.css par ST-13. */
-
-.site-header__student { display: inline-flex; align-items: center; gap: var(--s-2); font-weight: var(--fw-bold); font-size: var(--t-body-s); padding: 0 10px; white-space: nowrap; }
-.site-header__student:hover, .site-header__student.is-active { text-decoration: underline; text-underline-offset: 4px; }
-.site-header__student:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: var(--r-pill); }
-.site-header--bleu .site-header__student:focus-visible { box-shadow: var(--sh-focus-sombre); }
-
-.site-menu__links a.site-menu__switch { font-family: var(--f-text); text-transform: none; font-size: var(--t-body); font-weight: var(--fw-bold); line-height: var(--lh-body); padding: var(--s-4) 0; border-bottom: 0; }
