@@ -1,6 +1,7 @@
 import { cache } from "react"
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { missionTypeLabel } from "@/lib/constants/missions"
 import { isUuid } from "@/lib/vitrine/ids"
 import { firstName, publicDisplayName } from "@/lib/vitrine/public-name"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
@@ -150,7 +151,7 @@ export default async function TalentPage({ params, searchParams }) {
                 {skills.length > 0 ? (
                   <div className="row ds-gap-2">
                     {skills.map((skill) => (
-                      <span key={skill} className="tag">{skill}</span>
+                      <span key={skill} className="tag">{missionTypeLabel(skill)}</span>
                     ))}
                   </div>
                 ) : (

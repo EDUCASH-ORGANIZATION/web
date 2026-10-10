@@ -15,6 +15,8 @@ import {
   URGENCY_FILTERS,
   SEARCH_MAX_LENGTH,
   MISSIONS_PAGE_SIZE,
+  MISSION_TYPE_PHRASES,
+  missionTypeLabel,
 } from "@/lib/constants/missions"
 
 export const metadata = {
@@ -55,7 +57,7 @@ function PublishPromo() {
   return (
     <div className="v02-promo on-encre">
       <Icon name="sc-burst" className="scribble" />
-      <span className="badge badge--citron badge--sm v02-promo__badge">Pour les clients</span>
+      <span className="badge badge--citron badge--sm v02-promo__badge">Un besoin ?</span>
       <h3 className="display display--s v02-promo__title">Un coup de main ?</h3>
       <p className="body-s v02-promo__text">
         Publiez une mission, le budget reste bloqué jusqu&rsquo;à votre validation. Étudiants vérifiés par l&rsquo;équipe.
@@ -73,25 +75,14 @@ function HeroTitle({ type, ville }) {
   if (!type && !ville) {
     return <>Trouve<br /><span className="hl-citron">ta mission.</span></>
   }
-  if (!ville) return <span className="hl-citron">{type}</span>
-  return <>{type || "Missions"}<br /><span className="hl-citron">à {ville}</span></>
-}
-
-// Complément de phrase par type (noms propres et élisions corrects).
-const TYPE_PHRASE = {
-  Babysitting: "de babysitting",
-  Livraison: "de livraison",
-  Saisie: "de saisie",
-  "Community Management": "de community management",
-  Traduction: "de traduction",
-  "Cours particuliers": "de cours particuliers",
-  Autre: "d'un autre type",
+  if (!ville) return <span className="hl-citron">{missionTypeLabel(type)}</span>
+  return <>{type ? missionTypeLabel(type) : "Missions"}<br /><span className="hl-citron">à {ville}</span></>
 }
 
 // Phrase de l'état « aucun résultat » : reprend les filtres actifs (maquette V02).
 function noResultText({ q, type, ville, budgetLabel }) {
   const parts = ["Aucune mission"]
-  if (type) parts.push(TYPE_PHRASE[type] ?? `de type ${type}`)
+  if (type) parts.push(MISSION_TYPE_PHRASES[type] ?? `de type ${type}`)
   if (q) parts.push(`pour « ${q} »`)
   if (budgetLabel) parts.push(`au budget « ${budgetLabel} »`)
   if (ville) parts.push(`à ${ville}`)
@@ -105,7 +96,7 @@ function MissionSearchFallback() {
     <div aria-hidden="true">
       <div className="search search--hero v02-search ds-desk-only">
         <Icon name="i-search" className="ic" />
-        <input type="search" tabIndex={-1} readOnly placeholder="Cours de maths, livraison, saisie…" />
+        <input type="search" tabIndex={-1} readOnly placeholder="Cours de maths, marché, démarches…" />
         <span className="search__city">
           <Icon name="i-map-pin" className="ic ic--16" />
           <span>Toutes les villes</span>
@@ -115,14 +106,14 @@ function MissionSearchFallback() {
       </div>
       <div className="search v02-search-m ds-mob-only">
         <Icon name="i-search" className="ic" />
-        <input type="search" tabIndex={-1} readOnly placeholder="Cours, livraison, saisie…" />
+        <input type="search" tabIndex={-1} readOnly placeholder="Cours, marché, démarches…" />
       </div>
       <div className="v02-types chips chips--scroll on-bleu">
         <span className="chip is-selected">Toutes</span>
         {MISSION_TYPES.map((t) => (
           <span key={t} className="chip">
             <Icon name={TYPE_ICON[t] ?? "i-briefcase"} className="ic" />
-            {t}
+            {missionTypeLabel(t)}
           </span>
         ))}
       </div>

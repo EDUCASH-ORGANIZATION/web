@@ -10,7 +10,7 @@ import { ApplyPanel } from "@/components/vitrine/mission-detail/apply-panel"
 import { ApplyBar } from "@/components/vitrine/mission-detail/apply-bar"
 import { ClientCard } from "@/components/vitrine/mission-detail/client-card"
 import { SimilarMissions } from "@/components/vitrine/mission-detail/similar-missions"
-import { COMMISSION_RATE, netAmount } from "@/lib/constants/missions"
+import { COMMISSION_RATE, netAmount, missionTypeLabel } from "@/lib/constants/missions"
 import { isUuid } from "@/lib/vitrine/ids"
 import { todayInBenin } from "@/lib/vitrine/dates"
 import { missionAvailability, CLOSED_REASON_LABELS } from "@/lib/vitrine/mission-availability"
@@ -54,7 +54,7 @@ export async function generateMetadata({ params }) {
   const { accepting } = missionAvailability(mission, todayInBenin())
   const description = summarize(
     mission.description,
-    `${mission.type}${mission.city ? ` à ${mission.city}` : ""} sur EduCash.`,
+    `${missionTypeLabel(mission.type)}${mission.city ? ` à ${mission.city}` : ""} sur EduCash.`,
   )
   return {
     title: mission.title,
@@ -158,7 +158,7 @@ export default async function MissionDetailPage({ params }) {
             items={[
               { label: "Accueil", href: "/" },
               { label: "Missions", href: "/missions" },
-              { label: mission.type, href: `/missions?type=${encodeURIComponent(mission.type)}` },
+              { label: missionTypeLabel(mission.type), href: `/missions?type=${encodeURIComponent(mission.type)}` },
               { label: mission.title },
             ]}
           />
@@ -183,7 +183,7 @@ export default async function MissionDetailPage({ params }) {
               <div className="row ds-gap-2">
                 <span className="mission__cat">
                   <span className="ic-sq ic-sq--sm"><Icon name={typeIcon} /></span>
-                  {mission.type}
+                  {missionTypeLabel(mission.type)}
                 </span>
                 {accepting ? (
                   <span className="badge badge--bleu"><i />Ouverte</span>
