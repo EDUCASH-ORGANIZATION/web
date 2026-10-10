@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
+import { getServerRole } from "@/lib/auth/server-role"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { sendEmail } from "@/lib/email/index"
 
@@ -15,9 +16,12 @@ function getAdminClient() {
 
 async function assertAdmin() {
   const user = await getCurrentUser()
-  if (!user || user.user_metadata?.role !== "admin") {
-    throw new Error("Accès refusé — rôle admin requis.")
-  }
+  if (!user) throw new Error("Accès refusé - rôle admin requis.")
+
+  // Autorité : profiles.role (user_metadata est modifiable par l'utilisateur)
+  const supabase = await createClient()
+  const { role } = await getServerRole(supabase, user)
+  if (role !== "admin") throw new Error("Accès refusé - rôle admin requis.")
   return user
 }
 

@@ -1,13 +1,15 @@
 import Link from "next/link"
 import { Wallet, ShieldCheck, ArrowRight } from "lucide-react"
+import { ResumePublishLink } from "@/components/client/resume-publish-link"
 
 function fmt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
 }
 
-export function WalletRequiredGate({ available = 0 }) {
+export function WalletRequiredGate({ available = 0, resumeHref }) {
   return (
     <div className="max-w-md mx-auto py-16 px-4 flex flex-col items-center text-center gap-6">
+      {resumeHref && <ResumePublishLink mode="store" href={resumeHref} />}
 
       {/* Icône */}
       <div className="w-20 h-20 rounded-2xl bg-[#f0faf5] border border-green-100 flex items-center justify-center">

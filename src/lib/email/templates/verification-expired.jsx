@@ -78,7 +78,7 @@ export default function VerificationExpired({
           </Text>
 
           <Text style={footer}>
-            EduCash — Marketplace étudiant au Bénin · educash.bj
+            EduCash - Marketplace étudiant au Bénin · educash.bj
           </Text>
         </Container>
       </Body>

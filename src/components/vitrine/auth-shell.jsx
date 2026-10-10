@@ -1,118 +1,144 @@
 import Link from "next/link"
-import Box from "@mui/material/Box"
-import Card from "@mui/material/Card"
-import Typography from "@mui/material/Typography"
-import MuiLink from "@mui/material/Link"
-import PaymentsRoundedIcon from "@mui/icons-material/PaymentsRounded"
-import VerifiedUserRoundedIcon from "@mui/icons-material/VerifiedUserRounded"
-import BoltRoundedIcon from "@mui/icons-material/BoltRounded"
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded"
-import { Logo } from "@/components/shared/logo"
-import { VitrineProvider } from "./vitrine-provider"
-import { Stack } from "./stack"
-import { BRAND, GRADIENTS } from "./theme"
+import { Icon } from "@/components/design/icon"
+import { SPRITE_VERSION } from "@/components/design/sprite"
+import { COMMISSION_RATE } from "@/lib/constants/missions"
 
-const VALUE_PROPS = [
-  { icon: PaymentsRoundedIcon, title: "Paiement sécurisé", text: "Tes fonds sont protégés jusqu'à la validation de la mission." },
-  { icon: VerifiedUserRoundedIcon, title: "Profils vérifiés", text: "Chaque étudiant est authentifié par sa carte étudiante." },
-  { icon: BoltRoundedIcon, title: "Missions locales", text: "Des opportunités près de chez toi, partout au Bénin." },
-]
+const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100)
 
-function Wordmark({ light = false }) {
-  return (
-    <Stack direction="row" alignItems="center" spacing={1.2}>
-      <Logo size="md" />
-      <Typography component="span" sx={{ fontWeight: 900, fontSize: "1.5rem", letterSpacing: "-0.02em" }}>
-        <Box component="span" sx={{ color: light ? "#fff" : BRAND.green }}>Edu</Box>
-        <Box component="span" sx={{ color: BRAND.amber }}>Cash</Box>
-      </Typography>
-    </Stack>
-  )
+// Contenu du panneau de marque par public. Étudiant tutoyé (panneau bleu),
+// client vouvoyé (panneau encre). Aucun délai d'examen, aucun prestataire de paiement nommé.
+export const BRAND_PANELS = {
+  student: {
+    lines: ["Bosse entre", "deux cours."],
+    highlight: "Encaisse.",
+    points: [
+      { icon: "i-lock", title: "Paiement garanti.", text: "Le client bloque l'argent avant que tu commences." },
+      { icon: "i-shield", title: "Profils vérifiés.", text: "Carte étudiante contrôlée par l'équipe." },
+      { icon: "i-smartphone", title: "Mobile Money.", text: "Retrait sur MTN MoMo, Moov Money ou Celtiis Cash." },
+    ],
+  },
+  client: {
+    lines: ["Un coup", "de main,"],
+    highlight: "sans risque.",
+    points: [
+      { icon: "i-lock", title: "Fonds en séquestre.", text: "Votre budget est bloqué, puis versé seulement quand vous confirmez la fin." },
+      { icon: "i-shield", title: "Étudiants vérifiés.", text: "Carte étudiante contrôlée par l'équipe." },
+      { icon: "i-percent", title: "Commission claire.", text: `${COMMISSION_PERCENT} % prélevés sur le budget, rien d'autre à payer.` },
+    ],
+  },
 }
 
 /**
- * Coquille d'authentification : panneau de marque (desktop) + carte formulaire.
- * @param {{ title: string, subtitle?: string, children: React.ReactNode, maxWidth?: number }} props
+ * Coquille d'authentification (composant serveur) : racine .ds, gabarit .auth.
+ * Bureau : panneau de marque + colonne formulaire. Sous 1024 px : en-tête .auth__top
+ * (retour + logo) et une seule colonne, par media query (un seul DOM).
+ *
+ * Les enfants portent eux-mêmes la classe `auth__form` (le plus souvent le <form>).
+ * `signOutAction` (action serveur) remplace le lien de retour par « Se déconnecter »
+ * (onboardings, où l'utilisateur est déjà connecté).
+ * Compatibilité avec les pages MUI de `main` : `title` et `subtitle` enveloppent alors
+ * les enfants dans un `auth__form` ; `maxWidth` est ignoré.
+ *
+ * @param {{
+ *   audience?: "student" | "client",
+ *   backHref?: string,
+ *   backLabel?: string,
+ *   signOutAction?: (formData: FormData) => void | Promise<void>,
+ *   brand?: { lines: string[], highlight: string, points?: { icon: string, title: string, text: string }[] },
+ *   title?: string,
+ *   subtitle?: string,
+ *   maxWidth?: number,
+ *   children: React.ReactNode,
+ * }} props
  */
-export function AuthShell({ title, subtitle, children, maxWidth = 460 }) {
-  const year = new Date().getFullYear()
+export function AuthShell({
+  audience = "student",
+  backHref = "/",
+  backLabel = "Retour à l'accueil",
+  signOutAction,
+  brand,
+  title,
+  subtitle,
+  children,
+}) {
+  const isClient = audience === "client"
+  const panel = BRAND_PANELS[isClient ? "client" : "student"]
+  const headline = brand?.lines ? brand : panel
+  const points = brand?.points ?? panel.points
+  const legacy = Boolean(title || subtitle)
 
   return (
-    <VitrineProvider>
-      <Box sx={{ minHeight: "100vh", display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr", lg: "1.1fr 1fr" } }}>
-
-        {/* Panneau de marque (desktop) */}
-        <Box sx={{ display: { xs: "none", md: "flex" }, position: "relative", overflow: "hidden",
-          background: GRADIENTS.dark, color: "#fff", p: { md: 6, lg: 8 }, flexDirection: "column", justifyContent: "space-between" }}>
-          <Box sx={{ position: "absolute", top: -90, right: -70, width: 300, height: 300, borderRadius: "50%",
-            background: `radial-gradient(circle, ${BRAND.green}66, transparent 70%)` }} />
-          <Box sx={{ position: "absolute", bottom: -110, left: -90, width: 340, height: 340, borderRadius: "50%",
-            background: `radial-gradient(circle, ${BRAND.amber}3a, transparent 70%)` }} />
-
-          <Box sx={{ position: "relative", zIndex: 1 }}>
-            <Wordmark light />
-          </Box>
-
-          <Stack spacing={3.5} sx={{ position: "relative", zIndex: 1, maxWidth: 440 }}>
-            <Typography sx={{ fontWeight: 800, fontSize: { md: "1.9rem", lg: "2.3rem" }, lineHeight: 1.2 }}>
-              Finance tes études en{" "}
-              <Box component="span" sx={{ background: GRADIENTS.amber, WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                travaillant près de chez toi
-              </Box>
-              .
-            </Typography>
-
-            <Stack spacing={2}>
-              {VALUE_PROPS.map(({ icon: Icon, title: t, text }) => (
-                <Stack key={t} direction="row" spacing={2} alignItems="flex-start">
-                  <Box sx={{ width: 44, height: 44, borderRadius: 2.5, flexShrink: 0, display: "grid", placeItems: "center",
-                    bgcolor: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}>
-                    <Icon sx={{ fontSize: 22, color: BRAND.amberLight }} />
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontWeight: 700, fontSize: "0.98rem" }}>{t}</Typography>
-                    <Typography sx={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>{text}</Typography>
-                  </Box>
-                </Stack>
-              ))}
-            </Stack>
-          </Stack>
-
-          <Typography variant="caption" sx={{ position: "relative", zIndex: 1, color: "rgba(255,255,255,0.55)" }}>
-            © {year} EduCash · Bénin
-          </Typography>
-        </Box>
-
-        {/* Zone formulaire */}
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", p: { xs: 2.5, sm: 4 }, bgcolor: "#F8FAFB" }}>
-          <Box sx={{ width: "100%", maxWidth }}>
-            <Box sx={{ mb: 2 }}>
-              <MuiLink href="/" underline="hover" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5,
-                color: "text.secondary", fontSize: "0.85rem", fontWeight: 600 }}>
-                <ArrowBackRoundedIcon sx={{ fontSize: 16 }} />
-                Retour à l'accueil
-              </MuiLink>
-            </Box>
-
-            <Card sx={{ p: { xs: 3, sm: 4 } }}>
-              {/* Logo (mobile) */}
-              <Box sx={{ display: { xs: "flex", md: "none" }, justifyContent: "center", mb: 3 }}>
-                <Wordmark />
-              </Box>
-
-              {(title || subtitle) && (
-                <Stack spacing={0.5} sx={{ mb: 3 }}>
-                  {title && <Typography variant="h5" sx={{ fontWeight: 800 }}>{title}</Typography>}
-                  {subtitle && <Typography variant="body2" sx={{ color: "text.secondary" }}>{subtitle}</Typography>}
-                </Stack>
-              )}
-
+    <div className="ds">
+      <div className="auth">
+        <div className={`auth__brand${isClient ? " auth__brand--client" : ""} grid-bg`}>
+          <img className="logo" src="/logo-horizontal-blanc.svg" alt="EduCash" width={171} height={32} />
+          <h2 className="display display--l a-brand__title">
+            {headline.lines.map((line) => (
+              <span key={line}>
+                {line}
+                <br />
+              </span>
+            ))}
+            <span className="hl-citron">{headline.highlight}</span>
+          </h2>
+          <svg className="scribble a-brand__scribble" viewBox="0 0 150 70" aria-hidden="true" focusable="false">
+            <use href={`/sprite.svg?v=${SPRITE_VERSION}#sc-loop`} />
+          </svg>
+          <div className="auth__points">
+            {points.map((point) => (
+              <div className="auth__point" key={point.title}>
+                <span className="ic-sq ic-sq--sm">
+                  <Icon name={point.icon} />
+                </span>
+                <span>
+                  <b>{point.title}</b> {point.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="auth__main">
+          <div className="auth__top">
+            {signOutAction ? (
+              <form action={signOutAction}>
+                <button className="btn-icon btn-icon--sm btn-icon--plain" type="submit" aria-label="Se déconnecter">
+                  <Icon name="i-logout" />
+                </button>
+              </form>
+            ) : (
+              <Link className="btn-icon btn-icon--sm btn-icon--plain" href={backHref} aria-label={backLabel}>
+                <Icon name="i-arrow-left" />
+              </Link>
+            )}
+            <img className="logo logo--sm" src="/logo-horizontal-bleu.svg" alt="EduCash" width={139} height={26} />
+            <span className="a-spacer" />
+          </div>
+          {signOutAction ? (
+            <form action={signOutAction}>
+              <button className="auth__back a-linkbtn" type="submit">
+                <Icon name="i-logout" className="ic ic--20" />
+                Se déconnecter
+              </button>
+            </form>
+          ) : (
+            <Link className="auth__back" href={backHref}>
+              <Icon name="i-arrow-left" className="ic ic--20" />
+              {backLabel}
+            </Link>
+          )}
+          {legacy ? (
+            <div className="auth__form">
+              <div>
+                {title && <h1 className="ds-h1">{title}</h1>}
+                {subtitle && <p className="muted a-lead">{subtitle}</p>}
+              </div>
               {children}
-            </Card>
-          </Box>
-        </Box>
-      </Box>
-    </VitrineProvider>
+            </div>
+          ) : (
+            children
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

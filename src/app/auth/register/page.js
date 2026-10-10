@@ -1,33 +1,29 @@
-import Alert from "@mui/material/Alert"
-import Box from "@mui/material/Box"
 import { RegisterForm } from "@/components/auth/register-form"
 import { AuthShell } from "@/components/vitrine/auth-shell"
+import { audienceFor } from "@/lib/auth/destinations"
+import { SIGNUP_ROLES } from "@/lib/auth/schemas"
+import { safeNextPath } from "@/lib/utils/safe-next"
 
 export const metadata = {
-  title: "Inscription — EduCash",
+  title: "Inscription",
 }
 
-const ERROR_MESSAGES = {
-  lien_invalide_ou_expire: "Le lien de confirmation a expiré ou est invalide. Réinscris-toi.",
-  access_denied:           "Accès refusé. Le lien a peut-être déjà été utilisé.",
+function first(value) {
+  return Array.isArray(value) ? value[0] : value
 }
 
 export default async function RegisterPage({ searchParams }) {
   const params = await searchParams
-  const errorKey = params?.error
-  const defaultRole = params?.role === "student" || params?.role === "client" ? params.role : null
-  const errorMessage = errorKey
-    ? (ERROR_MESSAGES[errorKey] ?? "Une erreur est survenue. Réessaie.")
-    : null
+  const rawRole = first(params?.role)
+  // Seuls student et client sont acceptés : tout autre rôle (dont admin) est ignoré.
+  const role = SIGNUP_ROLES.includes(rawRole) ? rawRole : null
+  // `redirect` est l'alias historique de `next`.
+  const next = safeNextPath(first(params?.next)) ?? safeNextPath(first(params?.redirect))
+  const audience = role ?? audienceFor({ next })
 
   return (
-    <AuthShell title="Rejoindre EduCash" subtitle="Choisis ton profil pour commencer" maxWidth={520}>
-      {errorMessage && (
-        <Box sx={{ mb: 2.5 }}>
-          <Alert severity="error" sx={{ borderRadius: 2.5 }}>{errorMessage}</Alert>
-        </Box>
-      )}
-      <RegisterForm defaultRole={defaultRole} />
+    <AuthShell audience={audience}>
+      <RegisterForm role={role} audience={audience} next={next} />
     </AuthShell>
   )
 }

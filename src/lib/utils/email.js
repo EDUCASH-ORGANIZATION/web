@@ -1,18 +1,10 @@
 import { promises as dns } from "dns"
-
-const DISPOSABLE_DOMAINS = new Set([
-  "tempmail.com", "temp-mail.org", "throwaway.com", "mailinator.com", "guerrillamail.com",
-  "yopmail.com", "sharklasers.com", "getairmail.com", "10minutemail.com", "burnermail.io",
-  "tempmailaddress.com", "fakeemail.com", "emailfake.com", "tempinbox.com", "dispostable.com",
-  "maildrop.cc", "getnada.com", "tempail.com", "tmpmail.org", "mailnesia.com",
-  "tempm.com", "mailsac.com", "inboxkitten.com", "trashmail.com", "anonaddy.me",
-  "simplelogin.com", "simplelogin.io", "mozmail.com", "duck.com",
-])
+import { isDisposableDomain } from "@/lib/auth/disposable-domains"
 
 export function isDisposableEmail(email = "") {
   const domain = email.split("@")[1]?.toLowerCase()
   if (!domain) return false
-  return DISPOSABLE_DOMAINS.has(domain)
+  return isDisposableDomain(domain)
 }
 
 export async function hasEmailMxRecord(email = "") {

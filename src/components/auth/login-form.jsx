@@ -1,131 +1,174 @@
 "use client"
 
-import { useState } from "react"
-import { useForm } from "react-hook-form"
+import { useActionState, useRef, useState } from "react"
 import Link from "next/link"
-import Box from "@mui/material/Box"
-import TextField from "@mui/material/TextField"
-import Button from "@mui/material/Button"
-import Alert from "@mui/material/Alert"
-import IconButton from "@mui/material/IconButton"
-import InputAdornment from "@mui/material/InputAdornment"
-import Typography from "@mui/material/Typography"
-import MuiLink from "@mui/material/Link"
-import CircularProgress from "@mui/material/CircularProgress"
-import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded"
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded"
-import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded"
-import { Stack } from "@/components/vitrine/stack"
 import { login } from "@/lib/actions/auth.actions"
-import { useToast } from "@/components/shared/toaster"
+import { resendSignupConfirmation } from "@/lib/actions/email-confirmation.actions"
+import { makeLoginSchema, parseFormData } from "@/lib/auth/schemas"
+import { registerHref } from "@/lib/auth/destinations"
+import { authErrorMessage } from "@/lib/auth/errors"
+import { CountdownButton } from "@/components/auth/ui/countdown-button"
+import { FieldError } from "@/components/auth/ui/field-error"
+import { FormBanner } from "@/components/auth/ui/form-banner"
+import { HydratedSubmit } from "@/components/auth/ui/hydrated-submit"
+import { PasswordInput } from "@/components/auth/ui/password-input"
 
-export function LoginForm({ next }) {
-  const [showPassword, setShowPassword] = useState(false)
-  const [serverError, setServerError] = useState(null)
-  const { toast } = useToast()
+const COPY = {
+  student: {
+    title: "Content de te revoir",
+    lead: "Connecte-toi pour retrouver tes missions et ton portefeuille.",
+    next: "Connecte-toi pour continuer. Tu reviens juste après sur la page demandée.",
+    emailPlaceholder: "toi@exemple.bj",
+    passwordPlaceholder: "Ton mot de passe",
+    resent: "Email renvoyé. Regarde ta boîte de réception et tes spams.",
+  },
+  client: {
+    title: "Content de vous revoir",
+    lead: "Connectez-vous pour retrouver vos missions et votre portefeuille.",
+    next: "Connectez-vous pour continuer. Vous reviendrez juste après sur la page demandée.",
+    emailPlaceholder: "vous@exemple.bj",
+    passwordPlaceholder: "Votre mot de passe",
+    resent: "Email renvoyé. Regardez votre boîte de réception et vos spams.",
+  },
+}
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm()
+// Bannière selon le code renvoyé par l'action (le message est déjà adapté à l'audience).
+const BANNERS = {
+  email_not_confirmed: { tone: "alerte", icon: "i-mail" },
+  rate_limited: { tone: "alerte", icon: "i-clock", title: "Trop de tentatives" },
+  session_expired: { tone: "info", icon: "i-clock" },
+  network: { tone: "alerte", icon: "i-wifi-off" },
+  suspended: { tone: "erreur", title: "Compte suspendu" },
+}
 
-  // Adapte react-hook-form aux champs MUI (ref → inputRef)
-  const rhf = (name, rules) => {
-    const { ref, ...rest } = register(name, rules)
-    return { inputRef: ref, ...rest }
-  }
+/**
+ * Formulaire de connexion (A01). Action serveur `login` : POST garanti, fonctionne sans JavaScript.
+ * @param {{
+ *   role?: "student" | "client" | null,
+ *   next?: string | null,
+ *   forgotHref?: string,
+ *   suspended?: boolean,
+ * }} props `role` : public connu (student tutoyé, client vouvoyé) ; sans lui, vouvoiement neutre.
+ * `student` ajoute le champ caché `audience=student`. `next` est un chemin déjà validé.
+ */
+export function LoginForm({ role = null, next = null, forgotHref = "/auth/forgot-password", suspended = false }) {
+  const audience = role === "student" ? "student" : "client"
+  const copy = COPY[audience]
+  const [state, formAction, pending] = useActionState(login, null)
+  const [clientErrors, setClientErrors] = useState(null)
+  const [email, setEmail] = useState("")
+  const [resent, setResent] = useState(false)
+  const formRef = useRef(null)
 
-  async function onSubmit(values) {
-    setServerError(null)
+  const errors = clientErrors ?? state?.fieldErrors ?? {}
+  // Compte suspendu détecté à la confirmation d'un lien : même bannière que la connexion refusée.
+  const shown = state ?? (suspended ? { code: "suspended", formError: authErrorMessage("suspended", audience), contactHref: "/contact" } : null)
+  const banner = shown?.formError && !clientErrors ? BANNERS[shown.code] ?? { tone: "erreur" } : null
 
-    const formData = new FormData()
-    formData.set("email", values.email)
-    formData.set("password", values.password)
-    formData.set("next", next ?? "")
-
-    const result = await login(formData)
-
-    // Si login() redirige, ce code n'est jamais atteint.
-    // On arrive ici uniquement en cas d'erreur retournée.
-    if (result?.error) {
-      setServerError(result.error)
+  function handleSubmit(event) {
+    const parsed = parseFormData(makeLoginSchema(audience), new FormData(event.currentTarget))
+    if (parsed.ok) {
+      setClientErrors(null)
+      setResent(false)
+      return
     }
+    event.preventDefault()
+    setClientErrors(parsed.fieldErrors)
   }
 
-  function handleForgotPassword() {
-    toast({ message: "La réinitialisation de mot de passe arrive bientôt.", type: "info" })
+  async function resend() {
+    const data = new FormData()
+    data.set("email", formRef.current?.elements.email?.value ?? "")
+    data.set("audience", audience)
+    if (next) data.set("next", next)
+    const result = await resendSignupConfirmation(null, data)
+    setResent(!result?.formError && !result?.fieldErrors)
   }
 
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate suppressHydrationWarning>
-      <Stack spacing={2.5}>
-        {/* Email */}
-        <TextField
-          {...rhf("email", {
-            required: "L'adresse email est requise.",
-            pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "L'adresse email n'est pas valide." },
-          })}
-          label="Adresse email"
+    <form ref={formRef} className="auth__form" action={formAction} onSubmit={handleSubmit} noValidate>
+      {next && (
+        <FormBanner tone="info" icon="i-arrow-right">
+          {copy.next}
+        </FormBanner>
+      )}
+      <div>
+        <h1 className="ds-h1">{copy.title}</h1>
+        <p className="muted a-lead">{copy.lead}</p>
+      </div>
+
+      {banner && (
+        <FormBanner
+          tone={banner.tone}
+          icon={banner.icon}
+          title={banner.title}
+          actions={
+            shown.code === "email_not_confirmed" ? (
+              resent ? null : (
+                <CountdownButton label="Renvoyer l'email de confirmation" onClick={resend} />
+              )
+            ) : shown.code === "suspended" && shown.contactHref ? (
+              <Link className="link body-s" href={shown.contactHref}>
+                Nous contacter
+              </Link>
+            ) : null
+          }
+        >
+          {shown.formError}
+        </FormBanner>
+      )}
+      {resent && <FormBanner tone="succes">{copy.resent}</FormBanner>}
+
+      <div className="field">
+        <label className="field__label" htmlFor="login-email">
+          Adresse email <span className="req">*</span>
+        </label>
+        <input
+          className={`input${errors.email ? " is-error" : ""}`}
+          id="login-email"
+          name="email"
           type="email"
-          placeholder="toi@example.com"
-          fullWidth
-          error={!!errors.email}
-          helperText={errors.email?.message}
-          slotProps={{ input: { startAdornment: (
-            <InputAdornment position="start"><MailOutlineRoundedIcon sx={{ fontSize: 19, color: "text.disabled" }} /></InputAdornment>
-          ) } }}
+          autoComplete="email"
+          inputMode="email"
+          placeholder={copy.emailPlaceholder}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          aria-invalid={errors.email ? true : undefined}
+          aria-describedby={errors.email ? "login-email-error" : undefined}
         />
+        <FieldError id="login-email-error" message={errors.email} />
+      </div>
 
-        {/* Mot de passe */}
-        <Box>
-          <TextField
-            {...rhf("password", {
-              required: "Le mot de passe est requis.",
-              minLength: { value: 8, message: "Le mot de passe doit contenir au moins 8 caractères." },
-            })}
-            label="Mot de passe"
-            type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
-            fullWidth
-            error={!!errors.password}
-            helperText={errors.password?.message}
-            slotProps={{ input: { endAdornment: (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setShowPassword((v) => !v)} edge="end"
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}>
-                  {showPassword ? <VisibilityOffRoundedIcon sx={{ fontSize: 19 }} /> : <VisibilityRoundedIcon sx={{ fontSize: 19 }} />}
-                </IconButton>
-              </InputAdornment>
-            ) } }}
-          />
-          <Box sx={{ textAlign: "right", mt: 0.5 }}>
-            <MuiLink component="button" type="button" onClick={handleForgotPassword} underline="hover"
-              sx={{ fontSize: "0.8rem", fontWeight: 600 }}>
-              Mot de passe oublié ?
-            </MuiLink>
-          </Box>
-        </Box>
+      <div className="field">
+        <label className="field__label" htmlFor="login-password">
+          Mot de passe <span className="req">*</span>
+        </label>
+        <PasswordInput
+          id="login-password"
+          name="password"
+          audience={audience}
+          autoComplete="current-password"
+          placeholder={copy.passwordPlaceholder}
+          invalid={Boolean(errors.password)}
+          aria-describedby={errors.password ? "login-password-error" : undefined}
+        />
+        <FieldError id="login-password-error" message={errors.password} />
+        <Link className="link body-s a-self-end" href={forgotHref}>
+          Mot de passe oublié ?
+        </Link>
+      </div>
 
-        {/* Erreur serveur */}
-        {serverError && (
-          <Alert severity="error" sx={{ borderRadius: 1, fontSize: "0.875rem", alignItems: "center" }}>
-            {serverError}
-          </Alert>
-        )}
+      {next && <input type="hidden" name="next" value={next} />}
+      {role === "student" && <input type="hidden" name="audience" value="student" />}
 
-        {/* Submit */}
-        <Button type="submit" variant="contained" size="large" fullWidth disabled={isSubmitting}
-          startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : null}>
-          Se connecter
-        </Button>
+      <HydratedSubmit pending={pending}>Se connecter</HydratedSubmit>
 
-        {/* Lien inscription */}
-        <Typography variant="body2" sx={{ textAlign: "center", color: "text.secondary" }}>
-          Pas encore inscrit ?{" "}
-          <MuiLink component={Link} href="/auth/register" sx={{ fontWeight: 700 }}>S&apos;inscrire</MuiLink>
-        </Typography>
-      </Stack>
-    </Box>
+      <p className="body-s a-ta-center">
+        Pas encore de compte ?{" "}
+        <Link className="link" href={registerHref({ role: role ?? undefined, next })}>
+          Créer un compte
+        </Link>
+      </p>
+    </form>
   )
 }

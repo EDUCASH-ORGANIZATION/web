@@ -51,7 +51,7 @@ export default function PaymentReceived({
           </Button>
 
           <Hr style={hr} />
-          <Text style={footer}>EduCash — Marketplace étudiant au Bénin</Text>
+          <Text style={footer}>EduCash - Marketplace étudiant au Bénin</Text>
         </Container>
       </Body>
     </Html>

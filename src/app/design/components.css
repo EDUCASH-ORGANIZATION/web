@@ -1448,6 +1448,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .check__sub.a-err-text, .a-err-text { color: var(--c-erreur); font-weight: var(--fw-bold); }
 .a-center { text-align: center; align-items: center; }
 .a-spacer { width: 36px; flex: none; }
+.a-linkbtn { background: none; border: 0; padding: 0; font-family: inherit; color: inherit; cursor: pointer; }
 .a-screen--blanc { background: var(--c-blanc); }
 .a-screen--bleu { background: var(--c-bleu); }
 .a-status--bleu { --status-bg: var(--c-bleu); }
@@ -1853,3 +1854,33 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 /* Retrait et verification (/etudiants) : deux cartes cote a cote, une colonne sous 768 px. */
 .v-etu-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
 .v-etu-duo > .card { align-content: start; }
+
+/* Auth (A01-A08) : classes issues des attributs style des maquettes, plus les mots
+   de la marque. Tokens uniquement, aucune valeur de couleur en dur. */
+.a-lead { margin-top: 6px; }
+.a-ta-center { text-align: center; }
+.a-block-left { width: 100%; text-align: left; }
+.a-w-full { width: 100%; }
+.a-mx-auto { margin-left: auto; margin-right: auto; }
+.a-self-end { align-self: flex-end; }
+.a-min0 { min-width: 0; }
+.a-gap-2 { gap: 8px; }
+.a-h-12 { height: 12px; }
+.a-h-52 { height: 52px; }
+.a-w-50 { width: 50%; }
+.a-w-70 { width: 70%; }
+.a-brand__title { margin-top: 56px; }
+.a-brand__scribble { width: 150px; height: 70px; margin-top: 16px; }
+.a-burst { right: -4px; top: -6px; width: 46px; height: 46px; }
+.choice:focus-visible { box-shadow: var(--sh-focus); outline: none; }
+.a-pct-0 { width: 0%; }
+.a-pct-10 { width: 10%; }
+.a-pct-20 { width: 20%; }
+.a-pct-30 { width: 30%; }
+.a-pct-40 { width: 40%; }
+.a-pct-50 { width: 50%; }
+.a-pct-60 { width: 60%; }
+.a-pct-70 { width: 70%; }
+.a-pct-80 { width: 80%; }
+.a-pct-90 { width: 90%; }
+.a-pct-100 { width: 100%; }

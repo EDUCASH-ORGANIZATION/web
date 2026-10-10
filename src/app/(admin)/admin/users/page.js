@@ -2,6 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { getServerRole } from "@/lib/auth/server-role"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { ChevronLeft, ChevronRight, ShieldCheck, Users, UserX } from "lucide-react"
 import { SuspendButton } from "@/components/admin/suspend-button"
@@ -19,7 +20,9 @@ const ROLE_CONFIG = {
 export default async function AdminUsersPage({ searchParams }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.user_metadata?.role !== "admin") redirect("/auth/login")
+  if (!user) redirect("/auth/login")
+  const { role } = await getServerRole(supabase, user)
+  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
 
   // ── Fix Next.js 16 : await searchParams ───────────────────────
   const { page: pageParam, role: roleFilter } = await searchParams

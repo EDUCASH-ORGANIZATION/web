@@ -4,9 +4,9 @@ import path from "node:path"
 import { MISSION_TYPES } from "@/lib/constants/missions"
 
 const ROOT = path.resolve(import.meta.dirname, "../../..")
-const DIRS = ["src/components/vitrine", "src/app/legal", "src/app/about", "src/app/contact", "src/app/(home)", "src/app/(public)", "src/app/(mission-detail)"]
-// Fichiers MUI historiques (auth-shell, stack, theme, provider), preexistants.
-const SKIP = new Set(["src/components/vitrine/auth-shell.jsx", "src/components/vitrine/stack.jsx", "src/components/vitrine/theme.js", "src/components/vitrine/vitrine-provider.jsx"])
+const DIRS = ["src/components/vitrine", "src/app/legal", "src/app/about", "src/app/contact", "src/app/(home)", "src/app/(public)", "src/app/(mission-detail)", "src/app/auth", "src/components/auth"]
+// Composant partagé avec l'espace étudiant connecté (profile/edit), non refondu : hors périmètre du garde-fou.
+const SKIP = new Set(["src/components/auth/card-upload-zone.js"])
 
 function walk(dir, out = []) {
   const abs = path.join(ROOT, dir)
@@ -44,6 +44,7 @@ describe("garde-fous de contenu vitrine", () => {
     ["tiret cadratin", /—/],
     ["style inline", /style=\{\{/],
     ["@mui", /@mui/],
+    ["@emotion", /@emotion/],
   ])("aucun %s dans les fichiers vitrine", (_n, re) => {
     const hits = files.filter((f) => re.test(read(f)))
     expect(hits).toEqual([])
@@ -138,5 +139,46 @@ describe("garde-fous de contenu vitrine", () => {
     expect(emailFiles.length).toBeGreaterThan(5)
     const hits = emailFiles.filter((f) => /fedapay|livraisons?|coursiers?|\bcourses?\b|saisies?\b/i.test(visibleText(f)))
     expect(hits).toEqual([])
+  })
+
+  describe("authentification", () => {
+    const authFiles = files.filter((f) => /^src\/(app|components)\/auth\//.test(f) && /\.jsx?$/.test(f))
+    const AUTH_UI_SOURCES = [...authFiles, "src/components/vitrine/auth-shell.jsx"]
+
+    it("scanne les écrans d'auth", () => expect(authFiles.length).toBeGreaterThan(20))
+
+    it("aucun formulaire sans action serveur ni method=post", () => {
+      const hits = []
+      for (const f of AUTH_UI_SOURCES) {
+        for (const m of visibleText(f).matchAll(/<form\b[^>]*>/g)) {
+          if (!/\baction=\{|method="post"/.test(m[0])) hits.push(`${f}: ${m[0].slice(0, 60)}`)
+        }
+      }
+      expect(hits).toEqual([])
+    })
+
+    it("aucun formulaire en method=get", () => {
+      expect(AUTH_UI_SOURCES.filter((f) => /method=["']get["']/i.test(read(f)))).toEqual([])
+    })
+
+    it("aucun délai d'examen de carte ni promesse de support", () => {
+      const re = /réponse sous|sous 24|sous 48|24\s?h|48\s?h|support répond|valable \d|expire dans/i
+      const hits = AUTH_UI_SOURCES.filter((f) => re.test(visibleText(f)))
+      expect(hits).toEqual([])
+    })
+
+    it("aucun accès direct aux tables depuis les composants d'auth", () => {
+      const hits = authFiles.filter((f) => f.startsWith("src/components/auth/") && /supabase\s*\.from\(/.test(read(f)))
+      expect(hits).toEqual([])
+    })
+
+    it("aucune couleur en dur ni balise style dans les écrans d'auth", () => {
+      const hits = AUTH_UI_SOURCES.filter((f) => /#[0-9a-fA-F]{3,8}\b|<style/.test(visibleText(f)))
+      expect(hits).toEqual([])
+    })
+  })
+
+  it("aucun tiret cadratin dans les gabarits d'email Resend", () => {
+    expect(emailFiles.filter((f) => read(f).includes("—"))).toEqual([])
   })
 })

@@ -1,220 +1,205 @@
 "use client"
 
-import { useState } from "react"
-import { useForm } from "react-hook-form"
+import { useActionState, useState } from "react"
 import Link from "next/link"
-import Box from "@mui/material/Box"
-import TextField from "@mui/material/TextField"
-import Button from "@mui/material/Button"
-import Alert from "@mui/material/Alert"
-import IconButton from "@mui/material/IconButton"
-import InputAdornment from "@mui/material/InputAdornment"
-import Typography from "@mui/material/Typography"
-import MuiLink from "@mui/material/Link"
-import CircularProgress from "@mui/material/CircularProgress"
-import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded"
-import BusinessCenterRoundedIcon from "@mui/icons-material/BusinessCenterRounded"
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded"
-import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded"
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded"
-import CancelRoundedIcon from "@mui/icons-material/CancelRounded"
-import { Stack } from "@/components/vitrine/stack"
-import { register as registerAction } from "@/lib/actions/auth.actions"
-import { BRAND } from "@/components/vitrine/theme"
+import { register } from "@/lib/actions/auth.actions"
+import { loginHref, registerHref } from "@/lib/auth/destinations"
+import { PASSWORD_RULES, makeRegisterSchema, parseFormData } from "@/lib/auth/schemas"
+import { FieldError } from "@/components/auth/ui/field-error"
+import { FormBanner } from "@/components/auth/ui/form-banner"
+import { HydratedSubmit } from "@/components/auth/ui/hydrated-submit"
+import { PasswordInput } from "@/components/auth/ui/password-input"
+import { PasswordChecklist } from "@/components/auth/ui/password-checklist"
+import { ChoiceCard } from "@/components/auth/ui/choice-card"
 
-const ROLE_OPTIONS = [
-  { value: "student", label: "Je suis étudiant", description: "Je cherche des missions rémunérées", icon: SchoolRoundedIcon },
-  { value: "client", label: "Je cherche un prestataire", description: "Je publie des missions ponctuelles", icon: BusinessCenterRoundedIcon },
-]
-
-const PASSWORD_RULES = [
-  { key: "length", label: "Au moins 8 caractères", test: (v) => v.length >= 8 },
-  { key: "uppercase", label: "Une majuscule (A-Z)", test: (v) => /[A-Z]/.test(v) },
-  { key: "lowercase", label: "Une minuscule (a-z)", test: (v) => /[a-z]/.test(v) },
-  { key: "number", label: "Un chiffre (0-9)", test: (v) => /[0-9]/.test(v) },
-  { key: "special", label: "Un caractère spécial (!@#$...)", test: (v) => /[^A-Za-z0-9]/.test(v) },
-]
-
-function PasswordRules({ value }) {
-  return (
-    <Box sx={{ mt: 1.2, display: "flex", flexDirection: "column", gap: 0.6 }}>
-      <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.secondary" }}>
-        Votre mot de passe doit contenir :
-      </Typography>
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-        {PASSWORD_RULES.map((rule) => {
-          const valid = value ? rule.test(value) : false
-          return (
-            <Box key={rule.key} sx={{ display: "flex", alignItems: "center", gap: 0.5,
-              fontSize: "0.75rem", color: valid ? BRAND.green : "text.secondary" }}>
-              {valid ? <CheckCircleRoundedIcon sx={{ fontSize: 14, color: BRAND.green }} />
-                : <CancelRoundedIcon sx={{ fontSize: 14, color: "text.disabled" }} />}
-              <Typography component="span" sx={{ fontSize: "0.75rem" }}>{rule.label}</Typography>
-            </Box>
-          )
-        })}
-      </Box>
-    </Box>
-  )
+// Textes par public : étudiant tutoyé, client vouvoyé.
+export const REGISTER_COPY = {
+  student: {
+    title: "Crée ton compte",
+    lead: "Gratuit, en moins d'une minute.",
+    emailPlaceholder: "toi@exemple.bj",
+    confirmLabel: "Confirme ton mot de passe",
+  },
+  client: {
+    title: "Créez votre compte",
+    lead: "Gratuit. Vous publiez votre première mission juste après.",
+    emailPlaceholder: "vous@exemple.bj",
+    confirmLabel: "Confirmez le mot de passe",
+  },
 }
 
-function RoleCard({ selected, onClick, icon: Icon, label, description }) {
-  return (
-    <Box component="button" type="button" onClick={onClick}
-      sx={{
-        textAlign: "left", cursor: "pointer", width: "100%", borderRadius: 1, p: 2,
-        display: "flex", flexDirection: "row", alignItems: "center", gap: 1.5, transition: "all .15s ease",
-        border: "1.5px solid", borderColor: selected ? BRAND.green : "rgba(15,23,42,0.12)",
-        bgcolor: selected ? BRAND.greenSoft : "#fff",
-        boxShadow: selected ? "0 4px 12px -4px rgba(26,107,74,0.2)" : "none",
-        "&:hover": { borderColor: selected ? BRAND.green : BRAND.greenLight, bgcolor: selected ? BRAND.greenSoft : "rgba(26,107,74,0.02)" },
-      }}>
-      <Box sx={{ width: 44, height: 44, borderRadius: 2, flexShrink: 0, display: "grid", placeItems: "center",
-        bgcolor: selected ? BRAND.green : "rgba(15,23,42,0.04)", color: selected ? "#fff" : "text.secondary",
-        transition: "all .15s ease" }}>
-        <Icon sx={{ fontSize: 22 }} />
-      </Box>
-      <Box>
-        <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: selected ? BRAND.greenDark : "text.primary", lineHeight: 1.25 }}>
-          {label}
-        </Typography>
-        <Typography sx={{ fontSize: "0.82rem", color: "text.secondary", mt: 0.2, lineHeight: 1.4 }}>{description}</Typography>
-      </Box>
-    </Box>
-  )
-}
+const ROLE_CARDS = [
+  { role: "student", icon: "i-graduation", tone: "bleu", title: "Je suis étudiant", sub: "Je cherche des missions payées" },
+  { role: "client", icon: "i-briefcase", tone: "", title: "Je publie des missions", sub: "Particulier, PME ou association" },
+]
 
-export function RegisterForm({ defaultRole = null }) {
-  const [role, setRole] = useState(defaultRole)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
-  const [serverError, setServerError] = useState(null)
+/**
+ * Formulaire d'inscription (A02). Envoi par action serveur (POST), jamais en GET :
+ * le bouton reste inactif tant que la page n'est pas hydratée.
+ * Le rôle vient de `?role=` (cartes-liens, fonctionnent sans JavaScript) ; `audience` règle le ton.
+ * @param {{ role?: "student" | "client" | null, audience?: "student" | "client", next?: string | null }} props
+ */
+export function RegisterForm({ role: roleProp = null, audience: audienceProp = "student", next = null }) {
+  const [state, formAction, pending] = useActionState(register, null)
+  const [picked, setPicked] = useState(null)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const [cgu, setCgu] = useState(false)
+  const [clientErrors, setClientErrors] = useState(null)
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm({ mode: "onChange" })
+  const role = picked ?? roleProp
+  const audience = picked ?? audienceProp
+  const copy = REGISTER_COPY[audience === "client" ? "client" : "student"]
+  const errors = clientErrors ?? state?.fieldErrors ?? {}
+  const emailTaken = !clientErrors && state?.code === "email_taken"
+  const formError = !clientErrors && state?.formError
 
-  const password = watch("password")
-
-  // Adapte react-hook-form aux champs MUI (ref → inputRef)
-  const rhf = (name, rules) => {
-    const { ref, ...rest } = register(name, rules)
-    return { inputRef: ref, ...rest }
-  }
-
-  async function onSubmit(values) {
-    setServerError(null)
-
-    if (!role) {
-      setServerError("Veuillez sélectionner un profil (étudiant ou client).")
+  function handleSubmit(event) {
+    const parsed = parseFormData(makeRegisterSchema(audience), new FormData(event.currentTarget))
+    if (!parsed.ok) {
+      event.preventDefault()
+      setClientErrors(parsed.fieldErrors)
       return
     }
-
-    const formData = new FormData()
-    formData.set("email", values.email)
-    formData.set("password", values.password)
-    formData.set("confirmPassword", values.confirmPassword)
-    formData.set("role", role)
-
-    const result = await registerAction(formData)
-
-    if (result?.error) {
-      setServerError(result.error)
-    }
+    setClientErrors(null)
   }
 
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate suppressHydrationWarning>
-      <Stack spacing={2.5}>
-        {/* Sélection du rôle */}
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
-          {ROLE_OPTIONS.map((opt) => (
-            <RoleCard key={opt.value} {...opt} selected={role === opt.value} onClick={() => setRole(opt.value)} />
+    <form className="auth__form" action={formAction} onSubmit={handleSubmit} noValidate>
+      <input type="hidden" name="audience" value={audience} />
+      <input type="hidden" name="role" value={role ?? ""} />
+      {next && <input type="hidden" name="next" value={next} />}
+
+      <div>
+        <h1 className="ds-h1">{copy.title}</h1>
+        <p className="muted a-lead">{copy.lead}</p>
+      </div>
+
+      {formError && !emailTaken && <FormBanner tone="erreur">{formError}</FormBanner>}
+
+      <div className="field" role="radiogroup" aria-label="Type de compte" aria-describedby={errors.role ? "r-role-e" : undefined}>
+        <span className="field__label">
+          Je m&apos;inscris en tant que <span className="req">*</span>
+        </span>
+        <div className="stack stack--2">
+          {ROLE_CARDS.map((card) => (
+            <ChoiceCard
+              key={card.role}
+              title={card.title}
+              sub={card.sub}
+              icon={card.icon}
+              tone={card.tone}
+              selected={role === card.role}
+              invalid={Boolean(errors.role)}
+              href={registerHref({ role: card.role, next })}
+              onSelect={() => setPicked(card.role)}
+            />
           ))}
-        </Box>
+        </div>
+        <FieldError id="r-role-e" message={errors.role} />
+      </div>
 
-        {/* Email */}
-        <TextField
-          {...rhf("email", {
-            required: "L'adresse email est requise.",
-            pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "L'adresse email n'est pas valide." },
-          })}
-          label="Adresse email"
+      <div className="field">
+        <label className="field__label" htmlFor="r-email">
+          Adresse email <span className="req">*</span>
+        </label>
+        <input
+          className={`input${errors.email ? " is-error" : ""}`}
+          id="r-email"
+          name="email"
           type="email"
-          placeholder="toi@example.com"
-          fullWidth
-          error={!!errors.email}
-          helperText={errors.email?.message}
+          autoComplete="email"
+          inputMode="email"
+          placeholder={copy.emailPlaceholder}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          aria-invalid={Boolean(errors.email) || undefined}
+          aria-describedby={errors.email ? "r-email-e" : undefined}
         />
-
-        {/* Mot de passe */}
-        <Box>
-          <TextField
-            {...rhf("password", {
-              required: "Le mot de passe est requis.",
-              validate: (value) => {
-                const allValid = PASSWORD_RULES.every((rule) => rule.test(value))
-                return allValid || "Le mot de passe ne respecte pas toutes les règles de sécurité."
-              },
-            })}
-            label="Mot de passe"
-            type={showPassword ? "text" : "password"}
-            placeholder="Min. 8 caractères, majuscule, minuscule, chiffre, symbole"
-            fullWidth
-            error={!!errors.password}
-            helperText={errors.password?.message}
-            slotProps={{ input: { endAdornment: (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setShowPassword((v) => !v)} edge="end" aria-label={showPassword ? "Masquer" : "Afficher"}>
-                  {showPassword ? <VisibilityOffRoundedIcon sx={{ fontSize: 19 }} /> : <VisibilityRoundedIcon sx={{ fontSize: 19 }} />}
-                </IconButton>
-              </InputAdornment>
-            ) } }}
-          />
-          <PasswordRules value={password} />
-        </Box>
-
-        {/* Confirmer */}
-        <TextField
-          {...rhf("confirmPassword", {
-            required: "Veuillez confirmer votre mot de passe.",
-            validate: (value) => value === password || "Les mots de passe ne correspondent pas.",
-          })}
-          label="Confirmer le mot de passe"
-          type={showConfirm ? "text" : "password"}
-          placeholder="Répète ton mot de passe"
-          fullWidth
-          error={!!errors.confirmPassword}
-          helperText={errors.confirmPassword?.message}
-          slotProps={{ input: { endAdornment: (
-            <InputAdornment position="end">
-              <IconButton onClick={() => setShowConfirm((v) => !v)} edge="end" aria-label={showConfirm ? "Masquer" : "Afficher"}>
-                {showConfirm ? <VisibilityOffRoundedIcon sx={{ fontSize: 19 }} /> : <VisibilityRoundedIcon sx={{ fontSize: 19 }} />}
-              </IconButton>
-            </InputAdornment>
-          ) } }}
-        />
-
-        {/* Erreur serveur */}
-        {serverError && (
-          <Alert severity="error" sx={{ borderRadius: 1, fontSize: "0.875rem", alignItems: "center" }}>
-            {serverError}
-          </Alert>
+        <FieldError id="r-email-e" message={errors.email} />
+        {emailTaken && (
+          <p className="body-s">
+            <Link className="link" href={loginHref({ next })}>
+              Se connecter
+            </Link>{" "}
+            ou{" "}
+            <Link className="link" href="/auth/forgot-password">
+              Mot de passe oublié ?
+            </Link>
+          </p>
         )}
+      </div>
 
-        <Button type="submit" variant="contained" size="large" fullWidth disabled={!role || isSubmitting}
-          startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : null}>
-          Créer mon compte
-        </Button>
+      <div className="field">
+        <label className="field__label" htmlFor="r-pwd">
+          Mot de passe <span className="req">*</span>
+        </label>
+        <PasswordInput
+          id="r-pwd"
+          name="password"
+          audience={audience}
+          autoComplete="new-password"
+          placeholder="8 caractères min."
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          invalid={Boolean(errors.password)}
+          aria-describedby={errors.password ? "r-pwd-e r-pwd-rules" : "r-pwd-rules"}
+        />
+        <FieldError id="r-pwd-e" message={errors.password} />
+        <PasswordChecklist id="r-pwd-rules" rules={PASSWORD_RULES} value={password} showErrors={Boolean(errors.password)} />
+      </div>
 
-        <Typography variant="body2" sx={{ textAlign: "center", color: "text.secondary" }}>
-          Déjà inscrit ?{" "}
-          <MuiLink component={Link} href="/auth/login" sx={{ fontWeight: 700 }}>Se connecter</MuiLink>
-        </Typography>
-      </Stack>
-    </Box>
+      <div className="field">
+        <label className="field__label" htmlFor="r-conf">
+          {copy.confirmLabel} <span className="req">*</span>
+        </label>
+        <PasswordInput
+          id="r-conf"
+          name="confirmPassword"
+          audience={audience}
+          autoComplete="new-password"
+          placeholder="Le même"
+          value={confirm}
+          onChange={(event) => setConfirm(event.target.value)}
+          invalid={Boolean(errors.confirmPassword)}
+          aria-describedby={errors.confirmPassword ? "r-conf-e" : undefined}
+        />
+        <FieldError id="r-conf-e" message={errors.confirmPassword} />
+      </div>
+
+      <div className="field">
+        <label className={`check${errors.cgu ? " is-error" : ""}`}>
+          <input
+            type="checkbox"
+            name="cgu"
+            checked={cgu}
+            onChange={(event) => setCgu(event.target.checked)}
+            aria-invalid={Boolean(errors.cgu) || undefined}
+            aria-describedby={errors.cgu ? "r-cgu-e" : undefined}
+          />
+          <span>
+            J&apos;accepte les{" "}
+            <Link className="link" href="/legal/terms" target="_blank">
+              conditions d&apos;utilisation
+            </Link>{" "}
+            et la{" "}
+            <Link className="link" href="/legal/privacy" target="_blank">
+              politique de confidentialité
+            </Link>
+          </span>
+        </label>
+        <FieldError id="r-cgu-e" message={errors.cgu} />
+      </div>
+
+      <HydratedSubmit pending={pending}>Créer mon compte</HydratedSubmit>
+
+      <p className="body-s a-ta-center">
+        Déjà inscrit ?{" "}
+        <Link className="link" href={loginHref({ next })}>
+          Se connecter
+        </Link>
+      </p>
+    </form>
   )
 }

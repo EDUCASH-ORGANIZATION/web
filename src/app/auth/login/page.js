@@ -1,18 +1,30 @@
 import { LoginForm } from "@/components/auth/login-form"
-import { AuthShell } from "@/components/vitrine/auth-shell"
+import { AuthShell, BRAND_PANELS } from "@/components/vitrine/auth-shell"
+import { knownRole } from "@/lib/auth/destinations"
 import { safeNextPath } from "@/lib/utils/safe-next"
 
 export const metadata = {
   title: "Connexion",
 }
 
-export default async function LoginPage({ searchParams }) {
-  const { next } = await searchParams
-  const safeNext = safeNextPath(Array.isArray(next) ? next[0] : next)
+function first(value) {
+  return Array.isArray(value) ? value[0] : value
+}
 
+export default async function LoginPage({ searchParams }) {
+  const params = await searchParams
+  const next = safeNextPath(first(params.next))
+  const role = knownRole(first(params.role), next)
+
+  const forgot = new URLSearchParams()
+  if (role === "student") forgot.set("role", "student")
+  if (next) forgot.set("next", next)
+  const forgotHref = `/auth/forgot-password${forgot.size ? `?${forgot}` : ""}`
+
+  // Public inconnu : panneau bleu avec le texte vouvoyé des clients.
   return (
-    <AuthShell title="Bon retour 👋" subtitle="Connecte-toi à ton compte EduCash" maxWidth={460}>
-      <LoginForm next={safeNext} />
+    <AuthShell audience={role === "client" ? "client" : "student"} brand={role ? undefined : BRAND_PANELS.client}>
+      <LoginForm role={role} next={next} forgotHref={forgotHref} suspended={first(params.suspended) === "1"} />
     </AuthShell>
   )
 }

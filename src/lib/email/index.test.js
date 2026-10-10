@@ -33,6 +33,6 @@ describe("sendEmail subject", () => {
   it("ignore options.subject pour un autre gabarit", async () => {
     await sendEmail("welcome-student", "a@b.bj", {}, { subject: "Sujet injecté" })
     expect(send).toHaveBeenCalledTimes(1)
-    expect(send.mock.calls[0][0].subject).toBe("Bienvenue sur EduCash 🎓")
+    expect(send.mock.calls[0][0].subject).toBe("Bienvenue sur EduCash")
   })
 })

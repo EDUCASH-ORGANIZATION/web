@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-export const metadata = { title: "Page introuvable — EduCash" }
+export const metadata = { title: "Page introuvable - EduCash" }
 
 export default function NotFound() {
   return (
@@ -75,7 +75,7 @@ export default function NotFound() {
 
       {/* Footer minimal */}
       <p className="absolute bottom-6 text-xs text-gray-600">
-        EduCash — Marketplace étudiant au Bénin
+        EduCash - Marketplace étudiant au Bénin
       </p>
     </div>
   )
