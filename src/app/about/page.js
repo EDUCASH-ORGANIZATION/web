@@ -91,7 +91,7 @@ export default function AboutPage() {
               <p>
                 Entre deux cours, beaucoup d&apos;étudiants cherchent à gagner un peu d&apos;argent. De l&apos;autre
                 côté, des familles, des boutiques et des associations ont besoin d&apos;aide pour quelques heures&nbsp;:
-                un cours, une livraison, une saisie, une garde d&apos;enfants.
+                un cours, un marché à faire, un document à mettre en forme, une garde d&apos;enfants.
               </p>
               <p>
                 Jusqu&apos;ici, ils se trouvaient par le bouche-à-oreille, sans garantie&nbsp;: l&apos;étudiant
@@ -143,7 +143,7 @@ export default function AboutPage() {
             </h2>
           </div>
           <p className="body-s v06-band__lead">
-            Les recharges et les retraits sont opérés par FedaPay, vers MTN MoMo et Moov Money. EduCash ne vous
+            Les recharges et les retraits sont opérés par un prestataire de paiement agréé, vers MTN MoMo, Moov Money et Celtiis Cash. EduCash ne vous
             demande jamais votre code secret Mobile Money.
           </p>
         </div>
@@ -175,7 +175,7 @@ export default function AboutPage() {
           text: "Publiez votre besoin en deux minutes. Le budget reste bloqué jusqu'à ce que vous validiez le travail.",
           href: "/auth/register?role=client",
           label: "Publier une mission",
-          secondary: { href: "/clients", label: "Pour les clients" },
+          secondary: { href: "/", label: "Découvrir EduCash pour vous" },
           recap: exampleRecap(),
         }}
       />

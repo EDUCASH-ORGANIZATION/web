@@ -43,8 +43,8 @@ export default function TermsPage() {
           EduCash est une marketplace mettant en relation des étudiants (prestataires) et
           des particuliers ou entreprises (clients) souhaitant confier des missions ponctuelles.
         </p>
-        <p>Les types de missions proposées incluent : babysitting, livraison, saisie de données,
-          community management, traduction, cours particuliers et autres prestations.</p>
+        <p>Les types de missions proposées incluent : marché et achats, démarches et files d’attente, garde d’enfants (babysitting), travaux sur ordinateur,
+          réseaux sociaux (community management), traduction, cours et aide aux devoirs et autres prestations.</p>
       </LegalSection>
 
       <LegalSection {...SECTIONS.inscription_et_compte_utilisateur}>
@@ -75,7 +75,7 @@ export default function TermsPage() {
 
       <LegalSection {...SECTIONS.paiements_et_commission}>
         <p>
-          Les paiements sont traités via FedaPay, notre partenaire de paiement sécurisé.
+          Les paiements sont traités via notre prestataire de paiement agréé.
           EduCash perçoit une commission de <strong>12%</strong> sur chaque transaction complétée.
         </p>
         <p>
@@ -85,7 +85,7 @@ export default function TermsPage() {
       
         <h3 className="ds-h4 ds-mt-4" id="achats">Missions avec achats</h3>
         <p>
-          Lorsqu’une mission comprend des achats (courses, livraison), les paiements d’achats
+          Lorsqu’une mission comprend des achats (marché, achats), les paiements d’achats
           effectués hors plateforme, directement du client au vendeur par Mobile Money, ne relèvent
           pas d’EduCash. EduCash n’est ni partie, ni dépositaire, ni garant de ces paiements.
           Seul le service passe par le séquestre et supporte la commission.

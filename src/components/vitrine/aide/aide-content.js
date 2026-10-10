@@ -31,11 +31,11 @@ export const AIDE_THEMES = [
       },
       {
         id: "achats",
-        question: "Mission avec achats : qui paie les courses ?",
+        question: "Mission avec achats : qui paie les achats ?",
         answer: [
           "Le client, directement au vendeur. Jamais toi, et jamais par EduCash : l'argent des achats ne transite pas par la plateforme, seul le service passe par le séquestre. Tout se passe dans la conversation de la mission.",
           "Pourquoi ce choix ? Par transparence et par honnêteté. Chaque franc des achats va droit à celui qui vend, le ticket fait foi, et personne n'avance d'argent pour l'autre. L'estimation des achats donnée sur la mission est indicative : elle ne bloque aucun fonds et ne porte aucune commission. Seul ton service passe par le séquestre, et la commission de " +
-            `${COMMISSION_PCT} % ne porte que sur lui : EduCash ne gagne rien sur les courses.`,
+            `${COMMISSION_PCT} % ne porte que sur lui : EduCash ne gagne rien sur les achats.`,
         ],
         steps: [
           {
@@ -100,14 +100,14 @@ export const AIDE_THEMES = [
         id: "retrait-echec",
         question: "Mon retrait a échoué, que faire ?",
         answer: [
-          "Vérifie d'abord le numéro saisi. Si un retrait échoue, contacte-nous depuis la page Contact en précisant la date et le montant : l'équipe vérifie l'opération avec FedaPay.",
+          "Vérifie d'abord le numéro saisi. Si un retrait échoue, contacte-nous depuis la page Contact en précisant la date et le montant : l'équipe vérifie l'opération avec notre prestataire de paiement.",
         ],
         links: [{ href: "/contact", label: "Nous contacter" }],
       },
       {
         id: "retrait-operateurs",
         question: "Quels opérateurs sont acceptés ?",
-        answer: ["Les paiements passent par FedaPay, avec MTN MoMo et Moov Money."],
+        answer: ["Les paiements passent par MTN MoMo, Moov Money et Celtiis Cash."],
       },
     ],
   },
@@ -173,7 +173,7 @@ export const AIDE_THEMES = [
         id: "mission-types",
         question: "Quels types de missions existent ?",
         answer: [
-          "Des petits services du quotidien : courses, garde d'enfants, saisie, traduction, cours particuliers, communication et bien d'autres.",
+          "Des petits services du quotidien : marché et achats, démarches et files d'attente, garde d'enfants, travaux sur ordinateur, traduction, cours et aide aux devoirs, réseaux sociaux et bien d'autres.",
         ],
       },
       {
@@ -187,7 +187,7 @@ export const AIDE_THEMES = [
         answer: [
           "Créez un compte client, décrivez la mission, fixez le budget, puis publiez. Le budget est bloqué en séquestre jusqu'à la fin du travail.",
         ],
-        links: [{ href: "/clients", label: "Pour les clients" }],
+        links: [{ href: "/", label: "Publier une mission" }],
       },
     ],
   },
@@ -232,7 +232,7 @@ export const POPULAR_QUESTIONS = [
 export const ESCROW_STEPS = [
   {
     title: "Le client recharge",
-    text: "Son portefeuille EduCash, par MTN MoMo ou Moov Money via FedaPay.",
+    text: "Son portefeuille EduCash, par MTN MoMo ou Moov Money.",
   },
   {
     title: "Le budget est bloqué",
