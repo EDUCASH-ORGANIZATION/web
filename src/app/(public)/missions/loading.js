@@ -7,7 +7,7 @@ const CARDS = Array.from({ length: 6 }, (_, i) => i)
 export default function MissionsPublicLoading() {
   return (
     <div className="ds">
-      <VitrineNavbar />
+      <VitrineNavbar audience="etudiants" />
 
       <main aria-busy="true">
         <div className="v02-head grid-bg">
@@ -38,7 +38,7 @@ export default function MissionsPublicLoading() {
         </div>
       </main>
 
-      <VitrineFooter />
+      <VitrineFooter audience="etudiants" />
     </div>
   )
 }

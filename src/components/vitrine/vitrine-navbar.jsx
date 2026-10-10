@@ -23,13 +23,13 @@ const MAIN_LINKS = {
   ],
 }
 
-const CLIENTS_LINK = { label: "Vous avez une mission ?", href: "/" }
 const STUDENTS_PATH = "/etudiants"
 const STUDENT_REGISTER_HREF = "/auth/register?role=student"
 const STUDENT_MISSIONS_HREF = "/student/missions"
 
-// Lien vers l'autre public : les clients voient « Vous êtes étudiant ? » dans l'en-tête, les étudiants
+// Liens vers l'autre public : les clients voient « Vous êtes étudiant ? » dans l'en-tête, les étudiants
 // retrouvent « Vous avez une mission ? » dans le menu burger seulement.
+const CLIENTS_LINK = { label: "Vous avez une mission ?", href: "/" }
 const STUDENT_LINK = { label: "Vous êtes étudiant ?", href: STUDENTS_PATH }
 
 // Seuil de défilement (px) au-delà duquel l'en-tête passe en compact.

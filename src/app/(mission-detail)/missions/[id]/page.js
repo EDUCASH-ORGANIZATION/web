@@ -151,7 +151,7 @@ export default async function MissionDetailPage({ params }) {
     : reasonLabel
 
   return (
-    <VitrinePage>
+    <VitrinePage audience="etudiants">
       <div className="v03-wrap v03-with-bar">
         <div className="ds-desk-only">
           <Breadcrumb
