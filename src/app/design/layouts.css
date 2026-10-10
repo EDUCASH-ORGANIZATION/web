@@ -98,10 +98,36 @@ html:has(.site-header) { scroll-padding-top: calc(var(--h-header-compact) + var(
 .auth__point { display: flex; gap: 12px; align-items: flex-start; font-size: var(--t-body-s); }
 .auth__main { display: flex; flex-direction: column; padding: var(--s-6) var(--s-10); }
 .auth__back { display: inline-flex; align-items: center; gap: 8px; font-weight: var(--fw-bold); font-size: var(--t-body-s); }
-.auth__form { width: 440px; margin: auto; display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-8) 0; }
+.auth__form { width: min(440px, 100%); margin: auto; display: flex; flex-direction: column; gap: var(--s-5); padding: var(--s-8) 0; }
 .auth--m { display: flex; flex-direction: column; min-height: 100%; background: var(--c-blanc); }
 .auth--m .auth__top { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--s-4); border-bottom: var(--b-ligne); }
 .auth--m .auth__form { width: auto; margin: 0; padding: var(--s-6) var(--s-4); }
+
+/* Gabarit responsive de l'app : un seul DOM, le panneau de marque disparait sous 1024 px
+   et l'en-tete .auth__top (retour + logo) prend le relais. Les variantes .auth--m
+   ci-dessus restent celles des maquettes (cadres separes). */
+.auth__main { min-width: 0; }
+.auth__top { display: none; }
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  .auth { grid-template-columns: 440px minmax(0, 1fr); }
+  .auth__brand { padding: var(--s-8); }
+  .auth__main { padding: var(--s-6); }
+}
+@media (max-width: 1023.98px) {
+  .auth { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; background: var(--c-blanc); }
+  .auth__brand { display: none; }
+  .auth__main { flex: 1; padding: 0; }
+  .auth__back { display: none; }
+  .auth__top { display: flex; align-items: center; justify-content: space-between; height: 60px; padding: 0 var(--s-4); border-bottom: var(--b-ligne); flex: none; }
+  .auth__form { width: 100%; max-width: 440px; margin: 0 auto; padding: var(--s-6) var(--s-4) var(--s-8); }
+}
+@media (max-width: 767.98px) {
+  .auth .stepper .step__label { display: none; }
+  .auth .stepper .step.is-current .step__label { display: inline; }
+}
+@media (max-width: 480px) {
+  .auth__form { gap: var(--s-4); }
+}
 
 /* =====================================================================
    C. SHELL CONNECTÉ BUREAU (étudiant, client, admin)
