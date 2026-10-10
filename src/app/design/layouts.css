@@ -108,6 +108,14 @@ html:has(.site-header) { scroll-padding-top: calc(var(--h-header-compact) + var(
    ci-dessus restent celles des maquettes (cadres separes). */
 .auth__main { min-width: 0; }
 .auth__top { display: none; }
+/* Bureau : page plein ecran, panneau de marque fixe, seule la colonne du formulaire defile.
+   Le contenu court est centre (marges auto de .auth__form), le contenu long reste en haut. */
+@media (min-width: 1024px) {
+  .auth { grid-template-rows: minmax(0, 1fr); height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+  .auth__brand { min-height: 0; }
+  .auth__main { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .auth__main > .auth__back { align-self: flex-start; flex: none; }
+}
 @media (min-width: 1024px) and (max-width: 1279.98px) {
   .auth { grid-template-columns: 440px minmax(0, 1fr); }
   .auth__brand { padding: var(--s-8); }
