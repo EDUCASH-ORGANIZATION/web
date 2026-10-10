@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { DashboardWalletCard } from "@/components/client/dashboard-wallet-card"
 import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 export const metadata = { title: "Espace client — EduCash" }
 
@@ -253,7 +254,7 @@ export default async function ClientDashboardPage() {
                         <td className="px-4 py-3">
                           <p className="font-medium text-gray-900 truncate max-w-[180px]">{m.title}</p>
                         </td>
-                        <td className="px-4 py-3 text-gray-500">{m.type}</td>
+                        <td className="px-4 py-3 text-gray-500">{missionTypeLabel(m.type)}</td>
                         <td className="px-4 py-3 text-center">
                           <span className="inline-flex items-center gap-1 text-gray-700 font-medium">
                             <Users size={13} className="text-gray-400" />

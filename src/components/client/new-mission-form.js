@@ -4,7 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ChevronRight, Send, Loader2, ShieldCheck, Star, MapPin, Wallet } from "lucide-react"
-import { MISSION_TYPES, CITIES } from "@/lib/supabase/database.constants"
+import { CITIES } from "@/lib/supabase/database.constants"
+import { MISSION_TYPE_OPTIONS, missionTypeLabel } from "@/lib/constants/missions"
 import { createMission } from "@/lib/actions/mission.actions"
 import { useToast } from "@/components/shared/toaster"
 
@@ -128,7 +129,7 @@ function LivePreview({ title, type, city, description, budget, urgency, deadline
           <div className="flex items-center gap-2 flex-wrap">
             {type && (
               <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-lg ${color.bg} ${color.text}`}>
-                {type}
+                {missionTypeLabel(type)}
               </span>
             )}
             {urgBadge && (
@@ -198,13 +199,13 @@ function LivePreview({ title, type, city, description, budget, urgency, deadline
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 
-export function NewMissionForm({ profile, walletAvailable = 0 }) {
+export function NewMissionForm({ profile, walletAvailable = 0, initial }) {
   const router = useRouter()
   const { toast } = useToast()
 
-  const [title,       setTitle]       = useState("")
-  const [type,        setType]        = useState("")
-  const [city,        setCity]        = useState("")
+  const [title,       setTitle]       = useState(initial?.title ?? "")
+  const [type,        setType]        = useState(initial?.type ?? "")
+  const [city,        setCity]        = useState(initial?.city ?? "")
   const [deadline,    setDeadline]    = useState("")
   const [urgency,     setUrgency]     = useState("low")
   const [description, setDescription] = useState("")
@@ -323,8 +324,8 @@ export function NewMissionForm({ profile, walletAvailable = 0 }) {
                   className={inputCls}
                 >
                   <option value="">Sélectionner…</option>
-                  {MISSION_TYPES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                  {MISSION_TYPE_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
               </div>
