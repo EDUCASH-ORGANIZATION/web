@@ -27,9 +27,8 @@ describe("VitrineNavbar", () => {
     state.pathname = "/"
   })
 
-  it("public clients par défaut : trois liens, lien étudiant, connexion et un seul bouton accent", () => {
+  it("public clients par défaut : Services et Aide, lien étudiant, connexion et un seul bouton accent", () => {
     const html = render()
-    expect(html).toContain('href="/#etapes"')
     expect(html).toContain('href="/#services"')
     expect(html).toContain('href="/aide"')
     expect(html).toContain("Vous êtes étudiant ?")
@@ -41,8 +40,10 @@ describe("VitrineNavbar", () => {
     expect(html).not.toContain("Créer un compte")
   })
 
-  it("n'a plus de lien Missions, Pour les clients, Entreprises ni /clients", () => {
+  it("n'a plus Comment ça marche, ni Missions côté clients, ni Pour les clients, Entreprises, /clients", () => {
     const html = render()
+    expect(html).not.toContain("Comment ça marche")
+    expect(html).not.toContain("#etapes")
     expect(html).not.toContain('href="/missions"')
     expect(html).not.toContain('href="/clients"')
     expect(html).not.toContain("Pour les clients")
@@ -54,16 +55,24 @@ describe("VitrineNavbar", () => {
     expect(html).toContain('class="btn btn--primary btn--sm ds-mob-only">Publier</a>')
   })
 
-  it("public etudiants : Créer mon compte, S'inscrire et lien Étudiants actif", () => {
+  it("public etudiants : Missions et Aide, Se connecter, Créer mon compte, sans lien vers Services", () => {
     const html = render({ audience: "etudiants" }, visitor, "/etudiants")
+    expect(html).toContain('href="/missions"')
+    expect(html).toContain('href="/aide"')
+    expect(html).not.toContain('href="/#services"')
+    expect(html).not.toContain("Comment ça marche")
+    expect(html).toContain("Se connecter")
     expect(html).toContain("Créer mon compte")
     expect(html).toContain("S’inscrire")
     expect(html).toContain('href="/auth/register?role=student"')
     expect(html).not.toContain("Publier une mission")
-    expect(html).toContain("is-active")
-    expect(html).toContain('aria-current="page"')
-    expect(html).toContain("Étudiants")
     expect(html).not.toContain("Vous êtes étudiant ?")
+    expect(html.match(/btn--accent/g)).toHaveLength(1)
+  })
+
+  it("public etudiants : Missions est actif sur /missions", () => {
+    const html = render({ audience: "etudiants" }, visitor, "/missions")
+    expect(html).toMatch(/<a href="\/missions"[^>]*aria-current="page"[^>]*>Missions<\/a>/)
   })
 
   it("client connecté : Publier une mission puis Mon espace", () => {

@@ -15,6 +15,7 @@ const ROUTE_FILES = {
     "components/vitrine/home/home-catalog.jsx",
     "components/vitrine/home/home-achats.jsx",
   ],
+  "/etudiants": ["components/vitrine/etudiants/etudiants-steps.jsx"],
   "/aide": ["components/vitrine/aide/aide-content.js"],
   "/legal/terms": ["app/legal/terms/page.js"],
 }
@@ -69,7 +70,7 @@ const anchors = collectAnchors()
 describe("ancres du site public", () => {
   it("trouve les ancres connues", () => {
     const hrefs = anchors.map((a) => a.href)
-    for (const expected of ["/#etapes", "/#services", "/aide#sequestre", "/aide#retraits", "/aide#achats", "/legal/terms#achats", "#achats"]) {
+    for (const expected of ["/#etapes", "/etudiants#etapes", "/#services", "/aide#sequestre", "/aide#retraits", "/aide#achats", "/legal/terms#achats", "#achats"]) {
       expect(hrefs).toContain(expected)
     }
   })
