@@ -8,7 +8,7 @@ import {
 import { requireRole } from "@/lib/auth/require-role"
 import { createServiceClient } from "@/lib/supabase/service"
 
-export const metadata = { title: "Dashboard — Admin EduCash" }
+export const metadata = { title: "Dashboard - Admin EduCash" }
 
 function fmt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
@@ -189,7 +189,7 @@ export default async function AdminDashboardPage() {
       {/* ── Graphique + colonnes latérales ────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-        {/* Missions 7 jours — bar chart */}
+        {/* Missions 7 jours - bar chart */}
         <div className="xl:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-start justify-between mb-2">
             <div>
@@ -287,7 +287,7 @@ export default async function AdminDashboardPage() {
                           <span className="text-white text-xs font-black">{initial}</span>
                         </div>
                         <span className="font-semibold text-gray-900 truncate max-w-[160px]">
-                          {u.full_name ?? "—"}
+                          {u.full_name ?? "-"}
                         </span>
                       </div>
                     </td>

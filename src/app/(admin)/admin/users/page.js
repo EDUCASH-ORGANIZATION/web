@@ -6,7 +6,7 @@ import { createServiceClient } from "@/lib/supabase/service"
 import { ChevronLeft, ChevronRight, ShieldCheck, Users, UserX } from "lucide-react"
 import { SuspendButton } from "@/components/admin/suspend-button"
 
-export const metadata = { title: "Utilisateurs — Admin EduCash" }
+export const metadata = { title: "Utilisateurs - Admin EduCash" }
 
 const PAGE_SIZE = 20
 
@@ -142,7 +142,7 @@ export default async function AdminUsersPage({ searchParams }) {
             <tbody className="divide-y divide-gray-50">
               {(profiles ?? []).map((profile) => {
                 const initial    = profile.full_name?.charAt(0)?.toUpperCase() ?? "?"
-                const email      = emailMap[profile.user_id] ?? "—"
+                const email      = emailMap[profile.user_id] ?? "-"
                 const roleCfg    = ROLE_CONFIG[profile.role] ?? ROLE_CONFIG.student
                 const date       = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "2-digit" }).format(new Date(profile.created_at))
 
@@ -163,7 +163,7 @@ export default async function AdminUsersPage({ searchParams }) {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-gray-900 truncate max-w-[140px]">
-                            {profile.full_name ?? "—"}
+                            {profile.full_name ?? "-"}
                           </p>
                           {profile.is_suspended && (
                             <p className="text-[10px] text-red-500 font-semibold">Suspendu</p>
@@ -196,7 +196,7 @@ export default async function AdminUsersPage({ searchParams }) {
                           </span>
                         )
                       ) : (
-                        <span className="text-[11px] text-gray-300">—</span>
+                        <span className="text-[11px] text-gray-300">-</span>
                       )}
                     </td>
 

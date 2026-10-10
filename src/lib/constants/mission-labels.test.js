@@ -60,7 +60,7 @@ describe("dictionnaire des libellés de type", () => {
 
   it("aucun tiret cadratin", () => {
     const all = JSON.stringify([MISSION_TYPE_LABELS, MISSION_TYPE_TAGLINES, MISSION_TYPE_PHRASES])
-    expect(all).not.toContain("—")
+    expect(all).not.toContain("\u2014")
   })
 
   it("les icônes existent dans le sprite", () => {

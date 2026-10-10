@@ -4,7 +4,7 @@ import {
   Wallet, TrendingUp, ArrowDownLeft, ArrowUpRight, Clock,
 } from "lucide-react"
 
-export const metadata = { title: "Wallets — Admin EduCash" }
+export const metadata = { title: "Portefeuilles - Admin EduCash" }
 
 function fmt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
@@ -89,7 +89,7 @@ export default async function AdminWalletsPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black text-gray-900">Wallets</h1>
+        <h1 className="text-2xl font-black text-gray-900">Portefeuilles</h1>
         <p className="text-sm text-gray-500 mt-0.5">Supervision des fonds en circulation sur la plateforme</p>
       </div>
 
@@ -98,7 +98,7 @@ export default async function AdminWalletsPage() {
         <KpiCard
           label="Total en circulation"
           value={`${fmt(Math.round(totalBalance))} FCFA`}
-          sub="Tous les wallets"
+          sub="Tous les portefeuilles"
           icon={Wallet}
           color="text-[#1A6B4A]"
           bg="bg-[#f0faf5]"
@@ -132,10 +132,10 @@ export default async function AdminWalletsPage() {
       {/* Main grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-        {/* Top wallets — 2 cols */}
+        {/* Top wallets - 2 cols */}
         <div className="xl:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-black text-gray-900">Top wallets</h2>
+            <h2 className="text-sm font-black text-gray-900">Top portefeuilles</h2>
             <p className="text-xs text-gray-400 mt-0.5">Classés par solde décroissant</p>
           </div>
           <div className="overflow-x-auto">
@@ -152,8 +152,8 @@ export default async function AdminWalletsPage() {
               <tbody className="divide-y divide-gray-50">
                 {(allWallets ?? []).map((w) => {
                   const available = (w.balance ?? 0) - (w.reserved ?? 0)
-                  const role = w.profiles?.role ?? "—"
-                  const name = w.profiles?.full_name ?? "—"
+                  const role = w.profiles?.role ?? "-"
+                  const name = w.profiles?.full_name ?? "-"
                   const initial = name.charAt(0).toUpperCase()
                   return (
                     <tr key={w.id} className="hover:bg-gray-50 transition-colors">
@@ -176,7 +176,7 @@ export default async function AdminWalletsPage() {
                         {fmt(w.balance ?? 0)}
                       </td>
                       <td className="px-5 py-3.5 text-amber-600 font-medium">
-                        {w.reserved ? fmt(w.reserved) : <span className="text-gray-300">—</span>}
+                        {w.reserved ? fmt(w.reserved) : <span className="text-gray-300">-</span>}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={available < 0 ? "text-red-500 font-bold" : "text-[#1A6B4A] font-bold"}>
@@ -189,7 +189,7 @@ export default async function AdminWalletsPage() {
                 {!allWallets?.length && (
                   <tr>
                     <td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-400">
-                      Aucun wallet trouvé.
+                      Aucun portefeuille trouvé.
                     </td>
                   </tr>
                 )}
@@ -198,7 +198,7 @@ export default async function AdminWalletsPage() {
           </div>
         </div>
 
-        {/* Retraits en attente — 1 col */}
+        {/* Retraits en attente - 1 col */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-sm font-black text-gray-900">Retraits en attente</h2>
@@ -222,7 +222,7 @@ export default async function AdminWalletsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">
-                      {t.profiles?.full_name ?? "—"}
+                      {t.profiles?.full_name ?? "-"}
                     </p>
                     <p className="text-xs text-gray-400">{formatDate(t.created_at)}</p>
                   </div>
@@ -261,7 +261,7 @@ export default async function AdminWalletsPage() {
                       <div className="w-7 h-7 rounded-full bg-green-50 flex items-center justify-center shrink-0">
                         <ArrowDownLeft size={13} className="text-green-600" />
                       </div>
-                      <span className="font-semibold text-gray-900">{t.profiles?.full_name ?? "—"}</span>
+                      <span className="font-semibold text-gray-900">{t.profiles?.full_name ?? "-"}</span>
                     </div>
                   </td>
                   <td className="px-6 py-3.5 font-black text-green-600">

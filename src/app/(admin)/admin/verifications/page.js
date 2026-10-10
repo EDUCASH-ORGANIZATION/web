@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth/require-role"
 import { createServiceClient } from "@/lib/supabase/service"
 import { VerificationsTabs } from "@/components/admin/verifications-tabs"
 
-export const metadata = { title: "Vérifications — Admin EduCash" }
+export const metadata = { title: "Vérifications - Admin EduCash" }
 
 export default async function AdminVerificationsPage() {
   const auth = await requireRole(["admin"])

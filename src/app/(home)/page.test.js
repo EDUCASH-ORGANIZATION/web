@@ -101,7 +101,7 @@ describe("accueil clients", () => {
     expect(html).not.toMatch(/href="\/clients/)
     expect(html).not.toMatch(/livraison|coursier|saisie|FedaPay/i)
     expect(html).not.toMatch(/\bcourses?\b/i)
-    expect(html).not.toContain("—")
+    expect(html).not.toContain("\u2014")
   })
 
   it("métadonnées vouvoyées sans prestataire", () => {

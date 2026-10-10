@@ -6,7 +6,7 @@ import {
   Briefcase, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight,
 } from "lucide-react"
 
-export const metadata = { title: "Missions — Admin EduCash" }
+export const metadata = { title: "Missions - Admin EduCash" }
 
 const PAGE_SIZE = 25
 
@@ -141,7 +141,7 @@ export default async function AdminMissionsPage({ searchParams }) {
               {(missions ?? []).map((mission) => {
                 const status = STATUS_CONFIG[mission.status] ?? STATUS_CONFIG.open
                 const date = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "2-digit" }).format(new Date(mission.created_at))
-                const clientName = mission.profiles?.full_name ?? "—"
+                const clientName = mission.profiles?.full_name ?? "-"
 
                 return (
                   <tr key={mission.id} className="hover:bg-gray-50 transition-colors">
