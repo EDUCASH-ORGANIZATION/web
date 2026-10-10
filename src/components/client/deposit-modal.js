@@ -133,7 +133,7 @@ export function DepositModal({ isOpen, onClose, currentBalance = 0 }) {
           <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
             <AlertCircle size={15} className="text-blue-500 shrink-0 mt-0.5" />
             <p className="text-xs text-blue-700 leading-relaxed">
-              Vous serez redirigé vers <strong>FedaPay</strong> pour effectuer le paiement de façon sécurisée.
+              Vous serez redirigé vers notre <strong>prestataire de paiement agréé</strong> pour effectuer le paiement de façon sécurisée.
             </p>
           </div>
 
