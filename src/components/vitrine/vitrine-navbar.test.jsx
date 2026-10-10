@@ -75,6 +75,16 @@ describe("VitrineNavbar", () => {
     expect(html).toMatch(/<a href="\/missions"[^>]*aria-current="page"[^>]*>Missions<\/a>/)
   })
 
+  it("public etudiants : Missions reste actif sur le détail d'une mission, pas sur /aide ni /missionsx", () => {
+    const detail = render({ audience: "etudiants" }, visitor, "/missions/abc")
+    expect(detail).toMatch(/<a href="\/missions"[^>]*aria-current="page"[^>]*>Missions<\/a>/)
+    const aide = render({ audience: "etudiants" }, visitor, "/aide")
+    expect(aide).not.toMatch(/<a href="\/missions"[^>]*aria-current/)
+    expect(aide).toMatch(/<a href="\/aide"[^>]*aria-current="page"/)
+    const other = render({ audience: "etudiants" }, visitor, "/missionsx")
+    expect(other).not.toMatch(/<a href="\/missions"[^>]*aria-current/)
+  })
+
   it("client connecté : Publier une mission puis Mon espace", () => {
     const html = render({}, client)
     expect(html.indexOf("Publier une mission")).toBeGreaterThan(-1)

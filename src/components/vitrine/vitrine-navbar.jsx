@@ -42,8 +42,13 @@ function subscribeScroll(onChange) {
 const getScrolled = () => window.scrollY > COMPACT_SCROLL_Y
 const getScrolledOnServer = () => false
 
+// Les liens avec ancre ou paramètre ne sont jamais actifs. « /missions » reste actif sur le détail
+// « /missions/<id> » ; les autres liens (« / », « /aide ») exigent une égalité stricte.
+const PREFIX_ACTIVE_HREFS = new Set(["/missions"])
+
 function isActivePath(pathname, href) {
   if (href.includes("?") || href.includes("#")) return false
+  if (PREFIX_ACTIVE_HREFS.has(href)) return pathname === href || pathname.startsWith(`${href}/`)
   return pathname === href
 }
 
