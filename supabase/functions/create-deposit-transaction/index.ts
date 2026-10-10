@@ -2,9 +2,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
+const MIN_DEPOSIT_AMOUNT = 2000
+
+function allowedOrigin() {
+  try {
+    return new URL(Deno.env.get("APP_URL") ?? "").origin
+  } catch {
+    return "null"
+  }
+}
+
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin(),
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Vary": "Origin",
 }
 
 const json = (data: unknown, status = 200) =>
@@ -17,14 +28,43 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
 
   try {
-    const { userId, amount } = await req.json()
-
-    if (!userId || !amount) return json({ error: "userId et amount sont requis" }, 400)
+    // Authentification : jeton de session de l'utilisateur, jamais la cle anon seule
+    const match = /^Bearer\s+(\S+)$/i.exec((req.headers.get("Authorization") ?? "").trim())
+    if (!match) return json({ error: "Non authentifié" }, 401)
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
+
+    const { data: authData, error: authError } = await supabase.auth.getUser(match[1])
+    if (authError || !authData?.user) return json({ error: "Non authentifié" }, 401)
+
+    // L'identite vient uniquement du jeton, tout userId du corps est ignore
+    const userId = authData.user.id
+
+    // Autorisation sur profiles.role (jamais user_metadata) et statut de suspension
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, is_suspended")
+      .eq("user_id", userId)
+      .single()
+
+    if (!profile || profile.is_suspended === true || profile.role !== "client") {
+      return json({ error: "Action non autorisée" }, 403)
+    }
+
+    let body
+    try {
+      body = await req.json()
+    } catch {
+      return json({ error: "Requête invalide" }, 400)
+    }
+
+    const amount = body?.amount
+    if (!Number.isInteger(amount) || amount < MIN_DEPOSIT_AMOUNT) {
+      return json({ error: "Montant invalide" }, 400)
+    }
 
     // Vérifie que le wallet existe
     const { data: wallet, error: walletError } = await supabase
@@ -60,7 +100,8 @@ serve(async (req) => {
 
     if (!createRes.ok) {
       const msg = createData?.message ?? createData?.error ?? "Erreur inconnue"
-      return json({ error: "Erreur FedaPay: " + msg }, 400)
+      console.error("[create-deposit-transaction] transaction create failed:", msg)
+      return json({ error: "Paiement impossible pour le moment" }, 400)
     }
 
     // La réponse FedaPay encapsule sous la clé "v1/transaction"
@@ -73,6 +114,7 @@ serve(async (req) => {
 
     return json({ paymentUrl, fedapayId: transactionId })
   } catch (err) {
-    return json({ error: err?.message ?? "Erreur interne" }, 500)
+    console.error("[create-deposit-transaction] unexpected error")
+    return json({ error: "Erreur interne" }, 500)
   }
 })
