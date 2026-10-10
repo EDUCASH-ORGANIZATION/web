@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { missionTypeLabel } from "@/lib/constants/missions"
 import {
   Briefcase, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight,
 } from "lucide-react"
@@ -148,7 +149,7 @@ export default async function AdminMissionsPage({ searchParams }) {
                       <p className="font-semibold text-gray-900 truncate">{mission.title}</p>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="text-xs text-gray-500">{mission.type}</span>
+                      <span className="text-xs text-gray-500">{missionTypeLabel(mission.type)}</span>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="text-xs text-gray-600 truncate max-w-[120px] block">{clientName}</span>

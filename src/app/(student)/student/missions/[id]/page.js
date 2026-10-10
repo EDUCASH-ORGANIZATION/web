@@ -5,6 +5,7 @@ import { ChevronRight, MapPin, Calendar, Clock, Star } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { StudentApplyForm } from "@/components/missions/student-apply-form"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 export const metadata = { title: "Détail mission — EduCash" }
 
@@ -54,7 +55,7 @@ function SimilarMissionCard({ mission }) {
     >
       <div className="flex items-center justify-between gap-2">
         <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg ${typeClass}`}>
-          {mission.type}
+          {missionTypeLabel(mission.type)}
         </span>
         <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg whitespace-nowrap">
           {formatBudget(mission.budget)} FCFA
@@ -143,7 +144,7 @@ export default async function StudentMissionDetailPage({ params }) {
           href={`/student/missions?type=${encodeURIComponent(mission.type)}`}
           className="hover:text-[#1A6B4A] transition-colors font-semibold uppercase tracking-wide"
         >
-          {mission.type}
+          {missionTypeLabel(mission.type)}
         </Link>
         <ChevronRight size={13} className="text-gray-300 shrink-0" />
         <span className="text-gray-600 font-medium truncate max-w-[220px]">
@@ -163,7 +164,7 @@ export default async function StudentMissionDetailPage({ params }) {
             {/* Badges */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${typeClass}`}>
-                {mission.type}
+                {missionTypeLabel(mission.type)}
               </span>
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${urgencyClass}`}>
                 {URGENCY_LABELS[mission.urgency] ?? "Normal"}
