@@ -27,7 +27,10 @@ export function applyCta({ role, missionId, missionType, accepting, hasApplied =
         label: "Se connecter pour postuler",
         href: `/auth/login?next=${encodeURIComponent(applyPath)}`,
       },
-      secondary: { label: "Créer un compte étudiant", href: "/auth/register?role=student" },
+      secondary: {
+        label: "Créer un compte étudiant",
+        href: `/auth/register?role=student&next=${encodeURIComponent(applyPath)}`,
+      },
       message: null,
     }
   }

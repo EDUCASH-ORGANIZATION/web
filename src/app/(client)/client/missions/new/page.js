@@ -5,7 +5,7 @@ import { getWallet } from "@/lib/actions/wallet.actions"
 import { NewMissionForm } from "@/components/client/new-mission-form"
 import { WalletRequiredGate } from "@/components/client/wallet-required-gate"
 import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
-import { parsePublishPrefill } from "@/lib/utils/publish-prefill"
+import { parsePublishPrefill, publishHref } from "@/lib/utils/publish-prefill"
 
 export const metadata = { title: "Nouvelle mission — EduCash" }
 
@@ -14,6 +14,11 @@ export default async function NewMissionPage({ searchParams }) {
   if (!user) redirect("/auth/login")
 
   const initial = parsePublishPrefill(await searchParams)
+
+  const hasPrefill = Boolean(initial.title || initial.city || initial.type)
+  const resumeHref = hasPrefill
+    ? publishHref({ besoin: initial.title, ville: initial.city, type: initial.type })
+    : undefined
 
   const supabase = await createClient()
 
@@ -31,7 +36,7 @@ export default async function NewMissionPage({ searchParams }) {
   if (available < MIN_DEPOSIT_AMOUNT) {
     return (
       <div className="p-6 lg:p-8 min-h-screen">
-        <WalletRequiredGate available={available} />
+        <WalletRequiredGate available={available} resumeHref={resumeHref} />
       </div>
     )
   }
