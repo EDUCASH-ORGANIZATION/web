@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { PaginationLink } from "./pagination-link"
 import { Icon } from "@/components/design/icon"
 
 const WINDOW = 5
@@ -30,16 +30,16 @@ export function MissionsPagination({ page, pageSize, total, params = {} }) {
     <nav className="pagination" aria-label="Pagination">
       <span className="pagination__info">Missions {first} à {last} sur {total}</span>
       {page > 1 ? (
-        <Link className="page-btn page-btn--nav" href={href(page - 1)} aria-label="Précédente">
+        <PaginationLink className="page-btn page-btn--nav" href={href(page - 1)} aria-label="Précédente">
           <Icon name="i-chevron-left" className="ic" />
-        </Link>
+        </PaginationLink>
       ) : (
         <span className="page-btn page-btn--nav is-disabled" aria-label="Précédente">
           <Icon name="i-chevron-left" className="ic" />
         </span>
       )}
       {pageWindow(page, totalPages).map((p) => (
-        <Link
+        <PaginationLink
           key={p}
           className={p === page ? "page-btn is-active" : "page-btn"}
           href={href(p)}
@@ -47,12 +47,12 @@ export function MissionsPagination({ page, pageSize, total, params = {} }) {
           aria-label={`Page ${p}`}
         >
           {p}
-        </Link>
+        </PaginationLink>
       ))}
       {page < totalPages ? (
-        <Link className="page-btn page-btn--nav" href={href(page + 1)} aria-label="Suivante">
+        <PaginationLink className="page-btn page-btn--nav" href={href(page + 1)} aria-label="Suivante">
           <Icon name="i-chevron-right" className="ic" />
-        </Link>
+        </PaginationLink>
       ) : (
         <span className="page-btn page-btn--nav is-disabled" aria-label="Suivante">
           <Icon name="i-chevron-right" className="ic" />
