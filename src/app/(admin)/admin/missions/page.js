@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
-import { getServerRole } from "@/lib/auth/server-role"
+import { requireRole } from "@/lib/auth/require-role"
 import { missionTypeLabel } from "@/lib/constants/missions"
 import {
   Briefcase, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight,
@@ -23,11 +22,9 @@ function fmt(n) {
 }
 
 export default async function AdminMissionsPage({ searchParams }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
-  const { role } = await getServerRole(supabase, user)
-  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
+  const auth = await requireRole(["admin"])
+  if (auth.error) redirect("/auth/login")
+  const { supabase } = auth
 
   const { page: pageParam, status: statusFilter } = await searchParams
   const page = Math.max(1, parseInt(pageParam ?? "1", 10))

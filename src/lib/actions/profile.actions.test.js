@@ -104,8 +104,6 @@ const SERVER_ALLOWLIST = [
   "lib/actions/onboarding.actions.js",
   "app/(admin)/admin/verifications/page.js",
 ]
-// Comptages select("*") sur profiles restant à corriger par ST-09B (pages admin).
-const STAR_COUNT_PENDING_ST09B = ["app/(admin)/admin/users/page.js", "app/(admin)/admin/dashboard/page.js"]
 
 const SELECT_ARG = /\.select\(\s*(`[^`]*`|"[^"]*"|'[^']*')/g
 const STAR_ON_PROFILES = /from\(\s*["'](?:profiles|student_profiles)["']\s*\)\s*\.select\(\s*["'`]\s*\*/
@@ -125,10 +123,8 @@ export function findPrivateColumnReads(files) {
         if (col) found.push(`${normalized}: select de ${col}`)
       }
     }
-    if (!STAR_COUNT_PENDING_ST09B.includes(normalized)) {
-      if (STAR_ON_PROFILES.test(source)) found.push(`${normalized}: select(*) sur profiles`)
-      if (STAR_JOIN.test(source)) found.push(`${normalized}: jointure profiles(*)`)
-    }
+    if (STAR_ON_PROFILES.test(source)) found.push(`${normalized}: select(*) sur profiles`)
+    if (STAR_JOIN.test(source)) found.push(`${normalized}: jointure profiles(*)`)
   }
   return found
 }

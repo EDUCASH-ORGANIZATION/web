@@ -1,38 +1,47 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { getServerRole } from "@/lib/auth/server-role"
+import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
 import { VerificationsTabs } from "@/components/admin/verifications-tabs"
 
 export const metadata = { title: "Vérifications — Admin EduCash" }
 
 export default async function AdminVerificationsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
-  const { role } = await getServerRole(supabase, user)
-  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
+  const auth = await requireRole(["admin"])
+  if (auth.error) redirect("/auth/login")
+  const { supabase } = auth
+
+  // Colonnes privées (rejection_reason, verification_submitted_at, card_url) : lues avec le client
+  // service role, uniquement après le contrôle admin ci-dessus.
+  const service = createServiceClient()
 
   // Requête 1 : tous les profils étudiants
-  let { data: profilesData, error: profilesError } = await supabase
+  const { data: profilesData, error: profilesError } = await service
     .from("profiles")
     .select("user_id, full_name, avatar_url, is_verified, rejection_reason, verified_until, verification_submitted_at, created_at")
     .eq("role", "student")
     .order("created_at", { ascending: false })
 
-  // Fallback si colonnes manquantes (avant migration fix-verifications.sql)
-  if (profilesError) {
-    const fallback = await supabase
-      .from("profiles")
-      .select("user_id, full_name, avatar_url, is_verified, created_at")
-      .eq("role", "student")
-      .order("created_at", { ascending: false })
-    profilesData = fallback.data ?? []
-  }
-
   // Requête 2 : tous les student_profiles (sans FK directe avec profiles)
-  const { data: studentData } = await supabase
+  const { data: studentData, error: studentsError } = await service
     .from("student_profiles")
     .select("user_id, school, card_url, level, skills")
+
+  if (profilesError || studentsError) {
+    return (
+      <div className="p-6 lg:p-8 flex flex-col gap-6 max-w-[1400px] mx-auto">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">Vérifications</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Examinez les cartes étudiantes et validez ou rejetez les dossiers.
+          </p>
+        </div>
+        <div role="alert" className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4">
+          <p className="text-sm font-black text-red-800">Impossible de charger les dossiers de vérification.</p>
+          <p className="text-xs text-red-700 mt-0.5">Recharge la page. Si le problème persiste, contacte l&apos;équipe technique.</p>
+        </div>
+      </div>
+    )
+  }
 
   const studentMap = {}
   ;(studentData ?? []).forEach((s) => { studentMap[s.user_id] = s })
