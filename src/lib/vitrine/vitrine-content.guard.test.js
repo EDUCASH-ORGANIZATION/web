@@ -130,6 +130,11 @@ describe("garde-fous de contenu vitrine", () => {
     expect(hits).toEqual([])
   })
 
+  it("aucun <select> natif dans l'authentification (Select maison du design system)", () => {
+    const hits = files.filter((f) => /^src\/(components|app)\/auth\//.test(f) && /<select[\s>]/.test(read(f)))
+    expect(hits).toEqual([])
+  })
+
   it("aucun lien vers /clients (redirigé vers l'accueil)", () => {
     const hits = files.filter((f) => /\.jsx?$/.test(f) && /["'`]\/clients(?:[/?#"'`])/.test(visibleText(f)))
     expect(hits).toEqual([])
