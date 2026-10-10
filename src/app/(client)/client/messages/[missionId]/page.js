@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { createClient } from "@/lib/supabase/server"
 import { ConversationView } from "@/components/messages/conversation-view"
 
-export const metadata = { title: "Conversation — EduCash" }
+export const metadata = { title: "Conversation - EduCash" }
 
 export default async function ClientConversationPage({ params, searchParams }) {
   const { missionId } = await params

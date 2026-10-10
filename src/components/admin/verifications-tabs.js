@@ -171,7 +171,7 @@ function VerificationCard({ profile }) {
     if (result.error) {
       toast({ message: result.error, type: "error" })
     } else {
-      toast({ message: "Dossier réinitialisé — l'étudiant peut soumettre à nouveau.", type: "info" })
+      toast({ message: "Dossier réinitialisé - l'étudiant peut soumettre à nouveau.", type: "info" })
       router.refresh()
     }
   }
@@ -213,7 +213,7 @@ function VerificationCard({ profile }) {
               <Calendar size={10} />
               Inscrit le {registeredDate}
             </p>
-            {/* Délai de soumission — visible seulement pour les dossiers en attente */}
+            {/* Délai de soumission - visible seulement pour les dossiers en attente */}
             {profile.card_url && !profile.is_verified && !profile.rejection_reason && (
               <div className="mt-1.5">
                 <DelayBadge

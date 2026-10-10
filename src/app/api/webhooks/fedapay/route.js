@@ -149,7 +149,7 @@ export async function POST(request) {
       return new Response("OK", { status: 200 })
     }
 
-    // Type inconnu — on log et on acquitte
+    // Type inconnu - on log et on acquitte
     console.warn("[webhook/fedapay] metadata.type inconnu:", metadata.type)
   }
 
@@ -160,7 +160,7 @@ export async function POST(request) {
     const fedapayId = String(event.entity.id)
 
     if (metadata.type === "wallet_deposit") {
-      // Aucune modification wallet — on log seulement
+      // Aucune modification wallet - on log seulement
       console.warn("[webhook/fedapay] Dépôt wallet échoué, fedapayId:", fedapayId)
     } else {
       // Ancien flux : marque la transaction mission comme échouée
@@ -175,6 +175,6 @@ export async function POST(request) {
     }
   }
 
-  // Toujours 200 — FedaPay ne doit pas retenter
+  // Toujours 200 - FedaPay ne doit pas retenter
   return new Response("OK", { status: 200 })
 }

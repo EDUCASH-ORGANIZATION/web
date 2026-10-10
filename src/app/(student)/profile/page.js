@@ -12,7 +12,7 @@ import { logout } from "@/lib/actions/auth.actions"
 import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 import { missionTypeLabel } from "@/lib/constants/missions"
 
-export const metadata = { title: "Mon profil — EduCash" }
+export const metadata = { title: "Mon profil - EduCash" }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -209,7 +209,7 @@ export default async function StudentProfilePage() {
               <div>
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Note globale</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xl font-black text-gray-900">{rating > 0 ? rating.toFixed(1) : "—"}</span>
+                  <span className="text-xl font-black text-gray-900">{rating > 0 ? rating.toFixed(1) : "-"}</span>
                   <StarRow rating={rating} size={14} />
                 </div>
               </div>

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { ReviewForm } from "@/components/review/review-form"
 
-export const metadata = { title: "Laisser un avis — EduCash" }
+export const metadata = { title: "Laisser un avis - EduCash" }
 
 // ─── Server Action ─────────────────────────────────────────────────────────────
 

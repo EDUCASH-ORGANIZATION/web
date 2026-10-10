@@ -13,7 +13,7 @@ export async function generateMetadata({ params }) {
   const { id } = await params
   const supabase = await createClient()
   const { data } = await supabase.from("missions").select("title").eq("id", id).single()
-  return { title: data ? `${data.title} — EduCash` : "Mission — EduCash" }
+  return { title: data ? `${data.title} - EduCash` : "Mission - EduCash" }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

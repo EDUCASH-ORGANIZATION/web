@@ -94,7 +94,7 @@ export function CardUploadForm({ hasCard }) {
 
       const { data: urlData } = supabase.storage.from("student-cards").getPublicUrl(fileName)
 
-      // Sauvegarder l'URL via Server Action (uniquement une string — pas de fichier)
+      // Sauvegarder l'URL via Server Action (uniquement une string - pas de fichier)
       const result = await saveStudentCardUrl(urlData.publicUrl)
 
       if (result?.error) {
@@ -181,7 +181,7 @@ export function CardUploadForm({ hasCard }) {
               </p>
             </div>
             <p className="text-[11px] text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-              JPG, PNG, WEBP ou PDF — 5 Mo max
+              JPG, PNG, WEBP ou PDF - 5 Mo max
             </p>
           </>
         )}

@@ -3,10 +3,10 @@ import { Check } from "lucide-react"
 // ─── Tables de tailles ────────────────────────────────────────────────────────
 
 const sizeClasses = {
-  sm: "w-8 h-8",       // 32px — sidebar, listes compactes
-  md: "w-12 h-12",     // 48px — cartes candidats, conversations
-  lg: "w-20 h-20",     // 80px — pages profil
-  xl: "w-[120px] h-[120px]", // 120px — header profil public
+  sm: "w-8 h-8",       // 32px - sidebar, listes compactes
+  md: "w-12 h-12",     // 48px - cartes candidats, conversations
+  lg: "w-20 h-20",     // 80px - pages profil
+  xl: "w-[120px] h-[120px]", // 120px - header profil public
 }
 
 const textSizeClasses = {

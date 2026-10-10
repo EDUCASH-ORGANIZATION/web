@@ -8,7 +8,7 @@ import {
 } from "@/lib/supabase/database.constants"
 
 // Extrait le vrai message d'erreur depuis une FunctionsHttpError.
-// error.context est le fetch Response brut — on lit via .text() pour éviter
+// error.context est le fetch Response brut - on lit via .text() pour éviter
 // les échecs silencieux de .json() quand Content-Type est absent ou le body vide.
 async function readFnError(error, fallback) {
   try {

@@ -54,7 +54,7 @@ export function ClientHeader({ profile }) {
         Nouvelle mission
       </Link>
 
-      {/* Icônes actions — cachées sur mobile (accès via BottomNav) */}
+      {/* Icônes actions - cachées sur mobile (accès via BottomNav) */}
       <div className="hidden sm:flex items-center gap-1">
         <Link
           href="/client/notifications"

@@ -45,7 +45,7 @@ function ApplicationCard({ application }) {
   return (
     <div className="relative bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col gap-3">
 
-      {/* Badge statut — coin supérieur droit */}
+      {/* Badge statut - coin supérieur droit */}
       <div className="absolute top-4 right-4">
         <Badge status={status} />
       </div>
@@ -119,7 +119,7 @@ const EMPTY_STATES = {
   accepted: {
     icon: CheckCircle,
     title: "Aucune candidature acceptée",
-    message: "Continue à postuler — une opportunité t'attend !",
+    message: "Continue à postuler - une opportunité t'attend !",
     href: "/student/missions",
     ctaLabel: "Voir les missions",
   },

@@ -39,7 +39,7 @@ const TYPE_BADGE = {
 }
 
 /**
- * Carte de mission — composant le plus affiché de l'app.
+ * Carte de mission - composant le plus affiché de l'app.
  *
  * @param {{
  *   mission: import('@/lib/supabase/database.constants').Mission,
@@ -103,7 +103,7 @@ export function MissionCard({ mission, showApplyButton = false, isApplied = fals
         </div>
       </div>
 
-      {/* Bouton Postuler — séparé du corps par une ligne */}
+      {/* Bouton Postuler - séparé du corps par une ligne */}
       {showApplyButton && (
         isApplied ? (
           <div className="border-t border-gray-100 px-5 py-3 flex items-center justify-center gap-1.5 text-sm font-medium text-gray-400 bg-gray-50">

@@ -11,7 +11,7 @@ function formatBudget(n) {
 }
 
 /**
- * Sidebar de candidature (desktop) — inline dans la page mission.
+ * Sidebar de candidature (desktop) - inline dans la page mission.
  *
  * @param {{
  *   missionId: string,

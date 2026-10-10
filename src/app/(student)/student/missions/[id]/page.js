@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { StudentApplyForm } from "@/components/missions/student-apply-form"
 import { missionTypeLabel } from "@/lib/constants/missions"
 
-export const metadata = { title: "Détail mission — EduCash" }
+export const metadata = { title: "Détail mission - EduCash" }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

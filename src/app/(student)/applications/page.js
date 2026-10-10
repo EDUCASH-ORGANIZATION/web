@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { getStudentApplications } from "@/lib/actions/application.actions"
 import { ApplicationsTabs } from "@/components/student/applications-tabs"
 
-export const metadata = { title: "Mes candidatures — EduCash" }
+export const metadata = { title: "Mes candidatures - EduCash" }
 
 export default async function ApplicationsPage() {
   const user = await getCurrentUser()

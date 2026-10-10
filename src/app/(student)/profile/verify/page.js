@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { CardUploadForm } from "@/components/profile/card-upload-form"
 
-export const metadata = { title: "Vérification du compte — EduCash" }
+export const metadata = { title: "Vérification du compte - EduCash" }
 
 export default async function ProfileVerifyPage() {
   const user = await getCurrentUser()

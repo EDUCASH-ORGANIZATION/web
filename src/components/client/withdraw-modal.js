@@ -63,7 +63,7 @@ export function WithdrawModal({ isOpen, onClose, available = 0, onSuccess }) {
       return
     }
 
-    onSuccess?.("Retrait initié — virement sous 24h")
+    onSuccess?.("Retrait initié - virement sous 24h")
     onClose()
   }
 

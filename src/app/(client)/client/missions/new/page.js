@@ -9,7 +9,7 @@ import { paymentsEnabled } from "@/lib/constants/payments"
 import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
 import { parsePublishPrefill, publishHref } from "@/lib/utils/publish-prefill"
 
-export const metadata = { title: "Nouvelle mission — EduCash" }
+export const metadata = { title: "Nouvelle mission - EduCash" }
 
 export default async function NewMissionPage({ searchParams }) {
   const user = await getCurrentUser()

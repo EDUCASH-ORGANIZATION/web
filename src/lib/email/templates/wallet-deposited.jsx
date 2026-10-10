@@ -23,7 +23,7 @@ export default function WalletDeposited({
           <Text style={text}>Bonjour {firstName},</Text>
 
           <Text style={text}>
-            Votre wallet EduCash a bien été crédité.
+            Votre portefeuille EduCash a bien été crédité.
           </Text>
 
           <Section style={amountBlock}>

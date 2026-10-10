@@ -11,7 +11,7 @@ import { WalletClientShell } from "@/components/client/wallet-shell"
 import { paymentsEnabled } from "@/lib/constants/payments"
 import { ResumePublishLink } from "@/components/client/resume-publish-link"
 
-export const metadata = { title: "Mon Wallet — EduCash" }
+export const metadata = { title: "Mon portefeuille - EduCash" }
 
 export default async function ClientWalletPage({ searchParams }) {
   const user = await getCurrentUser()
@@ -29,7 +29,7 @@ export default async function ClientWalletPage({ searchParams }) {
     { data: activeMissions },
   ] = await Promise.all([
     getWallet(user.id),
-    getWalletTransactions(user.id, 100), // on charge 100 — le filtre est côté client
+    getWalletTransactions(user.id, 100), // on charge 100 - le filtre est côté client
     getWalletStats(user.id),
     supabase
       .from("missions")
@@ -55,7 +55,7 @@ export default async function ClientWalletPage({ searchParams }) {
       {/* ── Header ────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl lg:text-2xl font-black text-gray-900">Mon Wallet</h1>
+          <h1 className="text-xl lg:text-2xl font-black text-gray-900">Mon portefeuille</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Gérez vos fonds et suivez vos mouvements
           </p>
@@ -69,7 +69,7 @@ export default async function ClientWalletPage({ searchParams }) {
       {/* Notification retour FedaPay */}
       {depositStatus === "cancelled" && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 font-medium">
-          Le paiement a été annulé. Votre wallet n&apos;a pas été modifié.
+          Le paiement a été annulé. Votre portefeuille n&apos;a pas été modifié.
         </div>
       )}
 
