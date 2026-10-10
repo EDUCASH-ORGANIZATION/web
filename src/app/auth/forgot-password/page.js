@@ -1,10 +1,10 @@
-import { LoginForm } from "@/components/auth/login-form"
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form"
 import { AuthShell, BRAND_PANELS } from "@/components/vitrine/auth-shell"
-import { audienceFor } from "@/lib/auth/destinations"
+import { audienceFor, loginHref } from "@/lib/auth/destinations"
 import { isNextAllowedForRole, safeNextPath } from "@/lib/utils/safe-next"
 
 export const metadata = {
-  title: "Connexion",
+  title: "Mot de passe oublié",
 }
 
 function first(value) {
@@ -19,20 +19,23 @@ function knownRole(role, next) {
   return null
 }
 
-export default async function LoginPage({ searchParams }) {
+export default async function ForgotPasswordPage({ searchParams }) {
   const params = await searchParams
   const next = safeNextPath(first(params.next))
   const role = knownRole(first(params.role), next)
 
-  const forgot = new URLSearchParams()
-  if (role === "student") forgot.set("role", "student")
-  if (next) forgot.set("next", next)
-  const forgotHref = `/auth/forgot-password${forgot.size ? `?${forgot}` : ""}`
+  const base = loginHref({ next })
+  const backHref = role === "student" ? `${base}${base.includes("?") ? "&" : "?"}role=student` : base
 
   // Public inconnu : panneau bleu avec le texte vouvoyé des clients.
   return (
-    <AuthShell audience={role === "client" ? "client" : "student"} brand={role ? undefined : BRAND_PANELS.client}>
-      <LoginForm role={role} next={next} forgotHref={forgotHref} />
+    <AuthShell
+      audience={role === "client" ? "client" : "student"}
+      brand={role ? undefined : BRAND_PANELS.client}
+      backHref={backHref}
+      backLabel="Retour à la connexion"
+    >
+      <ForgotPasswordForm role={role} loginHref={backHref} />
     </AuthShell>
   )
 }
