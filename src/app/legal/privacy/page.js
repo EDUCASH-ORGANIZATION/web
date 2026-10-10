@@ -42,7 +42,7 @@ export default function PrivacyPage() {
           <li><strong>Données de profil :</strong> ville, numéro de téléphone, photo de profil, biographie</li>
           <li><strong>Données académiques (étudiants) :</strong> établissement, niveau d’études, carte étudiante</li>
           <li><strong>Formulaire de contact :</strong> nom, adresse email, sujet et message</li>
-          <li><strong>Données de paiement :</strong> historique des transactions (traité par FedaPay)</li>
+          <li><strong>Données de paiement :</strong> historique des transactions (traité par notre prestataire de paiement agréé)</li>
           <li><strong>Données de navigation :</strong> adresse IP, logs d’accès, cookies</li>
         </ul>
       </LegalSection>
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           <li>Créer et gérer votre compte utilisateur</li>
           <li>Mettre en relation étudiants et clients</li>
           <li>Vérifier le statut étudiant et prévenir la fraude</li>
-          <li>Traiter les paiements via FedaPay</li>
+          <li>Traiter les paiements via notre prestataire de paiement agréé</li>
           <li>Répondre aux demandes envoyées via le formulaire de contact, transmises par notre prestataire d’email Resend</li>
           <li>Vous envoyer des notifications relatives à votre compte et vos missions</li>
           <li>Améliorer nos services et analyser l’usage de la plateforme</li>
@@ -73,7 +73,7 @@ export default function PrivacyPage() {
       <LegalSection {...SECTIONS.partage_des_donnees}>
         <p>Vos données peuvent être partagées avec :</p>
         <ul>
-          <li><strong>FedaPay :</strong> traitement des paiements</li>
+          <li><strong>Prestataire de paiement agréé :</strong> traitement des paiements</li>
           <li><strong>Supabase :</strong> hébergement des données (serveurs UE)</li>
           <li><strong>Resend :</strong> envoi d’emails transactionnels</li>
         </ul>

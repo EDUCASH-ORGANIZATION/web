@@ -830,12 +830,10 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .photo-ph { border-radius: var(--r-l); background: var(--c-citron); border: var(--b-encre); position: relative; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
 .photo-ph__note { position: absolute; left: 12px; right: 12px; top: 12px; border: 2px dashed rgba(14,15,26,.55); border-radius: var(--r-s); padding: 8px 10px; font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: .06em; text-transform: uppercase; background: rgba(255,255,255,.55); }
 
-/* Partenaires de paiement : vrais logos MTN et Moov (OperatorLogo), pastille typographique pour FedaPay */
+/* Partenaires de paiement : vrais logos MTN, Moov et Celtiis (OperatorLogo) */
 .payer { display: inline-flex; align-items: center; gap: 8px; font-weight: var(--fw-xbold); font-size: var(--t-body-s); }
 .payer__mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 9px; font-weight: var(--fw-black); flex: none; }
 .payer__logo { height: 36px; width: auto; object-fit: contain; flex: none; display: block; }
-.payer--fedapay .payer__mark { background: var(--c-encre); color: var(--c-blanc); }
-.site-footer .payer--fedapay .payer__mark { background: var(--c-blanc); color: var(--c-encre); }
 
 /* =====================================================================
    14. TABLEAU DE BORD : BENTO, MINI GRAPHIQUES, LISTE + DÉTAIL,
@@ -1308,7 +1306,6 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .v06-pay .payer__mark { width: 44px; height: 44px; font-size: 12px; }
 .v06-pay .payer__logo { height: 52px; }
 .v06-band .payer { color: var(--c-blanc); }
-.v06-band .payer--fedapay .payer__mark { background: var(--c-blanc); color: var(--c-encre); }
 /* mobile */
 .v06-m .v06-head { padding-top: 130px !important; }
 .v06-m .v06-head { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); border-width: 0 0 2px; padding: var(--s-8) var(--s-4); min-height: 0; }
@@ -1830,3 +1827,29 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .t-on-bleu { color: var(--c-blanc); }
 .t-on-bleu .caption { color: var(--c-blanc); font-weight: var(--fw-semibold); }
 .t-on-bleu .banner { color: var(--c-encre); }
+
+/* RD-POS-01 : repositionnement vitrine (en-tete, hero client, services, /etudiants). */
+.site-header__student { display: inline-flex; align-items: center; gap: var(--s-2); font-weight: var(--fw-bold); font-size: var(--t-body-s); padding: 0 10px; white-space: nowrap; }
+.site-header__student:hover, .site-header__student.is-active { text-decoration: underline; text-underline-offset: 4px; }
+.site-header__student:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: var(--r-pill); }
+.site-header--bleu .site-header__student:focus-visible { box-shadow: var(--sh-focus-sombre); }
+
+.site-menu__links a.site-menu__switch { font-family: var(--f-text); text-transform: none; font-size: var(--t-body); font-weight: var(--fw-bold); line-height: var(--lh-body); padding: var(--s-4) 0; border-bottom: 0; }
+
+/* Portrait client : le visage occupe le haut de l'aplat. La notification descend sous le visage et la carte
+   se cale en bas, comme sur la maquette V01 v3. */
+.v-hero__visual--client .v-hero__push { top: 360px; }
+.v-hero__visual--client .v-hero__card { bottom: 24px; }
+.v-hero__card .badge { white-space: normal; height: auto; align-self: flex-start; text-align: left; }
+/* Lien vers /etudiants : texte blanc sur le bleu, sans retrait. */
+.v-hero__student { color: var(--c-blanc); padding: var(--s-2) 0; height: auto; min-height: 44px; white-space: normal; text-align: left; }
+
+/* Grille de services a 8 cartes (7 + « Autre besoin »), 3 colonnes au-dessus de 1024 px :
+   Marche et achats sur 2 lignes a gauche, 4 cartes a droite, puis Traduction + Demarches (double),
+   puis « Autre besoin » sur toute la largeur. Aucun trou. */
+.v-cat--double { grid-column: span 2; }
+.v-cat--wide { grid-column: 1 / -1; }
+
+/* Retrait et verification (/etudiants) : deux cartes cote a cote, une colonne sous 768 px. */
+.v-etu-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
+.v-etu-duo > .card { align-content: start; }

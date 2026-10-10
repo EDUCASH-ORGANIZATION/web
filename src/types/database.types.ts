@@ -10,6 +10,7 @@ export type MissionType =
   | "Community Management"
   | "Traduction"
   | "Cours particuliers"
+  | "Démarches"
   | "Autre"
 export type City = "Cotonou" | "Porto-Novo" | "Abomey-Calavi"
 

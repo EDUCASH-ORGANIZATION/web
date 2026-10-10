@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { logout } from "@/lib/actions/auth.actions"
 import { VerifiedAvatar } from "@/components/shared/verified-avatar"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 export const metadata = { title: "Mon profil — EduCash" }
 
@@ -254,7 +255,7 @@ export default async function StudentProfilePage() {
                     key={skill}
                     className="bg-gray-100 text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-semibold"
                   >
-                    {skill}
+                    {missionTypeLabel(skill)}
                   </span>
                 ))}
               </div>

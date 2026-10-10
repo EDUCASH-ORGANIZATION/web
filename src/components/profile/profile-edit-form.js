@@ -6,6 +6,7 @@ import { Camera, Loader2, Check } from "lucide-react"
 import { updateStudentProfile } from "@/lib/actions/profile.actions"
 import { useSupabase } from "@/components/shared/supabase-provider"
 import { CITIES } from "@/lib/supabase/database.constants"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 const STUDY_LEVELS = [
   "Licence 1", "Licence 2", "Licence 3",
@@ -14,7 +15,7 @@ const STUDY_LEVELS = [
 
 const SKILLS_LIST = [
   "Babysitting", "Livraison", "Saisie",
-  "Community Management", "Traduction", "Cours particuliers",
+  "Community Management", "Traduction", "Cours particuliers", "Démarches",
   "Mathématiques", "Physique-Chimie", "Informatique", "Rédaction Web",
   "Microsoft Excel", "AutoCAD", "Comptabilité", "Marketing", "Autre",
 ]
@@ -292,7 +293,7 @@ export function ProfileEditForm({ profile, studentProfile }) {
                 }`}
               >
                 {selected && <Check size={11} />}
-                {skill}
+                {missionTypeLabel(skill)}
               </button>
             )
           })}

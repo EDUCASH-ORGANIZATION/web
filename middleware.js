@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
 import { matchesRoutePrefix } from "@/lib/utils/route-match"
+import { safeNextPath } from "@/lib/utils/safe-next"
 
 // Pages /auth/* accessibles même si l'utilisateur est déjà connecté
 // (complétion de profil post-inscription, callback OAuth/email)
@@ -10,7 +11,25 @@ const AUTH_OPEN_WHEN_LOGGED_IN = [
   "/auth/callback",
 ]
 
+// Redirection vers le login en gardant la requête dans `next` (ex. pré-remplissage
+// de la publication). safeNextPath évite toute redirection ouverte ; au-delà de la
+// limite de longueur, on retombe sur le chemin seul.
+function loginRedirect(request) {
+  const { pathname, search } = request.nextUrl
+  const loginUrl = new URL("/auth/login", request.url)
+  loginUrl.searchParams.set("next", safeNextPath(pathname + search) ?? pathname)
+  return NextResponse.redirect(loginUrl)
+}
+
 export async function middleware(request) {
+  // /clients n'existe plus : les liens déjà partagés arrivent sur l'accueil (requête conservée).
+  // Placé avant l'appel Supabase : aucune session à rafraîchir pour une redirection publique.
+  if (request.nextUrl.pathname === "/clients") {
+    const home = new URL("/", request.url)
+    home.search = request.nextUrl.search
+    return NextResponse.redirect(home, 308)
+  }
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -67,9 +86,7 @@ export async function middleware(request) {
   const STUDENT_ONLY = ["/dashboard", "/applications", "/messages", "/profile", "/student"]
   if (STUDENT_ONLY.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     if (!user) {
-      const loginUrl = new URL("/auth/login", request.url)
-      loginUrl.searchParams.set("next", pathname)
-      return NextResponse.redirect(loginUrl)
+      return loginRedirect(request)
     }
     const role = user.user_metadata?.role ?? "student"
     if (role !== "student") {
@@ -85,9 +102,7 @@ export async function middleware(request) {
   // ── Routes /admin/* ────────────────────────────────────────────────────────
   if (pathname.startsWith("/admin")) {
     if (!user) {
-      const loginUrl = new URL("/auth/login", request.url)
-      loginUrl.searchParams.set("next", pathname)
-      return NextResponse.redirect(loginUrl)
+      return loginRedirect(request)
     }
     const role = user.user_metadata?.role ?? "student"
     if (role !== "admin") {
@@ -107,9 +122,7 @@ export async function middleware(request) {
     if (matchesRoutePrefix(pathname, prefix)) {
       // Non connecté → login
       if (!user) {
-        const loginUrl = new URL("/auth/login", request.url)
-        loginUrl.searchParams.set("next", pathname)
-        return NextResponse.redirect(loginUrl)
+        return loginRedirect(request)
       }
 
       // Mauvais rôle → son propre dashboard

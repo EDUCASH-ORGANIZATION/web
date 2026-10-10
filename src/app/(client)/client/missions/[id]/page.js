@@ -7,6 +7,7 @@ import {
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { createClient } from "@/lib/supabase/server"
 import { MissionDetailTabs } from "@/components/client/mission-detail-tabs"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 export async function generateMetadata({ params }) {
   const { id } = await params
@@ -148,7 +149,7 @@ export default async function ClientMissionDetailPage({ params }) {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex flex-wrap gap-2">
             <span className={`text-[11px] font-black uppercase tracking-wide px-2.5 py-1 rounded-lg ${typeColor}`}>
-              {mission.type}
+              {missionTypeLabel(mission.type)}
             </span>
             <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg ${urgency.cls}`}>
               {urgency.label}
@@ -246,7 +247,7 @@ export default async function ClientMissionDetailPage({ params }) {
               </div>
 
               {[
-                { label: "Type",    value: mission.type },
+                { label: "Type",    value: missionTypeLabel(mission.type) },
                 { label: "Ville",   value: mission.city },
                 { label: "Budget",  value: `${fmt(mission.budget)} FCFA`, highlight: true },
                 { label: "Urgence", value: urgency.label },

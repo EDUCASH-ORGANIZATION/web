@@ -37,6 +37,10 @@ describe("cohérence des listes", () => {
       expect(new Set(list).size).toBe(list.length)
     }
   })
+  it("MISSION_TYPES contient Démarches une seule fois, avant Autre", () => {
+    expect(MISSION_TYPES.filter((t) => t === "Démarches")).toHaveLength(1)
+    expect(MISSION_TYPES.indexOf("Démarches")).toBe(MISSION_TYPES.indexOf("Autre") - 1)
+  })
   it("BUDGET_RANGES : ids uniques, min < max, tranches contiguës, dernière ouverte", () => {
     expect(new Set(BUDGET_RANGES.map((r) => r.id)).size).toBe(BUDGET_RANGES.length)
     BUDGET_RANGES.forEach((r, i) => {

@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
-import { netAmount } from "@/lib/constants/missions"
+import { netAmount, missionTypeLabel } from "@/lib/constants/missions"
 import { fmtInt } from "@/lib/vitrine/format"
 import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 
@@ -40,7 +40,7 @@ export function MissionCard({ mission }) {
       <div className="mission__top">
         <span className="mission__cat">
           <span className="ic-sq ic-sq--sm"><Icon name={typeIcon} className="ic" /></span>
-          {mission.type}
+          {missionTypeLabel(mission.type)}
         </span>
         {isUrgent ? (
           <span className="badge badge--contour badge--sm"><Icon name="i-zap" className="ic" />Urgent</span>

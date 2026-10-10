@@ -16,6 +16,7 @@ import { Stack } from "@/components/vitrine/stack"
 import { useToast } from "@/components/shared/toaster"
 import { useSupabase } from "@/components/shared/supabase-provider"
 import { CITIES, MISSION_TYPES } from "@/lib/supabase/database.constants"
+import { missionTypeLabel } from "@/lib/constants/missions"
 import { getUniversities } from "@/lib/actions/university.actions"
 import { COUNTRY_CODES, parsePhone, formatPhone, normalizeBeninPhone, validatePhone } from "@/lib/utils/phone"
 import { CardUploadZone } from "@/components/auth/card-upload-zone"
@@ -342,7 +343,7 @@ function Step2({ step1Data, onBack }) {
           {MISSION_TYPES.map((skill) => {
             const active = skills.includes(skill)
             return (
-              <Chip key={skill} label={skill} clickable onClick={() => toggleSkill(skill)}
+              <Chip key={skill} label={missionTypeLabel(skill)} clickable onClick={() => toggleSkill(skill)}
                 variant={active ? "filled" : "outlined"}
                 sx={active
                   ? { bgcolor: BRAND.green, color: "#fff", fontWeight: 700, "&:hover": { bgcolor: BRAND.greenDark } }

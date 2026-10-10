@@ -72,7 +72,7 @@ export async function initiatePayment({ missionId }) {
     console.error("Edge function error:", fnError, fnData)
     // Nettoie la transaction pending si l'Edge Function échoue
     await supabase.from("transactions").delete().eq("id", transaction.id)
-    return { error: fnData?.error || "Erreur lors de la création du paiement FedaPay." }
+    return { error: fnData?.error || "Erreur lors de la création du paiement." }
   }
 
   // 4. Met à jour la transaction avec l'id FedaPay

@@ -2,6 +2,7 @@
 
 import { MapPin, Clock } from "lucide-react"
 import clsx from "clsx"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 /**
  * Timestamp relatif depuis une date ISO.
@@ -53,7 +54,7 @@ export function MissionCard({ mission, showApplyButton = false, isApplied = fals
   // Badge principal : urgence si high, sinon type
   const urgency = URGENCY_BADGE[mission.urgency]
   const showUrgencyBadge = mission.urgency === "high"
-  const badgeLabel = showUrgencyBadge ? urgency.label : mission.type
+  const badgeLabel = showUrgencyBadge ? urgency.label : missionTypeLabel(mission.type)
   const badgeClass = showUrgencyBadge
     ? urgency.className
     : (TYPE_BADGE[mission.type] ?? "bg-gray-100 text-gray-600")

@@ -129,7 +129,7 @@ export default async function PaymentPage({ params }) {
         {/* Note sécurité */}
         <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-gray-400">
           <ShieldCheck size={13} />
-          <span>Paiement sécurisé via FedaPay · Mobile Money accepté</span>
+          <span>Paiement sécurisé par un prestataire agréé · Mobile Money accepté</span>
         </div>
 
       </div>

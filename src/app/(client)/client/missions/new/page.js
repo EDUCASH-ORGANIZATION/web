@@ -5,12 +5,15 @@ import { getWallet } from "@/lib/actions/wallet.actions"
 import { NewMissionForm } from "@/components/client/new-mission-form"
 import { WalletRequiredGate } from "@/components/client/wallet-required-gate"
 import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
+import { parsePublishPrefill } from "@/lib/utils/publish-prefill"
 
 export const metadata = { title: "Nouvelle mission — EduCash" }
 
-export default async function NewMissionPage() {
+export default async function NewMissionPage({ searchParams }) {
   const user = await getCurrentUser()
   if (!user) redirect("/auth/login")
+
+  const initial = parsePublishPrefill(await searchParams)
 
   const supabase = await createClient()
 
@@ -35,7 +38,7 @@ export default async function NewMissionPage() {
 
   return (
     <div className="p-6 lg:p-8 min-h-screen">
-      <NewMissionForm profile={profile} walletAvailable={available} />
+      <NewMissionForm profile={profile} walletAvailable={available} initial={initial} />
     </div>
   )
 }

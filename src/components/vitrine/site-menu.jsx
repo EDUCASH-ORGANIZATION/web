@@ -4,10 +4,15 @@ import { useRef } from "react"
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { useModalFocus } from "@/hooks/use-modal-focus"
+import { COMMISSION_RATE } from "@/lib/constants/missions"
 import { AnchorLink } from "./shared/hash-scroll"
 
+const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100)
+
 // Menu plein écran mobile de la vitrine (design system Direction A, maquette V01).
-export function SiteMenu({ id, links, isActive, session, onClose, returnFocusRef }) {
+// audience : « clients » ou « etudiants », qui choisit le bouton accent et la phrase de pied.
+export function SiteMenu({ id, links, isActive, session, audience, publishHref, onClose, returnFocusRef }) {
+  const forStudents = audience === "etudiants"
   const ref = useRef(null)
   const closeRef = useRef(null)
   const { user, fullName, spaceHref, signOut } = session
@@ -40,13 +45,13 @@ export function SiteMenu({ id, links, isActive, session, onClose, returnFocusRef
         </p>
       ) : null}
       <nav className="site-menu__links" aria-label="Navigation du menu">
-        {links.map(({ label, href }) => {
+        {links.map(({ label, href, switchAudience }) => {
           const active = isActive(href)
           return (
             <AnchorLink
               key={label}
               href={href}
-              className={active ? "is-active" : undefined}
+              className={[active ? "is-active" : "", switchAudience ? "site-menu__switch" : ""].filter(Boolean).join(" ") || undefined}
               aria-current={active ? "page" : undefined}
               onClick={onClose}
             >
@@ -70,10 +75,20 @@ export function SiteMenu({ id, links, isActive, session, onClose, returnFocusRef
           </>
         ) : (
           <>
-            <span className="body-s">Gratuit pour les étudiants. 12 % de commission, rien d&rsquo;autre.</span>
-            <Link className="btn btn--accent btn--block" href="/auth/register?role=student" onClick={onClose}>
-              Créer mon compte
-            </Link>
+            <span className="body-s">
+              {forStudents
+                ? `Gratuit pour les étudiants. ${COMMISSION_PERCENT} % de commission, rien d’autre.`
+                : `Commission unique de ${COMMISSION_PERCENT} %, incluse dans le budget.`}
+            </span>
+            {forStudents ? (
+              <Link className="btn btn--accent btn--block" href="/auth/register?role=student" onClick={onClose}>
+                Créer mon compte
+              </Link>
+            ) : (
+              <Link className="btn btn--accent btn--block" href={publishHref} onClick={onClose}>
+                Publier une mission
+              </Link>
+            )}
             <Link className="btn btn--secondary btn--block" href="/auth/login" onClick={onClose}>
               Se connecter
             </Link>

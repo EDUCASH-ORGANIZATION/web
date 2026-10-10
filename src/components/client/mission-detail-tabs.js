@@ -15,6 +15,7 @@ import { acceptApplication, rejectApplication } from "@/lib/actions/application.
 import { updateMissionStatus } from "@/lib/actions/mission.actions"
 import { useToast } from "@/components/shared/toaster"
 import { ConfirmMissionModal } from "@/components/client/confirm-mission-modal"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -211,7 +212,7 @@ function CandidateCard({ application, missionId, onStatusChange }) {
           <div className="flex flex-wrap gap-1.5">
             {skills.map((skill) => (
               <span key={skill} className="px-2.5 py-1 rounded-lg bg-[#f0faf5] text-[#1A6B4A] text-[10px] font-bold">
-                {skill}
+                {missionTypeLabel(skill)}
               </span>
             ))}
           </div>

@@ -11,7 +11,7 @@ const WAITING_POINTS = [
   { icon: "i-smartphone", tone: " ic-sq--encre", label: "MoMo enregistré" },
 ]
 
-function Empty() {
+function Empty({ cta }) {
   return (
     <div className="v01-empty">
       <div>
@@ -24,8 +24,8 @@ function Empty() {
           mission tombe près de chez toi.
         </p>
         <div className="row ds-mt-6 ds-gap-4">
-          <Link className="btn btn--primary btn--lg" href="/auth/register?role=student">
-            Créer mon compte
+          <Link className="btn btn--primary btn--lg" href={cta.href}>
+            {cta.label}
             <span className="btn__dot"><Icon name="i-arrow-right" /></span>
           </Link>
           <AnchorLink className="btn btn--ghost" href="/#etapes">Comment ça marche</AnchorLink>
@@ -46,8 +46,8 @@ function Empty() {
   )
 }
 
-// Aperçu des dernières missions ouvertes (maquette V01), avec états vide et erreur.
-export function HomePreview({ missions, openCount, error }) {
+// Aperçu des dernières missions ouvertes, avec états vide et erreur. `cta` : { href, label } du rôle.
+export function EtudiantsPreview({ missions, openCount, error, cta }) {
   if (error) {
     return (
       <section className="section">
@@ -57,7 +57,7 @@ export function HomePreview({ missions, openCount, error }) {
             title="Les missions n'ont pas pu être chargées"
             text="Le reste de la page fonctionne. Vérifie ta connexion puis réessaie."
             actions={[
-              { href: "/", label: "Réessayer" },
+              { href: "/etudiants", label: "Réessayer" },
               { href: "/missions", label: "Voir toutes les missions", variant: "ghost" },
             ]}
           />
@@ -69,7 +69,7 @@ export function HomePreview({ missions, openCount, error }) {
   if (missions.length === 0) {
     return (
       <section className="section">
-        <Empty />
+        <Empty cta={cta} />
       </section>
     )
   }

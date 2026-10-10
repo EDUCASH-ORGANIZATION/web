@@ -5,19 +5,28 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Icon } from "@/components/design/icon"
 import { useVitrineSession } from "@/hooks/use-vitrine-session"
+import { publishHref as buildPublishHref } from "@/lib/utils/publish-prefill"
 import { SiteMenu } from "./site-menu"
 import { AnchorLink } from "./shared/hash-scroll"
 
 const MENU_ID = "site-menu"
 
-const DESKTOP_LINKS = [
-  { label: "Missions", href: "/missions" },
+const MAIN_LINKS = [
   { label: "Comment ça marche", href: "/#etapes" },
-  { label: "Pour les clients", href: "/clients" },
+  { label: "Services", href: "/#services" },
   { label: "Aide", href: "/aide" },
 ]
 
-const MENU_LINKS = [...DESKTOP_LINKS, { label: "À propos", href: "/about" }, { label: "Contact", href: "/contact" }]
+const CLIENTS_LINK = { label: "Vous avez une mission ?", href: "/" }
+const STUDENTS_PATH = "/etudiants"
+const STUDENT_REGISTER_HREF = "/auth/register?role=student"
+const STUDENT_MISSIONS_HREF = "/student/missions"
+
+// Lien vers l'autre public : les clients voient « Vous êtes étudiant ? », la page /etudiants le pose en « Étudiants ».
+const AUDIENCE_LINKS = {
+  clients: { label: "Vous êtes étudiant ?", href: STUDENTS_PATH },
+  etudiants: { label: "Étudiants", href: STUDENTS_PATH },
+}
 
 // Seuil de défilement (px) au-delà duquel l'en-tête passe en compact.
 const COMPACT_SCROLL_Y = 16
@@ -31,7 +40,6 @@ const getScrolledOnServer = () => false
 
 function isActivePath(pathname, href) {
   if (href.includes("?") || href.includes("#")) return false
-  if (href === "/missions") return pathname === href || pathname.startsWith("/missions/")
   return pathname === href
 }
 
@@ -45,7 +53,8 @@ function isActivePath(pathname, href) {
 // actions on-bleu. Une fois la page défilée, il devient l'en-tête compact blanc standard.
 // Seuil propre à l'en-tête (layouts.css) : sous 1360 px, la navigation passe dans le menu burger et
 // les actions restent visibles ; sous 1024 px, les actions bureau (ds-desk-only) cèdent la place à « S'inscrire ».
-export function VitrineNavbar({ tone = "blanc" }) {
+// audience : « clients » (défaut) ou « etudiants », qui change le lien vers l'autre public et le bouton accent.
+export function VitrineNavbar({ tone = "blanc", audience = "clients" }) {
   const pathname = usePathname()
   const session = useVitrineSession()
   const { user, role, fullName, avatarUrl, initials, spaceHref } = session
@@ -56,8 +65,11 @@ export function VitrineNavbar({ tone = "blanc" }) {
   const closeMenu = useCallback(() => setOpenedOn(null), [])
 
   const isActive = (href) => isActivePath(pathname, href)
-  const publishHref = role === "client" ? "/client/missions/new" : "/auth/register?role=client"
-  const showPublish = !user || role === "client"
+  const forStudents = audience === "etudiants"
+  // Le visiteur non connecté est renvoyé vers la connexion par le middleware, qui conserve la destination.
+  const publishHref = buildPublishHref()
+  const audienceLink = AUDIENCE_LINKS[forStudents ? "etudiants" : "clients"]
+  const audienceActive = isActive(audienceLink.href)
   const scrolled = useSyncExternalStore(subscribeScroll, getScrolled, getScrolledOnServer)
   const bleu = tone === "bleu" && !scrolled
   const accountLabel = fullName ? `Mon espace, compte de ${fullName}` : "Mon espace"
@@ -80,7 +92,7 @@ export function VitrineNavbar({ tone = "blanc" }) {
             />
           </Link>
           <nav className="site-header__nav ds-desk-only" aria-label="Navigation principale">
-            {DESKTOP_LINKS.map(({ label, href }) => {
+            {MAIN_LINKS.map(({ label, href }) => {
               const active = isActive(href)
               return (
                 <AnchorLink
@@ -95,11 +107,25 @@ export function VitrineNavbar({ tone = "blanc" }) {
             })}
           </nav>
           <div className={bleu ? "site-header__actions on-bleu" : "site-header__actions"}>
+            <Link
+              className={audienceActive ? "site-header__student is-active ds-desk-only" : "site-header__student ds-desk-only"}
+              href={audienceLink.href}
+              aria-current={audienceActive ? "page" : undefined}
+            >
+              <Icon name="i-graduation" />
+              {audienceLink.label}
+            </Link>
             {user ? (
               <>
-                {showPublish ? (
+                {role === "client" ? (
                   <Link className="btn btn--accent btn--sm ds-desk-only" href={publishHref}>
                     Publier une mission
+                    <span className="btn__dot"><Icon name="i-arrow-right" /></span>
+                  </Link>
+                ) : null}
+                {role === "student" ? (
+                  <Link className="btn btn--accent btn--sm ds-desk-only" href={STUDENT_MISSIONS_HREF}>
+                    Voir les missions pour moi
                     <span className="btn__dot"><Icon name="i-arrow-right" /></span>
                   </Link>
                 ) : null}
@@ -120,12 +146,23 @@ export function VitrineNavbar({ tone = "blanc" }) {
             ) : (
               <>
                 <Link className="site-header__login ds-desk-only" href="/auth/login">Se connecter</Link>
-                <Link className="btn btn--secondary btn--sm ds-desk-only" href="/auth/register?role=student">Créer un compte</Link>
-                <Link className="btn btn--accent btn--sm ds-desk-only" href={publishHref}>
-                  Publier une mission
-                  <span className="btn__dot"><Icon name="i-arrow-right" /></span>
-                </Link>
-                <Link className="btn btn--primary btn--sm ds-mob-only" href="/auth/register?role=student">S&rsquo;inscrire</Link>
+                {forStudents ? (
+                  <>
+                    <Link className="btn btn--accent btn--sm ds-desk-only" href={STUDENT_REGISTER_HREF}>
+                      Créer mon compte
+                      <span className="btn__dot"><Icon name="i-arrow-right" /></span>
+                    </Link>
+                    <Link className="btn btn--primary btn--sm ds-mob-only" href={STUDENT_REGISTER_HREF}>S&rsquo;inscrire</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link className="btn btn--accent btn--sm ds-desk-only" href={publishHref}>
+                      Publier une mission
+                      <span className="btn__dot"><Icon name="i-arrow-right" /></span>
+                    </Link>
+                    <Link className="btn btn--primary btn--sm ds-mob-only" href={publishHref}>Publier</Link>
+                  </>
+                )}
               </>
             )}
             <button
@@ -145,9 +182,11 @@ export function VitrineNavbar({ tone = "blanc" }) {
       {menuOpen ? (
         <SiteMenu
           id={MENU_ID}
-          links={MENU_LINKS}
+          links={[...MAIN_LINKS, { ...(forStudents ? CLIENTS_LINK : audienceLink), switchAudience: true }]}
           isActive={isActive}
           session={session}
+          audience={audience}
+          publishHref={publishHref}
           onClose={closeMenu}
           returnFocusRef={burgerRef}
         />
