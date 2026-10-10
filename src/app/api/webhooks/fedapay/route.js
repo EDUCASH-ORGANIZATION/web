@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 import { createHmac } from "crypto"
+import { paymentsEnabled } from "@/lib/constants/payments"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -11,15 +12,21 @@ function fmt(n) {
 
 export async function POST(request) {
   // Paiements fermes par defaut : avant toute lecture du corps
-  if (process.env.PAYMENTS_ENABLED !== "true") {
+  if (!paymentsEnabled()) {
     return Response.json({ error: "Paiements désactivés" }, { status: 503 })
+  }
+
+  const webhookSecret = process.env.FEDAPAY_WEBHOOK_SECRET
+  if (!webhookSecret) {
+    console.error("[webhook/fedapay] FEDAPAY_WEBHOOK_SECRET non configuré - webhook désactivé")
+    return new Response("Service Unavailable", { status: 503 })
   }
 
   const payload = await request.text()
   const signature = request.headers.get("x-fedapay-signature")
 
   // Vérifie la signature HMAC-SHA256
-  const expectedSig = createHmac("sha256", process.env.FEDAPAY_WEBHOOK_SECRET)
+  const expectedSig = createHmac("sha256", webhookSecret)
     .update(payload)
     .digest("hex")
 
