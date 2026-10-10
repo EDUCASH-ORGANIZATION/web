@@ -1884,3 +1884,13 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .a-pct-80 { width: 80%; }
 .a-pct-90 { width: 90%; }
 .a-pct-100 { width: 100%; }
+
+/* Invitation à installer l'application (espaces connectés, mobile seulement) */
+.ds-install { display: flex; align-items: flex-start; gap: var(--s-3); margin: var(--s-3) var(--s-4) 0; color: var(--c-encre); }
+.ds-install__icon { margin-top: 2px; }
+.ds-install__body { flex: 1; min-width: 0; }
+.ds-install__title { font-weight: var(--fw-xbold); font-size: var(--t-body-s); }
+.ds-install__text { color: var(--c-ardoise); font-size: var(--t-para); margin-top: var(--s-1); }
+.ds-install__actions { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-3); }
+.ds-install__close { width: 44px; height: 44px; margin: calc(var(--s-3) * -1) calc(var(--s-3) * -1) 0 0; }
+@media (min-width: 1024px) { .ds-install { display: none; } }

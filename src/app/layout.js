@@ -2,7 +2,6 @@ import "./globals.css"
 import { Anton, Figtree, Inter } from "next/font/google"
 import { SupabaseProvider } from "@/components/shared/supabase-provider"
 import { Toaster } from "@/components/shared/toaster"
-import { PwaInstallBannerLoader } from "@/components/shared/pwa-install-banner-loader"
 import { RouteScrollMount } from "@/components/shared/route-scroll-mount"
 
 const anton = Anton({
@@ -75,7 +74,6 @@ export default function RootLayout({ children }) {
           <Toaster>
             <RouteScrollMount />
             {children}
-            <PwaInstallBannerLoader />
           </Toaster>
         </SupabaseProvider>
       </body>

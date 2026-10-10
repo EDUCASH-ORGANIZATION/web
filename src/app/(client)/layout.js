@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { Sidebar } from "@/components/shared/sidebar"
 import { ClientHeader } from "@/components/shared/client-header"
+import { PwaInstallBannerLoader } from "@/components/shared/pwa-install-banner-loader"
 import { BottomNav } from "@/components/shared/bottom-nav"
 
 export default async function ClientLayout({ children }) {
@@ -41,6 +42,7 @@ export default async function ClientLayout({ children }) {
       <div className="flex-1 min-w-0 flex flex-col">
         <ClientHeader profile={profile} />
         <main className="flex-1 pb-20 lg:pb-0 overflow-auto">
+          <PwaInstallBannerLoader space="client" />
           {children}
         </main>
       </div>
