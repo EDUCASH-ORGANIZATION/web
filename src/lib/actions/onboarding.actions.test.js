@@ -226,6 +226,17 @@ describe("completeStudentOnboarding", () => {
     expect(calls.insert).toHaveLength(0)
   })
 
+  it("lecture du profil en échec : save_failed neutre, aucune écriture", async () => {
+    const fake = fakeSupabase({ profile: studentProfile })
+    fake.supabase.from = vi.fn(() => ({
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: { message: "x" } }) }) }),
+    }))
+    vi.mocked(createClient).mockResolvedValue(fake.supabase)
+    expect(await completeStudentOnboarding(studentPayload)).toMatchObject({ ok: false, code: "save_failed" })
+    expect(fake.calls.update).toHaveLength(0)
+    expect(fake.calls.insert).toHaveLength(0)
+  })
+
   it("admin : refusé", async () => {
     const { calls } = use({ profile: { ...studentProfile, role: "admin" } })
     expect(await completeStudentOnboarding(studentPayload)).toMatchObject({ ok: false, code: "wrong_role" })

@@ -1,6 +1,6 @@
-import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { revokeSession } from "@/lib/auth/revoke-session"
 import { getServerRole } from "@/lib/auth/server-role"
 import { linkErrorCause, resolvePostAuth } from "@/lib/auth/destinations"
 import {
@@ -12,17 +12,6 @@ import {
 
 // Types de jeton acceptés pour verifyOtp (liens des gabarits Supabase).
 const OTP_TYPES = ["signup", "recovery", "email"]
-
-// Ferme la session. Si la révocation échoue, les cookies de session Supabase (sb-*) sont supprimés
-// explicitement : un échec ne doit jamais laisser une session ouverte.
-async function revokeSession(supabase) {
-  const { error } = (await supabase.auth.signOut()) ?? {}
-  if (!error) return
-  const store = await cookies()
-  for (const { name } of store.getAll()) {
-    if (name.startsWith("sb-")) store.delete(name)
-  }
-}
 
 /**
  * Traite un lien d'email Supabase : `code` (PKCE, même appareil) ou `token_hash` + `type`

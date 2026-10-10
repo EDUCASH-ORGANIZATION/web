@@ -11,9 +11,10 @@ const auth = {
   getUser: vi.fn(),
 }
 const getServerRole = vi.fn()
+const cookieStore = { getAll: vi.fn(() => []), delete: vi.fn() }
 
 vi.mock("next/navigation", () => ({ redirect: (u) => redirect(u) }))
-vi.mock("next/headers", () => ({ cookies: async () => ({ set: cookieSet }) }))
+vi.mock("next/headers", () => ({ cookies: async () => ({ set: cookieSet, getAll: cookieStore.getAll, delete: cookieStore.delete }) }))
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth }) }))
 vi.mock("@/lib/auth/server-role", () => ({ getServerRole: (...a) => getServerRole(...a) }))
 
@@ -126,6 +127,20 @@ describe("login", () => {
     const r = await login(null, form({ email: "a@exemple.bj", password: "x" }))
     expect(r.code).toBe("unknown")
     expect(auth.signOut).toHaveBeenCalled()
+    expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["compte suspendu", { role: "student", profile: { is_suspended: true }, profileComplete: true }],
+    ["profil illisible", { role: null, profile: null, profileComplete: false, error: { message: "x" } }],
+  ])("%s avec signOut en échec : cookies sb-* supprimés", async (_n, roleResult) => {
+    getServerRole.mockResolvedValue(roleResult)
+    auth.signOut.mockResolvedValue({ error: { message: "fail" } })
+    cookieStore.getAll.mockReturnValue([{ name: "sb-abc-auth-token" }, { name: "ec_pending_email" }])
+    const r = await login(null, form({ email: "a@exemple.bj", password: "x" }))
+    expect(r.formError).toBeTruthy()
+    expect(cookieStore.delete).toHaveBeenCalledWith("sb-abc-auth-token")
+    expect(cookieStore.delete).not.toHaveBeenCalledWith("ec_pending_email")
     expect(redirect).not.toHaveBeenCalled()
   })
 

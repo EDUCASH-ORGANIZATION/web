@@ -114,7 +114,9 @@ async function loadContext(expectedRole, next) {
   } = await supabase.auth.getUser()
   if (!user) return { error: failure(expectedRole, "unauthenticated") }
 
-  const { role, profile, profileComplete } = await getServerRole(supabase, user)
+  const { role, profile, profileComplete, error: roleError } = await getServerRole(supabase, user)
+  // Lecture du profil impossible : refus neutre, jamais d'écriture sans rôle vérifié.
+  if (roleError) return { error: failure(expectedRole, "save_failed") }
   if (role !== expectedRole) return { error: failure(expectedRole, "wrong_role") }
   if (profile?.is_suspended) return { error: failure(expectedRole, "suspended") }
   // L'onboarding ne se rejoue pas : un profil complet ne peut plus être réécrit par cette action.

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { mapAuthError, authErrorMessage } from "@/lib/auth/errors"
 import { makeLoginSchema, makeRegisterSchema, parseFormData } from "@/lib/auth/schemas"
+import { revokeSession } from "@/lib/auth/revoke-session"
 import { getServerRole } from "@/lib/auth/server-role"
 import { PENDING_EMAIL_COOKIE, pendingEmailCookieOptions } from "@/lib/auth/cookies"
 import { formAudience } from "@/lib/auth/form-audience"
@@ -57,12 +58,12 @@ export async function login(_prevState, formData) {
 
   // Lecture du profil impossible : on refuse plutôt que d'accorder un accès sans rôle vérifié.
   if (roleError) {
-    await supabase.auth.signOut()
+    await revokeSession(supabase)
     return { code: "unknown", formError: authErrorMessage("unknown", audience) }
   }
 
   if (profile?.is_suspended) {
-    await supabase.auth.signOut()
+    await revokeSession(supabase)
     return {
       code: "suspended",
       formError: authErrorMessage("suspended", audience),
