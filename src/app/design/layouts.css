@@ -723,7 +723,7 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
 /* Tablette : 2 colonnes. Les cartes simples vont par paires, seules la grande carte et « Autre besoin » prennent
    les deux colonnes (la regle plus haut qui etalait la carte lavande laisserait un trou). */
 @media (max-width: 1023.98px) {
-  .v-cat--double, .v-cat--lavande { grid-column: auto; }
+  .v-cats .v-cat--double, .v-cats .v-cat--lavande { grid-column: auto; }
   .v-cat--wide { grid-column: span 2; }
 }
 

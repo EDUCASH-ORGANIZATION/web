@@ -17,6 +17,14 @@ describe("parsePublishPrefill", () => {
   it("tronque le titre à 80 caractères", () => {
     expect(parsePublishPrefill({ besoin: "a".repeat(200) }).title).toHaveLength(80)
   })
+  it("tronque par points de code sans couper un emoji", () => {
+    const title = parsePublishPrefill({ besoin: "😀".repeat(100) }).title
+    expect(Array.from(title)).toHaveLength(80)
+    expect(title).toBe("😀".repeat(80))
+  })
+  it("retire les caractères de format invisibles", () => {
+    expect(parsePublishPrefill({ besoin: "Ga\u200brde\u200f \u202eli\u202ast" }).title).toBe("Garde list")
+  })
   it("prend le premier élément d'un tableau", () => {
     expect(parsePublishPrefill({ besoin: ["un", "deux"], ville: ["Cotonou", "Porto-Novo"] })).toEqual({
       title: "un",

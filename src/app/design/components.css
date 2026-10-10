@@ -1838,8 +1838,8 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 
 /* Portrait client : le visage occupe le haut de l'aplat. La notification descend sous le visage et la carte
    se cale en bas, comme sur la maquette V01 v3. */
-.v-hero__visual .v-hero__push { top: 360px; }
-.v-hero__visual .v-hero__card { bottom: 24px; }
+.v-hero__visual--client .v-hero__push { top: 360px; }
+.v-hero__visual--client .v-hero__card { bottom: 24px; }
 .v-hero__card .badge { white-space: normal; height: auto; align-self: flex-start; text-align: left; }
 /* Lien vers /etudiants : texte blanc sur le bleu, sans retrait. */
 .v-hero__student { color: var(--c-blanc); padding: var(--s-2) 0; height: auto; min-height: 44px; white-space: normal; text-align: left; }

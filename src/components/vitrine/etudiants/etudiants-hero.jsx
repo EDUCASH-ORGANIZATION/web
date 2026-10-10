@@ -85,7 +85,7 @@ export function EtudiantsHero({ live, openMissions, role }) {
               name="q"
               type="search"
               maxLength={SEARCH_MAX_LENGTH}
-              placeholder="Cours de maths, marché, Excel…"
+              placeholder="Cours, marché, Excel…"
             />
             <span className="search__city">
               <Icon name="i-map-pin" className="ic ic--16" />

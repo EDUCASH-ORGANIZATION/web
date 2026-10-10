@@ -13,7 +13,7 @@ function firstValue(value) {
 }
 
 function clean(value) {
-  return firstValue(value).replace(/[\u0000-\u001f\u007f]/g, "").trim()
+  return firstValue(value).replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e]/g, "").trim()
 }
 
 /**
@@ -27,7 +27,7 @@ export function parsePublishPrefill(searchParams) {
   const city = clean(params.ville)
   const type = clean(params.type)
   return {
-    title: clean(params.besoin).slice(0, TITLE_MAX_LENGTH).trim(),
+    title: Array.from(clean(params.besoin)).slice(0, TITLE_MAX_LENGTH).join("").trim(),
     city: CITIES.includes(city) ? city : "",
     type: MISSION_TYPES.includes(type) ? type : "",
   }

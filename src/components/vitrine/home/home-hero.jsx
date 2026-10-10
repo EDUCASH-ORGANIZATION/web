@@ -15,7 +15,7 @@ const BESOIN_MAX_LENGTH = 80
 const SPRITE = `/sprite.svg?v=${SPRITE_VERSION}`
 
 const CITY_OPTIONS = [
-  { value: "", label: "Toutes les villes" },
+  { value: "", label: "Votre ville" },
   ...CITIES.map((c) => ({ value: c, label: c })),
 ]
 
@@ -26,7 +26,7 @@ function CitySelect({ id }) {
       name="ville"
       variant="bare"
       aria-label="Ville"
-      placeholder="Toutes les villes"
+      placeholder="Votre ville"
       options={CITY_OPTIONS}
       defaultValue=""
     />
@@ -128,7 +128,7 @@ export function HomeHero({ role }) {
           )}
         </div>
 
-        <div className="v-hero__visual" aria-hidden="true">
+        <div className="v-hero__visual v-hero__visual--client" aria-hidden="true">
           <HeroPhoto photo={HERO_PHOTOS.client} priority />
           <div className="push v-hero__push">
             <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={40} height={40} />

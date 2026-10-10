@@ -14,7 +14,7 @@ vi.mock("@/components/design/select", () => ({
 const { HomeHero } = await import("./home-hero")
 
 const html = renderToStaticMarkup(<HomeHero role={null} />)
-const visual = html.slice(html.indexOf('class="v-hero__visual"'))
+const visual = html.slice(html.indexOf('class="v-hero__visual v-hero__visual--client"'))
 
 // Texte visible et attributs de libellé : les valeurs en base des URL (type=Livraison) sont hors périmètre.
 function visibleText(markup) {
