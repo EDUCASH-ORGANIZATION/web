@@ -103,4 +103,10 @@ describe("LoginForm", () => {
     expect(suspended).toContain('href="/contact"')
     expect(suspended).not.toMatch(/\b\d+\s*h\b/)
   })
+
+  it("affiche la bannière de compte suspendu venant de la confirmation d'un lien", () => {
+    const html = renderToStaticMarkup(<LoginForm suspended />)
+    expect(html).toContain("Compte suspendu")
+    expect(html).toContain('href="/contact"')
+  })
 })

@@ -6,6 +6,7 @@ import { login } from "@/lib/actions/auth.actions"
 import { resendSignupConfirmation } from "@/lib/actions/email-confirmation.actions"
 import { makeLoginSchema, parseFormData } from "@/lib/auth/schemas"
 import { registerHref } from "@/lib/auth/destinations"
+import { authErrorMessage } from "@/lib/auth/errors"
 import { CountdownButton } from "@/components/auth/ui/countdown-button"
 import { FieldError } from "@/components/auth/ui/field-error"
 import { FormBanner } from "@/components/auth/ui/form-banner"
@@ -46,10 +47,11 @@ const BANNERS = {
  *   role?: "student" | "client" | null,
  *   next?: string | null,
  *   forgotHref?: string,
+ *   suspended?: boolean,
  * }} props `role` : public connu (student tutoyé, client vouvoyé) ; sans lui, vouvoiement neutre.
  * `student` ajoute le champ caché `audience=student`. `next` est un chemin déjà validé.
  */
-export function LoginForm({ role = null, next = null, forgotHref = "/auth/forgot-password" }) {
+export function LoginForm({ role = null, next = null, forgotHref = "/auth/forgot-password", suspended = false }) {
   const audience = role === "student" ? "student" : "client"
   const copy = COPY[audience]
   const [state, formAction, pending] = useActionState(login, null)
@@ -59,7 +61,9 @@ export function LoginForm({ role = null, next = null, forgotHref = "/auth/forgot
   const formRef = useRef(null)
 
   const errors = clientErrors ?? state?.fieldErrors ?? {}
-  const banner = state?.formError && !clientErrors ? BANNERS[state.code] ?? { tone: "erreur" } : null
+  // Compte suspendu détecté à la confirmation d'un lien : même bannière que la connexion refusée.
+  const shown = state ?? (suspended ? { code: "suspended", formError: authErrorMessage("suspended", audience), contactHref: "/contact" } : null)
+  const banner = shown?.formError && !clientErrors ? BANNERS[shown.code] ?? { tone: "erreur" } : null
 
   function handleSubmit(event) {
     const parsed = parseFormData(makeLoginSchema(audience), new FormData(event.currentTarget))
@@ -99,18 +103,18 @@ export function LoginForm({ role = null, next = null, forgotHref = "/auth/forgot
           icon={banner.icon}
           title={banner.title}
           actions={
-            state.code === "email_not_confirmed" ? (
+            shown.code === "email_not_confirmed" ? (
               resent ? null : (
                 <CountdownButton label="Renvoyer l'email de confirmation" onClick={resend} />
               )
-            ) : state.code === "suspended" && state.contactHref ? (
-              <Link className="link body-s" href={state.contactHref}>
+            ) : shown.code === "suspended" && shown.contactHref ? (
+              <Link className="link body-s" href={shown.contactHref}>
                 Nous contacter
               </Link>
             ) : null
           }
         >
-          {state.formError}
+          {shown.formError}
         </FormBanner>
       )}
       {resent && <FormBanner tone="succes">{copy.resent}</FormBanner>}

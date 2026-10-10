@@ -15,6 +15,7 @@ const OTP_TYPES = ["signup", "recovery", "email"]
 /**
  * Traite un lien d'email Supabase : `code` (PKCE, même appareil) ou `token_hash` + `type`
  * (tout appareil). Utilisé par /auth/confirm et /auth/callback.
+ * - compte suspendu (les deux flux) : signOut puis /auth/login?suspended=1
  * - recovery : cookie ec_recovery puis /auth/reset-password
  * - signup : rôle lu dans profiles, puis onboarding ou next autorisé
  * - erreur : /auth/link-expired?cause=...&flow=...
@@ -52,13 +53,20 @@ export async function handleAuthConfirm(request) {
     return failure(linkErrorCause({ code: result?.error?.code, message: result?.error?.message }))
   }
 
+  // Un compte suspendu ne garde aucune session : pas de cookie de récupération, pas d'onboarding.
+  const serverRole = await getServerRole(supabase, user)
+  if (serverRole.profile?.is_suspended) {
+    await supabase.auth.signOut()
+    return NextResponse.redirect(new URL("/auth/login?suspended=1", origin))
+  }
+
   if (flow === "recovery") {
     const response = NextResponse.redirect(new URL("/auth/reset-password", origin))
     response.cookies.set(RECOVERY_COOKIE, "1", recoveryCookieOptions())
     return response
   }
 
-  const { role, profileComplete } = await getServerRole(supabase, user)
+  const { role, profileComplete } = serverRole
   const destination = resolvePostAuth({
     role,
     profileComplete,

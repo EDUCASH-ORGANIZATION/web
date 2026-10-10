@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-const auth = { exchangeCodeForSession: vi.fn(), verifyOtp: vi.fn() }
+const auth = { exchangeCodeForSession: vi.fn(), verifyOtp: vi.fn(), signOut: vi.fn() }
 const getServerRole = vi.fn()
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth }) }))
@@ -98,7 +98,18 @@ describe("handleAuthConfirm", () => {
     expect(location.pathname).toBe("/auth/reset-password")
     expect(res.headers.get("set-cookie")).toContain("ec_recovery=1")
     expect(res.headers.get("set-cookie")).toMatch(/HttpOnly/i)
-    expect(getServerRole).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["recovery", "flow=recovery&token_hash=h&type=recovery"],
+    ["signup", "flow=signup&code=abc"],
+  ])("compte suspendu (%s) : signOut, aucun cookie ec_recovery, retour à la connexion", async (_flow, query) => {
+    getServerRole.mockResolvedValue({ role: "student", profile: { is_suspended: true }, profileComplete: true })
+    const { res, location } = await run(query)
+    expect(auth.signOut).toHaveBeenCalledTimes(1)
+    expect(location.pathname).toBe("/auth/login")
+    expect(location.searchParams.get("suspended")).toBe("1")
+    expect(res.headers.get("set-cookie") ?? "").not.toContain("ec_recovery=1")
   })
 
   it("recovery en échec : link-expired avec flow=recovery", async () => {

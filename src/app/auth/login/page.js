@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }) {
   // Public inconnu : panneau bleu avec le texte vouvoyé des clients.
   return (
     <AuthShell audience={role === "client" ? "client" : "student"} brand={role ? undefined : BRAND_PANELS.client}>
-      <LoginForm role={role} next={next} forgotHref={forgotHref} />
+      <LoginForm role={role} next={next} forgotHref={forgotHref} suspended={first(params.suspended) === "1"} />
     </AuthShell>
   )
 }
