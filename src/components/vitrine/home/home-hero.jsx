@@ -73,7 +73,7 @@ export function HomeHero({ role }) {
               name="besoin"
               type="text"
               maxLength={BESOIN_MAX_LENGTH}
-              placeholder="De quoi avez-vous besoin&nbsp;? Ex. : le marché samedi"
+              placeholder="De quoi avez-vous besoin&nbsp;?"
             />
             <span className="search__city">
               <Icon name="i-map-pin" className="ic ic--16" />
