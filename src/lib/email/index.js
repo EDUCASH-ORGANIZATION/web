@@ -32,16 +32,16 @@ const TEMPLATES = {
 }
 
 const SUBJECTS = {
-  "welcome-student":        "Bienvenue sur EduCash 🎓",
-  "welcome-verified":       "Votre profil a été vérifié ✓",
+  "welcome-student":        "Bienvenue sur EduCash",
+  "welcome-verified":       "Ton profil a été vérifié",
   "new-application":        "Nouvelle candidature pour votre mission",
-  "application-accepted":   "Bonne nouvelle ! Vous avez été sélectionné(e) 🎉",
+  "application-accepted":   "Bonne nouvelle ! Vous avez été sélectionné(e)",
   "application-rejected":   "Mise à jour de votre candidature",
-  "verification-approved":  "Ton profil EduCash est vérifié ✓",
+  "verification-approved":  "Ton profil EduCash est vérifié",
   "verification-rejected":  "Action requise sur ton dossier EduCash",
-  "verification-expired":   "Ton badge EduCash a expiré — renouvelle-le",
-  "wallet-deposited":           "Votre wallet a été rechargé ✓",
-  "payment-received-wallet":    "Paiement reçu dans votre wallet 💰",
+  "verification-expired":   "Ton badge EduCash a expiré : renouvelle-le",
+  "wallet-deposited":           "Votre portefeuille a été rechargé",
+  "payment-received-wallet":    "Paiement reçu dans votre portefeuille",
   "contact-message":            "Contact EduCash",
 }
 
@@ -56,7 +56,7 @@ const SUBJECTS = {
  */
 export async function sendEmail(template, to, data = {}, options = {}) {
   if (!process.env.RESEND_API_KEY) {
-    console.warn("[email] RESEND_API_KEY manquant — email non envoyé:", template)
+    console.warn("[email] RESEND_API_KEY manquant - email non envoyé:", template)
     return { error: "RESEND_API_KEY non configuré" }
   }
 
@@ -70,11 +70,11 @@ export async function sendEmail(template, to, data = {}, options = {}) {
     template === "contact-message" && options.subject
       ? options.subject
       : template === "payment-received"
-      ? `Paiement reçu : ${data.amount ?? ""} FCFA 💰`
+      ? `Paiement reçu : ${data.amount ?? ""} FCFA`
       : template === "wallet-deposited"
-        ? `Votre wallet a été rechargé — ${data.amount ?? ""} FCFA ✓`
+        ? `Votre portefeuille a été rechargé : ${data.amount ?? ""} FCFA`
         : template === "payment-received-wallet"
-          ? `Paiement reçu — ${data.amount ?? ""} FCFA dans votre wallet 💰`
+          ? `Paiement reçu : ${data.amount ?? ""} FCFA dans votre portefeuille`
           : SUBJECTS[template]
 
   try {
