@@ -76,4 +76,12 @@ describe("getServerRole", () => {
     const profile = { role: "student", ...complete }
     expect((await getServerRole(supabaseWith(profile), { id: "u1" })).profile).toBe(profile)
   })
+
+  it("erreur de lecture de profiles : aucun rôle, pas de repli sur user_metadata, erreur exposée", async () => {
+    const error = { message: "boom" }
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error })
+    const supabase = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle }) }) }) }
+    const result = await getServerRole(supabase, { id: "u1", user_metadata: { role: "student" } })
+    expect(result).toMatchObject({ role: null, profile: null, profileComplete: false, error })
+  })
 })

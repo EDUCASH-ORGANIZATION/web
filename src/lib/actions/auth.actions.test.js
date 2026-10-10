@@ -121,6 +121,14 @@ describe("login", () => {
     expect(redirect).not.toHaveBeenCalled()
   })
 
+  it("lecture du profil en échec : connexion refusée, session fermée, aucune redirection", async () => {
+    getServerRole.mockResolvedValue({ role: null, profile: null, profileComplete: false, error: { message: "x" } })
+    const r = await login(null, form({ email: "a@exemple.bj", password: "x" }))
+    expect(r.code).toBe("unknown")
+    expect(auth.signOut).toHaveBeenCalled()
+    expect(redirect).not.toHaveBeenCalled()
+  })
+
   it("ton selon l'audience (next client = vouvoiement)", async () => {
     auth.signInWithPassword.mockResolvedValue({ data: {}, error: { status: 429, message: "x" } })
     const c = await login(null, form({ email: "a@exemple.bj", password: "x", next: "/client/dashboard" }))

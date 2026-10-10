@@ -27,7 +27,7 @@ export default async function ForgotPasswordPage({ searchParams }) {
       backHref={backHref}
       backLabel="Retour à la connexion"
     >
-      <ForgotPasswordForm role={role} loginHref={backHref} />
+      <ForgotPasswordForm role={role} />
     </AuthShell>
   )
 }

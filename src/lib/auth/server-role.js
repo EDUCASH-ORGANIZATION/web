@@ -16,17 +16,21 @@ function filled(value) {
  *   role: "student" | "client" | "admin" | null,
  *   profile: { role: string|null, full_name: string|null, city: string|null, is_suspended: boolean|null } | null,
  *   profileComplete: boolean,
- * }>} `role` vaut null si ni profil ni métadonnée valide.
+ *   error?: unknown,
+ * }>} `role` vaut null si ni profil ni métadonnée valide, ou si la lecture de `profiles` échoue (`error` renseigné).
  */
 export async function getServerRole(supabase, user) {
   const none = { role: null, profile: null, profileComplete: false }
   if (!user?.id) return none
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("role, full_name, city, is_suspended")
     .eq("user_id", user.id)
     .maybeSingle()
+
+  // Lecture impossible : aucun rôle (fail-closed), jamais de repli sur user_metadata.
+  if (error) return { ...none, error }
 
   if (profile) {
     return {

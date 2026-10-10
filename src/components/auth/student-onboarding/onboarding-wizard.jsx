@@ -290,6 +290,10 @@ export function OnboardingWizard({ userId, next = null, initialStep = 1, initial
     }
     setPending(false)
 
+    if (result?.code === "already_done" && result.destination) {
+      router.replace(result.destination)
+      return
+    }
     if (!result?.ok) {
       const fieldErrors = result?.fieldErrors ?? {}
       setErrors(fieldErrors)

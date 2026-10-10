@@ -178,6 +178,10 @@ export function OnboardingWizard({ userId, next, initialStep = 1 }) {
       }
 
       const result = await completeClientOnboarding({ clientType: type, ...values, avatarUrl, next })
+      if (result?.code === "already_done" && result.destination) {
+        router.replace(result.destination)
+        return
+      }
       if (!result?.ok) {
         setErrors(result?.fieldErrors ?? {})
         if (result?.fieldErrors?.clientType) goTo(1)

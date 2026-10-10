@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 const auth = { exchangeCodeForSession: vi.fn(), verifyOtp: vi.fn(), signOut: vi.fn() }
 const getServerRole = vi.fn()
+const cookieStore = { getAll: vi.fn(() => []), delete: vi.fn() }
+vi.mock("next/headers", () => ({ cookies: async () => cookieStore }))
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth }) }))
 vi.mock("@/lib/auth/server-role", () => ({ getServerRole: (...a) => getServerRole(...a) }))
@@ -17,6 +19,8 @@ async function run(query) {
 beforeEach(() => {
   vi.clearAllMocks()
   auth.exchangeCodeForSession.mockResolvedValue({ data: { user: { id: "u1" } }, error: null })
+  auth.signOut.mockResolvedValue({ error: null })
+  cookieStore.getAll.mockReturnValue([])
   auth.verifyOtp.mockResolvedValue({ data: { user: { id: "u1" } }, error: null })
   getServerRole.mockResolvedValue({ role: "student", profile: null, profileComplete: false })
 })
@@ -121,5 +125,24 @@ describe("handleAuthConfirm", () => {
   it("aucune redirection ne contient d'email", async () => {
     const { location } = await run("code=abc")
     expect(location.href).not.toContain("@")
+  })
+
+  it("signOut en échec sur compte suspendu : cookies sb-* supprimés explicitement", async () => {
+    getServerRole.mockResolvedValue({ role: "student", profile: { is_suspended: true }, profileComplete: true })
+    auth.signOut.mockResolvedValue({ error: { message: "fail" } })
+    cookieStore.getAll.mockReturnValue([{ name: "sb-abc-auth-token" }, { name: "autre" }])
+    const { location } = await run("flow=signup&code=abc")
+    expect(location.pathname).toBe("/auth/login")
+    expect(cookieStore.delete).toHaveBeenCalledWith("sb-abc-auth-token")
+    expect(cookieStore.delete).not.toHaveBeenCalledWith("autre")
+  })
+
+  it("lecture du profil en échec : signOut, link-expired invalide, aucun cookie ec_recovery", async () => {
+    getServerRole.mockResolvedValue({ role: null, profile: null, profileComplete: false, error: { message: "x" } })
+    const { res, location } = await run("flow=recovery&token_hash=h&type=recovery")
+    expect(auth.signOut).toHaveBeenCalled()
+    expect(location.pathname).toBe("/auth/link-expired")
+    expect(location.searchParams.get("cause")).toBe("invalide")
+    expect(res.headers.get("set-cookie") ?? "").not.toContain("ec_recovery=1")
   })
 })

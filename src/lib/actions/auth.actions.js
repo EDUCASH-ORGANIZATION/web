@@ -53,7 +53,13 @@ export async function login(_prevState, formData) {
   }
 
   // Le rôle d'autorisation vient de profiles, jamais de user_metadata.
-  const { role, profile, profileComplete } = await getServerRole(supabase, data.user)
+  const { role, profile, profileComplete, error: roleError } = await getServerRole(supabase, data.user)
+
+  // Lecture du profil impossible : on refuse plutôt que d'accorder un accès sans rôle vérifié.
+  if (roleError) {
+    await supabase.auth.signOut()
+    return { code: "unknown", formError: authErrorMessage("unknown", audience) }
+  }
 
   if (profile?.is_suspended) {
     await supabase.auth.signOut()

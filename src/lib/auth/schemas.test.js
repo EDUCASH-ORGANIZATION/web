@@ -290,7 +290,7 @@ describe("confirmation et listes (corrections d'intégration)", () => {
     expect(result.fieldErrors.confirmPassword).toMatch(/pas identiques/)
   })
 
-  it("dédoublonne les compétences et refuse une liste démesurée", () => {
+  it("dédoublonne les listes et refuse une valeur hors liste (l'enum rejette)", () => {
     const base = { school: "UAC", level: STUDY_LEVELS[0], availability: ["Matin", "Matin"] }
     const ok = studentStudiesSchema.parse({ ...base, skills: ["Livraison", "Livraison"] })
     expect(ok.skills).toEqual(["Livraison"])

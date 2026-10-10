@@ -33,7 +33,7 @@ describe("ForgotPasswordForm", () => {
     const neutral = renderToStaticMarkup(<ForgotPasswordForm />)
     expect(text(neutral)).not.toMatch(/\b(tu|ton|ta|tes|toi)\b/i)
     expect(neutral).not.toContain('name="audience"')
-    const student = renderToStaticMarkup(<ForgotPasswordForm role="student" loginHref="/auth/login?role=student" />)
+    const student = renderToStaticMarkup(<ForgotPasswordForm role="student" />)
     expect(student).toContain("Saisis l&#x27;adresse de ton compte")
     expect(student).toContain('type="hidden" name="audience" value="student"')
   })

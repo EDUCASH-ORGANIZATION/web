@@ -37,9 +37,9 @@ const BANNERS = {
 /**
  * Mot de passe oublié (A05). Action serveur `requestPasswordReset` : même réponse que le compte
  * existe ou non. L'adresse est gardée en état client (jamais dans l'URL).
- * @param {{ role?: "student" | "client" | null, loginHref?: string }} props
+ * @param {{ role?: "student" | "client" | null }} props
  */
-export function ForgotPasswordForm({ role = null, loginHref = "/auth/login" }) {
+export function ForgotPasswordForm({ role = null }) {
   const audience = role === "student" ? "student" : "client"
   const copy = COPY[audience]
   const [state, formAction, pending] = useActionState(requestPasswordReset, null)
