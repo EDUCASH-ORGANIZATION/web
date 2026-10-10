@@ -24,7 +24,8 @@ const PUBLIC_PROFILE_COLUMNS =
 /**
  * Fonds encore réservés pour une mission : réservation moins remboursements déjà passés.
  * Lecture avec le client service role (le grand livre n'est pas lisible par tous).
- * @returns {Promise<{ left: number } | { error: true }>} `left` vaut 0 pour une mission héritée sans réservation.
+ * @returns {Promise<{ left: number, moved: boolean } | { error: true }>} `left` vaut 0 pour une mission héritée sans réservation ;
+ * `moved` indique qu'au moins un mouvement existe au grand livre pour cette mission.
  */
 async function reservedLeft(service, clientId, missionId) {
   const { data, error } = await service
@@ -41,19 +42,44 @@ async function reservedLeft(service, clientId, missionId) {
   for (const row of data ?? []) {
     left += row.type === "reserve" ? Number(row.amount) : -Number(row.amount)
   }
-  return { left: Math.max(left, 0) }
+  return { left: Math.max(left, 0), moved: (data ?? []).length > 0 }
 }
 
-/** Retire une mission créée dont la réservation a échoué : suppression, sinon annulation. */
-async function discardMission(service, missionId) {
-  const { error } = await service.from("missions").delete().eq("id", missionId)
-  if (!error) return
-  console.error("[createMission] suppression impossible, annulation", error)
+/**
+ * Retire une mission créée dont la réservation a échoué.
+ * Aucun mouvement au grand livre : suppression (sinon annulation). La base refuse de supprimer
+ * une mission qui a des mouvements : on rembourse alors le reste réservé, puis on l'annule.
+ * @returns {Promise<boolean>} false si la mission n'a pas pu être retirée proprement.
+ */
+async function discardMission(service, clientId, missionId) {
+  const reserved = await reservedLeft(service, clientId, missionId)
+  if (reserved.error) return false
+
+  if (!reserved.moved) {
+    const { error } = await service.from("missions").delete().eq("id", missionId)
+    if (!error) return true
+    console.error("[createMission] suppression impossible, annulation", error)
+  } else if (reserved.left > 0) {
+    const refund = await callWalletRpc(service, "wallet_refund", {
+      p_client_id:  clientId,
+      p_mission_id: missionId,
+      p_amount:     reserved.left,
+    })
+    if (!refund.ok) {
+      console.error("[createMission] remboursement impossible, mission conservée", refund)
+      return false
+    }
+  }
+
   const { error: cancelError } = await service
     .from("missions")
     .update({ status: "cancelled" })
     .eq("id", missionId)
-  if (cancelError) console.error("[createMission] annulation impossible", cancelError)
+  if (cancelError) {
+    console.error("[createMission] annulation impossible", cancelError)
+    return false
+  }
+  return true
 }
 
 /**
@@ -188,7 +214,8 @@ export async function createMission(data) {
   })
 
   if (!reserve.ok) {
-    await discardMission(service, mission.id)
+    const discarded = await discardMission(service, user.id, mission.id)
+    if (!discarded) return { error: ERR_GENERIC }
     return { error: "Impossible de réserver les fonds. Vérifiez votre solde et réessayez." }
   }
 
