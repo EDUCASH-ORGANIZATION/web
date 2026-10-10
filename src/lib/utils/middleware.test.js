@@ -152,3 +152,52 @@ describe("middleware - admin", () => {
     )
   })
 })
+
+describe("middleware - routes /auth quand connecté", () => {
+  it.each([
+    "/auth/register/student",
+    "/auth/register/client",
+    "/auth/callback",
+    "/auth/confirm",
+    "/auth/reset-password",
+    "/auth/link-expired",
+  ])("laisse ouvert %s", async (path) => {
+    asUser("student")
+    expect((await run(path)).location).toBeNull()
+  })
+
+  it("renvoie /auth/login vers le dashboard du rôle", async () => {
+    asUser("client")
+    expect((await run("/auth/login")).location?.pathname).toBe("/client/dashboard")
+  })
+
+  it("honore un next autorisé sur /auth/login", async () => {
+    asUser("client")
+    const res = await run(
+      `/auth/login?next=${encodeURIComponent("/client/missions/new?besoin=Repas&ville=Cotonou")}`
+    )
+    expect(res.location?.pathname).toBe("/client/missions/new")
+    expect(res.location?.search).toBe("?besoin=Repas&ville=Cotonou")
+  })
+
+  it("ignore un next refusé pour le rôle, externe ou sous /auth", async () => {
+    asUser("student")
+    for (const next of ["/client/dashboard", "//evil.example", "https://evil.example", "/auth/login"]) {
+      const res = await run(`/auth/login?next=${encodeURIComponent(next)}`)
+      expect(res.location?.origin).toBe("http://localhost")
+      expect(res.location?.pathname).toBe("/dashboard")
+    }
+  })
+
+  it("laisse les autres pages /auth au visiteur", async () => {
+    asUser(null)
+    for (const path of ["/auth/login", "/auth/register", "/auth/forgot-password", "/auth/confirm"]) {
+      expect((await run(path)).location).toBeNull()
+    }
+  })
+
+  it("un rôle inconnu dans les métadonnées reste sur le dashboard étudiant", async () => {
+    asUser("superadmin")
+    expect((await run("/auth/login")).location?.pathname).toBe("/dashboard")
+  })
+})
