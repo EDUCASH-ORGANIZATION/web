@@ -5,8 +5,11 @@ import { join } from "node:path"
 const TEMPLATES_DIR = "src/lib/email/templates"
 const SUPABASE_DIR = "supabase/templates"
 
-// Gabarits d'auth et d'accueil de ce lot. Les autres gabarits Resend sont corriges hors de RD-02.
+// Gabarits d'accueil (etudiants, tutoiement) et ensemble des gabarits Resend.
 const AUTH_RESEND = ["welcome-student.jsx", "welcome-verified.jsx"].map((f) => join(TEMPLATES_DIR, f))
+const ALL_RESEND = readdirSync(TEMPLATES_DIR)
+  .filter((f) => f.endsWith(".jsx"))
+  .map((f) => join(TEMPLATES_DIR, f))
 const SUPABASE = readdirSync(SUPABASE_DIR)
   .filter((f) => f.endsWith(".html"))
   .map((f) => join(SUPABASE_DIR, f))
@@ -23,8 +26,17 @@ describe("emails d'auth", () => {
     expect(SUPABASE.map((f) => f.split("/").pop()).sort()).toEqual(["confirm-signup.html", "reset-password.html"])
   })
 
+  it("tous les gabarits Resend sont scannes", () => {
+    expect(ALL_RESEND.length).toBeGreaterThan(10)
+  })
+
+  it("aucune apostrophe droite dans le texte JSX des gabarits Resend", () => {
+    const hits = ALL_RESEND.filter((f) => />[^<{}]*[a-zà-ÿ]'[a-zà-ÿ][^<{}]*</i.test(read(f)))
+    expect(hits).toEqual([])
+  })
+
   it("aucun tiret cadratin", () => {
-    const hits = [...VISIBLE, INDEX].filter((f) => read(f).includes("—"))
+    const hits = [...ALL_RESEND, ...SUPABASE, INDEX].filter((f) => read(f).includes("—"))
     expect(hits).toEqual([])
   })
 

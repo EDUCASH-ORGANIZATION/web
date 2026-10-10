@@ -26,16 +26,16 @@ export default function ApplicationRejected({
           </Text>
 
           <Text style={text}>
-            Ne vous découragez pas — de nombreuses autres missions vous attendent sur EduCash.
+            Ne vous découragez pas, de nombreuses autres missions vous attendent sur EduCash.
             Chaque candidature est une opportunité de vous démarquer !
           </Text>
 
           <Button href={`${APP_URL}/missions`} style={button}>
-            Explorer d'autres missions →
+            Explorer d&apos;autres missions →
           </Button>
 
           <Hr style={hr} />
-          <Text style={footer}>EduCash — Marketplace étudiant au Bénin</Text>
+          <Text style={footer}>EduCash - Marketplace étudiant au Bénin</Text>
         </Container>
       </Body>
     </Html>
