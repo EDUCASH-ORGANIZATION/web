@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 export const COUNTRY_CODES = [
   { code: "+229", label: "🇧🇯 Bénin (+229)" },
   { code: "+225", label: "🇨🇮 Côte d'Ivoire (+225)" },
@@ -57,3 +59,77 @@ export function validatePhone(countryCode, phoneNumber, otherCode) {
   }
   return null
 }
+
+// ─── Numéros béninois (10 chiffres, commencent par 01) ─────────────────────────
+
+export const BENIN_PREFIX = "+229"
+
+const BENIN_LOCAL_PATTERN = /^01\d{8}$/
+
+/**
+ * Analyse un numéro béninois saisi librement.
+ * Accepte espaces, points, tirets, parenthèses et les préfixes +229 / 00229.
+ * @param {unknown} raw
+ * @returns {{ ok: true, local: string, e164: string }
+ *   | { ok: false, reason: "empty" | "invalid_chars" | "length" | "prefix" }}
+ */
+export function parseBeninPhone(raw) {
+  const text = typeof raw === "string" ? raw.trim() : ""
+  if (!text) return { ok: false, reason: "empty" }
+
+  let compact = text.replace(/[\s.\-()]/g, "")
+  if (compact.startsWith("+229")) compact = compact.slice(4)
+  else if (compact.startsWith("00229")) compact = compact.slice(5)
+
+  if (!/^\d+$/.test(compact)) return { ok: false, reason: "invalid_chars" }
+  if (compact.length !== 10) return { ok: false, reason: "length" }
+  if (!BENIN_LOCAL_PATTERN.test(compact)) return { ok: false, reason: "prefix" }
+  return { ok: true, local: compact, e164: `${BENIN_PREFIX}${compact}` }
+}
+
+/**
+ * Numéro au format stocké : +22901XXXXXXXX. Renvoie "" si le numéro est invalide.
+ * @param {unknown} raw
+ */
+export function toBeninE164(raw) {
+  const parsed = parseBeninPhone(raw)
+  return parsed.ok ? parsed.e164 : ""
+}
+
+/**
+ * Affichage « 01 97 45 21 08 ». Un numéro invalide est renvoyé tel quel.
+ * @param {unknown} raw
+ */
+export function formatBeninPhone(raw) {
+  const parsed = parseBeninPhone(raw)
+  if (!parsed.ok) return typeof raw === "string" ? raw : ""
+  return parsed.local.replace(/(\d{2})(?=\d)/g, "$1 ")
+}
+
+export const BENIN_PHONE_MESSAGES = {
+  empty: "Indiquez votre numéro de téléphone.",
+  invalid_chars: "Le numéro ne doit contenir que des chiffres. Ex. 01 97 45 21 08",
+  length: "Le numéro doit avoir 10 chiffres et commencer par 01. Ex. 01 97 45 21 08",
+  prefix: "Le numéro béninois commence par 01. Ex. 01 97 45 21 08",
+}
+
+/**
+ * Schéma zod d'un numéro béninois ; la valeur validée est au format E.164.
+ * @param {Partial<typeof BENIN_PHONE_MESSAGES>} [messages]
+ */
+export function makeBeninPhoneSchema(messages = {}) {
+  const texts = { ...BENIN_PHONE_MESSAGES, ...messages }
+  return z
+    .string({ error: texts.empty })
+    .transform((value, ctx) => {
+      const parsed = parseBeninPhone(value)
+      if (!parsed.ok) {
+        ctx.addIssue({ code: "custom", message: texts[parsed.reason] })
+        return z.NEVER
+      }
+      return parsed.e164
+    })
+}
+
+/** Schéma avec les messages neutres par défaut. */
+export const beninPhoneSchema = makeBeninPhoneSchema()
