@@ -2,17 +2,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { NextRequest } from "next/server"
 
 const getUser = vi.fn()
+const maybeSingle = vi.fn()
+const from = vi.fn(() => ({ select: () => ({ eq: () => ({ maybeSingle }) }) }))
 
 vi.mock("@supabase/ssr", () => ({
-  createServerClient: () => ({ auth: { getUser } }),
+  createServerClient: () => ({ auth: { getUser }, from }),
 }))
 
 import { middleware } from "../../../middleware.js"
 
-function asUser(role) {
+// `role` = profiles.role ; `metaRole` = user_metadata.role (par défaut identique, jamais l'autorité).
+function asUser(role, metaRole = role) {
   getUser.mockResolvedValue({
-    data: { user: role ? { user_metadata: { role } } : null },
+    data: { user: role || metaRole ? { id: "u1", user_metadata: { role: metaRole } } : null },
   })
+  maybeSingle.mockResolvedValue({ data: role ? { role, full_name: "A", city: "B", is_suspended: false } : null, error: null })
 }
 
 async function run(path) {
@@ -28,6 +32,8 @@ function expectLoginRedirect(res, next) {
 
 beforeEach(() => {
   getUser.mockReset()
+  maybeSingle.mockReset()
+  from.mockClear()
 })
 
 describe("middleware - /clients", () => {
@@ -196,8 +202,57 @@ describe("middleware - routes /auth quand connecté", () => {
     }
   })
 
-  it("un rôle inconnu dans les métadonnées reste sur le dashboard étudiant", async () => {
+  it("un rôle inconnu dans profiles n'ouvre aucun dashboard (pas de boucle sur /auth/login)", async () => {
     asUser("superadmin")
-    expect((await run("/auth/login")).location?.pathname).toBe("/dashboard")
+    const res = await run("/auth/login")
+    expect(res.status).toBe(200)
+    expect(res.location).toBeNull()
+  })
+})
+
+describe("middleware - autorité profiles.role", () => {
+  it("route selon profiles.role même si user_metadata.role diffère", async () => {
+    asUser("student", "admin")
+    expect((await run("/admin/dashboard")).location?.pathname).toBe("/dashboard")
+    asUser("client", "student")
+    expect((await run("/dashboard")).location?.pathname).toBe("/client/dashboard")
+    expect((await run("/auth/login")).location?.pathname).toBe("/client/dashboard")
+    asUser("admin", "student")
+    expect((await run("/admin/users")).location).toBeNull()
+  })
+
+  it("compte sans profil (onboarding) : repli student ou client, jamais admin", async () => {
+    asUser(null, "client")
+    expect((await run("/client/dashboard")).location).toBeNull()
+    asUser(null, "admin")
+    expect((await run("/admin/dashboard")).location?.pathname).toBe("/")
+    expect((await run("/auth/login")).location).toBeNull()
+  })
+
+  it("rôle null : laisse passer /auth, renvoie vers l'accueil sur un préfixe protégé", async () => {
+    asUser(null, null)
+    getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: {} } } })
+    expect((await run("/auth/login")).location).toBeNull()
+    for (const path of ["/student/missions", "/client/dashboard", "/admin/users", "/dashboard"]) {
+      expect((await run(path)).location?.pathname).toBe("/")
+    }
+  })
+
+  it("erreur de lecture du profil : fail-closed, aucun repli sur user_metadata", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: { role: "admin" } } } })
+    maybeSingle.mockResolvedValue({ data: null, error: { message: "boom" } })
+    expect((await run("/admin/dashboard")).location?.pathname).toBe("/")
+    expect((await run("/client/dashboard")).location?.pathname).toBe("/")
+    expect((await run("/auth/login")).location).toBeNull()
+  })
+
+  it("aucune lecture de profil pour un visiteur, une page publique ou une page /auth ouverte", async () => {
+    asUser(null, null)
+    await run("/client/dashboard")
+    await run("/auth/login")
+    asUser("student")
+    await run("/missions")
+    await run("/auth/callback")
+    expect(from).not.toHaveBeenCalled()
   })
 })
