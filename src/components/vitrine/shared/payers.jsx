@@ -1,12 +1,13 @@
 import { AnchorLink } from "./hash-scroll"
 import { OperatorLogo } from "./operator-logo"
 
-// Opérateurs de retrait branchés (MTN et Moov). Celtiis n'est pas affiché : pas de retrait Celtiis pour l'instant.
+// Opérateurs Mobile Money affichés en vitrine : MTN MoMo, Moov Money et Celtiis Cash.
 export function PayerOperators() {
   return (
     <>
       <span className="payer"><OperatorLogo operator="mtn" />MTN MoMo</span>
       <span className="payer"><OperatorLogo operator="moov" />Moov Money</span>
+      <span className="payer"><OperatorLogo operator="celtiis" />Celtiis Cash</span>
     </>
   )
 }
@@ -16,7 +17,6 @@ export function Payers({ withEscrow = false }) {
   return (
     <>
       <div className="v-payers">
-        <span className="payer payer--fedapay"><span className="payer__mark">F</span>FedaPay</span>
         <PayerOperators />
       </div>
       {withEscrow ? (

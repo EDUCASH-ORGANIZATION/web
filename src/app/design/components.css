@@ -830,11 +830,10 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .photo-ph { border-radius: var(--r-l); background: var(--c-citron); border: var(--b-encre); position: relative; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
 .photo-ph__note { position: absolute; left: 12px; right: 12px; top: 12px; border: 2px dashed rgba(14,15,26,.55); border-radius: var(--r-s); padding: 8px 10px; font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: .06em; text-transform: uppercase; background: rgba(255,255,255,.55); }
 
-/* Partenaires de paiement : vrais logos MTN et Moov (OperatorLogo), pastille typographique pour FedaPay */
+/* Partenaires de paiement : vrais logos MTN, Moov et Celtiis (OperatorLogo) */
 .payer { display: inline-flex; align-items: center; gap: 8px; font-weight: var(--fw-xbold); font-size: var(--t-body-s); }
 .payer__mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 9px; font-weight: var(--fw-black); flex: none; }
 .payer__logo { height: 36px; width: auto; object-fit: contain; flex: none; display: block; }
-.payer--fedapay .payer__mark { background: var(--c-encre); color: var(--c-blanc); }
 .site-footer .payer--fedapay .payer__mark { background: var(--c-blanc); color: var(--c-encre); }
 
 /* =====================================================================
@@ -1308,7 +1307,6 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .v06-pay .payer__mark { width: 44px; height: 44px; font-size: 12px; }
 .v06-pay .payer__logo { height: 52px; }
 .v06-band .payer { color: var(--c-blanc); }
-.v06-band .payer--fedapay .payer__mark { background: var(--c-blanc); color: var(--c-encre); }
 /* mobile */
 .v06-m .v06-head { padding-top: 130px !important; }
 .v06-m .v06-head { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); border-width: 0 0 2px; padding: var(--s-8) var(--s-4); min-height: 0; }

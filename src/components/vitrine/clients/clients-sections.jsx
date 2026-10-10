@@ -3,7 +3,7 @@ import { Icon } from "@/components/design/icon"
 import { Faq } from "../shared/faq"
 import { Payers } from "../shared/payers"
 import { formatFcfa } from "@/lib/vitrine/format"
-import { Scribble, Shape } from "./scribble"
+import { Scribble, Shape } from "../shared/scribble"
 import {
   COMMISSION_PERCENT,
   STUDENT_PERCENT,

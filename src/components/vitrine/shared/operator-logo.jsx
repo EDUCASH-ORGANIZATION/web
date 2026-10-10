@@ -5,7 +5,6 @@ import Image from "next/image"
 const OPERATORS = {
   mtn: { src: "/logos/operators/mtn.png", width: 163, height: 166 },
   moov: { src: "/logos/operators/moov.png", width: 176, height: 159 },
-  // prêt pour quand le retrait Celtiis sera branché
   celtiis: { src: "/logos/operators/celtiis.png", width: 132, height: 130 },
 }
 

@@ -49,7 +49,7 @@ export function HomeCatalog() {
   const types = [...known, ...extra]
 
   return (
-    <section className="section">
+    <section className="section" id="services">
       <div className="section__head">
         <div>
           <span className="eyebrow eyebrow--bleu">{MISSION_TYPES.length} types de missions</span>
