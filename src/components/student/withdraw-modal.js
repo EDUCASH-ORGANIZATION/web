@@ -135,7 +135,7 @@ export function StudentWithdrawModal({ isOpen, onClose, available = 0, onSuccess
               type="tel"
               value={phone}
               onChange={(e) => { setPhone(e.target.value); setError("") }}
-              placeholder="Ex : 97000000"
+              placeholder="Ex : 01 97 00 00 00"
               className="h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/30"
             />
           </div>
