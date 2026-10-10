@@ -17,6 +17,7 @@ export const MISSION_TYPES = /** @type {const} */ ([
   "Community Management",
   "Traduction",
   "Cours particuliers",
+  "Démarches",
   "Autre",
 ])
 

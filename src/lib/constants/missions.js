@@ -44,3 +44,57 @@ export const MISSIONS_PAGE_SIZE = 9
  * @type {ReadonlyArray<{ id: string, label: string, value: string }>}
  */
 export const URGENCY_FILTERS = [{ id: "urgent", label: "Urgent", value: "high" }]
+
+/**
+ * Libellés d'affichage des types de mission. Les valeurs de MISSION_TYPES (clés)
+ * restent celles de la base : seul l'affichage change.
+ * @type {Readonly<Record<string, string>>}
+ */
+export const MISSION_TYPE_LABELS = {
+  "Livraison": "Marché et achats",
+  "Cours particuliers": "Cours et aide aux devoirs",
+  "Babysitting": "Garde d'enfants",
+  "Saisie": "Travaux sur ordinateur",
+  "Community Management": "Réseaux sociaux",
+  "Traduction": "Traduction",
+  "Démarches": "Démarches et files d'attente",
+  "Autre": "Autre besoin",
+}
+
+/** Accroches courtes, seulement pour les types qui en ont une. */
+export const MISSION_TYPE_TAGLINES = {
+  "Livraison": "Le marché à votre place",
+  "Démarches": "La file d'attente à votre place",
+}
+
+/** Complément de la phrase « Aucune mission de ... » (page /missions). */
+export const MISSION_TYPE_PHRASES = {
+  "Livraison": "de marché et d'achats",
+  "Cours particuliers": "de cours et d'aide aux devoirs",
+  "Babysitting": "de garde d'enfants",
+  "Saisie": "de travaux sur ordinateur",
+  "Community Management": "de réseaux sociaux",
+  "Traduction": "de traduction",
+  "Démarches": "de démarches et de files d'attente",
+  "Autre": "d'un autre besoin",
+}
+
+/**
+ * Libellé d'affichage d'une valeur de type. Une valeur inconnue (compétence
+ * libre d'un étudiant) est renvoyée telle quelle ; null et undefined donnent "".
+ * @param {string|null|undefined} value
+ * @returns {string}
+ */
+export function missionTypeLabel(value) {
+  if (value === null || value === undefined) return ""
+  return Object.hasOwn(MISSION_TYPE_LABELS, value) ? MISSION_TYPE_LABELS[value] : value
+}
+
+/**
+ * Options { value, label } dans l'ordre de MISSION_TYPES (value = valeur en base).
+ * @type {ReadonlyArray<{ value: string, label: string }>}
+ */
+export const MISSION_TYPE_OPTIONS = MISSION_TYPES.map((value) => ({
+  value,
+  label: MISSION_TYPE_LABELS[value],
+}))
