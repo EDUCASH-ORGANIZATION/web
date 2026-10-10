@@ -70,7 +70,9 @@ if (typeof window !== "undefined") {
     notePopped(window.location.pathname)
     paginationAt = null
   })
-  window.addEventListener("keydown", () => { lastInputKeyboard = true }, true)
+  window.addEventListener("keydown", (event) => {
+    if (["Enter", " ", "Tab"].includes(event.key)) lastInputKeyboard = true
+  }, true)
   window.addEventListener("pointerdown", () => { lastInputKeyboard = false }, true)
 }
 
@@ -93,13 +95,14 @@ export function applyRouteScroll(state, { pathname, search, hash }, scrollTo) {
   return move
 }
 
-// Place le focus sur le contenu principal après une remontée, seulement si la navigation vient d'un lien activé
-// au clavier ou d'un focus dans le pied de page : un clic souris ne déplace rien. Sans #contenu (pages à squelette
-// de chargement, espaces connectés), on ne touche à rien.
+// Place le focus sur le contenu principal après une remontée, seulement si la navigation vient d'une activation au
+// clavier ou si le focus est perdu (élément actif disparu avec l'ancienne page, ou retombé sur le body) : un clic
+// qui garde le focus ailleurs ne déplace rien. Sans #contenu (pages à squelette de chargement, espaces
+// connectés), on ne touche à rien.
 export function focusMain(doc = document, keyboard = isKeyboardInput()) {
   const active = doc.activeElement
-  const fromFooter = !!active?.closest?.("footer")
-  if (!keyboard && !fromFooter) return false
+  const lost = !active || active === doc.body || !doc.contains(active)
+  if (!keyboard && !lost) return false
   const main = doc.getElementById(MAIN_ID)
   if (!main) return false
   if (!main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1")

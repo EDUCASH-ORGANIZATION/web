@@ -73,6 +73,10 @@ describe("consumePopped", () => {
 })
 
 describe("marqueur de pagination", () => {
+  beforeEach(() => {
+    consumePagination()
+  })
+
   it("vaut une fois, dans le délai", () => {
     markPagination(1000)
     expect(consumePagination(2000)).toBe(true)
@@ -116,27 +120,34 @@ describe("applyRouteScroll", () => {
 })
 
 describe("focusMain", () => {
-  function doc({ active, main }) {
-    return { activeElement: active, getElementById: (id) => (id === "contenu" ? main : null) }
-  }
   const makeMain = () => ({ hasAttribute: () => false, setAttribute: vi.fn(), focus: vi.fn() })
+  function doc({ active, main, attached = true }) {
+    const body = {}
+    return {
+      body,
+      activeElement: active === "body" ? body : active,
+      contains: () => attached,
+      getElementById: (id) => (id === "contenu" ? main : null),
+    }
+  }
 
-  it("clic souris hors pied de page : ne touche pas au focus", () => {
+  it("focus conservé ailleurs, souris : ne touche pas au focus", () => {
     const main = makeMain()
-    expect(focusMain(doc({ active: { closest: () => null }, main }), false)).toBe(false)
+    expect(focusMain(doc({ active: {}, main }), false)).toBe(false)
     expect(main.focus).not.toHaveBeenCalled()
   })
 
   it("clavier : focus sur le contenu sans défiler", () => {
     const main = makeMain()
-    expect(focusMain(doc({ active: null, main }), true)).toBe(true)
+    expect(focusMain(doc({ active: {}, main }), true)).toBe(true)
     expect(main.setAttribute).toHaveBeenCalledWith("tabindex", "-1")
     expect(main.focus).toHaveBeenCalledWith({ preventScroll: true })
   })
 
-  it("focus dans le pied de page : focus sur le contenu", () => {
-    const main = makeMain()
-    expect(focusMain(doc({ active: { closest: (s) => (s === "footer" ? {} : null) }, main }), false)).toBe(true)
+  it("focus perdu (body, aucun élément ou élément détaché) : focus sur le contenu", () => {
+    expect(focusMain(doc({ active: "body", main: makeMain() }), false)).toBe(true)
+    expect(focusMain(doc({ active: null, main: makeMain() }), false)).toBe(true)
+    expect(focusMain(doc({ active: {}, main: makeMain(), attached: false }), false)).toBe(true)
   })
 
   it("sans #contenu : ne fait rien", () => {
