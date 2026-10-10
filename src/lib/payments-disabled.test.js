@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest"
-import { readFileSync, existsSync } from "node:fs"
+import { readFileSync, existsSync, readdirSync, statSync } from "node:fs"
+import { join } from "node:path"
 import {
   paymentsEnabled,
   paymentsGuard,
@@ -72,5 +73,23 @@ describe("webhook de paiement", () => {
     vi.stubEnv("PAYMENTS_ENABLED", undefined)
     const res = await POST({ text: vi.fn(), headers: { get: vi.fn() } })
     expect(res.status).toBe(503)
+  })
+})
+
+describe("paiement direct supprime", () => {
+  function sourceFiles(dir) {
+    return readdirSync(dir).flatMap((name) => {
+      const full = join(dir, name)
+      if (statSync(full).isDirectory()) return sourceFiles(full)
+      return /\.(js|jsx|ts|tsx)$/.test(name) && name !== "payments-disabled.test.js" ? [full] : []
+    })
+  }
+
+  it("aucune reference a create-fedapay-transaction ni a initiatePayment dans src", () => {
+    for (const file of sourceFiles("src")) {
+      const src = readFileSync(file, "utf8")
+      expect(src, file).not.toContain("create-fedapay-transaction")
+      expect(src, file).not.toContain("initiatePayment")
+    }
   })
 })
