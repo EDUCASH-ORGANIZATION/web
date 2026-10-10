@@ -11,7 +11,7 @@ import { useSupabase } from "@/components/shared/supabase-provider"
 import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 import { CardUploadZone } from "@/components/auth/card-upload-zone"
 import { useToast } from "@/components/shared/toaster"
-import { updateStudentProfileWithCard } from "@/lib/actions/profile.actions"
+import { updateStudentProfileWithCard, getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { getUniversities } from "@/lib/actions/university.actions"
 import { CITIES, missionTypeLabel } from "@/lib/constants/missions"
 import { COUNTRY_CODES, parsePhone, formatPhone, normalizeBeninPhone, validatePhone } from "@/lib/utils/phone"
@@ -243,15 +243,23 @@ export default function ProfileEditPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.replace("/auth/login"); return }
 
+      // Colonnes privées (téléphone, motif de refus, carte) : lues côté serveur
       const [
-        { data: p },
-        { data: sp },
+        { profile: p, error: profileErr },
+        { studentProfile: sp, error: studentErr },
         unis,
       ] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", user.id).single(),
-        supabase.from("student_profiles").select("*").eq("user_id", user.id).maybeSingle(),
+        getMyProfile(),
+        getMyStudentProfile(),
         getUniversities(),
       ])
+
+      // Sans lecture fiable, enregistrer le formulaire effacerait le téléphone
+      if (profileErr || studentErr) {
+        toast({ message: profileErr || studentErr, type: "error" })
+        router.replace("/profile")
+        return
+      }
 
       setProfile(p)
       setStudentProfile(sp)
@@ -285,7 +293,7 @@ export default function ProfileEditPage() {
       setLoading(false)
     }
     load()
-  }, [supabase, router])
+  }, [supabase, router, toast])
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
