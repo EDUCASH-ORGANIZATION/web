@@ -136,6 +136,20 @@ describe("MissionsPage paramètres hostiles", () => {
     await expect(MissionsPage({ searchParams: Promise.resolve(undefined) })).resolves.toBeTruthy()
   })
 
+  describe("libellés de types", () => {
+    it("phrase « aucune mission » avec le libellé, valeur d'URL inchangée dans la requête", async () => {
+      const tree = await run({ type: "Livraison" })
+      expect(find("eq")).toContainEqual(["eq", "type", "Livraison"])
+      const text = JSON.stringify(tree)
+      expect(text).toContain("Aucune mission de marché et d'achats pour l'instant.")
+      expect(text).not.toContain("Aucune mission de livraison")
+    })
+    it("nouveau type Démarches : phrase dédiée", async () => {
+      const tree = await run({ type: "Démarches" })
+      expect(JSON.stringify(tree)).toContain("Aucune mission de démarches et de files d'attente pour l'instant.")
+    })
+  })
+
   describe("comptage des missions ouvertes", () => {
     const names = (b) => b.map((c) => c[0])
     // Parcourt l'arbre React rendu pour retrouver les éléments portant une classe.

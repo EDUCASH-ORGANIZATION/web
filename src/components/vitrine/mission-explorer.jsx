@@ -7,7 +7,7 @@ import { Select } from "@/components/design/select"
 import { useModalFocus } from "@/hooks/use-modal-focus"
 import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 import {
-  MISSION_TYPES, CITIES, BUDGET_RANGES, SORTS, URGENCY_FILTERS, SEARCH_MAX_LENGTH,
+  MISSION_TYPES, missionTypeLabel, CITIES, BUDGET_RANGES, SORTS, URGENCY_FILTERS, SEARCH_MAX_LENGTH,
 } from "@/lib/constants/missions"
 
 const CLEARED = { q: "", type: "", ville: "", budget: "", tri: "", urgence: "" }
@@ -68,7 +68,7 @@ export function MissionSearch({ q = "", type = "", ville = "" }) {
           name="q"
           type="search"
           maxLength={SEARCH_MAX_LENGTH}
-          placeholder="Cours de maths, livraison, saisie…"
+          placeholder="Cours de maths, marché, démarches…"
           defaultValue={q}
         />
         <span className="search__city">
@@ -95,7 +95,7 @@ export function MissionSearch({ q = "", type = "", ville = "" }) {
           name="q"
           type="search"
           maxLength={SEARCH_MAX_LENGTH}
-          placeholder="Cours, livraison, saisie…"
+          placeholder="Cours, marché, démarches…"
           defaultValue={q}
         />
       </form>
@@ -118,7 +118,7 @@ export function MissionSearch({ q = "", type = "", ville = "" }) {
             onClick={() => navigate({ type: type === t ? "" : t })}
           >
             <Icon name={TYPE_ICON[t] ?? "i-briefcase"} className="ic" />
-            {t}
+            {missionTypeLabel(t)}
           </button>
         ))}
       </div>
@@ -191,7 +191,7 @@ export function MissionFilterBar({
 
   const pills = [
     q && { key: "q", label: `« ${q} »` },
-    type && { key: "type", label: type },
+    type && { key: "type", label: missionTypeLabel(type) },
     ville && { key: "ville", label: ville },
     budgetRange && { key: "budget", label: budgetRange.label },
     urgency && { key: "urgence", label: urgency.label },
