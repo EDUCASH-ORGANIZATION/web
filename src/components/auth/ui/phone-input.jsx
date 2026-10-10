@@ -15,7 +15,7 @@ export function PhoneInput({ id, invalid = false, disabled = false, className = 
         type="tel"
         inputMode="numeric"
         autoComplete="tel-national"
-        maxLength={14}
+        maxLength={20}
         disabled={disabled}
         aria-invalid={invalid || undefined}
       />

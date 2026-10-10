@@ -276,3 +276,25 @@ describe("indépendance vis-à-vis du serveur", () => {
     expect(source).not.toMatch(/utils\/email/)
   })
 })
+
+describe("confirmation et listes (corrections d'intégration)", () => {
+  it("signale la confirmation différente même si d'autres champs sont invalides", () => {
+    const fd = new FormData()
+    fd.set("role", "student")
+    fd.set("email", "pas-un-email")
+    fd.set("password", "Abcdef1!x")
+    fd.set("confirmPassword", "Autre1!xyz")
+    const result = parseFormData(makeRegisterSchema("student"), fd)
+    expect(result.ok).toBe(false)
+    expect(result.fieldErrors.email).toBeDefined()
+    expect(result.fieldErrors.confirmPassword).toMatch(/pas identiques/)
+  })
+
+  it("dédoublonne les compétences et refuse une liste démesurée", () => {
+    const base = { school: "UAC", level: STUDY_LEVELS[0], availability: ["Matin", "Matin"] }
+    const ok = studentStudiesSchema.parse({ ...base, skills: ["Livraison", "Livraison"] })
+    expect(ok.skills).toEqual(["Livraison"])
+    expect(ok.availability).toEqual(["Matin"])
+    expect(studentStudiesSchema.safeParse({ ...base, skills: Array(30).fill("Livraison").map((v, i) => `${v}${i}`) }).success).toBe(false)
+  })
+})

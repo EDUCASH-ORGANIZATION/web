@@ -124,11 +124,11 @@ export function makeLoginSchema(audience) {
 }
 
 function withConfirmation(shape, m) {
-  return z.object(shape).superRefine((value, ctx) => {
-    if (value.confirmPassword !== undefined && value.password !== value.confirmPassword) {
-      ctx.addIssue({ code: "custom", path: ["confirmPassword"], message: m.confirmMismatch })
-    }
-  })
+  // `when` : le contrôle s'exécute même si d'autres champs sont invalides.
+  return z.object(shape).refine(
+    (value) => !(typeof value.confirmPassword === "string" && value.confirmPassword !== "" && value.password !== value.confirmPassword),
+    { path: ["confirmPassword"], message: m.confirmMismatch, when: () => true }
+  )
 }
 
 function confirmField(m) {
@@ -188,13 +188,14 @@ function citySchema(m) {
 }
 
 // Valeur multiple : un champ de formulaire à une seule valeur arrive en chaîne.
-function listOf(item, min, minMessage) {
+function listOf(item, min, minMessage, max = 20) {
   return z.preprocess(
     (value) => {
       if (value === undefined || value === null || value === "") return []
       return Array.isArray(value) ? value : [value]
     },
-    z.array(item).min(min, minMessage)
+    // Valeurs dédoublonnées avant contrôle de la taille.
+    z.array(item).transform((list) => [...new Set(list)]).pipe(z.array(item).min(min, minMessage).max(max, minMessage))
   )
 }
 

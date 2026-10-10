@@ -135,7 +135,7 @@ describe("PhoneInput", () => {
     expect(html).toContain('name="phone"')
     expect(html).toContain('type="tel"')
     expect(html).toContain('inputMode="numeric"')
-    expect(html).toContain('maxLength="14"')
+    expect(html).toContain('maxLength="20"')
     expect(html).toContain('placeholder="01 97 45 21 08"')
   })
 

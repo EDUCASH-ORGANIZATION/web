@@ -100,7 +100,7 @@ export function AuthShell({
         <div className="auth__main">
           <div className="auth__top">
             {signOutAction ? (
-              <form action={signOutAction} method="post">
+              <form action={signOutAction}>
                 <button className="btn-icon btn-icon--sm btn-icon--plain" type="submit" aria-label="Se déconnecter">
                   <Icon name="i-logout" />
                 </button>
@@ -114,7 +114,7 @@ export function AuthShell({
             <span className="a-spacer" />
           </div>
           {signOutAction ? (
-            <form action={signOutAction} method="post">
+            <form action={signOutAction}>
               <button className="auth__back a-linkbtn" type="submit">
                 <Icon name="i-logout" className="ic ic--20" />
                 Se déconnecter

@@ -297,7 +297,7 @@ describe("page serveur", () => {
     const html = renderToStaticMarkup(await StudentOnboardingPage(params({ etape: "1" })))
     expect(html).toContain("C&#x27;est parti.")
     expect(html).toContain("Étape 1 sur 3")
-    expect(html).toContain('value="01 97 45 21 08"')
+    expect(html).toContain('value="Sèna Agossou"')
   })
 })
 

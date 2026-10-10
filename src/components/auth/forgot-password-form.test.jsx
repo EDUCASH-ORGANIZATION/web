@@ -27,7 +27,6 @@ describe("ForgotPasswordForm", () => {
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/)
     expect(html).toContain('name="email"')
     expect(html).toContain("Mot de passe oublié ?")
-    expect(html).toContain('href="/auth/login"')
   })
 
   it("vouvoie le public inconnu et tutoie l'étudiant avec le champ caché", () => {
@@ -37,7 +36,6 @@ describe("ForgotPasswordForm", () => {
     const student = renderToStaticMarkup(<ForgotPasswordForm role="student" loginHref="/auth/login?role=student" />)
     expect(student).toContain("Saisis l&#x27;adresse de ton compte")
     expect(student).toContain('type="hidden" name="audience" value="student"')
-    expect(student).toContain('href="/auth/login?role=student"')
   })
 
   it("affiche l'erreur de format sous le champ", () => {
@@ -59,7 +57,6 @@ describe("ForgotPasswordForm", () => {
     const html = renderToStaticMarkup(<ForgotPasswordForm />)
     expect(html).toContain("Regardez votre boîte mail")
     expect(html).toContain("Renvoyer dans 1:00")
-    expect(html).toContain('href="/auth/login"')
     expect(html).not.toMatch(/valable|\b\d+\s*h\b/)
     expect(html).not.toContain("<form")
   })

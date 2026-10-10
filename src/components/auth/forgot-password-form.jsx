@@ -1,7 +1,6 @@
 "use client"
 
 import { useActionState, useState } from "react"
-import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { requestPasswordReset } from "@/lib/actions/password.actions"
 import { makeForgotSchema, parseFormData } from "@/lib/auth/schemas"
@@ -86,9 +85,6 @@ export function ForgotPasswordForm({ role = null, loginHref = "/auth/login" }) {
         <MailboxLink email={email} />
         {resendError && <FormBanner tone="alerte">{resendError}</FormBanner>}
         <CountdownButton autoStart label="Renvoyer l'email" className="btn btn--secondary btn--block" onClick={resend} />
-        <Link className="link body-s" href={loginHref}>
-          Retour à la connexion
-        </Link>
         <p className="caption">{copy.hint}</p>
       </div>
     )
@@ -96,10 +92,6 @@ export function ForgotPasswordForm({ role = null, loginHref = "/auth/login" }) {
 
   return (
     <form className="auth__form" action={formAction} onSubmit={handleSubmit} noValidate>
-      <Link className="auth__back" href={loginHref}>
-        <Icon name="i-arrow-left" className="ic ic--20" />
-        Retour à la connexion
-      </Link>
       <div>
         <h1 className="ds-h1">Mot de passe oublié ?</h1>
         <p className="muted a-lead">{copy.lead}</p>

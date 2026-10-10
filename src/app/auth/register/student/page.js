@@ -8,7 +8,6 @@ import { getOnboardingState } from "@/lib/actions/onboarding.actions"
 import { getUniversities } from "@/lib/actions/university.actions"
 import { dashboardFor, loginHref, resolvePostAuth } from "@/lib/auth/destinations"
 import { safeNextPath } from "@/lib/utils/safe-next"
-import { formatBeninPhone } from "@/lib/utils/phone"
 
 export const metadata = {
   title: "Mon profil étudiant",
@@ -39,7 +38,7 @@ function Blocked({ title, text, role }) {
           Aller à mon espace
         </Link>
       )}
-      <form action={logout} method="post">
+      <form action={logout}>
         <button className="btn btn--secondary btn--block" type="submit">
           <Icon name="i-logout" />
           Me déconnecter
@@ -88,8 +87,6 @@ export default async function StudentOnboardingPage({ searchParams }) {
         initialValues={{
           fullName: profile?.full_name ?? "",
           city: profile?.city ?? "",
-          phone: profile?.phone ? formatBeninPhone(profile.phone) : "",
-          bio: profile?.bio ?? "",
         }}
         universities={universities}
       />

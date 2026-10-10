@@ -6,7 +6,7 @@ import { audienceFor, registerHref } from "@/lib/auth/destinations"
 import { SIGNUP_ROLES } from "@/lib/auth/schemas"
 import { safeNextPath } from "@/lib/utils/safe-next"
 
-export const metadata = { title: "Vérifiez votre email" }
+export const metadata = { title: "Vérification de l'email" }
 
 function first(value) {
   return Array.isArray(value) ? value[0] : value
