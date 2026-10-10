@@ -1,6 +1,7 @@
 "use client"
 
 import { Icon } from "@/components/design/icon"
+import { Select } from "@/components/design/select"
 import { AuthStepper } from "@/components/auth/ui/auth-stepper"
 import { FieldError } from "@/components/auth/ui/field-error"
 import { FormBanner } from "@/components/auth/ui/form-banner"
@@ -20,6 +21,8 @@ function Chip({ selected, label, onToggle }) {
     </button>
   )
 }
+
+const LEVEL_OPTIONS = STUDY_LEVELS.map((level) => ({ value: level, label: level }))
 
 function universityLabel({ name, short_name: shortName, city }) {
   return `${shortName ? `${shortName} · ${name}` : name}${city ? ` (${city})` : ""}`
@@ -42,6 +45,11 @@ function toggled(list, value) {
  * }} props
  */
 export function StepStudies({ values, errors, universities, formError = "", onChange, onBack, onSubmit }) {
+  const schoolOptions = [
+    ...universities.map((university) => ({ value: university.name, label: universityLabel(university) })),
+    { value: OTHER_SCHOOL, label: "Autre établissement" },
+  ]
+
   function handleSubmit(event) {
     event.preventDefault()
     onSubmit()
@@ -60,23 +68,17 @@ export function StepStudies({ values, errors, universities, formError = "", onCh
         <label className="field__label" htmlFor="o-etab">
           Établissement <span className="req">*</span>
         </label>
-        <select
-          className={`select${values.school ? "" : " is-placeholder"}${errors.school ? " is-error" : ""}`}
+        <Select
+          variant="field"
           id="o-etab"
           name="school"
+          options={schoolOptions}
           value={values.school}
-          aria-invalid={errors.school ? true : undefined}
+          placeholder="Choisir ton établissement"
+          invalid={Boolean(errors.school)}
           aria-describedby={errors.school ? "o-etab-error" : undefined}
-          onChange={(event) => onChange("school", event.target.value)}
-        >
-          <option value="">Choisir ton établissement</option>
-          {universities.map((university) => (
-            <option key={university.id} value={university.name}>
-              {universityLabel(university)}
-            </option>
-          ))}
-          <option value={OTHER_SCHOOL}>Autre établissement</option>
-        </select>
+          onChange={(value) => onChange("school", value)}
+        />
         {values.school === OTHER_SCHOOL && (
           <input
             className={`input${errors.school ? " is-error" : ""}`}
@@ -94,22 +96,17 @@ export function StepStudies({ values, errors, universities, formError = "", onCh
         <label className="field__label" htmlFor="o-niv">
           Niveau d&apos;études <span className="req">*</span>
         </label>
-        <select
-          className={`select${values.level ? "" : " is-placeholder"}${errors.level ? " is-error" : ""}`}
+        <Select
+          variant="field"
           id="o-niv"
           name="level"
+          options={LEVEL_OPTIONS}
           value={values.level}
-          aria-invalid={errors.level ? true : undefined}
+          placeholder="Choisir ton niveau"
+          invalid={Boolean(errors.level)}
           aria-describedby={errors.level ? "o-niv-error" : undefined}
-          onChange={(event) => onChange("level", event.target.value)}
-        >
-          <option value="">Choisir ton niveau</option>
-          {STUDY_LEVELS.map((level) => (
-            <option key={level} value={level}>
-              {level}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => onChange("level", value)}
+        />
         <FieldError id="o-niv-error" message={errors.level} />
       </div>
 

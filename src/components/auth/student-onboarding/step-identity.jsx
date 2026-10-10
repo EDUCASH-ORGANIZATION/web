@@ -2,6 +2,7 @@
 
 import { useRef } from "react"
 import { Icon } from "@/components/design/icon"
+import { Select } from "@/components/design/select"
 import { AuthStepper } from "@/components/auth/ui/auth-stepper"
 import { FieldError } from "@/components/auth/ui/field-error"
 import { FormBanner } from "@/components/auth/ui/form-banner"
@@ -9,6 +10,8 @@ import { HydratedSubmit } from "@/components/auth/ui/hydrated-submit"
 import { PhoneInput } from "@/components/auth/ui/phone-input"
 import { CITIES } from "@/lib/supabase/database.constants"
 import { BIO_MAX } from "@/lib/auth/schemas"
+
+const CITY_OPTIONS = CITIES.map((city) => ({ value: city, label: city }))
 
 export const STEP_LABELS = ["Identité", "Études", "Carte étudiante"]
 
@@ -107,22 +110,17 @@ export function StepIdentity({ values, errors, avatar, avatarError = "", formErr
         <label className="field__label" htmlFor="o-ville">
           Ville <span className="req">*</span>
         </label>
-        <select
-          className={`select${values.city ? "" : " is-placeholder"}${errors.city ? " is-error" : ""}`}
+        <Select
+          variant="field"
           id="o-ville"
           name="city"
+          options={CITY_OPTIONS}
           value={values.city}
-          aria-invalid={errors.city ? true : undefined}
+          placeholder="Choisir ta ville"
+          invalid={Boolean(errors.city)}
           aria-describedby={describedBy("o-ville", errors, "city")}
-          onChange={(event) => onChange("city", event.target.value)}
-        >
-          <option value="">Choisir ta ville</option>
-          {CITIES.map((city) => (
-            <option key={city} value={city}>
-              {city}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => onChange("city", value)}
+        />
         <FieldError id="o-ville-error" message={errors.city} />
       </div>
 
