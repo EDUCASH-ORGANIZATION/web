@@ -1,2 +1,9 @@
 /* RD-POS-01 ST-05 : styles propres a cette sous-tache (prefixe v-hero (hero de l'accueil)).
    Fichier de travail, replie dans components.css et layouts.css par ST-13. */
+
+/* Portrait client : le visage occupe le haut de l'aplat. La notification descend sous le visage et la carte
+   se cale en bas, comme sur la maquette V01 v3. */
+.v-hero__visual .v-hero__push { top: 360px; }
+.v-hero__visual .v-hero__card { bottom: 24px; }
+/* Lien vers /etudiants : texte blanc sur le bleu, sans retrait. */
+.v-hero__student { color: var(--c-blanc); padding: 0; }
