@@ -56,8 +56,8 @@ export function CardUploadForm({ hasCard }) {
 
     try {
       // Validation côté client
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Le fichier ne doit pas dépasser 5 Mo.")
+      if (file.size > 10 * 1024 * 1024) {
+        setError("Le fichier ne doit pas dépasser 10 Mo.")
         return
       }
       const ext = file.name.split(".").pop().toLowerCase()
@@ -181,7 +181,7 @@ export function CardUploadForm({ hasCard }) {
               </p>
             </div>
             <p className="text-[11px] text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-              JPG, PNG, WEBP ou PDF - 5 Mo max
+              JPG, PNG, WEBP ou PDF - 10 Mo max
             </p>
           </>
         )}

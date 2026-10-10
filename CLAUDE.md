@@ -51,9 +51,10 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - `CONTACT_INBOX_EMAIL` : destinataire du formulaire de contact (défaut `contact@educash.bj`). Les autres variables restent dans `.env.local`, jamais lu ni commité.
 
 ## Rôles
-- `student`, `client` et `admin`. `middleware.js` redirige encore selon `user_metadata.role` (navigation seulement).
+- `student`, `client` et `admin`.
 - `user_metadata` est modifiable par l'utilisateur : ne s'en servir que pour l'affichage ou la navigation, jamais pour une autorisation. Toute autorisation lit `profiles.role` côté serveur via `getServerRole(supabase, user)` (`src/lib/auth/server-role.js`) : le repli sur `user_metadata` est limité à student et client, jamais admin. La garde admin (layout et `assertAdmin`) exige `profiles.role = 'admin'`.
-- Dette connue : le middleware, les layouts étudiant et client et les autres server actions s'appuient encore sur `user_metadata`. Lot dédié RD-SEC-01.
+- Le rôle est lu uniquement depuis `profiles.role`, fail-closed (rôle introuvable ou compte suspendu : refus) : middleware, layouts et server actions passent par `getServerRole`, `requireRole(roles)` ou `requireUser()` (`src/lib/auth/require-role.js`). Plus aucune autorisation ne lit `user_metadata` (garde-fou `role-authority.guard.test.js`).
+- Seul l'admin annule une mission `in_progress` (médiation). Un client n'annule qu'une mission `open`.
 - L'admin ne peut jamais être auto-attribué (ni à l'inscription ni par mise à jour de profil). Un étudiant ne peut pas s'auto-vérifier. Les onboardings écrivent une liste blanche de colonnes (jamais `role`, `is_verified`, `is_suspended`, `verified_until`).
 
 ## Authentification
@@ -75,6 +76,12 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Ne jamais lire, modifier ni commiter `.env*`.
 - Jamais de `SERVICE_ROLE_KEY` côté client ni dans un composant.
 - Montants, identité de l'appelant et rôle toujours vérifiés côté serveur.
+- `createServiceClient` (`src/lib/supabase/service.js`) est réservé au serveur, après contrôle d'identité, de rôle et de propriété. Jamais importé depuis un module `"use client"`, `src/components` ou `src/hooks` (garde-fou `service-client.guard.test.js`).
+- Colonnes privées de profils (téléphone, jeton de notification, motif de refus, date de dépôt de la carte, `card_url`) : lues uniquement côté serveur via le service role, après contrôle de l'appelant (`profile.actions.js`, pages admin). Jamais de `select("*")` sur `profiles` ni `student_profiles`.
+- Appels de portefeuille (réserver, libérer, rembourser) : client service role côté serveur, via `callWalletRpc` (`src/lib/wallet/wallet-rpc.js`). Succès seulement si `error == null` et `data.success === true`.
+- Missions : `createMission` publie puis réserve les fonds, et supprime la mission si la réservation échoue. `discardMission` rembourse puis annule : la base refusera de supprimer une mission ayant des mouvements de portefeuille.
+- Paiements en pause : tout est derrière `PAYMENTS_ENABLED` (faux par défaut). Lire le drapeau par `paymentsEnabled()` et afficher `PAYMENTS_PENDING_COPY` (`src/lib/constants/payments.js`). Les Edge Functions de paiement répondent 503 tant qu'il est désactivé, l'auto-release est inerte, aucun paiement automatique. Aucun prestataire de paiement nommé dans le code ni dans les textes : la passerelle reste à définir.
+- Garde-fous de sécurité : `vitrine-content`, `vocabulary.render`, `client-boundary`, `mission-type-display`, `role-authority`, `service-client`, `no-em-dash` (sans exception), `auth-emails`, `payments-disabled`, et le test des colonnes privées dans `profile.actions.test.js`.
 
 ## Conventions
 - Commits Conventional Commits en anglais. Branches `feat/<TASK_ID>-<slug>`. Jamais de push sur `main`.
