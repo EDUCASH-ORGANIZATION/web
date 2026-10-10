@@ -108,6 +108,23 @@ html:has(.site-header) { scroll-padding-top: calc(var(--h-header-compact) + var(
    ci-dessus restent celles des maquettes (cadres separes). */
 .auth__main { min-width: 0; }
 .auth__top { display: none; }
+/* Bureau : la page occupe toute la hauteur, le document defile, le panneau de marque reste
+   colle (sticky) pendant le defilement. Contenu court centre (marges auto de .auth__form),
+   contenu long aligne en haut avec marge. Hauteur faible ou impression : panneau statique. */
+@media (min-width: 1024px) {
+  .auth { min-height: 100vh; min-height: 100dvh; }
+  .auth__brand { position: sticky; top: var(--s-4); align-self: start; height: calc(100vh - 2 * var(--s-4)); height: calc(100dvh - 2 * var(--s-4)); }
+  .auth__main { min-height: 100vh; min-height: 100dvh; }
+  .auth__main > .auth__back, .auth__main > form:has(> .auth__back) { align-self: flex-start; flex: none; }
+}
+@media (min-width: 1024px) and (max-height: 679.98px) {
+  .auth__brand { position: static; align-self: stretch; height: auto; }
+}
+@media print {
+  .auth { min-height: 0; }
+  .auth__brand { position: static; align-self: stretch; height: auto; }
+  .auth__main { min-height: 0; }
+}
 @media (min-width: 1024px) and (max-width: 1279.98px) {
   .auth { grid-template-columns: 440px minmax(0, 1fr); }
   .auth__brand { padding: var(--s-8); }
