@@ -11,22 +11,26 @@ import { AnchorLink } from "./shared/hash-scroll"
 
 const MENU_ID = "site-menu"
 
-const MAIN_LINKS = [
-  { label: "Comment ça marche", href: "/#etapes" },
-  { label: "Services", href: "/#services" },
-  { label: "Aide", href: "/aide" },
-]
+// Liens de navigation selon le public. « Comment ça marche » vit dans le pied de page.
+const MAIN_LINKS = {
+  clients: [
+    { label: "Services", href: "/#services" },
+    { label: "Aide", href: "/aide" },
+  ],
+  etudiants: [
+    { label: "Missions", href: "/missions" },
+    { label: "Aide", href: "/aide" },
+  ],
+}
 
-const CLIENTS_LINK = { label: "Vous avez une mission ?", href: "/" }
 const STUDENTS_PATH = "/etudiants"
 const STUDENT_REGISTER_HREF = "/auth/register?role=student"
 const STUDENT_MISSIONS_HREF = "/student/missions"
 
-// Lien vers l'autre public : les clients voient « Vous êtes étudiant ? », la page /etudiants le pose en « Étudiants ».
-const AUDIENCE_LINKS = {
-  clients: { label: "Vous êtes étudiant ?", href: STUDENTS_PATH },
-  etudiants: { label: "Étudiants", href: STUDENTS_PATH },
-}
+// Liens vers l'autre public : les clients voient « Vous êtes étudiant ? » dans l'en-tête, les étudiants
+// retrouvent « Vous avez une mission ? » dans le menu burger seulement.
+const CLIENTS_LINK = { label: "Vous avez une mission ?", href: "/" }
+const STUDENT_LINK = { label: "Vous êtes étudiant ?", href: STUDENTS_PATH }
 
 // Seuil de défilement (px) au-delà duquel l'en-tête passe en compact.
 const COMPACT_SCROLL_Y = 16
@@ -38,8 +42,13 @@ function subscribeScroll(onChange) {
 const getScrolled = () => window.scrollY > COMPACT_SCROLL_Y
 const getScrolledOnServer = () => false
 
+// Les liens avec ancre ou paramètre ne sont jamais actifs. « /missions » reste actif sur le détail
+// « /missions/<id> » ; les autres liens (« / », « /aide ») exigent une égalité stricte.
+const PREFIX_ACTIVE_HREFS = new Set(["/missions"])
+
 function isActivePath(pathname, href) {
   if (href.includes("?") || href.includes("#")) return false
+  if (PREFIX_ACTIVE_HREFS.has(href)) return pathname === href || pathname.startsWith(`${href}/`)
   return pathname === href
 }
 
@@ -53,7 +62,7 @@ function isActivePath(pathname, href) {
 // actions on-bleu. Une fois la page défilée, il devient l'en-tête compact blanc standard.
 // Seuil propre à l'en-tête (layouts.css) : sous 1360 px, la navigation passe dans le menu burger et
 // les actions restent visibles ; sous 1024 px, les actions bureau (ds-desk-only) cèdent la place à « S'inscrire ».
-// audience : « clients » (défaut) ou « etudiants », qui change le lien vers l'autre public et le bouton accent.
+// audience : « clients » (défaut) ou « etudiants », qui change les liens, le lien vers l'autre public et le bouton accent.
 export function VitrineNavbar({ tone = "blanc", audience = "clients" }) {
   const pathname = usePathname()
   const session = useVitrineSession()
@@ -68,8 +77,8 @@ export function VitrineNavbar({ tone = "blanc", audience = "clients" }) {
   const forStudents = audience === "etudiants"
   // Le visiteur non connecté est renvoyé vers la connexion par le middleware, qui conserve la destination.
   const publishHref = buildPublishHref()
-  const audienceLink = AUDIENCE_LINKS[forStudents ? "etudiants" : "clients"]
-  const audienceActive = isActive(audienceLink.href)
+  const mainLinks = MAIN_LINKS[forStudents ? "etudiants" : "clients"]
+  const studentActive = isActive(STUDENT_LINK.href)
   const scrolled = useSyncExternalStore(subscribeScroll, getScrolled, getScrolledOnServer)
   const bleu = tone === "bleu" && !scrolled
   const accountLabel = fullName ? `Mon espace, compte de ${fullName}` : "Mon espace"
@@ -92,7 +101,7 @@ export function VitrineNavbar({ tone = "blanc", audience = "clients" }) {
             />
           </Link>
           <nav className="site-header__nav ds-desk-only" aria-label="Navigation principale">
-            {MAIN_LINKS.map(({ label, href }) => {
+            {mainLinks.map(({ label, href }) => {
               const active = isActive(href)
               return (
                 <AnchorLink
@@ -107,14 +116,16 @@ export function VitrineNavbar({ tone = "blanc", audience = "clients" }) {
             })}
           </nav>
           <div className={bleu ? "site-header__actions on-bleu" : "site-header__actions"}>
-            <Link
-              className={audienceActive ? "site-header__student is-active ds-desk-only" : "site-header__student ds-desk-only"}
-              href={audienceLink.href}
-              aria-current={audienceActive ? "page" : undefined}
-            >
-              <Icon name="i-graduation" />
-              {audienceLink.label}
-            </Link>
+            {forStudents ? null : (
+              <Link
+                className={studentActive ? "site-header__student is-active ds-desk-only" : "site-header__student ds-desk-only"}
+                href={STUDENT_LINK.href}
+                aria-current={studentActive ? "page" : undefined}
+              >
+                <Icon name="i-graduation" />
+                {STUDENT_LINK.label}
+              </Link>
+            )}
             {user ? (
               <>
                 {role === "client" ? (
@@ -182,7 +193,7 @@ export function VitrineNavbar({ tone = "blanc", audience = "clients" }) {
       {menuOpen ? (
         <SiteMenu
           id={MENU_ID}
-          links={[...MAIN_LINKS, { ...(forStudents ? CLIENTS_LINK : audienceLink), switchAudience: true }]}
+          links={[...mainLinks, { ...(forStudents ? CLIENTS_LINK : STUDENT_LINK), switchAudience: true }]}
           isActive={isActive}
           session={session}
           audience={audience}

@@ -58,6 +58,12 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
 
+describe("MissionsPage public", () => {
+  it("s'adresse aux étudiants : en-tête et pied de page du public etudiants", async () => {
+    expect((await run({})).props.audience).toBe("etudiants")
+  })
+})
+
 describe("MissionsPage paramètres hostiles", () => {
   it("échappe % et _ et \\ dans q", async () => {
     await run({ q: "%%" })

@@ -222,7 +222,7 @@ export default async function MissionsPage({ searchParams }) {
   cards.splice(Math.min(4, cards.length), 0, <PublishPromo key="publish-promo" />)
 
   return (
-    <VitrinePage>
+    <VitrinePage audience="etudiants">
       <div className="v02-head grid-bg">
         <Icon name="sc-loop" className="scribble v02-scribble ds-desk-only" />
         <div className="v02-head__row">

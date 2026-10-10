@@ -7,14 +7,15 @@ import { PayerOperators } from "./shared/payers"
 const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100)
 
 // Pied de page public de la vitrine (design system Direction A, maquette V01).
-// audience : « clients » (défaut) ou « etudiants », qui change seulement l'accroche.
+// audience : « clients » (défaut) ou « etudiants », qui change l'accroche et le lien « Comment ça marche ».
 export function VitrineFooter({ audience = "clients" }) {
+  const forStudents = audience === "etudiants"
   return (
     <footer className="ds site-footer">
       <nav className="site-footer__top" aria-label="Pied de page">
         <div className="site-footer__brand">
           <img className="logo" src="/logo-horizontal-blanc.svg" alt="EduCash" width={171} height={32} />
-          {audience === "etudiants" ? (
+          {forStudents ? (
             <p className="site-footer__pitch">Des petites missions.<br /><span>Du vrai cash.</span></p>
           ) : (
             <p className="site-footer__pitch">Déléguez.<br /><span>Respirez.</span></p>
@@ -23,12 +24,13 @@ export function VitrineFooter({ audience = "clients" }) {
         <div className="site-footer__col">
           <h2 className="site-footer__title">Familles et entreprises</h2>
           <Link href={publishHref()}>Publier une mission</Link>
-          <FooterLink href="/#etapes">Comment ça marche</FooterLink>
+          {forStudents ? null : <FooterLink href="/#etapes">Comment ça marche</FooterLink>}
           <FooterLink href="/#services">Services</FooterLink>
         </div>
         <div className="site-footer__col">
           <h2 className="site-footer__title">Étudiants</h2>
           <FooterLink href="/etudiants">Pour les étudiants</FooterLink>
+          {forStudents ? <FooterLink href="/etudiants#etapes">Comment ça marche</FooterLink> : null}
           <FooterLink href="/missions">Trouver une mission</FooterLink>
           <Link href="/auth/register?role=student">Se faire vérifier</Link>
         </div>

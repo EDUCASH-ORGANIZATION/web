@@ -28,6 +28,14 @@ describe("VitrineFooter", () => {
     expect(html).not.toContain("Pour les clients")
   })
 
+  it("Comment ça marche pointe vers les étapes du public", () => {
+    expect(html).toContain('href="/#etapes"')
+    const students = renderToStaticMarkup(<VitrineFooter audience="etudiants" />)
+    expect(students).toContain('href="/etudiants#etapes"')
+    expect(students).not.toContain('href="/#etapes"')
+    expect(students.match(/Comment ça marche/g)).toHaveLength(1)
+  })
+
   it("affiche MTN, Moov et Celtiis sans nommer le prestataire", () => {
     expect(html).toContain("MTN MoMo")
     expect(html).toContain("Moov Money")
