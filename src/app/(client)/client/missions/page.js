@@ -6,6 +6,7 @@ import {
 } from "lucide-react"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { createClient } from "@/lib/supabase/server"
+import { missionTypeLabel } from "@/lib/constants/missions"
 
 export const metadata = { title: "Mes missions — EduCash" }
 
@@ -79,7 +80,7 @@ function MissionCard({ mission }) {
       <div className="px-5 pt-5 flex items-start justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
           <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-lg ${typeColor}`}>
-            {mission.type}
+            {missionTypeLabel(mission.type)}
           </span>
           {urgency && (
             <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${urgency.cls}`}>
