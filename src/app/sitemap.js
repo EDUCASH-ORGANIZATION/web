@@ -10,7 +10,7 @@ export default async function sitemap() {
   const staticRoutes = [
     { url: APP_URL, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
     { url: `${APP_URL}/missions`, lastModified: new Date(), changeFrequency: "hourly", priority: 0.9 },
-    { url: `${APP_URL}/clients`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${APP_URL}/etudiants`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${APP_URL}/aide`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
     { url: `${APP_URL}/about`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
     { url: `${APP_URL}/contact`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },

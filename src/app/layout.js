@@ -37,7 +37,8 @@ export const metadata = {
     default: "EduCash",
     template: "%s - EduCash",
   },
-  description: "Missions ponctuelles rémunérées pour les étudiants au Bénin",
+  description:
+    "Confiez vos petites missions à des étudiants vérifiés au Bénin : marché, devoirs, garde d'enfants, démarches. Votre argent reste bloqué jusqu'à votre validation.",
   manifest: "/manifest.json",
   icons: {
     icon: [

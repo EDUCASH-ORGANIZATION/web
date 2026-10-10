@@ -30,10 +30,38 @@ beforeEach(() => {
   getUser.mockReset()
 })
 
+describe("middleware - /clients", () => {
+  it.each([null, "student", "client", "admin"])(
+    "redirige en 308 vers l'accueil pour le rôle %s sans appeler Supabase",
+    async (role) => {
+      asUser(role)
+      const res = await run("/clients")
+      expect(res.status).toBe(308)
+      expect(res.location?.pathname).toBe("/")
+      expect(res.location?.search).toBe("")
+      expect(getUser).not.toHaveBeenCalled()
+    }
+  )
+
+  it("conserve la requête", async () => {
+    asUser(null)
+    const res = await run("/clients?utm_source=wa&x=y")
+    expect(res.status).toBe(308)
+    expect(res.location?.pathname).toBe("/")
+    expect(res.location?.search).toBe("?utm_source=wa&x=y")
+  })
+
+  it("n'affecte ni /client ni /clients/x", async () => {
+    asUser("client")
+    expect((await run("/client")).location).toBeNull()
+    expect((await run("/clients/x")).location).toBeNull()
+  })
+})
+
 describe("middleware - visiteur", () => {
   beforeEach(() => asUser(null))
 
-  it.each(["/clients", "/talents/x", "/students/x", "/missions", "/"])(
+  it.each(["/talents/x", "/students/x", "/missions", "/"])(
     "laisse passer %s",
     async (path) => {
       const res = await run(path)
@@ -52,14 +80,31 @@ describe("middleware - visiteur", () => {
   ])("redirige %s vers le login", async (path) => {
     expectLoginRedirect(await run(path), path)
   })
+
+  it("conserve la requête dans next pour la publication de mission", async () => {
+    const res = await run("/client/missions/new?besoin=Faire%20le%20march%C3%A9&ville=Porto-Novo")
+    expectLoginRedirect(res, "/client/missions/new?besoin=Faire%20le%20march%C3%A9&ville=Porto-Novo")
+  })
+
+  it("garde la requête pour /student et /admin", async () => {
+    expectLoginRedirect(await run("/student/missions?type=Livraison"), "/student/missions?type=Livraison")
+    expectLoginRedirect(await run("/admin/users?q=a"), "/admin/users?q=a")
+  })
+
+  it("retombe sur le chemin seul si la requête dépasse la limite", async () => {
+    const res = await run(`/client/missions/new?besoin=${"a".repeat(600)}`)
+    expectLoginRedirect(res, "/client/missions/new")
+  })
+
+  it("ne crée pas de redirection ouverte via la requête", async () => {
+    const res = await run("/client/x?next=//evil.example")
+    expect(res.location?.origin).toBe("http://localhost")
+    expectLoginRedirect(res, "/client/x?next=//evil.example")
+  })
 })
 
 describe("middleware - étudiant", () => {
   beforeEach(() => asUser("student"))
-
-  it("ne redirige pas /clients", async () => {
-    expect((await run("/clients")).location).toBeNull()
-  })
 
   it("accède à /student/* et /dashboard", async () => {
     expect((await run("/student/missions/x")).location).toBeNull()
@@ -78,9 +123,8 @@ describe("middleware - étudiant", () => {
 describe("middleware - client", () => {
   beforeEach(() => asUser("client"))
 
-  it("ne redirige pas /talents/x ni /clients", async () => {
+  it("ne redirige pas /talents/x", async () => {
     expect((await run("/talents/x")).location).toBeNull()
-    expect((await run("/clients")).location).toBeNull()
   })
 
   it("accède à /client/*", async () => {
