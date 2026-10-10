@@ -211,7 +211,7 @@ authentification A01 à A08 faite (RD-02) ; tout le reste à faire.
 | C12 | Messages | à faire |
 | C13 | Conversation | à faire |
 | C14 | Portefeuille client | à faire |
-| C15 | Recharge et retour FedaPay | à faire |
+| C15 | Recharge et retour de paiement | à faire |
 | C16 | Retrait client | à faire |
 | C17 | Profil client | à faire |
 
@@ -255,8 +255,8 @@ authentification A01 à A08 faite (RD-02) ; tout le reste à faire.
   étudiant ne peut pas s'auto-vérifier, identité de l'appelant dans les
   retraits/dépôts, solde atomique sans double exécution) - failles critiques
   relevées à l'exploration initiale.
-- Séquestre / FedaPay conformes aux décisions produit (recharger/retirer via
-  FedaPay ; fin de mission en deux temps ; achats hors plateforme).
+- Séquestre conforme aux décisions produit (recharger/retirer via
+  la passerelle de paiement à définir ; fin de mission en deux temps ; achats hors plateforme).
 
 ### Durcissement sécurité (RD-SEC-01)
 

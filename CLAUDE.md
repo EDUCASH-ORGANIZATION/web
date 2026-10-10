@@ -5,7 +5,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 ## Stack
 - Next 16.2 (App Router, Turbopack), React 19, Tailwind 4 (`@tailwindcss/postcss`), JavaScript uniquement (pas de `.ts` ni `.tsx`).
 - MUI et Emotion : retirés du projet (RD-02). Ne pas les réintroduire.
-- Supabase (`@supabase/ssr`), FedaPay (jamais nommé dans les textes visibles de la vitrine), Resend, next-pwa. Déploiement Vercel.
+- Supabase (`@supabase/ssr`), passerelle de paiement à définir (aucun prestataire nommé), Resend, next-pwa. Déploiement Vercel.
 - Alias `@/` pour tous les imports. Server Components par défaut, `"use client"` seulement si nécessaire.
 - Formulaires : react-hook-form + zod. Commandes : `npm run dev`, `npm run build`, `npx eslint <fichiers>`.
 - Tests : Vitest, `npm test` (fichiers `src/**/*.test.{js,jsx}`, environnement node, config `vitest.config.mjs`).
