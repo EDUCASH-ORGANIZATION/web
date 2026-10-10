@@ -3,6 +3,7 @@ import { Anton, Figtree, Inter } from "next/font/google"
 import { SupabaseProvider } from "@/components/shared/supabase-provider"
 import { Toaster } from "@/components/shared/toaster"
 import { PwaInstallBannerLoader } from "@/components/shared/pwa-install-banner-loader"
+import { RouteScroll } from "@/components/shared/route-scroll"
 
 const anton = Anton({
   weight: "400",
@@ -72,6 +73,7 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col font-[family-name:var(--font-inter)]" suppressHydrationWarning>
         <SupabaseProvider>
           <Toaster>
+            <RouteScroll />
             {children}
             <PwaInstallBannerLoader />
           </Toaster>
