@@ -2,21 +2,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
+import { extractBearerToken, corsHeaders } from "../_shared/auth.js"
+
 const MIN_DEPOSIT_AMOUNT = 2000
 
-function allowedOrigin() {
-  try {
-    return new URL(Deno.env.get("APP_URL") ?? "").origin
-  } catch {
-    return "null"
-  }
-}
-
-const CORS = {
-  "Access-Control-Allow-Origin": allowedOrigin(),
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Vary": "Origin",
-}
+const CORS = corsHeaders(Deno.env.get("APP_URL"))
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -29,15 +19,15 @@ serve(async (req) => {
 
   try {
     // Authentification : jeton de session de l'utilisateur, jamais la cle anon seule
-    const match = /^Bearer\s+(\S+)$/i.exec((req.headers.get("Authorization") ?? "").trim())
-    if (!match) return json({ error: "Non authentifié" }, 401)
+    const token = extractBearerToken(req.headers.get("Authorization"))
+    if (!token) return json({ error: "Non authentifié" }, 401)
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
 
-    const { data: authData, error: authError } = await supabase.auth.getUser(match[1])
+    const { data: authData, error: authError } = await supabase.auth.getUser(token)
     if (authError || !authData?.user) return json({ error: "Non authentifié" }, 401)
 
     // L'identite vient uniquement du jeton, tout userId du corps est ignore
@@ -73,7 +63,10 @@ serve(async (req) => {
       .eq("user_id", userId)
       .single()
 
-    if (walletError || !wallet) return json({ error: "Wallet introuvable pour cet utilisateur" }, 404)
+    if (walletError || !wallet) {
+      console.error("[create-deposit-transaction] wallet not found")
+      return json({ error: "Dépôt impossible pour le moment" }, 400)
+    }
 
     const fedaBase = Deno.env.get("FEDAPAY_API_URL") ?? "https://sandbox-api.fedapay.com"
     const fedaHeaders = {
@@ -109,8 +102,10 @@ serve(async (req) => {
     const transactionId = transaction?.id
     const paymentUrl    = transaction?.payment_url
 
-    if (!transactionId) return json({ error: "ID de transaction FedaPay manquant" }, 500)
-    if (!paymentUrl)    return json({ error: "URL de paiement manquante" }, 500)
+    if (!transactionId || !paymentUrl) {
+      console.error("[create-deposit-transaction] incomplete transaction response")
+      return json({ error: "Paiement impossible pour le moment" }, 500)
+    }
 
     return json({ paymentUrl, fedapayId: transactionId })
   } catch (err) {

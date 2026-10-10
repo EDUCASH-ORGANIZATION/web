@@ -6,6 +6,7 @@ import {
   canWithdraw,
   corsOrigin,
 } from "../../supabase/functions/process-withdrawal/validate.js"
+import { corsHeaders } from "../../supabase/functions/_shared/auth.js"
 
 describe("extractBearerToken", () => {
   it("extrait le jeton", () => expect(extractBearerToken("Bearer abc.def")).toBe("abc.def"))
@@ -18,13 +19,13 @@ describe("extractBearerToken", () => {
 })
 
 describe("normalizeBeninPhone", () => {
-  it("accepte 8 chiffres et 10 chiffres en 01", () => {
-    expect(normalizeBeninPhone("97000000")).toBe("97000000")
+  it("ajoute 01 a un numero de 8 chiffres et garde les 10 chiffres en 01", () => {
+    expect(normalizeBeninPhone("97000000")).toBe("0197000000")
     expect(normalizeBeninPhone("0197000000")).toBe("0197000000")
   })
   it("tolere prefixe pays et separateurs", () => {
-    expect(normalizeBeninPhone("+229 97 00 00 00")).toBe("97000000")
-    expect(normalizeBeninPhone("00229-97000000")).toBe("97000000")
+    expect(normalizeBeninPhone("+229 97 00 00 00")).toBe("0197000000")
+    expect(normalizeBeninPhone("00229-97000000")).toBe("0197000000")
     expect(normalizeBeninPhone("2290197000000")).toBe("0197000000")
   })
   it("refuse les formats invalides", () => {
@@ -35,9 +36,10 @@ describe("normalizeBeninPhone", () => {
 })
 
 describe("validateWithdrawalBody", () => {
-  const ok = { amount: 5000, phone: "97000000", operator: "moov" }
+  const ok = { amount: 5000, phone: "0197000000", operator: "moov" }
   it("accepte un corps valide", () => {
     expect(validateWithdrawalBody(ok)).toEqual({ ok: true, value: ok })
+    expect(validateWithdrawalBody({ ...ok, phone: "97000000" }).value.phone).toBe("0197000000")
   })
   it("ignore un userId fourni dans le corps", () => {
     const res = validateWithdrawalBody({ ...ok, userId: "victim" })
@@ -75,7 +77,11 @@ describe("canWithdraw", () => {
 describe("corsOrigin", () => {
   it("restreint a l'origine de l'app", () => {
     expect(corsOrigin("https://educash.bj/")).toBe("https://educash.bj")
-    expect(corsOrigin(undefined)).toBe("null")
-    expect(corsOrigin("pas une url")).toBe("null")
+    expect(corsOrigin(undefined)).toBeNull()
+    expect(corsOrigin("pas une url")).toBeNull()
+  })
+  it("omet Access-Control-Allow-Origin sans APP_URL", () => {
+    expect(corsHeaders(undefined)).not.toHaveProperty("Access-Control-Allow-Origin")
+    expect(corsHeaders("https://educash.bj")["Access-Control-Allow-Origin"]).toBe("https://educash.bj")
   })
 })

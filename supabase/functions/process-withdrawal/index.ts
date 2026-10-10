@@ -2,18 +2,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-import {
-  extractBearerToken,
-  validateWithdrawalBody,
-  canWithdraw,
-  corsOrigin,
-} from "./validate.js"
+import { extractBearerToken, corsHeaders } from "../_shared/auth.js"
+import { validateWithdrawalBody, canWithdraw } from "./validate.js"
 
-const CORS = {
-  "Access-Control-Allow-Origin": corsOrigin(Deno.env.get("APP_URL")),
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Vary": "Origin",
-}
+const CORS = corsHeaders(Deno.env.get("APP_URL"))
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -83,33 +75,58 @@ serve(async (req) => {
       "Content-Type": "application/json",
     }
 
-    // ── Étape 1 : créer le payout ────────────────────────────────────────────────
-    const createRes = await fetch(`${fedaBase}/v1/payouts`, {
-      method: "POST",
-      headers: fedaHeaders,
-      body: JSON.stringify({
-        amount,
-        currency: { iso: "XOF" },
-        customer: {
-          firstname,
-          lastname,
-          phone_number: { number: phone, country: "bj" },
-        },
-        custom_metadata: { userId, type: "wallet_withdrawal" },
-      }),
-    })
+    // Transaction de retrait fraichement debitee (reconciliation et fedapay_id)
+    const { data: latestTx } = await supabase
+      .from("wallet_transactions")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("type", "withdrawal")
+      .is("fedapay_id", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single()
 
-    const createData = await createRes.json()
-
-    if (!createRes.ok) {
-      console.error("[process-withdrawal] payout create failed, status", createRes.status)
-      // Le wallet est déjà débité — on logue mais on continue
+    // Le wallet est deja debite : tout echec ci-dessous exige une reconciliation manuelle
+    const failure = () => {
+      console.error(
+        "[process-withdrawal] INCIDENT wallet debited but payout not started, wallet_transaction id:",
+        latestTx?.id ?? "unknown"
+      )
+      return json({ error: "Le retrait n'a pas pu être lancé, contactez-nous" }, 502)
     }
 
-    const payoutId = createData?.v1?.id ?? createData?.id
+    let payoutId
+    try {
+      // ── Étape 1 : créer le payout ──────────────────────────────────────────────
+      const createRes = await fetch(`${fedaBase}/v1/payouts`, {
+        method: "POST",
+        headers: fedaHeaders,
+        body: JSON.stringify({
+          amount,
+          currency: { iso: "XOF" },
+          customer: {
+            firstname,
+            lastname,
+            phone_number: { number: phone, country: "bj" },
+          },
+          custom_metadata: { userId, type: "wallet_withdrawal" },
+        }),
+      })
+
+      const createData = await createRes.json()
+      if (!createRes.ok) {
+        console.error("[process-withdrawal] payout create failed, status", createRes.status)
+        return failure()
+      }
+      payoutId = createData?.v1?.id ?? createData?.id
+    } catch {
+      console.error("[process-withdrawal] payout create request failed")
+      return failure()
+    }
+    if (!payoutId) return failure()
 
     // ── Étape 2 : initier l'envoi ────────────────────────────────────────────────
-    if (payoutId) {
+    try {
       const startRes = await fetch(`${fedaBase}/v1/payouts/start`, {
         method: "PUT",
         headers: fedaHeaders,
@@ -122,25 +139,19 @@ serve(async (req) => {
 
       if (!startRes.ok) {
         console.error("[process-withdrawal] payout start failed, status", startRes.status)
+        return failure()
       }
+    } catch {
+      console.error("[process-withdrawal] payout start request failed")
+      return failure()
+    }
 
-      // Enregistre le fedapay_id sur la transaction de retrait
-      const { data: latestTx } = await supabase
+    // Enregistre le fedapay_id sur la transaction de retrait
+    if (latestTx?.id) {
+      await supabase
         .from("wallet_transactions")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("type", "withdrawal")
-        .is("fedapay_id", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single()
-
-      if (latestTx?.id) {
-        await supabase
-          .from("wallet_transactions")
-          .update({ fedapay_id: String(payoutId) })
-          .eq("id", latestTx.id)
-      }
+        .update({ fedapay_id: String(payoutId) })
+        .eq("id", latestTx.id)
     }
 
     return json({ success: true, message: "Virement en cours" })

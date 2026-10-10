@@ -78,7 +78,7 @@ export async function initiateDeposit({ amount }) {
 
   const supabase = await createClient()
   const accessToken = await getAccessToken(supabase)
-  if (!accessToken) return { error: "Session expirée, reconnecte-toi" }
+  if (!accessToken) return { error: "Session expirée. Reconnectez-vous." }
 
   const { data, error } = await supabase.functions.invoke(
     "create-deposit-transaction",
@@ -89,7 +89,7 @@ export async function initiateDeposit({ amount }) {
   )
 
   if (error) {
-    if (error?.context?.status === 401) return { error: "Session expirée, reconnecte-toi" }
+    if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
     const message = await readFnError(error, "Erreur lors de l'initiation du dépôt")
     console.error("[initiateDeposit]", message)
     return { error: message }
@@ -115,7 +115,7 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
 
   const supabase = await createClient()
   const accessToken = await getAccessToken(supabase)
-  if (!accessToken) return { error: "Session expirée, reconnecte-toi" }
+  if (!accessToken) return { error: "Session expirée. Reconnectez-vous." }
 
   // L'identité n'est jamais envoyée : la fonction la déduit du jeton de session
   const { data, error } = await supabase.functions.invoke(
@@ -127,7 +127,7 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
   )
 
   if (error) {
-    if (error?.context?.status === 401) return { error: "Session expirée, reconnecte-toi" }
+    if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
     const message = await readFnError(error, "Erreur lors du retrait")
     console.error("[initiateWithdrawal]", message)
     return { error: message }
