@@ -80,6 +80,7 @@ export function WalletClientShell({
   transactions,
   stats,
   activeMissions,
+  paymentsEnabled = false,
 }) {
   const [depositOpen,  setDepositOpen]  = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
@@ -119,6 +120,7 @@ export function WalletClientShell({
         available={available}
         role="client"
         showActions
+        paymentsEnabled={paymentsEnabled}
         onDeposit={() => setDepositOpen(true)}
         onWithdraw={() => setWithdrawOpen(true)}
       />
@@ -210,18 +212,22 @@ export function WalletClientShell({
         )}
       </div>
 
-      {/* Modals */}
-      <DepositModal
-        isOpen={depositOpen}
-        onClose={() => setDepositOpen(false)}
-        currentBalance={available}
-      />
-      <WithdrawModal
-        isOpen={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
-        available={available}
-        onSuccess={showToast}
-      />
+      {/* Modals : absentes tant que les paiements sont coupés */}
+      {paymentsEnabled && (
+        <>
+          <DepositModal
+            isOpen={depositOpen}
+            onClose={() => setDepositOpen(false)}
+            currentBalance={available}
+          />
+          <WithdrawModal
+            isOpen={withdrawOpen}
+            onClose={() => setWithdrawOpen(false)}
+            available={available}
+            onSuccess={showToast}
+          />
+        </>
+      )}
     </>
   )
 }

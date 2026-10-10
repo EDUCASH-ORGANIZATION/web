@@ -6,6 +6,9 @@ import { safeNextPath } from "./safe-next.js"
 /** Page de publication d'une mission (espace client). */
 export const PUBLISH_PATH = "/client/missions/new"
 
+/** Écran public « Publication en cours d'activation » (vitrine), tant que les paiements sont coupés. */
+export const PUBLISH_PAUSED_PATH = "/publication"
+
 /** Clé sessionStorage du lien de reprise de publication (même onglet). */
 export const PUBLISH_RESUME_KEY = "ec_publish_resume"
 
@@ -49,6 +52,17 @@ export function publishHref({ besoin, ville, type } = {}) {
   if (type) query.set("type", type)
   const qs = query.toString()
   return qs ? `${PUBLISH_PATH}?${qs}` : PUBLISH_PATH
+}
+
+/**
+ * Point d'entrée de la publication depuis la vitrine : la publication si les paiements sont ouverts
+ * (pré-remplissage conservé), sinon l'écran public « Publication en cours d'activation ».
+ * @param {boolean} paymentsEnabled Drapeau lu côté serveur (`paymentsEnabled()`)
+ * @param {{ besoin?: string, ville?: string, type?: string }} [prefill]
+ * @returns {string}
+ */
+export function publishEntryHref(paymentsEnabled, prefill = {}) {
+  return paymentsEnabled ? publishHref(prefill) : PUBLISH_PAUSED_PATH
 }
 
 /**

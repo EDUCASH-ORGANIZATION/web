@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { getWallet } from "@/lib/actions/wallet.actions"
 import { NewMissionForm } from "@/components/client/new-mission-form"
 import { WalletRequiredGate } from "@/components/client/wallet-required-gate"
+import { PublishPausedGate } from "@/components/client/publish-paused-gate"
+import { paymentsEnabled } from "@/lib/constants/payments"
 import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
 import { parsePublishPrefill, publishHref } from "@/lib/utils/publish-prefill"
 
@@ -19,6 +21,15 @@ export default async function NewMissionPage({ searchParams }) {
   const resumeHref = hasPrefill
     ? publishHref({ besoin: initial.title, ville: initial.city, type: initial.type })
     : undefined
+
+  // Paiements coupés : la publication exigerait une recharge, impossible pour l'instant.
+  if (!paymentsEnabled()) {
+    return (
+      <div className="p-6 lg:p-8 min-h-screen">
+        <PublishPausedGate resumeHref={resumeHref} />
+      </div>
+    )
+  }
 
   const supabase = await createClient()
 
