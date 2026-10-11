@@ -24,6 +24,11 @@ export async function verifyStudentCardWithAI(storagePath) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return { valid: false, reason: "Non authentifié." }
 
+    // La carte doit se trouver dans le dossier de l'appelant : refuse tout autre chemin
+    if (typeof storagePath !== "string" || !storagePath.startsWith(`${user.id}/`) || storagePath.includes("..")) {
+      return { valid: false, reason: "Chemin de carte invalide." }
+    }
+
     // Génère une signed URL temporaire pour accéder à l'image privée
     const { data: signed, error: signErr } = await supabase.storage
       .from("student-cards")

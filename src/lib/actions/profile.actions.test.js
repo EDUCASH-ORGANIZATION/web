@@ -9,7 +9,15 @@ vi.mock("@/lib/auth/require-role", () => ({ requireUser: vi.fn() }))
 
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireUser } from "@/lib/auth/require-role"
-import { getMyProfile, getMyStudentProfile } from "./profile.actions"
+import { createClient } from "@/lib/supabase/server"
+import {
+  getMyProfile,
+  getMyStudentProfile,
+  updateStudentProfile,
+  saveStudentCardUrl,
+  updateStudentProfileWithCard,
+  updateClientProfile,
+} from "./profile.actions"
 
 // Faux client service role : consigne la table, les colonnes et les filtres de la lecture.
 function makeService(response) {
@@ -89,6 +97,42 @@ describe("getMyStudentProfile", () => {
     requireUser.mockResolvedValue({ user: { id: "u2" } })
     createServiceClient.mockReturnValue(makeService({ data: null, error: { message: "boom" } }).client)
     expect(await getMyStudentProfile()).toEqual({ error: "Impossible de charger ton profil." })
+  })
+})
+
+// ─── Écritures : aucun message interne renvoyé au navigateur ─────────────────
+
+const LEAK = 'duplicate key value violates constraint "profiles_pkey"'
+
+function failingSession({ failOn }) {
+  const result = (table) => ({ error: table === failOn ? { message: LEAK } : null })
+  const chain = (table) => ({
+    update: () => ({ eq: () => Promise.resolve(result(table)) }),
+    upsert: () => Promise.resolve(result(table)),
+  })
+  return {
+    auth: { getUser: async () => ({ data: { user: { id: "u1" } }, error: null }) },
+    from: chain,
+  }
+}
+
+describe("écritures de profil", () => {
+  const input = { fullName: "Awa", city: "Cotonou" }
+  const cases = [
+    ["updateStudentProfile (profil)", () => updateStudentProfile(input), "profiles"],
+    ["updateStudentProfile (étudiant)", () => updateStudentProfile(input), "student_profiles"],
+    ["saveStudentCardUrl", () => saveStudentCardUrl("u1/c.jpg"), "student_profiles"],
+    ["updateStudentProfileWithCard (profil)", () => updateStudentProfileWithCard(input), "profiles"],
+    ["updateStudentProfileWithCard (étudiant)", () => updateStudentProfileWithCard(input), "student_profiles"],
+    ["updateClientProfile", () => updateClientProfile(input), "profiles"],
+  ]
+
+  it.each(cases)("%s renvoie un message neutre et journalise le détail", async (_n, call, failOn) => {
+    createClient.mockResolvedValue(failingSession({ failOn }))
+    const res = await call()
+    expect(res.error).toBeTruthy()
+    expect(res.error).not.toContain(LEAK)
+    expect(console.error).toHaveBeenCalledWith(expect.any(String), LEAK)
   })
 })
 
