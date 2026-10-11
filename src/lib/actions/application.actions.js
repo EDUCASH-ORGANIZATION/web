@@ -7,6 +7,12 @@ import { requireRole } from "@/lib/auth/require-role"
 import { sendEmail } from "@/lib/email/index"
 
 const ERR_GENERIC = "Une erreur est survenue. Réessaie dans un instant."
+const ERR_FORBIDDEN = "Tu n'as pas les droits pour effectuer cette action."
+
+/** Borne le nombre de lignes renvoyées (défaut 100, maximum 200). */
+function boundedLimit(limit) {
+  return Math.min(Math.max(1, Number(limit) || 100), 200)
+}
 
 /**
  * Lit l'adresse email d'un compte via l'API d'administration (client service role).
@@ -119,38 +125,58 @@ export async function apply({ missionId, message }) {
 }
 
 /**
- * Retourne toutes les candidatures d'un étudiant avec les missions jointes.
+ * Retourne les candidatures de l'étudiant connecté avec les missions jointes.
+ * L'identité vient de la session : un identifiant différent est refusé.
  *
- * @param {string} studentId
+ * @param {string} [studentId] doit égaler l'utilisateur connecté s'il est fourni
+ * @param {{ limit?: number }} [options]
  * @returns {Promise<Array>}
  */
-export async function getStudentApplications(studentId) {
-  const supabase = await createClient()
+export async function getStudentApplications(studentId, { limit } = {}) {
+  const auth = await requireRole(["student"])
+  if (auth.error) throw new Error(auth.error)
+  const { supabase, user } = auth
+
+  if (studentId !== undefined && studentId !== user.id) throw new Error(ERR_FORBIDDEN)
 
   const { data, error } = await supabase
     .from("applications")
     .select("*, missions(title, type, city, budget, status)")
-    .eq("student_id", studentId)
+    .eq("student_id", user.id)
     .order("created_at", { ascending: false })
+    .limit(boundedLimit(limit))
 
   if (error) throw new Error(error.message)
   return data ?? []
 }
 
 /**
- * Retourne toutes les candidatures pour une mission avec les profils étudiants.
+ * Retourne les candidatures d'une mission du client connecté avec les profils étudiants.
+ * Refus si la mission n'appartient pas au client de la session.
  *
  * @param {string} missionId
+ * @param {{ limit?: number }} [options]
  * @returns {Promise<Array>}
  */
-export async function getMissionApplications(missionId) {
-  const supabase = await createClient()
+export async function getMissionApplications(missionId, { limit } = {}) {
+  const auth = await requireRole(["client"])
+  if (auth.error) throw new Error(auth.error)
+  const { supabase, user } = auth
+
+  const { data: mission } = await supabase
+    .from("missions")
+    .select("id")
+    .eq("id", missionId)
+    .eq("client_id", user.id)
+    .maybeSingle()
+  if (!mission) throw new Error(ERR_FORBIDDEN)
 
   const { data, error } = await supabase
     .from("applications")
     .select("*, profiles!student_id(full_name, avatar_url, rating, missions_done), student_profiles!student_id(school, skills)")
     .eq("mission_id", missionId)
     .order("created_at", { ascending: false })
+    .limit(boundedLimit(limit))
 
   if (error) throw new Error(error.message)
   return data ?? []

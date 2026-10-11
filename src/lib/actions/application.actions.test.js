@@ -12,6 +12,8 @@ function makeQuery(table) {
     update: (v) => { q.action = "update"; q.values = v; return chain },
     eq: (c, v) => { q.filters.push(["eq", c, v]); return chain },
     neq: (c, v) => { q.filters.push(["neq", c, v]); return chain },
+    order: () => chain,
+    limit: (n) => { q.limit = n; return chain },
     maybeSingle: () => chain,
     then: (resolve, reject) => {
       calls.push(q)
@@ -34,7 +36,7 @@ vi.mock("@/lib/supabase/service", () => ({
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: (...a) => requireRole(...a) }))
 vi.mock("@/lib/email/index", () => ({ sendEmail: (...a) => sendEmail(...a) }))
 
-import { apply, acceptApplication, rejectApplication } from "./application.actions"
+import { apply, acceptApplication, rejectApplication, getStudentApplications, getMissionApplications } from "./application.actions"
 
 const filterOf = (q, col) => q.filters.find((f) => f[1] === col)?.[2]
 const writes = () => calls.filter((q) => q.action !== "select")
@@ -288,5 +290,62 @@ describe("rejectApplication", () => {
     expect(w.values).toEqual({ status: "rejected" })
     expect(filterOf(w, "status")).toBe("pending")
     expect(filterOf(w, "mission_id")).toBe("m1")
+  })
+})
+
+describe("getStudentApplications", () => {
+  const asStudent = () => requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
+
+  it("exige le rôle étudiant et ne lit rien sinon", async () => {
+    requireRole.mockResolvedValue({ error: "refus" })
+    await expect(getStudentApplications("stu-1")).rejects.toThrow("refus")
+    expect(requireRole).toHaveBeenCalledWith(["student"])
+    expect(calls).toHaveLength(0)
+  })
+
+  it("refuse l'identifiant d'un autre étudiant sans lire", async () => {
+    asStudent()
+    await expect(getStudentApplications("stu-2")).rejects.toThrow()
+    expect(calls).toHaveLength(0)
+  })
+
+  it("filtre sur l'utilisateur de la session et borne la limite", async () => {
+    asStudent()
+    respond = () => ({ data: [{ id: "a1" }], error: null })
+    expect(await getStudentApplications("stu-1")).toEqual([{ id: "a1" }])
+    expect(filterOf(calls[0], "student_id")).toBe("stu-1")
+    expect(calls[0].limit).toBe(100)
+    calls.length = 0
+    await getStudentApplications(undefined, { limit: 100000 })
+    expect(filterOf(calls[0], "student_id")).toBe("stu-1")
+    expect(calls[0].limit).toBe(200)
+  })
+})
+
+describe("getMissionApplications", () => {
+  const asClient = () => requireRole.mockResolvedValue({ supabase, user: { id: "cli-1" }, role: "client" })
+
+  it("exige le rôle client et ne lit rien sinon", async () => {
+    requireRole.mockResolvedValue({ error: "refus" })
+    await expect(getMissionApplications("m1")).rejects.toThrow("refus")
+    expect(requireRole).toHaveBeenCalledWith(["client"])
+    expect(calls).toHaveLength(0)
+  })
+
+  it("refuse une mission qui n'appartient pas au client, sans lire les candidatures", async () => {
+    asClient()
+    respond = () => ({ data: null, error: null })
+    await expect(getMissionApplications("m1")).rejects.toThrow()
+    expect(calls.map((q) => q.table)).toEqual(["missions"])
+    expect(filterOf(calls[0], "client_id")).toBe("cli-1")
+  })
+
+  it("lit les candidatures de sa mission avec une limite bornée", async () => {
+    asClient()
+    respond = (q) => (q.table === "missions" ? { data: { id: "m1" } } : { data: [{ id: "a1" }], error: null })
+    expect(await getMissionApplications("m1", { limit: 0 })).toEqual([{ id: "a1" }])
+    const read = calls.find((q) => q.table === "applications")
+    expect(filterOf(read, "mission_id")).toBe("m1")
+    expect(read.limit).toBe(100)
   })
 })
