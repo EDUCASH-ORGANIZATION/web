@@ -71,7 +71,7 @@ export function AuthShell({
     <div className="ds">
       <div className="auth">
         <div className={`auth__brand${isClient ? " auth__brand--client" : ""} grid-bg`}>
-          <img className="logo" src="/logo-horizontal-blanc.svg" alt="EduCash" width={171} height={32} />
+          <img className="logo" src="/logo-horizontal-blanc.svg" alt="EduCash" width={165} height={40} />
           <h2 className="display display--l a-brand__title">
             {headline.lines.map((line) => (
               <span key={line}>
@@ -110,7 +110,7 @@ export function AuthShell({
                 <Icon name="i-arrow-left" />
               </Link>
             )}
-            <img className="logo logo--sm" src="/logo-horizontal-bleu.svg" alt="EduCash" width={139} height={26} />
+            <img className="logo logo--sm" src="/logo-horizontal-bleu.svg" alt="EduCash" width={153} height={37} />
             <span className="a-spacer" />
           </div>
           {signOutAction ? (
