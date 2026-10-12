@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
 import {
   Wallet, TrendingUp, ArrowDownLeft, ArrowUpRight, Clock,
 } from "lucide-react"
@@ -34,7 +35,8 @@ function KpiCard({ label, value, sub, icon: Icon, color, bg }) {
 export default async function AdminWalletsPage() {
   const auth = await requireRole(["admin"])
   if (auth.error) redirect("/auth/login")
-  const { supabase } = auth
+  // Lectures via le client service role, après le contrôle admin ci-dessus
+  const supabase = createServiceClient()
 
   const firstOfMonth = new Date()
   firstOfMonth.setDate(1)

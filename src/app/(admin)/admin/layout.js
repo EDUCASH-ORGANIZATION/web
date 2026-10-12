@@ -1,20 +1,15 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { getServerRole } from "@/lib/auth/server-role"
+import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 
 export default async function AdminLayout({ children }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) redirect("/auth/login")
-
   // Autorité : profiles.role (user_metadata est modifiable par l'utilisateur)
-  const { role } = await getServerRole(supabase, user)
-  if (role !== "admin") redirect("/auth/login")
+  const auth = await requireRole(["admin"])
+  if (auth.error) redirect("/auth/login")
 
-  // Compte des étudiants non vérifiés pour le badge sidebar
-  const { count: pendingCount } = await supabase
+  // Compte des étudiants non vérifiés pour le badge sidebar (client service role après le contrôle admin)
+  const { count: pendingCount } = await createServiceClient()
     .from("profiles")
     .select("user_id", { count: "exact", head: true })
     .eq("role", "student")

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
 import { missionTypeLabel } from "@/lib/constants/missions"
 import {
   Briefcase, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight,
@@ -9,6 +10,12 @@ import {
 export const metadata = { title: "Missions - Admin EduCash" }
 
 const PAGE_SIZE = 25
+
+// Numéro de page robuste : toute valeur non numérique ou inférieure à 1 donne la page 1.
+function parsePage(value) {
+  const n = Number.parseInt(value ?? "1", 10)
+  return Number.isFinite(n) && n >= 1 ? n : 1
+}
 
 const STATUS_CONFIG = {
   open:        { label: "Ouverte",   cls: "bg-blue-100 text-blue-700",   dot: "bg-blue-400"  },
@@ -24,10 +31,11 @@ function fmt(n) {
 export default async function AdminMissionsPage({ searchParams }) {
   const auth = await requireRole(["admin"])
   if (auth.error) redirect("/auth/login")
-  const { supabase } = auth
+  // Lectures via le client service role, après le contrôle admin ci-dessus
+  const supabase = createServiceClient()
 
   const { page: pageParam, status: statusFilter } = await searchParams
-  const page = Math.max(1, parseInt(pageParam ?? "1", 10))
+  const page = parsePage(pageParam)
   const from = (page - 1) * PAGE_SIZE
   const to   = from + PAGE_SIZE - 1
 
