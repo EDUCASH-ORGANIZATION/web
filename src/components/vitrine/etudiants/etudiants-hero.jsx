@@ -137,7 +137,7 @@ export function EtudiantsHero({ live, openMissions, role }) {
         <div className="v-hero__visual" aria-hidden="true">
           <HeroPhoto photo={HERO_PHOTOS.student} priority />
           <div className="push v-hero__push">
-            <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={40} height={40} />
+            <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={32} height={32} />
             <div>
               <div className="push__app">EduCash · exemple</div>
               <div className="push__title">Paiement reçu : {formatFcfa(netAmount(EXAMPLE_BUDGET))}</div>

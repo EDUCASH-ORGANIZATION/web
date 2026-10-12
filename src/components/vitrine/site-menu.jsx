@@ -34,7 +34,7 @@ export function SiteMenu({ id, links, isActive, session, audience, publishHref, 
       aria-label="Menu"
     >
       <div className="site-menu__top">
-        <img className="logo logo--sm" src="/logo-horizontal-blanc.svg" alt="EduCash" width={534} height={100} />
+        <img className="logo logo--sm" src="/logo-horizontal-blanc.svg" alt="EduCash" width={412} height={100} />
         <button ref={closeRef} type="button" className="btn-icon btn-icon--sm" aria-label="Fermer le menu" onClick={onClose}>
           <Icon name="i-x" />
         </button>

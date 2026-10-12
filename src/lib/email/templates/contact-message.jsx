@@ -1,4 +1,5 @@
-import { Html, Body, Container, Text, Heading, Hr } from "@react-email/components"
+import { Html, Body, Container, Text, Heading, Hr, Img } from "@react-email/components"
+import { logoProps, styles } from "@/lib/email/brand"
 
 /**
  * @param {{
@@ -20,6 +21,8 @@ export default function ContactMessage({
     <Html lang="fr">
       <Body style={body}>
         <Container style={container}>
+          <Img {...logoProps()} />
+
           <Heading style={h1}>Nouveau message de contact</Heading>
 
           <Text style={text}>
@@ -48,10 +51,10 @@ export default function ContactMessage({
   )
 }
 
-const body = { backgroundColor: "#f9fafb", fontFamily: "Arial, sans-serif", margin: 0 }
-const container = { backgroundColor: "#ffffff", margin: "40px auto", padding: "32px", borderRadius: "12px", maxWidth: "520px" }
-const h1 = { color: "#1A6B4A", fontSize: "22px", fontWeight: "700", marginBottom: "8px" }
-const text = { color: "#374151", fontSize: "15px", lineHeight: "1.6", margin: "6px 0" }
-const messageStyle = { color: "#374151", fontSize: "15px", lineHeight: "1.6", margin: "12px 0", whiteSpace: "pre-wrap" }
-const hr = { borderColor: "#e5e7eb", margin: "24px 0" }
-const footer = { color: "#9ca3af", fontSize: "12px", textAlign: "center" }
+const body = styles.body
+const container = styles.container
+const h1 = styles.h1
+const text = styles.text
+const hr = styles.hr
+const footer = styles.footer
+const messageStyle = { ...styles.text, whiteSpace: "pre-wrap" }

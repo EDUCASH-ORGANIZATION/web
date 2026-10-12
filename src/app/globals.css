@@ -24,6 +24,12 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Alias de marque pour les espaces connectés (Tailwind) : bg-brand, text-brand, hover:bg-brand-hover... */
+  --color-brand: var(--c-bleu);
+  --color-brand-hover: var(--c-bleu-700);
+  --color-brand-press: var(--c-bleu-800);
+  --color-brand-soft: var(--c-bleu-50);
+  --color-ink: var(--c-encre);
 }
 
 @media (prefers-color-scheme: dark) {

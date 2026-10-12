@@ -22,10 +22,13 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Titres Anton : interligne via `--lh-display` (1.14 minimum, accents des majuscules), sauf chiffres sans accents.
 - Logos d'opérateurs dans `public/logos/operators/`, affichés via `OperatorLogo` (`src/components/vitrine/shared/`).
 - Couleurs en dur interdites : uniquement `var(--c-*)`. Pas de `style={{}}`, pas de `<style>` local.
-- Palette : bleu `#2F3BED`, citron `#C8F03C` (jamais en texte sur fond clair), encre `#0E0F1A`, givre `--c-givre`.
-- Polices via `next/font` dans `layout.js` : variables `--font-anton`, `--font-figtree`, `--font-inter`, branchées sur `--f-display` (Anton) et `--f-text` (Figtree). Inter reste pour les espaces connectés pas encore refondus. Pas d'`@import` Google Fonts.
+- Marque : charte graphique v1.0 (`/Users/brandonmedehou/Desktop/EDUCASH/Branding/EduCash_Charte_Graphique.pdf`) et kit logo `/Users/brandonmedehou/Desktop/EDUCASH/design-rebrand/logo-final` (logo en chemins, aucune police requise). DejaVu Sans est la police du logo uniquement : elle n'est ni chargée ni utilisée par le site.
+- Palette (charte -> token) : Bleu `#1028F0` -> `--c-bleu` ; Vert `#C1EE3E` -> `--c-citron` (alias `--c-vert`) ; Encre `#17213A` -> `--c-encre` ; Brume `#F3F5FC` -> `--c-givre` ; Blanc `#FFFFFF` -> `--c-blanc`. Les noms de tokens sont conservés, seules les valeurs changent. `--c-brume` reste le gris secondaire sur encre (pas la Brume de la charte). Alias Tailwind `brand`, `brand-hover`, `brand-press`, `brand-soft`, `ink` dans `globals.css`.
+- Règles de charte : le vert n'est jamais du texte sur fond clair (1,35:1 sur blanc) ni sous du texte blanc ; le bleu n'est jamais du texte sur encre (utiliser `--c-bleu-clair`) ; logo complet >= 150 px de large à l'écran, symbole >= 32 px ; le logo n'est jamais retapé en texte (emails compris) .
+- Garde-fous : `brand-tokens.test.js` (contrastes calculés depuis `tokens.css`), `fonts-origin.guard.test.js` (polices du site inchangées), `email-brand.guard.test.js`.
+- Polices via `next/font/google` dans `layout.js` : variables `--font-anton`, `--font-figtree`, `--font-inter`, branchées sur `--f-display` (Anton) et `--f-text` (Figtree). Inter reste pour les espaces connectés pas encore refondus. Pas d'`@import` Google Fonts. La charte ne change pas les polices du site.
 - Icônes : sprite externe `public/sprite.svg`, référencé avec `?v=` (`SPRITE_VERSION`). Incrémenter la version si le sprite change.
-- Logo final et icônes PWA dans `public/`. Le `manifest.json` utilise `#2F3BED`.
+- Logo final et icônes PWA dans `public/`, issus du kit `logo-final` (chemins publics inchangés). Le `manifest.json` utilise `theme_color` `#1028F0` et `background_color` `#F3F5FC`.
 - Texte secondaire : `--c-ardoise` sur clair, `--c-brume` sur encre, blanc sur bleu ; taille `--t-para` (16 px, 15 px sous 768) ; jamais d'opacité sur du texte ; `--t-micro` (13 px) est le minimum absolu. Écart assumé avec maquettes/_system (RD-FIX-03).
 - Ne JAMAIS utiliser une classe Tailwind dont le nom existe dans le système de design (exemple : oublier le préfixe de `ds-grow`, erreur déjà commise). Tailwind ne génère que les classes présentes dans le code : une classe absente du code n'existe pas au build.
 
