@@ -46,8 +46,8 @@ describe("RD-SEC-01 critères d'acceptation", () => {
     expect(hits).toEqual([])
   })
 
-  it("aucun tiret demi-cadratin ni cadratin dans src (tous types de fichiers)", () => {
-    const bad = new RegExp(`[${String.fromCharCode(0x2014)}]`)
+  it("aucun tiret cadratin (U+2014) ni demi-cadratin (U+2013) dans src (tous types de fichiers)", () => {
+    const bad = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`)
     const hits = walk(path.join(ROOT, "src")).map(rel).filter((f) => bad.test(readFileSync(path.join(ROOT, f), "utf8")))
     expect(hits).toEqual([])
   })

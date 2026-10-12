@@ -12,7 +12,6 @@ import {
 } from "lucide-react"
 import clsx from "clsx"
 import { acceptApplication, rejectApplication } from "@/lib/actions/application.actions"
-import { updateMissionStatus } from "@/lib/actions/mission.actions"
 import { useToast } from "@/components/shared/toaster"
 import { ConfirmMissionModal } from "@/components/client/confirm-mission-modal"
 import { missionTypeLabel } from "@/lib/constants/missions"
