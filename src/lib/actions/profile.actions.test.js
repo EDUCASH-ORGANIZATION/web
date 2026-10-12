@@ -180,6 +180,11 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     ["non-chaîne", { path: "u1/card.jpg" }],
     ["chemin absolu", "/u1/card.jpg"],
     ["antislash", "u1\\..\\card.jpg"],
+    ["traversée encodée en chemin brut", "u1/%2e%2e/u2/card.jpg"],
+    ["traversée encodée majuscule", "u1/%2E%2E/u2/x"],
+    ["double encodage dans une URL", publicUrl("u1/%252e%252e/c.jpg")],
+    ["segment point", "u1/./x"],
+    ["segment vide", "u1//x"],
   ]
 
   it.each(abusive)("saveStudentCardUrl refuse : %s", async (_l, value) => {

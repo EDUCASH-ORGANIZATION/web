@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { requireRole } from "@/lib/auth/require-role"
 import { createServiceClient } from "@/lib/supabase/service"
+import { toOwnedStoragePath } from "@/lib/storage/owned-paths"
 import { VerificationsTabs } from "@/components/admin/verifications-tabs"
 
 export const metadata = { title: "Vérifications - Admin EduCash" }
@@ -14,18 +15,6 @@ const SIGNED_URL_TTL = 60 * 60 // 1 heure
 function parsePage(value) {
   const n = Number.parseInt(value ?? "1", 10)
   return Number.isFinite(n) && n >= 1 ? n : 1
-}
-
-// Chemin dans le bucket student-cards à partir de la valeur stockée (chemin ou ancienne URL).
-// Retourne null si la valeur n'est pas exploitable ou n'est pas dans le dossier du propriétaire
-// (`<userId>/`) : aucun repli sur la valeur brute, rien n'est signé dans ce cas.
-function cardStoragePath(rawUrl, userId) {
-  if (typeof rawUrl !== "string" || rawUrl === "") return null
-  const match = rawUrl.match(/student-cards\/(.+)$/)
-  const candidate = (match ? match[1] : rawUrl).split("?")[0]
-  if (/^[a-z][a-z0-9+.-]*:/i.test(candidate) || candidate.includes("..")) return null
-  if (typeof userId !== "string" || userId === "" || !candidate.startsWith(`${userId}/`)) return null
-  return candidate
 }
 
 export default async function AdminVerificationsPage({ searchParams } = {}) {
@@ -82,7 +71,7 @@ export default async function AdminVerificationsPage({ searchParams } = {}) {
   // Aucun repli sur le chemin brut : sans URL signée, la carte est signalée indisponible.
   const pathByUser = {}
   for (const [userId, sp] of Object.entries(studentMap)) {
-    const storagePath = cardStoragePath(sp.card_url, userId)
+    const storagePath = toOwnedStoragePath(sp.card_url, "student-cards", userId)
     if (storagePath) pathByUser[userId] = storagePath
   }
   const paths = [...new Set(Object.values(pathByUser))]

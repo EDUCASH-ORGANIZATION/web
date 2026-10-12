@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 const requireRole = vi.fn()
 const createServiceClient = vi.fn()
@@ -87,11 +87,16 @@ describe("admin/verifications : cartes et pagination", () => {
   const ranges = []
 
   beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://x.supabase.co")
     requireRole.mockReset()
     createServiceClient.mockReset()
     createSignedUrls.mockReset()
     ranges.length = 0
     requireRole.mockResolvedValue({ supabase: {}, user: { id: "a" }, role: "admin", profile: {} })
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   function service(students, { count = 1 } = {}) {
@@ -145,6 +150,9 @@ describe("admin/verifications : cartes et pagination", () => {
     ["URL du bucket d'un autre utilisateur", "https://x.supabase.co/storage/v1/object/public/student-cards/u2/card.jpg"],
     ["traversée de dossier", "u1/../u2/card.jpg"],
     ["chemin sans dossier utilisateur", "card.jpg"],
+    ["traversée encodée", "u1/%2e%2e/u2/card.jpg"],
+    ["double encodage dans une URL", "https://x.supabase.co/storage/v1/object/public/student-cards/u1/%252e%252e/c.jpg"],
+    ["segment vide", "u1//card.jpg"],
   ])("ne signe rien pour une ligne existante dont le chemin est invalide (%s)", async (_label, cardUrl) => {
     createServiceClient.mockReturnValue(service([{ user_id: "u1", card_url: cardUrl }]))
     const tree = cards(await Verifications({ searchParams: Promise.resolve({}) }))

@@ -9,8 +9,9 @@ function isCleanRelativePath(path, userId) {
   if (!path.startsWith(`${userId}/`)) return false
   const rest = path.slice(userId.length + 1)
   if (rest === "") return false
-  if (/[\\\u0000-\u001f]/.test(path)) return false
-  if (path.includes("..") || path.includes("//") || path.includes("?") || path.includes("#")) return false
+  if (/[\\%\u0000-\u001f\u007f]/.test(path)) return false
+  if (path.split("/").some((s) => s === "" || s === "." || s === "..")) return false
+  if (path.includes("..") || path.includes("?") || path.includes("#")) return false
   return !/^[a-z][a-z0-9+.-]*:/i.test(path)
 }
 
