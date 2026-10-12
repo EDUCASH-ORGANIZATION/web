@@ -32,10 +32,10 @@ describe("RD-SEC-01 critères d'acceptation", () => {
     expect(files.filter((f) => /payment\/(\[missionId\]|success|failed)/.test(f))).toEqual([])
   })
 
-  it("seul server-role.js lit user_metadata.role (repli student/client sans profil, jamais admin)", () => {
-    const hits = sources().filter((f) => f !== "src/lib/auth/server-role.js").filter((f) => /(user|app)_metadata\??\.role/.test(readFileSync(path.join(ROOT, f), "utf8")))
+  it("aucun fichier ne lit user_metadata.role ni app_metadata.role (autorité : profiles.role)", () => {
+    const hits = sources().filter((f) => /(user|app)_metadata\??\.role/.test(readFileSync(path.join(ROOT, f), "utf8")))
     expect(hits).toEqual([])
-    expect(read("src/lib/auth/server-role.js")).toMatch(/FALLBACK_ROLES = \["student", "client"\]/)
+    expect(read("src/lib/auth/server-role.js")).not.toMatch(/FALLBACK_ROLES/)
   })
 
   it("createServiceClient n'est importé dans aucun composant client", () => {

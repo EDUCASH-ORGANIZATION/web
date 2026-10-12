@@ -132,18 +132,15 @@ async function loadContext(expectedRole, next) {
   return { supabase, user, profile }
 }
 
-// Écrit la liste blanche : update si le profil existe, sinon insertion avec le rôle serveur.
-async function writeProfile({ supabase, user, profile, role, columns }) {
-  if (profile) {
-    const { data, error } = await supabase
-      .from("profiles")
-      .update(columns)
-      .eq("user_id", user.id)
-      .select("user_id")
-    return !error && Array.isArray(data) && data.length > 0
-  }
-  const { error } = await supabase.from("profiles").insert({ user_id: user.id, role, ...columns })
-  return !error
+// Écrit la liste blanche sur le profil existant (créé à l'inscription par le déclencheur handle_new_user).
+// Sans profil, loadContext a déjà refusé : aucun rôle n'est déduit, aucune insertion.
+async function writeProfile({ supabase, user, columns }) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(columns)
+    .eq("user_id", user.id)
+    .select("user_id")
+  return !error && Array.isArray(data) && data.length > 0
 }
 
 /**
@@ -181,7 +178,7 @@ export async function completeStudentOnboarding(payload) {
   if (avatar.url) columns.avatar_url = avatar.url
   if (card.url) columns.verification_submitted_at = new Date().toISOString()
 
-  const saved = await writeProfile({ supabase, user, profile, role: "student", columns })
+  const saved = await writeProfile({ supabase, user, columns })
   if (!saved) return failure("student", "save_failed")
 
   const studentColumns = {
@@ -229,7 +226,7 @@ export async function completeClientOnboarding(payload) {
   const columns = { full_name: data.name, city: data.city, phone: data.phone }
   if (avatar.url) columns.avatar_url = avatar.url
 
-  const saved = await writeProfile({ supabase, user, profile, role: "client", columns })
+  const saved = await writeProfile({ supabase, user, columns })
   if (!saved) return failure("client", "save_failed")
 
   // Échec toléré : le type n'est qu'un libellé d'affichage.

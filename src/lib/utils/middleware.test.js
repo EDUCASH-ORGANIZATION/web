@@ -210,6 +210,30 @@ describe("middleware - routes /auth quand connecté", () => {
   })
 })
 
+describe("middleware - /wallet", () => {
+  it("renvoie un visiteur vers le login avec next", async () => {
+    asUser(null, null)
+    expectLoginRedirect(await run("/wallet"), "/wallet")
+    expectLoginRedirect(await run("/wallet/history"), "/wallet/history")
+  })
+
+  it("laisse passer un étudiant et redirige les autres rôles vers leur tableau de bord", async () => {
+    asUser("student")
+    expect((await run("/wallet")).location).toBeNull()
+    asUser("client")
+    expect((await run("/wallet")).location?.pathname).toBe("/client/dashboard")
+    asUser("admin")
+    expect((await run("/wallet")).location?.pathname).toBe("/admin/dashboard")
+  })
+
+  it("n'affecte pas /walletx ni /client/wallet pour un client", async () => {
+    asUser("client")
+    expect((await run("/client/wallet")).location).toBeNull()
+    asUser(null, null)
+    expect((await run("/walletx")).location).toBeNull()
+  })
+})
+
 describe("middleware - autorité profiles.role", () => {
   it("route selon profiles.role même si user_metadata.role diffère", async () => {
     asUser("student", "admin")
@@ -221,12 +245,21 @@ describe("middleware - autorité profiles.role", () => {
     expect((await run("/admin/users")).location).toBeNull()
   })
 
-  it("compte sans profil (onboarding) : repli student ou client, jamais admin", async () => {
-    asUser(null, "client")
-    expect((await run("/client/dashboard")).location).toBeNull()
-    asUser(null, "admin")
-    expect((await run("/admin/dashboard")).location?.pathname).toBe("/")
-    expect((await run("/auth/login")).location).toBeNull()
+  it("compte sans profil : aucun accès aux espaces protégés, quelle que soit la métadonnée", async () => {
+    for (const metaRole of ["student", "client", "admin"]) {
+      asUser(null, metaRole)
+      for (const path of ["/dashboard", "/wallet", "/student/missions", "/client/dashboard", "/admin/dashboard"]) {
+        expect((await run(path)).location?.pathname, `${metaRole} ${path}`).toBe("/")
+      }
+      expect((await run("/auth/login")).location).toBeNull()
+    }
+  })
+
+  it("profil suspendu : le rôle du profil reste lu (le refus relève des layouts et des actions)", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: {} } } })
+    maybeSingle.mockResolvedValue({ data: { role: "student", full_name: "A", city: "B", is_suspended: true }, error: null })
+    expect((await run("/dashboard")).location).toBeNull()
+    expect((await run("/admin/dashboard")).location?.pathname).toBe("/dashboard")
   })
 
   it("rôle null : laisse passer /auth, renvoie vers l'accueil sur un préfixe protégé", async () => {

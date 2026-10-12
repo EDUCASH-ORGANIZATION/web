@@ -8,8 +8,10 @@ import path from "node:path"
 
 const ROOT = process.cwd()
 
-// Seul server-role.js lit user_metadata dans du code : repli limité à student et client, jamais admin.
-const ALLOWED_CODE = ["src/lib/auth/server-role.js"]
+// Aucun fichier gardé ne lit user_metadata. Seule exception du code applicatif : l'affichage du nom
+// (`user_metadata.full_name`) dans le hook de session de la vitrine.
+const ALLOWED_CODE = []
+const DISPLAY_ONLY = { "src/hooks/use-vitrine-session.js": "full_name" }
 
 const FIXED_FILES = ["middleware.js", "src/app/(student)/layout.js", "src/app/(client)/layout.js"]
 
@@ -75,9 +77,27 @@ describe("garde-fou role-authority", () => {
     expect(offenders).toEqual([])
   })
 
-  it("le repli de server-role.js reste limité à student et client", () => {
-    const source = readFileSync(path.join(ROOT, ALLOWED_CODE[0]), "utf8")
-    expect(source).toMatch(/FALLBACK_ROLES\s*=\s*\["student",\s*"client"\]/)
+  it("server-role.js ne lit jamais user_metadata (aucun repli sans profil)", () => {
+    const source = readFileSync(path.join(ROOT, "src/lib/auth/server-role.js"), "utf8")
+    expect(readsUserMetadata(source)).toBe(false)
+    expect(source).not.toMatch(/FALLBACK_ROLES/)
+  })
+
+  it("dans tout src et middleware.js, user_metadata ne sert qu'à l'affichage du nom", () => {
+    const files = [...walk(path.join(ROOT, "src")), path.join(ROOT, "middleware.js")].filter(
+      (f) => /\.(js|jsx)$/.test(f) && !/\.test\.(js|jsx)$/.test(f)
+    )
+    const offenders = []
+    for (const file of files) {
+      const rel = path.relative(ROOT, file)
+      const code = stripComments(readFileSync(file, "utf8"))
+      const uses = code.match(/user_metadata\??\.?\w*/g) ?? []
+      for (const use of uses) {
+        const key = DISPLAY_ONLY[rel]
+        if (!key || use.replace(/\?/g, "") !== `user_metadata.${key}`) offenders.push(`${rel}: ${use}`)
+      }
+    }
+    expect(offenders).toEqual([])
   })
 
   it("les hooks n'appellent plus signOut côté navigateur", () => {

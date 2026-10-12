@@ -43,25 +43,24 @@ describe("getServerRole", () => {
     expect(odd.role).toBeNull()
   })
 
-  it("se replie sur la métadonnée student ou client sans profil", async () => {
-    for (const role of ["student", "client"]) {
-      const result = await getServerRole(supabaseWith(null), { id: "u1", user_metadata: { role } })
-      expect(result).toEqual({ role, profile: null, profileComplete: false })
-    }
-  })
-
-  it("ne prend jamais admin dans la métadonnée sans profil", async () => {
-    const result = await getServerRole(supabaseWith(null), { id: "u1", user_metadata: { role: "admin" } })
-    expect(result).toEqual({ role: null, profile: null, profileComplete: false })
-  })
-
-  it("renvoie un rôle nul sans profil ni métadonnée valide, ou sans utilisateur", async () => {
+  it("compte sans profil : aucun rôle, même avec une métadonnée student, client ou admin", async () => {
     const empty = { role: null, profile: null, profileComplete: false }
+    for (const role of ["student", "client", "admin", "root", undefined]) {
+      expect(await getServerRole(supabaseWith(null), { id: "u1", user_metadata: { role } })).toEqual(empty)
+    }
     expect(await getServerRole(supabaseWith(null), { id: "u1" })).toEqual(empty)
-    expect(await getServerRole(supabaseWith(null), { id: "u1", user_metadata: { role: "root" } })).toEqual(empty)
+  })
+
+  it("sans utilisateur : aucun rôle et aucune lecture", async () => {
     const spy = {}
-    expect(await getServerRole(supabaseWith(null, spy), null)).toEqual(empty)
+    expect(await getServerRole(supabaseWith(null, spy), null)).toEqual({ role: null, profile: null, profileComplete: false })
     expect(spy.from).not.toHaveBeenCalled()
+  })
+
+  it("profil suspendu : rôle et profil renvoyés avec is_suspended, pour que l'appelant refuse", async () => {
+    const result = await getServerRole(supabaseWith({ role: "student", ...complete, is_suspended: true }), { id: "u1" })
+    expect(result.role).toBe("student")
+    expect(result.profile.is_suspended).toBe(true)
   })
 
   it("profileComplete exige nom et ville renseignés", async () => {

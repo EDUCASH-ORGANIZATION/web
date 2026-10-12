@@ -269,13 +269,12 @@ describe("completeStudentOnboarding", () => {
     expect(calls.update).toHaveLength(0)
   })
 
-  it("profil absent : insertion avec le rôle serveur (metadata student), pas celui du payload", async () => {
+  it("profil absent : refus wrong_role, ni insertion ni mise à jour, la métadonnée ne donne aucun rôle", async () => {
     const { calls } = use({ user: { id: UID, user_metadata: { role: "student" } }, profile: null })
     const result = await completeStudentOnboarding({ ...studentPayload, role: "admin" })
-    expect(result.ok).toBe(true)
+    expect(result).toMatchObject({ ok: false, code: "wrong_role" })
     expect(calls.update).toHaveLength(0)
-    expect(calls.insert[0].row).toMatchObject({ user_id: UID, role: "student", full_name: "Sèna Agossou" })
-    expect(calls.insert[0].row).not.toHaveProperty("is_verified")
+    expect(calls.insert).toHaveLength(0)
   })
 
   it("mise à jour qui ne touche aucune ligne : save_failed", async () => {
@@ -376,10 +375,11 @@ describe("completeClientOnboarding", () => {
     expect(calls.update).toHaveLength(0)
   })
 
-  it("profil absent : insertion avec le rôle client", async () => {
+  it("profil absent : refus wrong_role, ni insertion ni mise à jour", async () => {
     const { calls } = use({ user: { id: UID, user_metadata: { role: "client" } }, profile: null })
     const result = await completeClientOnboarding(clientPayload)
-    expect(result.ok).toBe(true)
-    expect(calls.insert[0].row).toMatchObject({ user_id: UID, role: "client" })
+    expect(result).toMatchObject({ ok: false, code: "wrong_role" })
+    expect(calls.update).toHaveLength(0)
+    expect(calls.insert).toHaveLength(0)
   })
 })
