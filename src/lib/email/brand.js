@@ -4,7 +4,11 @@
 // Règles : le vert ne sert jamais de texte sur fond clair (1,35:1 sur blanc),
 // le logo n'est jamais retapé en texte, largeur affichée >= 150 px.
 
-export const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj").replace(/\/$/, "")
+// Hôte canonique : https://educash.bj redirige (307) vers www, et certains clients mail
+// ne suivent pas la redirection (logo absent). Un hôte nu configuré en variable est donc ramené à www.
+export const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://www.educash.bj")
+  .replace(/\/$/, "")
+  .replace(/^https:\/\/educash\.bj(?=\/|$)/, "https://www.educash.bj")
 
 export const COLORS = {
   bleu: "#1028F0",

@@ -46,8 +46,8 @@ describe("brand.js", () => {
   })
 
   it("logos en URL absolue, largeur >= 150 px", () => {
-    expect(LOGO_URLS.bleu).toMatch(/^https?:\/\/.+\/email\/educash-logo-bleu\.png$/)
-    expect(LOGO_URLS.blanc).toMatch(/^https?:\/\/.+\/email\/educash-logo-blanc\.png$/)
+    expect(LOGO_URLS.bleu).toBe("https://www.educash.bj/email/educash-logo-bleu.png")
+    expect(LOGO_URLS.blanc).toBe("https://www.educash.bj/email/educash-logo-blanc.png")
     expect(LOGO_WIDTH).toBeGreaterThanOrEqual(150)
   })
 
@@ -131,12 +131,33 @@ describe("gabarits Resend migres", () => {
   })
 })
 
+describe("hote canonique www des logos", () => {
+  const APEX_ASSET = /https:\/\/educash\.bj\/email\//
+
+  it("aucun gabarit Supabase ne reference https://educash.bj/email/ sans www", () => {
+    for (const f of SUPABASE) expect(read(f), f).not.toMatch(APEX_ASSET)
+  })
+
+  it("brand.js et les gabarits Resend n'ecrivent aucun logo sur l'hote nu", () => {
+    for (const f of ["src/lib/email/brand.js", ...MIGRATED]) {
+      expect(read(f).replace(/\|\| "https:\/\/educash\.bj"/g, ""), f).not.toMatch(APEX_ASSET)
+    }
+    expect(read("src/lib/email/brand.js")).toContain('|| "https://www.educash.bj"')
+  })
+
+  it("l'URL de logo rendue est sur www", async () => {
+    const html = await render(createElement(WelcomeStudent, { name: "Awa" }))
+    expect(attr(imgs(html)[0], "src")).toMatch(/^https:\/\/www\.educash\.bj\/email\//)
+    expect(html).not.toMatch(APEX_ASSET)
+  })
+})
+
 describe("gabarits Supabase", () => {
   it("bandeau bleu avec img du logo blanc en URL absolue, sans texte EduCash de logo", () => {
     for (const f of SUPABASE) {
       const html = read(f).replace(/<!--[\s\S]*?-->/g, "")
       const [tag] = imgs(html)
-      expect(attr(tag, "src"), f).toBe("https://educash.bj/email/educash-logo-blanc.png")
+      expect(attr(tag, "src"), f).toBe("https://www.educash.bj/email/educash-logo-blanc.png")
       expect(attr(tag, "alt"), f).toBe("EduCash")
       expect(Number(attr(tag, "width")), f).toBeGreaterThanOrEqual(150)
       expect(html, f).toContain("background-color:#1028F0")
