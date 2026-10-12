@@ -63,6 +63,21 @@ describe("apply", () => {
     expect(calls).toHaveLength(0)
   })
 
+  it("refuse un message trop long ou non textuel sans écrire", async () => {
+    asStudent()
+    for (const message of ["a".repeat(501), 42, { x: 1 }]) {
+      const res = await apply({ missionId: "m1", message })
+      expect(res.error).toBeTruthy()
+    }
+    expect(calls).toHaveLength(0)
+  })
+
+  it("accepte un message de 500 caractères", async () => {
+    asStudent()
+    respond = (q) => (q.table === "missions" ? { data: openMission } : { data: null, error: null })
+    expect((await apply({ missionId: "m1", message: "a".repeat(500) })).success).toBe(true)
+  })
+
   it("refuse de postuler à sa propre mission", async () => {
     asStudent()
     respond = (q) => (q.table === "missions" ? { data: { ...openMission, client_id: "stu-1" } } : { data: null })
@@ -361,5 +376,23 @@ describe("getMissionApplications", () => {
     const read = calls.find((q) => q.table === "applications")
     expect(filterOf(read, "mission_id")).toBe("m1")
     expect(read.limit).toBe(100)
+  })
+})
+
+describe("lectures de candidatures : erreurs neutres", () => {
+  const SECRET = 'column "x" of relation "applications" does not exist'
+
+  it("getStudentApplications masque le détail et le journalise", async () => {
+    requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
+    respond = () => ({ data: null, error: { message: SECRET } })
+    await expect(getStudentApplications("stu-1")).rejects.toThrow("Impossible de charger les candidatures.")
+    expect(console.error).toHaveBeenCalledWith("[getStudentApplications]", SECRET)
+  })
+
+  it("getMissionApplications masque le détail et le journalise", async () => {
+    requireRole.mockResolvedValue({ supabase, user: { id: "cli-1" }, role: "client" })
+    respond = (q) => (q.table === "missions" ? { data: { id: "m1" } } : { data: null, error: { message: SECRET } })
+    await expect(getMissionApplications("m1")).rejects.toThrow("Impossible de charger les candidatures.")
+    expect(console.error).toHaveBeenCalledWith("[getMissionApplications]", SECRET)
   })
 })

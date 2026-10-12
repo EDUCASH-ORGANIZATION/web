@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
@@ -17,6 +18,35 @@ import {
 const ERR_GENERIC = "Une erreur est survenue. Réessayez dans un instant."
 const ERR_NOT_CANCELLABLE = "Cette mission ne peut plus être annulée."
 const ERR_PAYMENTS_OFF = "La publication de missions est en cours d'activation."
+const ERR_CONFIRM = "Impossible de libérer les fonds pour cette mission."
+
+const TITLE_MAX = 120
+const DESCRIPTION_MAX = 3000
+const DAY_MS = 24 * 60 * 60 * 1000
+
+// Date limite : AAAA-MM-JJ (champ date du formulaire) ou date-heure ISO, strictement dans le futur.
+// Une date seule vaut jusqu'à la fin de ce jour (UTC).
+function deadlineEndMs(value) {
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value)
+  if (!dateOnly && !/^\d{4}-\d{2}-\d{2}T/.test(value)) return NaN
+  const ms = Date.parse(value)
+  return dateOnly ? ms + DAY_MS - 1 : ms
+}
+
+const missionTextSchema = z.object({
+  title: z.string({ error: "Le titre est requis." }).trim()
+    .min(1, "Le titre est requis.")
+    .max(TITLE_MAX, `Le titre ne doit pas dépasser ${TITLE_MAX} caractères.`),
+  description: z.string({ error: "La description est requise." }).trim()
+    .min(1, "La description est requise.")
+    .max(DESCRIPTION_MAX, `La description ne doit pas dépasser ${DESCRIPTION_MAX} caractères.`),
+  deadline: z.preprocess(
+    (v) => (v === undefined || v === "" ? null : v),
+    z.string({ error: "La date limite est invalide." })
+      .refine((v) => deadlineEndMs(v) > Date.now(), "La date limite doit être dans le futur.")
+      .nullable(),
+  ),
+})
 
 // Colonnes publiques de `profiles` (aucune colonne privée : phone, fcm_token, rejection_reason...).
 const PUBLIC_PROFILE_COLUMNS =
@@ -64,9 +94,10 @@ async function cancelMissionAtomic(service, clientId, missionId) {
  */
 async function discardMission(service, clientId, missionId) {
   const ledger = await ledgerHasMovements(service, clientId, missionId)
-  if (ledger.error) return false
 
-  if (!ledger.moved) {
+  // Grand livre illisible : on ne supprime pas, mais l'annulation atomique gère aussi le cas
+  // sans mouvement (aucun remboursement, statut cancelled).
+  if (!ledger.error && !ledger.moved) {
     const { error } = await service.from("missions").delete().eq("id", missionId)
     if (!error) return true
     console.error("[createMission] suppression impossible, annulation", error)
@@ -74,7 +105,11 @@ async function discardMission(service, clientId, missionId) {
 
   const cancelled = await cancelMissionAtomic(service, clientId, missionId)
   if (!cancelled.ok) {
-    console.error("[createMission] annulation impossible, mission conservée", cancelled)
+    console.error("[createMission] ALERTE : annulation impossible, mission conservée (vérification manuelle requise)", {
+      missionId,
+      code: cancelled.code ?? null,
+      ledgerReadFailed: Boolean(ledger.error),
+    })
     return false
   }
   return true
@@ -87,7 +122,8 @@ async function discardMission(service, clientId, missionId) {
  * @returns {Promise<import('@/lib/supabase/database.constants').Mission[]>}
  */
 export async function getMissions(filters = {}) {
-  const { city, type, urgency, offset = 0 } = filters
+  const { city, type, urgency } = filters
+  const offset = Math.max(0, Math.trunc(Number(filters.offset)) || 0)
   const limit = Math.min(Math.max(1, Number(filters.limit) || 20), 50)
 
   const supabase = await createClient()
@@ -104,7 +140,10 @@ export async function getMissions(filters = {}) {
   if (urgency) query = query.eq("urgency", urgency)
 
   const { data, error } = await query
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error("[getMissions]", error.message)
+    throw new Error("Impossible de charger les missions.")
+  }
 
   return data ?? []
 }
@@ -151,11 +190,16 @@ export async function createMission(data) {
 
   if (!paymentsEnabled()) return { error: ERR_PAYMENTS_OFF }
 
-  const { title, description, type, city, budget, urgency, deadline } = data ?? {}
+  const { type, city, budget, urgency } = data ?? {}
   const budgetNum = Number(budget)
 
-  if (typeof title !== "string" || !title.trim()) return { error: "Le titre est requis." }
-  if (typeof description !== "string" || !description.trim()) return { error: "La description est requise." }
+  const text = missionTextSchema.safeParse({
+    title: data?.title,
+    description: data?.description,
+    deadline: data?.deadline,
+  })
+  if (!text.success) return { error: text.error.issues[0].message }
+  const { title, description, deadline } = text.data
   if (!MISSION_TYPES.includes(type)) return { error: "Le type de mission est invalide." }
   if (!CITIES.includes(city)) return { error: "La ville est invalide." }
   if (!Number.isInteger(budgetNum) || budgetNum < MIN_MISSION_BUDGET) {
@@ -188,13 +232,13 @@ export async function createMission(data) {
     .from("missions")
     .insert({
       client_id: user.id,
-      title: title.trim(),
-      description: description.trim(),
+      title,
+      description,
       type,
       city,
       budget: budgetNum,
       urgency: urgency ?? "low",
-      deadline: deadline || null,
+      deadline,
       status: "open",
     })
     .select("id")
@@ -250,7 +294,21 @@ export async function confirmMission(missionId) {
   if (mission.status !== "in_progress") return { error: "Cette mission n'est pas en cours." }
   if (!mission.selected_student_id) return { error: "Aucun étudiant sélectionné pour cette mission." }
 
-  // 2. Libère les fonds (un second appel est refusé par la fonction SQL)
+  // 2. Exige une réservation et aucune libération déjà faite (mission héritée ou double confirmation)
+  const { data: movements, error: movementsError } = await service
+    .from("wallet_transactions")
+    .select("type")
+    .eq("user_id", mission.client_id)
+    .eq("mission_id", missionId)
+    .in("type", ["reserve", "release"])
+  if (movementsError) {
+    console.error("[confirmMission] lecture du grand livre impossible", movementsError.message)
+    return { error: ERR_CONFIRM }
+  }
+  const types = new Set((movements ?? []).map((m) => m.type))
+  if (!types.has("reserve") || types.has("release")) return { error: ERR_CONFIRM }
+
+  // 3. Libère les fonds (un second appel est refusé par la fonction SQL)
   const release = await callWalletRpc(service, "wallet_release", {
     p_client_id:       mission.client_id,
     p_student_id:      mission.selected_student_id,
@@ -258,11 +316,11 @@ export async function confirmMission(missionId) {
     p_amount_total:    mission.budget,
     p_commission_rate: COMMISSION_RATE,
   })
-  if (!release.ok) return { error: "Impossible de libérer les fonds pour cette mission." }
+  if (!release.ok) return { error: ERR_CONFIRM }
 
   const amountStudent = release.data.amount_student ?? 0
 
-  // 3. Marque la mission comme terminée, seulement après le succès de la libération
+  // 4. Marque la mission comme terminée, seulement après le succès de la libération
   const { data: done, error: doneError } = await service
     .from("missions")
     .update({ status: "done" })
@@ -278,7 +336,7 @@ export async function confirmMission(missionId) {
     return { error: ERR_GENERIC }
   }
 
-  // 4. Notification email à l'étudiant (adresse lue via l'API admin du client service role)
+  // 5. Notification email à l'étudiant (adresse lue via l'API admin du client service role)
   try {
     const { data: userData } = await service.auth.admin.getUserById(mission.selected_student_id)
     const studentEmail = userData?.user?.email

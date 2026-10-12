@@ -224,21 +224,77 @@ describe("createMission", () => {
       expect(console.error).toHaveBeenCalled()
     })
 
-    it("si le grand livre est illisible, ni annulation ni suppression", async () => {
+    it("si le grand livre est illisible : pas de suppression, mais l'annulation atomique est tentée", async () => {
       const { client, calls, rpc } = makeService(
         {
           wallets: wallet,
           "missions:insert": { data: { id: "m-1" }, error: null },
           wallet_transactions: { data: null, error: { message: "boom" } },
         },
-        async () => ({ data: { success: false }, error: null }),
+        async (name) =>
+          name === "wallet_reserve" ? { data: { success: false }, error: null } : { data: { success: true, refunded: 0 }, error: null },
       )
       createServiceClient.mockReturnValue(client)
       const res = await createMission(validData)
-      expect(res.error).toMatch(/Une erreur est survenue/)
+      expect(res.error).toMatch(/réserver les fonds/)
       expect(calls.some((c) => c.op === "update" || c.op === "delete")).toBe(false)
-      expect(rpc).not.toHaveBeenCalledWith("wallet_cancel_mission", expect.anything())
+      expect(rpc).toHaveBeenCalledWith("wallet_cancel_mission", { p_mission_id: "m-1", p_client_id: "client-1" })
     })
+
+    it("si le grand livre est illisible ET l'annulation échoue : alerte sans donnée sensible et erreur générique", async () => {
+      const { client, calls } = makeService(
+        {
+          wallets: wallet,
+          "missions:insert": { data: { id: "m-1" }, error: null },
+          wallet_transactions: { data: null, error: { message: "boom secret" } },
+        },
+        async () => ({ data: { success: false, error: "invalid_status" }, error: null }),
+      )
+      createServiceClient.mockReturnValue(client)
+      const res = await createMission(validData)
+      expect(res).toEqual({ error: "Une erreur est survenue. Réessayez dans un instant." })
+      expect(calls.some((c) => c.op === "update" || c.op === "delete")).toBe(false)
+      const alert = console.error.mock.calls.find((c) => String(c[0]).includes("ALERTE"))
+      expect(alert).toBeTruthy()
+      expect(JSON.stringify(alert)).not.toMatch(/boom secret|balance|budget/)
+    })
+  })
+})
+
+describe("createMission : validation serveur des textes", () => {
+  const wallet = { data: { balance: 10000, reserved: 0 }, error: null }
+  const future = (days) => new Date(Date.now() + days * 86400000).toISOString()
+
+  it.each([
+    ["titre trop long", { title: "a".repeat(121) }, /titre/],
+    ["description trop longue", { description: "a".repeat(3001) }, /description/],
+    ["titre non texte", { title: 42 }, /titre/],
+    ["date limite passée", { deadline: "2020-01-01" }, /futur/],
+    ["date limite invalide", { deadline: "demain" }, /futur|invalide/],
+    ["date limite non texte", { deadline: 12345 }, /invalide/],
+  ])("refuse : %s, sans toucher à la base", async (_l, patch, message) => {
+    const { client, calls } = makeService({ wallets: wallet })
+    createServiceClient.mockReturnValue(client)
+    const res = await createMission({ ...validData, ...patch })
+    expect(res.error).toMatch(message)
+    expect(calls).toHaveLength(0)
+  })
+
+  it.each([
+    ["date seule d'un jour futur", "2999-01-01"],
+    ["date-heure ISO future", future(5)],
+  ])("accepte : %s, et l'enregistre", async (_l, deadline) => {
+    const { client, calls } = makeService({ wallets: wallet, "missions:insert": { data: { id: "m-1" }, error: null } })
+    createServiceClient.mockReturnValue(client)
+    expect(await createMission({ ...validData, deadline })).toEqual({ id: "m-1" })
+    expect(calls.find((c) => c.op === "insert").payload.deadline).toBe(deadline)
+  })
+
+  it("enregistre null sans date limite", async () => {
+    const { client, calls } = makeService({ wallets: wallet, "missions:insert": { data: { id: "m-1" }, error: null } })
+    createServiceClient.mockReturnValue(client)
+    await createMission({ ...validData, deadline: "" })
+    expect(calls.find((c) => c.op === "insert").payload.deadline).toBeNull()
   })
 })
 
@@ -268,7 +324,39 @@ describe("getMissions", () => {
   })
 })
 
+describe("getMissions : offset et erreurs", () => {
+  function setup(result = { data: [], error: null }) {
+    const range = vi.fn()
+    const builder = {
+      select: () => builder, eq: () => builder, order: () => builder,
+      range: (...a) => { range(...a); return builder },
+      then: (ok, ko) => Promise.resolve(result).then(ok, ko),
+    }
+    createClient.mockResolvedValue({ from: () => builder })
+    return range
+  }
+
+  it.each([
+    ["40", 40, 59],
+    [-3, 0, 19],
+    ["abc", 0, 19],
+    [12.9, 12, 31],
+    [undefined, 0, 19],
+  ])("convertit l'offset %j en entier positif", async (offset, start, end) => {
+    const range = setup()
+    await getMissions({ offset })
+    expect(range).toHaveBeenCalledWith(start, end)
+  })
+
+  it("lève une erreur neutre et journalise le détail", async () => {
+    setup({ data: null, error: { message: "relation \"missions\" secret" } })
+    await expect(getMissions()).rejects.toThrow("Impossible de charger les missions.")
+    expect(console.error).toHaveBeenCalledWith("[getMissions]", expect.stringContaining("secret"))
+  })
+})
+
 describe("confirmMission", () => {
+  const reserved = { data: [{ type: "reserve" }], error: null }
   const mission = {
     id: "m-1", title: "T", budget: 5000, client_id: "client-1",
     selected_student_id: "etu-1", status: "in_progress",
@@ -298,7 +386,7 @@ describe("confirmMission", () => {
 
   it("libère avec le taux officiel puis passe en done", async () => {
     const { client, rpc, calls } = makeService(
-      { missions: (st) => (st.op === "update" ? { data: [{ id: "m-1" }], error: null } : { data: mission, error: null }), profiles: { data: { full_name: "Awa K" }, error: null } },
+      { wallet_transactions: reserved, missions: (st) => (st.op === "update" ? { data: [{ id: "m-1" }], error: null } : { data: mission, error: null }), profiles: { data: { full_name: "Awa K" }, error: null } },
       async () => ({ data: { success: true, amount_student: 4400 }, error: null }),
     )
     createServiceClient.mockReturnValue(client)
@@ -319,12 +407,50 @@ describe("confirmMission", () => {
       { data: { success: false, error: "Fonds deja liberes" }, error: null },
       { data: null, error: { message: "boom" } },
     ]) {
-      const { client, calls } = makeService({ missions: { data: mission, error: null } }, async () => result)
+      const { client, calls } = makeService({ wallet_transactions: reserved, missions: { data: mission, error: null } }, async () => result)
       createServiceClient.mockReturnValue(client)
       const res = await confirmMission("m-1")
       expect(res.error).toBeTruthy()
       expect(calls.some((c) => c.op === "update")).toBe(false)
     }
+  })
+
+  it("refuse une mission héritée sans réservation, sans libérer", async () => {
+    for (const ledger of [{ data: [], error: null }, { data: null, error: null }]) {
+      const { client, rpc, calls } = makeService({ wallet_transactions: ledger, missions: { data: mission, error: null } })
+      createServiceClient.mockReturnValue(client)
+      expect(await confirmMission("m-1")).toEqual({ error: "Impossible de libérer les fonds pour cette mission." })
+      expect(rpc).not.toHaveBeenCalled()
+      expect(calls.some((c) => c.op === "update")).toBe(false)
+    }
+  })
+
+  it("refuse quand une libération existe déjà (double confirmation, statut resté en cours)", async () => {
+    const ledger = { data: [{ type: "reserve" }, { type: "release" }], error: null }
+    const { client, rpc, calls } = makeService({ wallet_transactions: ledger, missions: { data: mission, error: null } })
+    createServiceClient.mockReturnValue(client)
+    expect(await confirmMission("m-1")).toEqual({ error: "Impossible de libérer les fonds pour cette mission." })
+    expect(rpc).not.toHaveBeenCalled()
+    expect(calls.some((c) => c.op === "update")).toBe(false)
+  })
+
+  it("refuse sans libérer quand le grand livre est illisible, et journalise", async () => {
+    const { client, rpc } = makeService({ wallet_transactions: { data: null, error: { message: "boom" } }, missions: { data: mission, error: null } })
+    createServiceClient.mockReturnValue(client)
+    expect((await confirmMission("m-1")).error).toBe("Impossible de libérer les fonds pour cette mission.")
+    expect(rpc).not.toHaveBeenCalled()
+    expect(console.error).toHaveBeenCalled()
+  })
+
+  it("lit le grand livre du client pour cette mission (réservation et libération)", async () => {
+    const { client, calls } = makeService(
+      { wallet_transactions: reserved, missions: (st) => (st.op === "update" ? { data: [{ id: "m-1" }], error: null } : { data: mission, error: null }) },
+      async () => ({ data: { success: true, amount_student: 4400 }, error: null }),
+    )
+    createServiceClient.mockReturnValue(client)
+    await confirmMission("m-1")
+    const read = calls.find((c) => c.table === "wallet_transactions")
+    expect(read.filters).toEqual(expect.arrayContaining([["user_id", "client-1"], ["mission_id", "m-1"], ["type", ["reserve", "release"]]]))
   })
 
   it("double confirmation : le second appel renvoie une erreur propre sans mise à jour", async () => {
@@ -337,7 +463,7 @@ describe("confirmMission", () => {
 
   it("alerte et renvoie une erreur neutre quand le statut done n'est pas enregistré (0 ligne)", async () => {
     const { client } = makeService(
-      { missions: (st) => (st.op === "update" ? { data: [], error: null } : { data: mission, error: null }) },
+      { wallet_transactions: reserved, missions: (st) => (st.op === "update" ? { data: [], error: null } : { data: mission, error: null }) },
       async () => ({ data: { success: true, amount_student: 4400 }, error: null }),
     )
     createServiceClient.mockReturnValue(client)
@@ -348,7 +474,7 @@ describe("confirmMission", () => {
 
   it("alerte aussi quand la mise à jour du statut done est en erreur", async () => {
     const { client } = makeService(
-      { missions: (st) => (st.op === "update" ? { data: null, error: { message: "boom" } } : { data: mission, error: null }) },
+      { wallet_transactions: reserved, missions: (st) => (st.op === "update" ? { data: null, error: { message: "boom" } } : { data: mission, error: null }) },
       async () => ({ data: { success: true, amount_student: 4400 }, error: null }),
     )
     createServiceClient.mockReturnValue(client)
@@ -360,7 +486,7 @@ describe("confirmMission", () => {
 
   it("réussit même si l'email échoue", async () => {
     const { client, getUserById } = makeService(
-      { missions: (st) => (st.op === "update" ? { data: [{ id: "m-1" }], error: null } : { data: mission, error: null }) },
+      { wallet_transactions: reserved, missions: (st) => (st.op === "update" ? { data: [{ id: "m-1" }], error: null } : { data: mission, error: null }) },
       async () => ({ data: { success: true, amount_student: 4400 }, error: null }),
     )
     getUserById.mockRejectedValue(new Error("smtp"))

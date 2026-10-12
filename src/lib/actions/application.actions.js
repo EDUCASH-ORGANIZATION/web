@@ -8,6 +8,8 @@ import { sendEmail } from "@/lib/email/index"
 
 const ERR_GENERIC = "Une erreur est survenue. Réessaie dans un instant."
 const ERR_FORBIDDEN = "Tu n'as pas les droits pour effectuer cette action."
+const ERR_LOAD = "Impossible de charger les candidatures."
+const MESSAGE_MAX = 500
 
 /** Borne le nombre de lignes renvoyées (défaut 100, maximum 200). */
 function boundedLimit(limit) {
@@ -61,7 +63,10 @@ export async function apply({ missionId, message }) {
   const { supabase, user } = auth
 
   if (!missionId) return { error: "Mission introuvable." }
-  if (!message?.trim()) return { error: "Le message de candidature est requis." }
+  if (typeof message !== "string" || !message.trim()) return { error: "Le message de candidature est requis." }
+  if (message.trim().length > MESSAGE_MAX) {
+    return { error: `Le message ne doit pas dépasser ${MESSAGE_MAX} caractères.` }
+  }
 
   const { data: mission } = await supabase
     .from("missions")
@@ -146,7 +151,10 @@ export async function getStudentApplications(studentId, { limit } = {}) {
     .order("created_at", { ascending: false })
     .limit(boundedLimit(limit))
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error("[getStudentApplications]", error.message)
+    throw new Error(ERR_LOAD)
+  }
   return data ?? []
 }
 
@@ -178,7 +186,10 @@ export async function getMissionApplications(missionId, { limit } = {}) {
     .order("created_at", { ascending: false })
     .limit(boundedLimit(limit))
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error("[getMissionApplications]", error.message)
+    throw new Error(ERR_LOAD)
+  }
   return data ?? []
 }
 
