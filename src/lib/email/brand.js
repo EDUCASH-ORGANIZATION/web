@@ -4,7 +4,31 @@
 // Règles : le vert ne sert jamais de texte sur fond clair (1,35:1 sur blanc),
 // le logo n'est jamais retapé en texte, largeur affichée >= 150 px.
 
-export const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj").replace(/\/$/, "")
+const FALLBACK_APP_URL = "https://www.educash.bj"
+
+/**
+ * Normalise l'URL publique de l'application utilisée dans les emails.
+ * Hôte canonique : https://educash.bj redirige (307) vers www, et certains clients mail
+ * ne suivent pas la redirection (logo absent). L'hôte nu exact (http ou https, port 80/443
+ * accepté, casse ignorée) est donc ramené à https://www.educash.bj. Les autres hôtes
+ * (localhost, previews, domaines tiers) sont conservés, sans barre finale.
+ * Une valeur vide, invalide ou non http(s) donne le repli www.
+ */
+export function normalizeAppUrl(raw) {
+  const value = typeof raw === "string" ? raw.trim().replace(/\/+$/, "") : ""
+  if (!value) return FALLBACK_APP_URL
+  let url
+  try {
+    url = new URL(value)
+  } catch {
+    return FALLBACK_APP_URL
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return FALLBACK_APP_URL
+  if (url.hostname === "educash.bj") return FALLBACK_APP_URL
+  return value
+}
+
+export const APP_URL = normalizeAppUrl(process.env.NEXT_PUBLIC_APP_URL)
 
 export const COLORS = {
   bleu: "#1028F0",
