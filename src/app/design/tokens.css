@@ -6,31 +6,41 @@
 
 :root {
   /* ---------- Couleurs de marque ---------- */
-  --c-bleu: #2F3BED;          /* Bleu Courant : action principale, argent, liens */
-  --c-bleu-700: #2330CF;      /* survol du bleu */
-  --c-bleu-800: #1C27A8;      /* appui du bleu */
-  --c-bleu-clair: #8C93FF;    /* bleu lisible sur fond encre (7,02:1) */
-  --c-bleu-50: #E7E9FF;       /* fond teinté bleu (badges, sélection) */
-  --c-bleu-100: #D3D7FF;
+  /* Charte graphique EduCash v1.0 (Bleu, Vert, Encre, Brume, Blanc).
+     Correspondance charte -> token : Bleu -> --c-bleu, Vert -> --c-citron (alias --c-vert),
+     Encre -> --c-encre, Brume -> --c-givre, Blanc -> --c-blanc.
+     Attention au decalage de nom : la « Brume » de la charte est --c-givre ;
+     --c-brume reste le gris de texte secondaire sur fond encre. */
+  --c-bleu: #1028F0;          /* Bleu : action principale, argent, liens (8,13:1 avec blanc) */
+  --c-bleu-700: #0D20C8;      /* survol du bleu */
+  --c-bleu-800: #0A1A9E;      /* appui du bleu */
+  --c-bleu-clair: #8C93FF;    /* bleu lisible sur fond encre (5,88:1) */
+  --c-bleu-50: #E6E9FF;       /* fond teinté bleu (badges, sélection) */
+  --c-bleu-100: #D2D7FF;
 
-  --c-citron: #C8F03C;        /* accent : surface uniquement, jamais texte sur clair */
-  --c-citron-600: #B6DE24;    /* survol du citron */
-  --c-citron-50: #F3FBD6;
+  --c-citron: #C1EE3E;        /* Vert de la charte : surface uniquement, jamais texte sur clair (1,35:1 sur blanc) */
+  --c-vert: var(--c-citron);  /* alias au nom de la charte */
+  --c-citron-600: #AFD92B;    /* survol du vert */
+  --c-citron-50: #F2FBD3;
 
-  --c-encre: #0E0F1A;         /* texte, bordures, fond sombre */
-  --c-encre-800: #1B1D2B;     /* surfaces sombres secondaires */
-  --c-encre-700: #2A2D40;
+  --c-encre: #17213A;         /* texte, bordures, fond sombre (15,97:1 sur blanc) */
+  --c-encre-800: #222C47;     /* surfaces sombres secondaires */
+  --c-encre-700: #313B58;
 
-  /* Contrastes RD-FIX-03 (avant -> apres) :
-       ardoise #5B5F73 -> #3A3E52 : blanc 6,31 -> 10,55 | givre 5,79 -> 9,69 | ligne 5,02 -> 8,39
-       brume   #A6A9BD -> #C0C3D3 : encre 8,20 -> 10,88 | encre-800 7,18 -> 9,54 | encre-700 5,83 -> 7,74
-     brume ne s'utilise jamais sur le bleu (4,04:1) : utiliser bleu-100 (5,03:1 sur bleu, 6,23:1 sur bleu-700). Blanc sur bleu : 7,07:1. */
-  --c-ardoise: #3A3E52;       /* texte secondaire sur clair (10,55:1 blanc, 9,69:1 givre) */
-  --c-brume: #C0C3D3;         /* texte secondaire sur encre (10,88:1) */
-  --c-acier: #8A8EA3;         /* bordure de champ (3,24:1) */
+  /* Contrastes WCAG (calculés par brand-tokens.test.js depuis ce fichier) :
+       encre sur blanc 15,97 | encre sur givre 14,66 | ardoise sur blanc 10,55 | ardoise sur givre 9,68
+       blanc sur bleu 8,13 | bleu sur blanc 8,13 | bleu sur givre 7,46 | bleu sur citron 6,02 | citron sur bleu 6,02
+       encre sur citron 11,84 | brume sur encre 9,12 | brume sur encre-800 7,89 | bleu-clair sur encre 5,88
+       bleu-100 sur bleu 5,77 | acier (bordure de champ, non-texte) sur blanc 3,96, sur givre 3,63
+     Paires INTERDITES (testées comme < 4,5 : ne jamais les utiliser en texte) :
+       citron sur blanc 1,35 | citron sur givre 1,24 | bleu sur encre 1,96 (utiliser --c-bleu-clair)
+     brume ne s'utilise jamais sur le bleu : utiliser bleu-100. */
+  --c-ardoise: #3A3E52;       /* texte secondaire sur clair (10,55:1 blanc, 9,68:1 givre) */
+  --c-brume: #C0C3D3;         /* texte secondaire sur encre (9,12:1), PAS la Brume de la charte */
+  --c-acier: #7A7F96;         /* bordure de champ (3,96:1 sur blanc, 3,63:1 sur givre) */
   --c-ligne: #E3E5EE;         /* séparateurs, bordures douces */
   --c-ligne-2: #EEF0F5;
-  --c-givre: #F4F5FA;         /* fond de page clair */
+  --c-givre: #F3F5FC;         /* Brume de la charte : fond de page clair */
   --c-blanc: #FFFFFF;
 
   --c-off-bg: #E3E5EE;        /* fond désactivé */
@@ -45,8 +55,8 @@
 
   /* ---------- Pastels des tableaux de bord (direction B adaptée à A) ----------
      Une couleur = un sens, toujours accompagnée d'un libellé. Texte toujours encre. */
-  --c-lavande: #DCDFFF;       /* séquestre, fonds bloqués */
-  --c-citron-pale: #EDF9C4;   /* en cours, réputation */
+  --c-lavande: #DDE1FF;       /* séquestre, fonds bloqués */
+  --c-citron-pale: #EBF8C2;   /* en cours, réputation */
   --c-menthe: #CDF0DC;        /* gains, payé, terminé */
   --c-rose: #FFD6DE;          /* action requise, à traiter */
   --c-peche: #FFE4C7;         /* information neutre, conseils */
@@ -115,7 +125,7 @@
   --sh-dur-xl: 8px 8px 0 var(--c-encre);   /* modale, drawer, toast */
   --sh-focus: 0 0 0 2px var(--c-blanc), 0 0 0 5px var(--c-bleu);      /* focus clavier sur clair */
   --sh-focus-sombre: 0 0 0 2px var(--c-bleu), 0 0 0 5px var(--c-citron); /* focus sur bleu ou encre */
-  --sh-champ-focus: 0 0 0 4px rgba(47, 59, 237, .18);
+  --sh-champ-focus: 0 0 0 4px color-mix(in srgb, var(--c-bleu) 18%, transparent);
 
   /* ---------- Mouvement ---------- */
   --dur-1: 120ms; --dur-2: 200ms; --dur-3: 320ms;
