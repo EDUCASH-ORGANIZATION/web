@@ -1,34 +1,25 @@
 import "./globals.css"
-import { Anton, Figtree, Inter } from "next/font/google"
+import localFont from "next/font/local"
 import { SupabaseProvider } from "@/components/shared/supabase-provider"
 import { Toaster } from "@/components/shared/toaster"
 import { RouteScrollMount } from "@/components/shared/route-scroll-mount"
 
-const anton = Anton({
-  weight: "400",
-  subsets: ["latin"],
+const dejavu = localFont({
+  src: [
+    { path: "./fonts/DejaVuSans-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/DejaVuSans-Bold.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-dejavu",
   display: "swap",
-  variable: "--font-anton",
-})
-
-const figtree = Figtree({
-  weight: ["400", "500", "600", "700", "800", "900"],
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-figtree",
-})
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
+  fallback: ["Arial", "sans-serif"],
+  adjustFontFallback: "Arial",
 })
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#2F3BED",
+  themeColor: "#1028F0",
 }
 
 export const metadata = {
@@ -64,12 +55,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fr" className={`${anton.variable} ${figtree.variable} ${inter.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="fr" className={`${dejavu.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className="min-h-full flex flex-col font-[family-name:var(--font-inter)]" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <SupabaseProvider>
           <Toaster>
             <RouteScrollMount />
