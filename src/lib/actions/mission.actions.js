@@ -15,6 +15,7 @@ import {
 } from "@/lib/supabase/database.constants"
 
 const ERR_GENERIC = "Une erreur est survenue. Réessayez dans un instant."
+const ERR_NOT_CANCELLABLE = "Cette mission ne peut plus être annulée."
 const ERR_PAYMENTS_OFF = "La publication de missions est en cours d'activation."
 
 // Colonnes publiques de `profiles` (aucune colonne privée : phone, fcm_token, rejection_reason...).
@@ -22,15 +23,14 @@ const PUBLIC_PROFILE_COLUMNS =
   "id, user_id, full_name, city, avatar_url, bio, role, is_verified, verified_until, rating, missions_done, is_suspended, created_at, updated_at"
 
 /**
- * Fonds encore réservés pour une mission : réservation moins remboursements déjà passés.
- * Lecture avec le client service role (le grand livre n'est pas lisible par tous).
- * @returns {Promise<{ left: number, moved: boolean } | { error: true }>} `left` vaut 0 pour une mission héritée sans réservation ;
- * `moved` indique qu'au moins un mouvement existe au grand livre pour cette mission.
+ * Indique si au moins un mouvement de réservation ou de remboursement existe au grand livre
+ * pour cette mission. Lecture avec le client service role (le grand livre n'est pas lisible par tous).
+ * @returns {Promise<{ moved: boolean } | { error: true }>}
  */
-async function reservedLeft(service, clientId, missionId) {
+async function ledgerHasMovements(service, clientId, missionId) {
   const { data, error } = await service
     .from("wallet_transactions")
-    .select("type, amount")
+    .select("type")
     .eq("user_id", clientId)
     .eq("mission_id", missionId)
     .in("type", ["reserve", "refund"])
@@ -38,45 +38,43 @@ async function reservedLeft(service, clientId, missionId) {
     console.error("[mission] lecture du grand livre impossible", error)
     return { error: true }
   }
-  let left = 0
-  for (const row of data ?? []) {
-    left += row.type === "reserve" ? Number(row.amount) : -Number(row.amount)
-  }
-  return { left: Math.max(left, 0), moved: (data ?? []).length > 0 }
+  return { moved: (data ?? []).length > 0 }
+}
+
+/**
+ * Annule une mission ouverte de façon atomique : la fonction SQL `wallet_cancel_mission` verrouille la
+ * mission, exige le statut `open`, rembourse le reste réservé et passe la mission en `cancelled`
+ * dans la même transaction. À appeler avec le client service role, après contrôle de propriété.
+ * @returns {Promise<{ ok: true } | { ok: false, code: string | null }>}
+ */
+async function cancelMissionAtomic(service, clientId, missionId) {
+  const cancel = await callWalletRpc(service, "wallet_cancel_mission", {
+    p_mission_id: missionId,
+    p_client_id:  clientId,
+  })
+  return cancel.ok ? { ok: true } : { ok: false, code: cancel.code }
 }
 
 /**
  * Retire une mission créée dont la réservation a échoué.
  * Aucun mouvement au grand livre : suppression (sinon annulation). La base refuse de supprimer
- * une mission qui a des mouvements : on rembourse alors le reste réservé, puis on l'annule.
+ * une mission qui a des mouvements : on l'annule alors de façon atomique (remboursement du reste
+ * réservé et passage en `cancelled` dans la même transaction).
  * @returns {Promise<boolean>} false si la mission n'a pas pu être retirée proprement.
  */
 async function discardMission(service, clientId, missionId) {
-  const reserved = await reservedLeft(service, clientId, missionId)
-  if (reserved.error) return false
+  const ledger = await ledgerHasMovements(service, clientId, missionId)
+  if (ledger.error) return false
 
-  if (!reserved.moved) {
+  if (!ledger.moved) {
     const { error } = await service.from("missions").delete().eq("id", missionId)
     if (!error) return true
     console.error("[createMission] suppression impossible, annulation", error)
-  } else if (reserved.left > 0) {
-    const refund = await callWalletRpc(service, "wallet_refund", {
-      p_client_id:  clientId,
-      p_mission_id: missionId,
-      p_amount:     reserved.left,
-    })
-    if (!refund.ok) {
-      console.error("[createMission] remboursement impossible, mission conservée", refund)
-      return false
-    }
   }
 
-  const { error: cancelError } = await service
-    .from("missions")
-    .update({ status: "cancelled" })
-    .eq("id", missionId)
-  if (cancelError) {
-    console.error("[createMission] annulation impossible", cancelError)
+  const cancelled = await cancelMissionAtomic(service, clientId, missionId)
+  if (!cancelled.ok) {
+    console.error("[createMission] annulation impossible, mission conservée", cancelled)
     return false
   }
   return true
@@ -89,7 +87,8 @@ async function discardMission(service, clientId, missionId) {
  * @returns {Promise<import('@/lib/supabase/database.constants').Mission[]>}
  */
 export async function getMissions(filters = {}) {
-  const { city, type, urgency, limit = 20, offset = 0 } = filters
+  const { city, type, urgency, offset = 0 } = filters
+  const limit = Math.min(Math.max(1, Number(filters.limit) || 20), 50)
 
   const supabase = await createClient()
 
@@ -264,13 +263,20 @@ export async function confirmMission(missionId) {
   const amountStudent = release.data.amount_student ?? 0
 
   // 3. Marque la mission comme terminée, seulement après le succès de la libération
-  const { error: doneError } = await service
+  const { data: done, error: doneError } = await service
     .from("missions")
     .update({ status: "done" })
     .eq("id", missionId)
     .eq("client_id", user.id)
     .eq("status", "in_progress")
-  if (doneError) console.error("[confirmMission] statut done non enregistré après libération", doneError)
+    .select("id")
+  if (doneError || !done?.length) {
+    console.error(
+      "[confirmMission] ALERTE : fonds libérés mais statut done non enregistré, intervention manuelle requise",
+      { missionId, error: doneError ?? null },
+    )
+    return { error: ERR_GENERIC }
+  }
 
   // 4. Notification email à l'étudiant (adresse lue via l'API admin du client service role)
   try {
@@ -305,9 +311,9 @@ export async function confirmMission(missionId) {
 
 /**
  * Annule une mission ouverte du client connecté (seul statut accepté : `cancelled`).
- * Une mission financée est d'abord remboursée de ses fonds réservés restants ; si le
- * remboursement échoue, le statut ne change pas. Une mission héritée sans réservation
- * est annulée directement. L'annulation d'une mission en cours est réservée à l'admin.
+ * L'annulation est atomique côté SQL (`wallet_cancel_mission`) : verrou de la mission, statut `open`
+ * exigé, remboursement du reste réservé et passage en `cancelled` dans la même transaction.
+ * L'annulation d'une mission en cours est réservée à l'admin.
  *
  * @param {string} id
  * @param {'cancelled'} status
@@ -324,39 +330,16 @@ export async function updateMissionStatus(id, status) {
 
   const { data: mission, error: missionError } = await service
     .from("missions")
-    .select("id, client_id, status")
+    .select("id, client_id")
     .eq("id", id)
     .maybeSingle()
 
   if (missionError || !mission || mission.client_id !== user.id) return { error: "Mission introuvable." }
-  if (mission.status === "in_progress") {
-    return { error: "Une mission en cours ne peut pas être annulée ici. Contactez le support." }
-  }
-  if (mission.status !== "open") return { error: "Cette mission ne peut plus être annulée." }
 
-  // Remboursement des fonds réservés restants (aucun s'il s'agit d'une mission héritée)
-  const reserved = await reservedLeft(service, user.id, id)
-  if (reserved.error) return { error: ERR_GENERIC }
-
-  if (reserved.left > 0) {
-    const refund = await callWalletRpc(service, "wallet_refund", {
-      p_client_id:  user.id,
-      p_mission_id: id,
-      p_amount:     reserved.left,
-    })
-    if (!refund.ok) return { error: "Le remboursement a échoué. La mission n'a pas été annulée." }
-  }
-
-  const { data: updated, error } = await service
-    .from("missions")
-    .update({ status: "cancelled" })
-    .eq("id", id)
-    .eq("client_id", user.id)
-    .eq("status", "open")
-    .select("id")
-
-  if (error || !updated?.length) {
-    if (error) console.error("[updateMissionStatus] statut non enregistré", error)
+  const cancelled = await cancelMissionAtomic(service, user.id, id)
+  if (!cancelled.ok) {
+    if (cancelled.code === "invalid_status") return { error: ERR_NOT_CANCELLABLE }
+    if (cancelled.code === "forbidden") return { error: "Mission introuvable." }
     return { error: ERR_GENERIC }
   }
 

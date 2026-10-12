@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Send, CheckCircle, Loader2, ShieldAlert, Lock } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useSupabase } from "@/components/shared/supabase-provider"
+import { apply } from "@/lib/actions/application.actions"
 
 function formatBudget(n) {
   return new Intl.NumberFormat("fr-FR").format(n)
@@ -65,15 +66,10 @@ export function ApplySidebar({ missionId, missionTitle, clientName, budget, esti
     setError("")
     setSubmitting(true)
 
-    const { error: insertError } = await supabase.from("applications").insert({
-      mission_id: missionId,
-      student_id: user.id,
-      message: message.trim(),
-      status: "pending",
-    })
+    const result = await apply({ missionId, message })
 
-    if (insertError) {
-      setError("Une erreur est survenue. Réessayez.")
+    if (result?.error) {
+      setError(result.error)
       setSubmitting(false)
       return
     }
