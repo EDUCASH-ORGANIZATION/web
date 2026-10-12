@@ -1,14 +1,29 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi, afterEach } from "vitest"
 import { readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { createElement } from "react"
 import { render } from "@react-email/components"
 import { contrastRatio } from "@/lib/design/contrast"
-import { COLORS, FONT_FAMILY, LOGO_URLS, LOGO_WIDTH, styles } from "@/lib/email/brand"
-import WelcomeStudent from "@/lib/email/templates/welcome-student"
-import VerificationRejected from "@/lib/email/templates/verification-rejected"
-import VerificationApproved from "@/lib/email/templates/verification-approved"
-import PaymentReceived from "@/lib/email/templates/payment-received"
+import { COLORS, FONT_FAMILY, LOGO_WIDTH, styles, normalizeAppUrl } from "@/lib/email/brand"
+
+// Rendu independant de l'environnement : NEXT_PUBLIC_APP_URL est vide, les modules sont
+// recharges pour que APP_URL soit recalcule (il est fige a l'import de brand.js).
+async function loadFresh() {
+  vi.stubEnv("NEXT_PUBLIC_APP_URL", "")
+  vi.resetModules()
+  const brand = await import("@/lib/email/brand")
+  const templates = {
+    WelcomeStudent: (await import("@/lib/email/templates/welcome-student")).default,
+    VerificationRejected: (await import("@/lib/email/templates/verification-rejected")).default,
+    VerificationApproved: (await import("@/lib/email/templates/verification-approved")).default,
+    PaymentReceived: (await import("@/lib/email/templates/payment-received")).default,
+  }
+  return { brand, ...templates }
+}
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 const TEMPLATES_DIR = "src/lib/email/templates"
 const SUPABASE_DIR = "supabase/templates"
@@ -45,7 +60,9 @@ describe("brand.js", () => {
     expect(FONT_FAMILY).toBe("Arial, sans-serif")
   })
 
-  it("logos en URL absolue, largeur >= 150 px", () => {
+  it("logos en URL absolue, largeur >= 150 px", async () => {
+    const { brand } = await loadFresh()
+    const { LOGO_URLS } = brand
     expect(LOGO_URLS.bleu).toBe("https://www.educash.bj/email/educash-logo-bleu.png")
     expect(LOGO_URLS.blanc).toBe("https://www.educash.bj/email/educash-logo-blanc.png")
     expect(LOGO_WIDTH).toBeGreaterThanOrEqual(150)
@@ -96,6 +113,7 @@ describe("gabarits Resend migres", () => {
   })
 
   it("welcome-student : img du logo bleu, police et couleurs de la charte", async () => {
+    const { WelcomeStudent } = await loadFresh()
     const html = await render(createElement(WelcomeStudent, { name: "Awa" }))
     const [tag] = imgs(html)
     expect(attr(tag, "src")).toMatch(/\/email\/educash-logo-bleu\.png$/)
@@ -109,6 +127,7 @@ describe("gabarits Resend migres", () => {
   })
 
   it("verification-rejected : logo image a la place du texte Edu/Cash", async () => {
+    const { VerificationRejected } = await loadFresh()
     const html = await render(
       createElement(VerificationRejected, { name: "Awa Sow", rejectionReason: "Photo floue" }),
     )
@@ -120,6 +139,7 @@ describe("gabarits Resend migres", () => {
   })
 
   it("verification-approved et payment-received : logo present, aucune ancienne couleur", async () => {
+    const { VerificationApproved, PaymentReceived } = await loadFresh()
     for (const el of [
       createElement(VerificationApproved, { name: "Awa Sow" }),
       createElement(PaymentReceived, { studentName: "Awa", amount: "5000", paidAt: "2026-10-12" }),
@@ -132,7 +152,7 @@ describe("gabarits Resend migres", () => {
 })
 
 describe("hote canonique www des logos", () => {
-  const APEX_ASSET = /https:\/\/educash\.bj\/email\//
+  const APEX_ASSET = /https?:\/\/educash\.bj\/email\//i
 
   it("aucun gabarit Supabase ne reference https://educash.bj/email/ sans www", () => {
     for (const f of SUPABASE) expect(read(f), f).not.toMatch(APEX_ASSET)
@@ -140,15 +160,48 @@ describe("hote canonique www des logos", () => {
 
   it("brand.js et les gabarits Resend n'ecrivent aucun logo sur l'hote nu", () => {
     for (const f of ["src/lib/email/brand.js", ...MIGRATED]) {
-      expect(read(f).replace(/\|\| "https:\/\/educash\.bj"/g, ""), f).not.toMatch(APEX_ASSET)
+      expect(read(f), f).not.toMatch(APEX_ASSET)
     }
-    expect(read("src/lib/email/brand.js")).toContain('|| "https://www.educash.bj"')
+  })
+
+  it("APP_URL vaut www quand la variable est absente ou vide", async () => {
+    const { brand } = await loadFresh()
+    expect(brand.APP_URL).toBe("https://www.educash.bj")
+    vi.unstubAllEnvs()
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", undefined)
+    vi.resetModules()
+    expect((await import("@/lib/email/brand")).APP_URL).toBe("https://www.educash.bj")
   })
 
   it("l'URL de logo rendue est sur www", async () => {
+    const { WelcomeStudent } = await loadFresh()
     const html = await render(createElement(WelcomeStudent, { name: "Awa" }))
     expect(attr(imgs(html)[0], "src")).toMatch(/^https:\/\/www\.educash\.bj\/email\//)
     expect(html).not.toMatch(APEX_ASSET)
+  })
+})
+
+describe("normalizeAppUrl", () => {
+  const WWW = "https://www.educash.bj"
+
+  it.each([
+    ["", WWW],
+    [undefined, WWW],
+    ["https://educash.bj", WWW],
+    ["https://educash.bj/", WWW],
+    ["https://educash.bj//", WWW],
+    ["http://educash.bj", WWW],
+    ["https://EDUCASH.bj", WWW],
+    ["https://educash.bj:443", WWW],
+    ["http://educash.bj:80", WWW],
+    [" https://educash.bj", WWW],
+    ["http://localhost:3000/", "http://localhost:3000"],
+    ["https://preview.educash.bj", "https://preview.educash.bj"],
+    ["https://educash.bj.evil.com", "https://educash.bj.evil.com"],
+    ["https://www.educash.bj/", WWW],
+    ["pas une url", WWW],
+  ])("%j -> %s", (raw, expected) => {
+    expect(normalizeAppUrl(raw)).toBe(expected)
   })
 })
 
