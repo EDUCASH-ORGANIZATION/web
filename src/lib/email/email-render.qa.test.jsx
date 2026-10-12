@@ -1,4 +1,4 @@
-import { readdirSync, writeFileSync } from "node:fs"
+import { readdirSync } from "node:fs"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, it, expect } from "vitest"
 import { contrastRatio } from "@/lib/design/contrast"
@@ -66,8 +66,4 @@ describe("rendu HTML des gabarits migres", () => {
       })
     })
   }
-
-  it("dump HTML pour inspection visuelle", async () => {
-    for (const f of files) writeFileSync(`/tmp/qa/email-${f.replace(".jsx", "")}.html`, `<!doctype html><meta charset=utf-8>` + (await render(f)))
-  })
 })
