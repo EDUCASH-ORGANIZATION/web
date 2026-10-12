@@ -113,19 +113,40 @@ describe("POST /api/webhooks/fedapay", () => {
     expect(sendEmail).toHaveBeenCalledTimes(1)
   })
 
-  it("répond 500 neutre sur erreur RPC ou refus, sans email", async () => {
+  it("répond 500 neutre sur erreur RPC, sans email", async () => {
     process.env.FEDAPAY_WEBHOOK_SECRET = SECRET
-    for (const out of [
-      { data: null, error: { message: "connection reset secret" } },
-      { data: { success: false, error: "user_not_found" }, error: null },
-    ]) {
-      rpc.mockResolvedValue(out)
-      const res = await POST(deposit())
-      expect(res.status).toBe(500)
-      expect(await res.text()).not.toMatch(/secret|user_not_found/)
-    }
+    rpc.mockResolvedValue({ data: null, error: { message: "connection reset secret" } })
+    const res = await POST(deposit())
+    expect(res.status).toBe(500)
+    expect(await res.text()).not.toMatch(/secret/)
     expect(sendEmail).not.toHaveBeenCalled()
   })
+
+  it.each(["payment_id_conflict", "wallet_not_found", "invalid_amount", "missing_payment_id", "autre_code"])(
+    "refus définitif %s : 200 neutre, alerte sans donnée sensible, aucun email",
+    async (code) => {
+      process.env.FEDAPAY_WEBHOOK_SECRET = SECRET
+      rpc.mockResolvedValue({ data: { success: false, error: "détail interne confidentiel", code }, error: null })
+      const res = await POST(deposit())
+      expect(res.status).toBe(200)
+      expect(await res.text()).toBe("OK")
+      expect(sendEmail).not.toHaveBeenCalled()
+      const logged = JSON.stringify(console.error.mock.calls)
+      expect(logged).toContain(code)
+      expect(logged).not.toMatch(/confidentiel|5000/)
+      expect(logged).not.toContain(USER_ID)
+    }
+  )
+
+  it.each([["null", "null"], ["tableau", "[1]"], ["chaîne", '"transaction.approved"'], ["nombre", "42"]])(
+    "corps signé valant %s : 400 sans écriture",
+    async (_l, body) => {
+      process.env.FEDAPAY_WEBHOOK_SECRET = SECRET
+      const res = await POST(new Request("http://localhost/x", { method: "POST", headers: { "x-fedapay-signature": sign(body) }, body }))
+      expect(res.status).toBe(400)
+      expect(createServiceClient).not.toHaveBeenCalled()
+    }
+  )
 
   it.each([
     ["montant décimal", { amount: 50.5 }],

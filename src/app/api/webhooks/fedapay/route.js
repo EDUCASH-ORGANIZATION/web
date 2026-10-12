@@ -69,6 +69,11 @@ export async function POST(request) {
     return new Response("Bad Request", { status: 400 })
   }
 
+  // Un corps signé doit être un objet JSON (pas null, tableau ni valeur simple)
+  if (event === null || typeof event !== "object" || Array.isArray(event)) {
+    return new Response("Bad Request", { status: 400 })
+  }
+
   // ── transaction.approved ────────────────────────────────────────────────────
 
   if (event.name === "transaction.approved") {
@@ -97,11 +102,19 @@ export async function POST(request) {
       p_fedapay_id: fedapayId,
     })
 
-    // Erreur ou refus : 500 pour provoquer un rejeu (l'idempotence SQL sur l'identifiant de paiement
-    // empêche tout double crédit).
-    if (rpcError || result?.success !== true) {
-      console.error("[webhook/fedapay] wallet_deposit en échec:", rpcError ?? result)
+    // Erreur d'appel (transitoire) : 500 pour provoquer un rejeu ; l'idempotence SQL sur
+    // l'identifiant de paiement empêche tout double crédit.
+    if (rpcError) {
+      console.error("[webhook/fedapay] wallet_deposit en échec:", rpcError)
       return new Response("Internal Server Error", { status: 500 })
+    }
+
+    // Refus métier définitif (payment_id_conflict, wallet_not_found, invalid_amount,
+    // missing_payment_id) : un rejeu donnerait le même refus. 200 neutre, alerte sans donnée
+    // sensible, aucun crédit.
+    if (result?.success !== true) {
+      console.error("[webhook/fedapay] ALERTE dépôt refusé définitivement, code:", String(result?.code ?? "inconnu"))
+      return new Response("OK", { status: 200 })
     }
 
     // Rejeu d'un dépôt déjà crédité : aucun second email
