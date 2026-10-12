@@ -235,16 +235,17 @@ export async function acceptApplication({ applicationId, studentId, missionId })
 
   if (missionError || !started?.length) {
     if (missionError) console.error("[acceptApplication] Mission non démarrée:", missionError.message)
-    // Compensation : la candidature redevient en attente
-    const { error: undoError } = await supabase
+    // Compensation (client service role) : la candidature redevient en attente
+    const { data: undone, error: undoError } = await createServiceClient()
       .from("applications")
       .update({ status: "pending" })
       .eq("id", applicationId)
       .eq("status", "accepted")
-    if (undoError) {
-      console.error("[acceptApplication] Compensation en échec:", undoError.message)
+      .select("id")
+    if (undoError || !undone?.length) {
+      console.error("[acceptApplication] Compensation en échec:", undoError?.message ?? "aucune ligne remise en attente")
     }
-    return { error: ERR_GENERIC }
+    return { error: "Cette mission n'est plus disponible." }
   }
 
   // 3. Rejette les autres candidatures encore en attente

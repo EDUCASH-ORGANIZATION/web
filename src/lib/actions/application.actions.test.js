@@ -31,7 +31,7 @@ const requireRole = vi.fn()
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => supabase) }))
 vi.mock("@/lib/supabase/service", () => ({
-  createServiceClient: vi.fn(() => ({ auth: { admin: { getUserById } } })),
+  createServiceClient: vi.fn(() => ({ auth: { admin: { getUserById } }, from: (table) => makeQuery(table) })),
 }))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: (...a) => requireRole(...a) }))
 vi.mock("@/lib/email/index", () => ({ sendEmail: (...a) => sendEmail(...a) }))
@@ -208,7 +208,7 @@ describe("acceptApplication", () => {
     asClient()
     respond = happy({ missionUpdate: { data: [], error: null } })
     const res = await acceptApplication(params)
-    expect(res.error).toBeTruthy()
+    expect(res.error).toBe("Cette mission n'est plus disponible.")
     const w = writes()
     expect(w.map((q) => [q.table, q.values.status])).toEqual([
       ["applications", "accepted"],
@@ -225,6 +225,20 @@ describe("acceptApplication", () => {
     const res = await acceptApplication(params)
     expect(res.error).toBeTruthy()
     expect(writes().at(-1).values.status).toBe("pending")
+  })
+
+  it("journalise quand la remise en attente touche 0 ligne ou échoue", async () => {
+    asClient()
+    for (const undo of [{ data: [], error: null }, { data: null, error: { message: "boom" } }]) {
+      console.error.mockClear()
+      respond = (q) => {
+        if (q.table === "applications" && q.values?.status === "pending") return undo
+        return happy({ missionUpdate: { data: [], error: null } })(q)
+      }
+      const res = await acceptApplication(params)
+      expect(res.error).toBe("Cette mission n'est plus disponible.")
+      expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Compensation"), expect.anything())
+    }
   })
 
   it("envoie les emails via le client service role", async () => {
