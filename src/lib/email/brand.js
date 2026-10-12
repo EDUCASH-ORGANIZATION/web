@@ -22,8 +22,8 @@ export const COLORS = {
   peche: "#FFE4C7",
 }
 
-// DejaVu Sans n'est pas chargée par les clients mail : repli Verdana puis Arial (charte).
-export const FONT_FAMILY = "'DejaVu Sans', Verdana, Arial, sans-serif"
+// Police d'origine des emails : Arial (les clients mail ne chargent pas de police web).
+export const FONT_FAMILY = "Arial, sans-serif"
 
 export const LOGO_WIDTH = 160
 export const LOGO_HEIGHT = 39

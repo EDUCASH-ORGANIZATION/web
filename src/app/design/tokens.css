@@ -66,20 +66,20 @@
   --c-bleu-clair-600: #A9AEFF;
 
   /* ---------- Typographie ---------- */
-  --f-display: var(--font-dejavu), Arial, sans-serif;   /* titres : DejaVu Sans Bold, casse de phrase */
-  --f-text: var(--font-dejavu), Arial, sans-serif;      /* tout le reste, montants compris : DejaVu Sans Regular */
+  --f-display: var(--font-anton), Impact, "Arial Narrow", sans-serif;   /* titres courts en capitales */
+  --f-text: var(--font-figtree), system-ui, -apple-system, "Segoe UI", sans-serif; /* tout le reste, montants compris */
   --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Échelle display (DejaVu Sans Bold, police large : échelle réduite, casse de phrase) */
-  --t-display-xxl: 80px;      /* hero vitrine bureau */
-  --t-display-xl: 64px;
-  --t-display-l: 48px;        /* titre de section vitrine bureau */
-  --t-display-m: 40px;        /* hero mobile, titres de page vitrine mobile */
-  --t-display-s: 24px;        /* titres de bloc dans l'app ("En cours", "Pour toi") */
+  /* Échelle display (Anton, toujours en capitales, 6 mots max) */
+  --t-display-xxl: 128px;     /* hero vitrine bureau */
+  --t-display-xl: 88px;
+  --t-display-l: 64px;        /* titre de section vitrine bureau */
+  --t-display-m: 44px;        /* hero mobile, titres de page vitrine mobile */
+  --t-display-s: 28px;        /* titres de bloc dans l'app ("EN COURS", "POUR TOI") */
 
-  /* Échelle texte (DejaVu Sans Regular) */
-  --lh-display: 1.18;       /* interligne des titres DejaVu Sans Bold (casse de phrase, jambages) */
-  --lh-display-xxl: 1.15;
+  /* Échelle texte (Figtree) */
+  --lh-display: 1.14;       /* interligne des titres Anton (accents des majuscules) */
+  --lh-display-xxl: 1.16;
   --t-h1: 32px;   --lh-h1: 1.15;   /* titre de page dans l'app */
   --t-h2: 24px;   --lh-h2: 1.2;
   --t-h3: 20px;   --lh-h3: 1.25;
@@ -91,15 +91,13 @@
   --t-caption: 14px;           /* légendes et méta : 14 minimum */
   --t-micro: 13px;             /* minimum absolu, libellés et méta */
 
-  /* Montants : DejaVu Sans, chiffres tabulaires */
+  /* Montants : Figtree, chiffres tabulaires, jamais Anton */
   --t-amount-xl: 44px;
   --t-amount-l: 32px;
   --t-amount-m: 24px;
   --t-amount-s: 17px;
 
-  /* DejaVu Sans n'existe qu'en 400 et 700 : les poids intermédiaires sont ramenés sur ces deux valeurs (pas de gras synthétique) */
-  --fw-regular: 400; --fw-medium: 400; --fw-semibold: 700; --fw-bold: 700; --fw-xbold: 700; --fw-black: 700;
-  --fw-display: 700;        /* poids des titres display */
+  --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700; --fw-xbold: 800; --fw-black: 900;
 
   /* ---------- Espacements (base 4) ---------- */
   --s-0: 0;     --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
@@ -163,10 +161,10 @@
   :root {
     --h-header: 64px;
     --h-header-compact: 56px;
-    --t-display-xxl: 60px;
-    --t-display-xl: 52px;
-    --t-display-l: 40px;
-    --t-display-m: 34px;
+    --t-display-xxl: 88px;
+    --t-display-xl: 72px;
+    --t-display-l: 52px;
+    --t-display-m: 40px;
   }
 }
 @media (max-width: 767.98px) {
@@ -174,10 +172,10 @@
 }
 @media (max-width: 480px) {
   :root {
-    --t-display-xxl: 36px;
-    --t-display-xl: 34px;
-    --t-display-l: 30px;
-    --t-display-m: 28px;
-    --t-display-s: 22px;
+    --t-display-xxl: 52px;
+    --t-display-xl: 48px;
+    --t-display-l: 40px;
+    --t-display-m: 36px;
+    --t-display-s: 24px;
   }
 }

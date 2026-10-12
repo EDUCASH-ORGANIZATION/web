@@ -40,8 +40,8 @@ describe("brand.js", () => {
     expect(COLORS.brume).toBe("#F3F5FC")
   })
 
-  it("police DejaVu Sans avec repli Verdana, Arial, sans-serif", () => {
-    expect(FONT_FAMILY).toBe("'DejaVu Sans', Verdana, Arial, sans-serif")
+  it("police d'origine des emails : Arial, sans-serif (DejaVu reservee au logo)", () => {
+    expect(FONT_FAMILY).toBe("Arial, sans-serif")
   })
 
   it("logos en URL absolue, largeur >= 150 px", () => {
@@ -93,7 +93,7 @@ describe("gabarits Resend migres", () => {
     expect(attr(tag, "src")).toMatch(/\/email\/educash-logo-bleu\.png$/)
     expect(attr(tag, "alt")).toBe("EduCash")
     expect(Number(attr(tag, "width"))).toBeGreaterThanOrEqual(150)
-    expect(html).toContain("DejaVu Sans")
+    expect(html).not.toContain("DejaVu")
     expect(html).toContain("Arial")
     expect(html.toLowerCase()).toContain("background-color:#1028f0")
     expect(html.toLowerCase()).toContain("background-color:#f3f5fc")
@@ -132,7 +132,8 @@ describe("gabarits Supabase", () => {
       expect(attr(tag, "alt"), f).toBe("EduCash")
       expect(Number(attr(tag, "width")), f).toBeGreaterThanOrEqual(150)
       expect(html, f).toContain("background-color:#1028F0")
-      expect(html, f).toMatch(/font-family:'DejaVu Sans',Verdana,Arial,sans-serif/)
+      expect(html, f).toMatch(/font-family:Arial,Helvetica,sans-serif/)
+      expect(html, f).not.toContain("DejaVu")
       expect(html, f).not.toMatch(/>\s*EduCash\s*<\/span>/)
     }
   })

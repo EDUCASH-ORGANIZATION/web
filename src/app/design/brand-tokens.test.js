@@ -76,13 +76,13 @@ describe("tailles de logo de la charte", () => {
 
 describe("globals.css", () => {
   const globals = read("../globals.css")
-  it("declare les alias Tailwind brand et la police DejaVu", () => {
+  it("declare les alias Tailwind brand et les polices d'origine", () => {
     expect(globals).toContain("--color-brand: var(--c-bleu);")
     expect(globals).toContain("--color-brand-hover: var(--c-bleu-700);")
     expect(globals).toContain("--color-brand-press: var(--c-bleu-800);")
     expect(globals).toContain("--color-brand-soft: var(--c-bleu-50);")
     expect(globals).toContain("--color-ink: var(--c-encre);")
-    expect(globals).toContain("--font-sans: var(--font-dejavu), Arial, sans-serif;")
-    expect(globals).toContain("font-family: var(--font-dejavu), Arial, sans-serif;")
+    expect(globals).toContain("--font-sans: var(--font-geist-sans);")
+    expect(globals).toContain("font-family: Arial, Helvetica, sans-serif;")
   })
 })
