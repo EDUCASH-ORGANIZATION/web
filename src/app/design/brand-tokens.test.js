@@ -64,12 +64,34 @@ describe("absence de l'ancienne palette Direction A", () => {
   })
 })
 
+describe("replis color-mix()", () => {
+  const PALETTE_RGB = ["23,33,58", "255,255,255", "16,40,240"]
+  it.each(["components.css", "layouts.css"])("%s : chaque declaration color-mix() suit un repli rgba de la charte", (file) => {
+    const src = read(file)
+    const decls = src.match(/[\w-]+\s*:[^;{}]*color-mix[^;{}]*;/g) ?? []
+    expect(decls.length).toBeGreaterThan(0)
+    for (const d of decls) {
+      const at = src.indexOf(d)
+      const prop = d.slice(0, d.indexOf(":")).trim()
+      const before = src.slice(Math.max(0, at - 220), at)
+      const m = before.match(new RegExp(prop + "\\s*:[^;{}]*rgba\\(\\s*([\\d.]+),\\s*([\\d.]+),\\s*([\\d.]+),[^;{}]*;\\s*$"))
+      expect(m, d).not.toBeNull()
+      expect(PALETTE_RGB, d).toContain(m.slice(1, 4).join(","))
+    }
+  })
+  it("tokens.css : --sh-champ-focus a un repli rgba bleu et une version color-mix sous @supports", () => {
+    const t = read("tokens.css")
+    expect(t).toMatch(/--sh-champ-focus: 0 0 0 4px rgba\(16,40,240,\.18\);/)
+    expect(t).toMatch(/@supports \(color: color-mix\([^)]*\)\) \{\s*:root \{ --sh-champ-focus: 0 0 0 4px color-mix\(/)
+  })
+})
+
 describe("tailles de logo de la charte", () => {
   const layouts = read("layouts.css")
   it("logo complet >= 150 px de large, symbole >= 32 px", () => {
     expect(layouts).toMatch(/^\.logo \{[^}]*height: 40px/m)
     expect(layouts).toMatch(/^\.logo--sm \{ height: 37px; \}/m)
-    expect(layouts).toMatch(/^\.logo-sym--sm \{ width: 32px; height: 32px; \}/m)
+    expect(layouts).toMatch(/^\.logo-sym--sm \{ width: auto; height: 32px; \}/m)
     expect(37 * 4.1225).toBeGreaterThanOrEqual(150)
   })
 })

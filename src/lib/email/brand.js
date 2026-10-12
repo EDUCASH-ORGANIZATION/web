@@ -4,7 +4,7 @@
 // Règles : le vert ne sert jamais de texte sur fond clair (1,35:1 sur blanc),
 // le logo n'est jamais retapé en texte, largeur affichée >= 150 px.
 
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj"
+export const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj").replace(/\/$/, "")
 
 export const COLORS = {
   bleu: "#1028F0",

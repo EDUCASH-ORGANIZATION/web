@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { createElement } from "react"
 import { render } from "@react-email/components"
 import { contrastRatio } from "@/lib/design/contrast"
-import { COLORS, FONT_FAMILY, LOGO_URLS, LOGO_WIDTH } from "@/lib/email/brand"
+import { COLORS, FONT_FAMILY, LOGO_URLS, LOGO_WIDTH, styles } from "@/lib/email/brand"
 import WelcomeStudent from "@/lib/email/templates/welcome-student"
 import VerificationRejected from "@/lib/email/templates/verification-rejected"
 import VerificationApproved from "@/lib/email/templates/verification-approved"
@@ -24,7 +24,8 @@ const SUPABASE = readdirSync(SUPABASE_DIR)
   .map((f) => join(SUPABASE_DIR, f))
 
 const read = (f) => readFileSync(f, "utf8")
-const HEX = /#[0-9a-f]{6}\b|#[0-9a-f]{3}\b/gi
+const HEX = /#[0-9a-f]{6}\b|#[0-9a-f]{3}\b/i
+const HEX_ALL = new RegExp(HEX.source, "gi")
 const LEGACY = /#1A6B4A|#F59E0B|#2F3BED|#0E0F1A|#F4F5FA|#F4F6FB|#15803d|#f0faf5|#fffbeb/i
 const BRAND_HEX = new Set(Object.values(COLORS).map((c) => c.toUpperCase()))
 
@@ -73,6 +74,13 @@ describe("gabarits Resend migres", () => {
   it("aucune couleur en dur ni ancienne palette : tout passe par brand.js", () => {
     const hits = MIGRATED.filter((f) => HEX.test(read(f)) || LEGACY.test(read(f)))
     expect(hits).toEqual([])
+  })
+
+  it("aucun style de gabarit ne met le vert en couleur de texte", () => {
+    const textGreen = Object.entries(styles).filter(([, st]) => st.color === COLORS.vert).map(([name]) => name)
+    expect(textGreen).toEqual([])
+    const inline = MIGRATED.filter((f) => /color:\s*COLORS\.vert\b/.test(read(f)))
+    expect(inline).toEqual([])
   })
 
   it("aucun logo retape en texte et logo importe de brand.js", () => {
@@ -140,7 +148,7 @@ describe("gabarits Supabase", () => {
 
   it("uniquement des couleurs de la charte", () => {
     for (const f of SUPABASE) {
-      const colors = (read(f).replace(/<!--[\s\S]*?-->/g, "").match(HEX) ?? []).map((c) => c.toUpperCase())
+      const colors = (read(f).replace(/<!--[\s\S]*?-->/g, "").match(HEX_ALL) ?? []).map((c) => c.toUpperCase())
       expect(colors.filter((c) => !BRAND_HEX.has(c)), f).toEqual([])
       expect(read(f), f).not.toMatch(LEGACY)
     }

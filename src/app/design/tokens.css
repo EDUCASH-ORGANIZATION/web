@@ -125,7 +125,8 @@
   --sh-dur-xl: 8px 8px 0 var(--c-encre);   /* modale, drawer, toast */
   --sh-focus: 0 0 0 2px var(--c-blanc), 0 0 0 5px var(--c-bleu);      /* focus clavier sur clair */
   --sh-focus-sombre: 0 0 0 2px var(--c-bleu), 0 0 0 5px var(--c-citron); /* focus sur bleu ou encre */
-  --sh-champ-focus: 0 0 0 4px color-mix(in srgb, var(--c-bleu) 18%, transparent);
+  /* Repli rgba (exception volontaire a la regle "couleurs via variables") : anciens navigateurs sans color-mix(). RVB = bleu de la charte (16,40,240), meme opacite 18 % que le @supports plus bas. */
+  --sh-champ-focus: 0 0 0 4px rgba(16,40,240,.18);
 
   /* ---------- Mouvement ---------- */
   --dur-1: 120ms; --dur-2: 200ms; --dur-3: 320ms;
@@ -153,6 +154,11 @@
   /* ---------- En-tête fixe de la vitrine ---------- */
   --h-header: 88px; --h-header-compact: 64px;
   --sticky-top: calc(var(--h-header-compact) + var(--s-4)); /* éléments collants sous l'en-tête fixe */
+}
+
+/* Navigateurs avec color-mix() : le jeton reste relie a --c-bleu. Un repli en double declaration ne marcherait pas sur une propriete personnalisee. */
+@supports (color: color-mix(in srgb, red 50%, transparent)) {
+  :root { --sh-champ-focus: 0 0 0 4px color-mix(in srgb, var(--c-bleu) 18%, transparent); }
 }
 
 /* ---------- Echelle display responsive ----------

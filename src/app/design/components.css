@@ -410,7 +410,8 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .balance__split b { font-size: var(--t-amount-s); font-weight: var(--fw-xbold); font-variant-numeric: tabular-nums; }
 .balance__split .ic { width: 14px; height: 14px; display: inline; vertical-align: -2px; }
 .balance__actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.balance__hint { margin-top: 10px; font-size: var(--t-caption); background: color-mix(in srgb, var(--c-encre) 28%, transparent); border-radius: var(--r-s); padding: 8px 12px; display: flex; gap: 8px; align-items: center; }
+/* Repli rgba (exception volontaire a la regle "couleurs via variables") : anciens navigateurs sans color-mix(). Valeurs RVB = jetons de la charte (encre 23,33,58 / blanc / bleu 16,40,240), meme opacite que la declaration color-mix() qui suit. */
+.balance__hint { margin-top: 10px; font-size: var(--t-caption); background: rgba(23,33,58,.28); background: color-mix(in srgb, var(--c-encre) 28%, transparent); border-radius: var(--r-s); padding: 8px 12px; display: flex; gap: 8px; align-items: center; }
 .balance__hint .ic { width: 16px; height: 16px; color: var(--c-citron); }
 .balance__scribble { position: absolute; right: -10px; top: -14px; width: 150px; color: var(--c-citron); opacity: .9; pointer-events: none; }
 .balance--encre { background: var(--c-encre); }
@@ -573,7 +574,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 /* =====================================================================
    7. MODALE, FEUILLE DU BAS, DRAWER, SCRIM
    ===================================================================== */
-.scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--c-encre) 55%, transparent); z-index: var(--z-modal); display: flex; align-items: center; justify-content: center; padding: var(--s-6); }
+.scrim { position: absolute; inset: 0; background: rgba(23,33,58,.55); background: color-mix(in srgb, var(--c-encre) 55%, transparent); z-index: var(--z-modal); display: flex; align-items: center; justify-content: center; padding: var(--s-6); }
 .scrim--bottom { align-items: flex-end; padding: 0; }
 .scrim--right { justify-content: flex-end; align-items: stretch; padding: 0; }
 .modal { background: var(--c-blanc); border: var(--b-encre); border-radius: var(--r-xl); box-shadow: var(--sh-dur-xl); width: 520px; max-width: 100%; display: flex; flex-direction: column; overflow: hidden; }
@@ -756,7 +757,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .bubble__wave { flex: 1; height: 24px; background: repeating-linear-gradient(90deg, currentColor 0 3px, transparent 3px 6px); -webkit-mask: linear-gradient(0deg, #000 30%, transparent 30%, transparent 70%, #000 70%), radial-gradient(#000, #000); opacity: .6; border-radius: 3px; }
 .bubble__play { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--c-blanc); color: var(--c-bleu); flex: none; }
 .bubble--them .bubble__play { background: var(--c-bleu); color: var(--c-blanc); }
-.bubble--location .bubble__map { width: 220px; height: 120px; border-radius: 16px; background: var(--c-menthe) repeating-linear-gradient(45deg, color-mix(in srgb, var(--c-encre) 6%, transparent) 0 2px, transparent 2px 14px); display: grid; place-items: center; color: var(--c-erreur); }
+.bubble--location .bubble__map { width: 220px; height: 120px; border-radius: 16px; background: var(--c-menthe) repeating-linear-gradient(45deg, rgba(23,33,58,.06) 0 2px, transparent 2px 14px); background: var(--c-menthe) repeating-linear-gradient(45deg, color-mix(in srgb, var(--c-encre) 6%, transparent) 0 2px, transparent 2px 14px); display: grid; place-items: center; color: var(--c-erreur); }
 .msg-system { align-self: center; max-width: 90%; display: flex; align-items: center; gap: 8px; background: var(--c-citron-pale); border: 2px solid var(--c-encre); border-radius: var(--r-m); padding: 8px 12px; font-size: var(--t-caption); font-weight: var(--fw-bold); text-align: left; margin: 6px 0; }
 .msg-system .ic { width: 16px; height: 16px; flex: none; }
 .typing { align-self: flex-start; display: inline-flex; gap: 4px; padding: 12px 14px; background: var(--c-blanc); border: var(--b-ligne); border-radius: 20px; border-bottom-left-radius: 6px; }
@@ -829,7 +830,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 
 /* Placeholder photo (aucune photo réelle dans les maquettes) */
 .photo-ph { border-radius: var(--r-l); background: var(--c-citron); border: var(--b-encre); position: relative; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
-.photo-ph__note { position: absolute; left: 12px; right: 12px; top: 12px; border: 2px dashed color-mix(in srgb, var(--c-encre) 55%, transparent); border-radius: var(--r-s); padding: 8px 10px; font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: .06em; text-transform: uppercase; background: rgba(255,255,255,.55); }
+.photo-ph__note { position: absolute; left: 12px; right: 12px; top: 12px; border: 2px dashed rgba(23,33,58,.55); border: 2px dashed color-mix(in srgb, var(--c-encre) 55%, transparent); border-radius: var(--r-s); padding: 8px 10px; font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: .06em; text-transform: uppercase; background: rgba(255,255,255,.55); }
 
 /* Partenaires de paiement : vrais logos MTN, Moov et Celtiis (OperatorLogo) */
 .payer { display: inline-flex; align-items: center; gap: 8px; font-weight: var(--fw-xbold); font-size: var(--t-body-s); }
@@ -887,7 +888,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .spark__now { stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 3 4; opacity: .7; }
 .spark__dot { fill: currentColor; }
 /* Jauge horizontale */
-.gauge { height: 10px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--c-encre) 12%, transparent); overflow: hidden; }
+.gauge { height: 10px; border-radius: var(--r-pill); background: rgba(23,33,58,.12); background: color-mix(in srgb, var(--c-encre) 12%, transparent); overflow: hidden; }
 .gauge > i { display: block; height: 100%; border-radius: inherit; background: currentColor; }
 
 /* Liste en lignes arrondies colorées */
@@ -913,8 +914,8 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .detail-card__name { font-weight: var(--fw-xbold); color: var(--c-bleu); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; }
 .detail-card__sub { font-size: var(--t-caption); color: var(--c-ardoise); }
 .detail-card__rows { display: grid; grid-template-columns: 124px minmax(0, 1fr); font-size: var(--t-caption); }
-.detail-card__rows dt { color: var(--c-ardoise); font-weight: var(--fw-semibold); padding: 5px 0; border-top: 1px solid color-mix(in srgb, var(--c-encre) 14%, transparent); }
-.detail-card__rows dd { padding: 5px 0; border-top: 1px solid color-mix(in srgb, var(--c-encre) 14%, transparent); font-weight: var(--fw-semibold); }
+.detail-card__rows dt { color: var(--c-ardoise); font-weight: var(--fw-semibold); padding: 5px 0; border-top: 1px solid rgba(23,33,58,.14); border-top: 1px solid color-mix(in srgb, var(--c-encre) 14%, transparent); }
+.detail-card__rows dd { padding: 5px 0; border-top: 1px solid rgba(23,33,58,.14); border-top: 1px solid color-mix(in srgb, var(--c-encre) 14%, transparent); font-weight: var(--fw-semibold); }
 .detail-card__actions { display: flex; gap: 8px; margin-top: auto; flex-wrap: wrap; }
 
 /* Mini calendrier des échéances */
@@ -1456,7 +1457,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .a-status--encre { --status-bg: var(--c-encre); }
 .a-form--wide { width: 520px; }
 .a-pop { position: absolute; z-index: var(--z-drawer); }
-.a-dim { position: absolute; inset: 0; background: color-mix(in srgb, var(--c-encre) 6%, transparent); z-index: var(--z-menu); }
+.a-dim { position: absolute; inset: 0; background: rgba(23,33,58,.06); background: color-mix(in srgb, var(--c-encre) 6%, transparent); z-index: var(--z-menu); }
 .a-photo { display: flex; align-items: center; gap: var(--s-4); }
 .a-tips { display: flex; flex-direction: column; gap: 8px; font-size: var(--t-caption); color: var(--c-ardoise); }
 .a-tips li { display: flex; gap: 8px; align-items: flex-start; }
@@ -1480,7 +1481,7 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .a-install__icon { width: 48px; height: 48px; border-radius: 12px; flex: none; }
 .a-install--m { bottom: calc(var(--h-bottomnav) + 44px); }
 .a-install--desk { left: auto; right: 32px; bottom: 32px; width: 400px; }
-.a-osdialog { background: var(--c-blanc); border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 30px color-mix(in srgb, var(--c-encre) 25%, transparent); }
+.a-osdialog { background: var(--c-blanc); border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 10px 30px rgba(23,33,58,.25); box-shadow: 0 10px 30px color-mix(in srgb, var(--c-encre) 25%, transparent); }
 .a-home { flex: 1; background: var(--c-encre-800); padding: 48px 24px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px 12px; align-content: start; }
 .a-home__app { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: var(--t-micro); color: var(--c-blanc); font-weight: var(--fw-semibold); }
 .a-home__app img, .a-home__app i { width: 56px; height: 56px; border-radius: 16px; display: block; }
