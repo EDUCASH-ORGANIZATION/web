@@ -12,11 +12,11 @@ const APP_STYLES = {
   form: "flex flex-col gap-3 w-full text-left",
   label: "text-sm font-semibold text-gray-700",
   input:
-    "w-full h-11 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/30",
+    "w-full h-11 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--c-bleu)]/30",
   error: "text-xs text-red-600 font-semibold",
   banner: "text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3",
   button:
-    "w-full h-11 rounded-xl bg-[#1A6B4A] text-white text-sm font-bold hover:bg-[#155a3d] transition-colors disabled:opacity-60 touch-manipulation",
+    "w-full h-11 rounded-xl bg-[var(--c-bleu)] text-white text-sm font-bold hover:bg-[var(--c-bleu-700)] transition-colors disabled:opacity-60 touch-manipulation",
   sent: "w-full flex items-start gap-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-left text-sm text-green-800",
 }
 

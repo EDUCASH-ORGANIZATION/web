@@ -12,8 +12,8 @@ export function PublishPausedGate({ resumeHref }) {
     <div className="max-w-md mx-auto py-16 px-4 flex flex-col items-center text-center gap-6">
       {resumeHref && <ResumePublishLink mode="store" href={resumeHref} />}
 
-      <div className="w-20 h-20 rounded-2xl bg-[#f0faf5] border border-green-100 flex items-center justify-center">
-        <Clock size={40} className="text-[#1A6B4A]" />
+      <div className="w-20 h-20 rounded-2xl bg-[var(--c-bleu-50)] border border-[var(--c-ligne)] flex items-center justify-center">
+        <Clock size={40} className="text-[var(--c-bleu)]" />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -23,9 +23,9 @@ export function PublishPausedGate({ resumeHref }) {
 
       <PublishNotifyForm variant="app" idPrefix="gate-notify" />
 
-      <div className="w-full flex items-start gap-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-left">
-        <ShieldCheck size={16} className="text-[#1A6B4A] shrink-0 mt-0.5" />
-        <p className="text-xs text-green-800 leading-relaxed">
+      <div className="w-full flex items-start gap-3 bg-[var(--c-bleu-50)] border border-[var(--c-ligne)] rounded-xl px-4 py-3 text-left">
+        <ShieldCheck size={16} className="text-[var(--c-bleu)] shrink-0 mt-0.5" />
+        <p className="text-xs text-[var(--c-encre)] leading-relaxed">
           <strong>Séquestre sécurisé :</strong>{" "}
           à l&apos;ouverture, vos fonds sont bloqués à la publication
           et libérés uniquement quand vous confirmez que la mission est terminée.
