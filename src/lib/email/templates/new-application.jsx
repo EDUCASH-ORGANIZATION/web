@@ -1,4 +1,5 @@
-import { Html, Body, Container, Text, Button, Heading, Hr, Section } from "@react-email/components"
+import { Html, Body, Container, Text, Button, Heading, Hr, Section, Img } from "@react-email/components"
+import { COLORS, logoProps, styles } from "@/lib/email/brand"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj"
 
@@ -22,6 +23,8 @@ export default function NewApplication({
     <Html lang="fr">
       <Body style={body}>
         <Container style={container}>
+          <Img {...logoProps()} />
+
           <Heading style={h1}>Nouvelle candidature 📩</Heading>
 
           <Text style={text}>Bonjour {clientName},</Text>
@@ -53,12 +56,12 @@ export default function NewApplication({
   )
 }
 
-const body = { backgroundColor: "#f9fafb", fontFamily: "Arial, sans-serif", margin: 0 }
-const container = { backgroundColor: "#ffffff", margin: "40px auto", padding: "32px", borderRadius: "12px", maxWidth: "520px" }
-const h1 = { color: "#1A6B4A", fontSize: "22px", fontWeight: "700", marginBottom: "8px" }
-const text = { color: "#374151", fontSize: "15px", lineHeight: "1.6", margin: "12px 0" }
-const quoteBlock = { backgroundColor: "#f0faf5", borderLeft: "3px solid #1A6B4A", padding: "12px 16px", borderRadius: "0 8px 8px 0", margin: "16px 0" }
-const quoteText = { color: "#374151", fontSize: "14px", fontStyle: "italic", margin: 0 }
-const button = { backgroundColor: "#1A6B4A", color: "#ffffff", padding: "12px 24px", borderRadius: "8px", fontSize: "14px", fontWeight: "600", textDecoration: "none", display: "inline-block", margin: "16px 0" }
-const hr = { borderColor: "#e5e7eb", margin: "24px 0" }
-const footer = { color: "#9ca3af", fontSize: "12px", textAlign: "center" }
+const body = styles.body
+const container = styles.container
+const h1 = styles.h1
+const text = styles.text
+const button = styles.button
+const hr = styles.hr
+const footer = styles.footer
+const quoteBlock = { backgroundColor: COLORS.brume, borderLeft: `3px solid ${COLORS.vert}`, padding: "12px 16px", borderRadius: "0 8px 8px 0", margin: "16px 0" }
+const quoteText = { color: COLORS.ardoise, fontSize: "14px", fontStyle: "italic", margin: 0 }
