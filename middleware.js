@@ -21,7 +21,7 @@ const AUTH_OPEN_WHEN_LOGGED_IN = [
 // que lorsque le rôle sert : pages /auth hors liste ouverte quand on est connecté, et préfixes protégés.
 // Les pages publiques et les visiteurs ne coûtent aucune requête de plus. Le middleware ne sert qu'à la
 // navigation : chaque layout, page et server action revérifie le rôle côté serveur (fail-closed).
-// user_metadata n'est jamais lu ici. Rôle introuvable (lecture en erreur, aucun profil ni repli valide) :
+// user_metadata n'est jamais lu ici. Rôle introuvable (lecture en erreur ou aucun profil) :
 // on laisse passer sur /auth (pas de boucle) et on renvoie vers l'accueil sur un préfixe protégé.
 function dashboardOf(role) {
   return dashboardFor(role) ?? "/dashboard"
@@ -102,8 +102,8 @@ export async function middleware(request) {
   }
 
   // ── Routes espace étudiant (groupe (student)) ──────────────────────────────
-  // /dashboard, /applications, /messages, /profile
-  const STUDENT_ONLY = ["/dashboard", "/applications", "/messages", "/profile", "/student"]
+  // /dashboard, /applications, /messages, /profile, /wallet
+  const STUDENT_ONLY = ["/dashboard", "/applications", "/messages", "/profile", "/wallet", "/student"]
   if (STUDENT_ONLY.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     if (!user) {
       return loginRedirect(request)
