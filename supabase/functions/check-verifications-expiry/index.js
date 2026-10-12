@@ -1,3 +1,8 @@
+// ATTENTION avant planification : cette fonction appelle encore la Edge Function `send-email`,
+// qui n'existe pas. Elle doit passer par /api/email avant d'être planifiée.
+// Déploiement : utiliser `--no-verify-jwt` (le secret CRON_SECRET protège l'appel) ou envoyer
+// un en-tête Authorization valide.
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
