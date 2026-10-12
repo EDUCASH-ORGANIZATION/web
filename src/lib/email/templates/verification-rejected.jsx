@@ -1,7 +1,8 @@
 import {
   Html, Body, Container, Text, Button,
-  Heading, Hr, Section, Row, Column,
+  Heading, Hr, Section, Row, Column, Img,
 } from "@react-email/components"
+import { COLORS, logoProps, styles } from "@/lib/email/brand"
 import { CARD_UPLOAD_INSTRUCTIONS } from "@/lib/supabase/database.constants"
 
 /**
@@ -29,14 +30,7 @@ export default function VerificationRejected({
         <Container style={container}>
 
           {/* ── Logo ──────────────────────────────────────────────── */}
-          <Row style={{ marginBottom: "28px" }}>
-            <Column>
-              <Text style={logo}>
-                <span style={{ color: "#1A6B4A" }}>Edu</span>
-                <span style={{ color: "#F59E0B" }}>Cash</span>
-              </Text>
-            </Column>
-          </Row>
+          <Img {...logoProps()} />
 
           {/* ── Icône alerte ──────────────────────────────────────── */}
           <Section style={{ textAlign: "center", marginBottom: "24px" }}>
@@ -115,22 +109,21 @@ export default function VerificationRejected({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const body       = { backgroundColor: "#f3f4f6", fontFamily: "Arial, sans-serif", margin: 0, padding: "24px 0" }
-const container  = { backgroundColor: "#ffffff", margin: "0 auto", padding: "40px 36px", borderRadius: "16px", maxWidth: "520px", boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }
-const logo       = { fontSize: "22px", fontWeight: "800", margin: "0 0 4px", letterSpacing: "-0.5px" }
-const iconCircle = { width: "72px", height: "72px", borderRadius: "50%", backgroundColor: "#F59E0B", display: "inline-flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }
-const iconMark   = { color: "#ffffff", fontSize: "38px", fontWeight: "800", lineHeight: 1 }
-const h1         = { color: "#111827", fontSize: "22px", fontWeight: "800", margin: "0 0 16px", letterSpacing: "-0.3px" }
-const text       = { color: "#374151", fontSize: "15px", lineHeight: "1.65", margin: "12px 0" }
-const amberBox   = { backgroundColor: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", padding: "16px 20px", margin: "16px 0" }
-const amberLabel = { color: "#92400e", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 6px" }
-const amberValue = { color: "#78350f", fontSize: "14px", fontWeight: "600", margin: 0, lineHeight: "1.55" }
-const customMsg  = { color: "#374151", fontSize: "14px", fontStyle: "italic", backgroundColor: "#f9fafb", borderLeft: "3px solid #d1d5db", borderRadius: "0 6px 6px 0", padding: "10px 14px", margin: "12px 0" }
-const subTitle   = { color: "#111827", fontSize: "15px", fontWeight: "700", margin: "20px 0 8px" }
-const tipsBox    = { backgroundColor: "#f9fafb", borderRadius: "10px", padding: "14px 16px", margin: "0 0 16px" }
-const tipBullet  = { color: "#1A6B4A", fontSize: "18px", fontWeight: "700", margin: 0, lineHeight: "1.4" }
-const tipText    = { color: "#374151", fontSize: "14px", lineHeight: "1.55", margin: 0 }
-const buttonAmber = { backgroundColor: "#F59E0B", color: "#ffffff", padding: "13px 28px", borderRadius: "10px", fontSize: "15px", fontWeight: "700", textDecoration: "none", display: "inline-block" }
-const hr         = { borderColor: "#e5e7eb", margin: "28px 0 16px" }
-const note       = { color: "#6b7280", fontSize: "13px", lineHeight: "1.55", margin: "0 0 12px", textAlign: "center" }
-const footer     = { color: "#9ca3af", fontSize: "12px", textAlign: "center", margin: 0 }
+const body       = styles.body
+const container  = styles.container
+const iconCircle = { width: "72px", height: "72px", borderRadius: "50%", backgroundColor: COLORS.vert, display: "inline-flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }
+const iconMark   = { color: COLORS.encre, fontSize: "38px", fontWeight: "700", lineHeight: 1 }
+const h1         = { ...styles.h1, margin: "0 0 16px" }
+const text       = { ...styles.text, lineHeight: "1.65" }
+const amberBox   = { backgroundColor: COLORS.rose, borderRadius: "10px", padding: "16px 20px", margin: "16px 0" }
+const amberLabel = { color: COLORS.encre, fontSize: "13px", fontWeight: "700", margin: "0 0 6px" }
+const amberValue = { color: COLORS.encre, fontSize: "14px", fontWeight: "700", margin: 0, lineHeight: "1.55" }
+const customMsg  = { color: COLORS.ardoise, fontSize: "14px", fontStyle: "italic", backgroundColor: COLORS.brume, borderLeft: `3px solid ${COLORS.vert}`, borderRadius: "0 6px 6px 0", padding: "10px 14px", margin: "12px 0" }
+const subTitle   = { color: COLORS.encre, fontSize: "15px", fontWeight: "700", margin: "20px 0 8px" }
+const tipsBox    = { backgroundColor: COLORS.brume, borderRadius: "10px", padding: "14px 16px", margin: "0 0 16px" }
+const tipBullet  = { color: COLORS.bleu, fontSize: "18px", fontWeight: "700", margin: 0, lineHeight: "1.4" }
+const tipText    = { color: COLORS.encre, fontSize: "14px", lineHeight: "1.55", margin: 0 }
+const buttonAmber = styles.button
+const hr         = { ...styles.hr, margin: "28px 0 16px" }
+const note       = { ...styles.secondary, fontSize: "13px", textAlign: "center" }
+const footer     = styles.footer

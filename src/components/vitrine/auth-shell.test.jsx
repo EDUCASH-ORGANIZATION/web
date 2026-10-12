@@ -33,6 +33,15 @@ describe("AuthShell", () => {
     expect(html).not.toMatch(/FedaPay|\b24\b|\b48\b/)
   })
 
+  it("declare les logos au ratio 4,12 de la charte", () => {
+    const html = renderToStaticMarkup(<AuthShell><div /></AuthShell>)
+    const dims = [...html.matchAll(/src="\/logo-horizontal-(?:blanc|bleu)\.svg"[^>]*?width="(\d+)" height="(\d+)"/g)]
+    expect(dims).toHaveLength(2)
+    for (const [, w, h] of dims) {
+      expect(Math.abs(w / h - 4.1225)).toBeLessThan(0.05)
+    }
+  })
+
   it("cite les trois opérateurs Mobile Money côté étudiant", () => {
     const html = renderToStaticMarkup(<AuthShell><div /></AuthShell>)
     expect(html).toContain("MTN MoMo, Moov Money ou Celtiis Cash")

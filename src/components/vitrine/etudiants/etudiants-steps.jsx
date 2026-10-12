@@ -55,7 +55,7 @@ export function EtudiantsSteps() {
         <div className="v-step v-step--citron">
           <span className="v-step__num">03</span>
           <div className="push ds-desk-only">
-            <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={40} height={40} />
+            <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={32} height={32} />
             <div>
               <div className="push__title">+ {formatFcfa(netAmount(EXAMPLE_BUDGET))}</div>
               <div className="caption">Versé sur ton portefeuille</div>

@@ -7,11 +7,13 @@
    ===================================================================== */
 
 /* ---------- Logo (fichiers SVG livrés, jamais redessinés) ---------- */
-.logo { display: block; height: 32px; width: auto; flex: none; }
-.logo--sm { height: 26px; }
+/* Charte : logo complet >= 150 px de large (40 px de haut x 4,1225 = 165 px, 37 px = 153 px), symbole >= 32 px. */
+/* aspect-ratio du fichier : les attributs width/height des <img> ne le faussent pas */
+.logo { display: block; height: 40px; width: auto; aspect-ratio: 412.25 / 100; flex: none; }
+.logo--sm { height: 37px; }
 .logo--lg { height: 44px; }
-.logo-sym { display: block; width: 32px; height: 32px; flex: none; }
-.logo-sym--sm { width: 26px; height: 26px; }
+.logo-sym { display: block; width: auto; height: 32px; aspect-ratio: 104.88 / 100; flex: none; }
+.logo-sym--sm { width: auto; height: 32px; }
 /* Dans un conteneur en colonne, le logo garde sa largeur naturelle */
 .auth__brand > .logo, .sidebar__brand > .logo, .site-footer__brand > .logo, .stack > .logo { align-self: flex-start; }
 
@@ -37,7 +39,8 @@
 .hero.hero--under-header { padding-top: var(--h-header); }
 .site-header.is-compact { height: var(--h-header-compact); background: var(--c-blanc); border-bottom: var(--b-encre); padding-top: 0; }
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-  .site-header.is-compact { background: color-mix(in srgb, var(--c-blanc) 96%, transparent); -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4); }
+/* Repli rgba (exception volontaire a la regle "couleurs via variables") : anciens navigateurs sans color-mix(). Valeurs RVB = jetons de la charte (encre 23,33,58 / blanc / bleu 16,40,240), meme opacite que la declaration color-mix() qui suit. */
+  .site-header.is-compact { background: rgba(255,255,255,.96); background: color-mix(in srgb, var(--c-blanc) 96%, transparent); -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4); }
 }
 .site-header.site-header--bleu { height: calc(var(--h-header) + var(--s-4)); padding: var(--s-4) calc(var(--s-4) + var(--s-14)) 0; }
 @media (prefers-reduced-motion: no-preference) {
@@ -268,7 +271,7 @@ html:has(.site-header) { scroll-padding-top: calc(var(--h-header-compact) + var(
 .mtopbar--admin { background: var(--c-encre); color: var(--c-blanc); position: relative; }
 .mtopbar--admin .btn-icon { background: transparent; border-color: var(--c-encre-700); color: var(--c-blanc); }
 .mtopbar--admin .btn-icon__dot { border-color: var(--c-encre); }
-.admin-menu { position: absolute; inset: 0; z-index: var(--z-drawer); background: rgba(14,15,26,.55); display: flex; }
+.admin-menu { position: absolute; inset: 0; z-index: var(--z-drawer); background: rgba(23,33,58,.55); background: color-mix(in srgb, var(--c-encre) 55%, transparent); display: flex; }
 .admin-menu__panel { width: 320px; background: var(--c-encre); color: var(--c-blanc); display: flex; flex-direction: column; padding: var(--s-4); gap: 4px; border-right: 2px solid var(--c-citron); overflow: auto; }
 .admin-menu__panel .nav-item { color: var(--c-blanc); }
 .admin-menu__panel .nav-item .ic { color: var(--c-brume); }
