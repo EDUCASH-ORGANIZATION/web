@@ -14,6 +14,7 @@ vi.mock("@/lib/email/index", () => ({ sendEmail: (...a) => sendEmail(...a) }))
 import { POST } from "./route"
 
 const SECRET = "whsec"
+const USER_ID = "3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b"
 const sign = (body) => createHmac("sha256", SECRET).update(body).digest("hex")
 function signed(event) {
   const body = JSON.stringify(event)
@@ -81,11 +82,82 @@ describe("POST /api/webhooks/fedapay", () => {
     from.mockReturnValue({ select: () => ({ eq: () => ({ single: async () => ({ data: { full_name: "Awa K" } }) }) }) })
     const res = await POST(signed({
       name: "transaction.approved",
-      entity: { id: 42, amount: 5000, custom_metadata: { type: "wallet_deposit", userId: "u1" } },
+      entity: { id: 42, amount: 5000, currency: { iso: "XOF" }, custom_metadata: { type: "wallet_deposit", userId: USER_ID } },
     }))
     expect(res.status).toBe(200)
-    expect(rpc).toHaveBeenCalledWith("wallet_deposit", { p_user_id: "u1", p_amount: 5000, p_fedapay_id: "42" })
+    expect(rpc).toHaveBeenCalledWith("wallet_deposit", { p_user_id: USER_ID, p_amount: 5000, p_fedapay_id: "42" })
     expect(sendEmail).toHaveBeenCalledWith("wallet-deposited", "a@b.bj", expect.objectContaining({ firstName: "Awa" }))
+  })
+
+  const deposit = (entity = {}, userId = USER_ID) =>
+    signed({
+      name: "transaction.approved",
+      entity: { id: 42, amount: 5000, currency: { iso: "XOF" }, custom_metadata: { type: "wallet_deposit", userId }, ...entity },
+    })
+
+  it("n'envoie pas l'email lors du rejeu d'un dépôt déjà traité", async () => {
+    process.env.FEDAPAY_WEBHOOK_SECRET = SECRET
+    rpc.mockResolvedValue({ data: { success: true, already_processed: true, new_balance: 7000 }, error: null })
+    const res = await POST(deposit())
+    expect(res.status).toBe(200)
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(getUserById).not.toHaveBeenCalled()
+  })
+
+  it("envoie l'email au premier traitement (already_processed false)", async () => {
+    process.env.FEDAPAY_WEBHOOK_SECRET = SECRET
+    rpc.mockResolvedValue({ data: { success: true, already_processed: false, new_balance: 7000 }, error: null })
+    getUserById.mockResolvedValue({ data: { user: { email: "a@b.bj" } } })
+    from.mockReturnValue({ select: () => ({ eq: () => ({ single: async () => ({ data: { full_name: "Awa K" } }) }) }) })
+    expect((await POST(deposit())).status).toBe(200)
+    expect(sendEmail).toHaveBeenCalledTimes(1)
+  })
+
+  it("répond 500 neutre sur erreur RPC ou refus, sans email", async () => {
+    process.env.FEDAPAY_WEBHOOK_SECRET = SECRET
+    for (const out of [
+      { data: null, error: { message: "connection reset secret" } },
+      { data: { success: false, error: "user_not_found" }, error: null },
+    ]) {
+      rpc.mockResolvedValue(out)
+      const res = await POST(deposit())
+      expect(res.status).toBe(500)
+      expect(await res.text()).not.toMatch(/secret|user_not_found/)
+    }
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["montant décimal", { amount: 50.5 }],
+    ["montant nul", { amount: 0 }],
+    ["montant négatif", { amount: -100 }],
+    ["montant en chaîne", { amount: "5000" }],
+    ["montant absent", { amount: undefined }],
+    ["devise EUR", { currency: { iso: "EUR" } }],
+    ["devise absente", { currency: undefined }],
+  ])("refuse avant la RPC : %s", async (_n, entity) => {
+    process.env.FEDAPAY_WEBHOOK_SECRET = SECRET
+    const res = await POST(deposit(entity))
+    expect(res.status).toBe(400)
+    expect(rpc).not.toHaveBeenCalled()
+    expect(createServiceClient).not.toHaveBeenCalled()
+  })
+
+  it.each([["absent", null], ["pas un UUID", "u1"], ["injection", "x' or '1'='1"], ["nombre", 12]])(
+    "refuse avant la RPC un userId %s",
+    async (_n, userId) => {
+      process.env.FEDAPAY_WEBHOOK_SECRET = SECRET
+      const res = await POST(deposit({}, userId))
+      expect(res.status).toBe(400)
+      expect(rpc).not.toHaveBeenCalled()
+    },
+  )
+
+  it("accepte la devise en chaîne XOF", async () => {
+    process.env.FEDAPAY_WEBHOOK_SECRET = SECRET
+    rpc.mockResolvedValue({ data: { success: true, already_processed: true }, error: null })
+    expect((await POST(deposit({ currency: "XOF" }))).status).toBe(200)
+    expect(rpc).toHaveBeenCalledTimes(1)
   })
 
   it.each([

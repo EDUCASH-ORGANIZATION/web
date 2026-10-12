@@ -16,6 +16,25 @@ function signatureMatches(received, expected) {
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Devise de l'événement : code ISO en chaîne ou objet { iso }.
+function currencyOf(entity) {
+  const c = entity?.currency
+  return typeof c === "string" ? c : c?.iso
+}
+
+// Un dépôt n'est crédité que si montant (entier > 0), devise (XOF) et utilisateur (UUID) sont valides.
+function isValidDeposit(entity, userId) {
+  return (
+    Number.isInteger(entity?.amount) &&
+    entity.amount > 0 &&
+    currencyOf(entity) === "XOF" &&
+    typeof userId === "string" &&
+    UUID_RE.test(userId)
+  )
+}
+
 // ─── POST /api/webhooks/fedapay ───────────────────────────────────────────────
 
 export async function POST(request) {
@@ -61,6 +80,11 @@ export async function POST(request) {
       return new Response("OK", { status: 200 })
     }
 
+    if (!isValidDeposit(event.entity, metadata.userId)) {
+      console.warn("[webhook/fedapay] dépôt refusé : données invalides")
+      return new Response("Bad Request", { status: 400 })
+    }
+
     // Client service role (contourne la RLS) : ouvert seulement après vérification de signature
     const supabase = createServiceClient()
     const fedapayId = String(event.entity.id)
@@ -73,13 +97,15 @@ export async function POST(request) {
       p_fedapay_id: fedapayId,
     })
 
-    if (rpcError) {
-      console.error("[webhook/fedapay] wallet_deposit RPC error:", rpcError)
-      // On retourne 200 pour éviter les retries FedaPay
-      return new Response("OK", { status: 200 })
+    // Erreur ou refus : 500 pour provoquer un rejeu (l'idempotence SQL sur l'identifiant de paiement
+    // empêche tout double crédit).
+    if (rpcError || result?.success !== true) {
+      console.error("[webhook/fedapay] wallet_deposit en échec:", rpcError ?? result)
+      return new Response("Internal Server Error", { status: 500 })
     }
 
-    if (result?.success) {
+    // Rejeu d'un dépôt déjà crédité : aucun second email
+    if (!result.already_processed) {
       try {
         const { data: userData } = await supabase.auth.admin.getUserById(metadata.userId)
         const clientEmail = userData?.user?.email
