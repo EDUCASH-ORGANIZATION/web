@@ -141,6 +141,18 @@ describe("admin/verifications : cartes et pagination", () => {
   })
 
   it.each([
+    ["chemin d'un autre utilisateur", "u2/card.jpg"],
+    ["URL du bucket d'un autre utilisateur", "https://x.supabase.co/storage/v1/object/public/student-cards/u2/card.jpg"],
+    ["traversée de dossier", "u1/../u2/card.jpg"],
+    ["chemin sans dossier utilisateur", "card.jpg"],
+  ])("ne signe rien pour une ligne existante dont le chemin est invalide (%s)", async (_label, cardUrl) => {
+    createServiceClient.mockReturnValue(service([{ user_id: "u1", card_url: cardUrl }]))
+    const tree = cards(await Verifications({ searchParams: Promise.resolve({}) }))
+    expect(createSignedUrls).not.toHaveBeenCalled()
+    expect(tree).toContain('"card_preview_unavailable":true')
+  })
+
+  it.each([
     [{ page: "abc" }, [0, 49]],
     [{ page: "-3" }, [0, 49]],
     [{ page: "2" }, [50, 99]],

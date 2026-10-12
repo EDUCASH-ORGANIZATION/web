@@ -17,12 +17,14 @@ function parsePage(value) {
 }
 
 // Chemin dans le bucket student-cards à partir de la valeur stockée (chemin ou ancienne URL).
-// Retourne null si la valeur n'est pas exploitable : aucun repli sur la valeur brute.
-function cardStoragePath(rawUrl) {
+// Retourne null si la valeur n'est pas exploitable ou n'est pas dans le dossier du propriétaire
+// (`<userId>/`) : aucun repli sur la valeur brute, rien n'est signé dans ce cas.
+function cardStoragePath(rawUrl, userId) {
   if (typeof rawUrl !== "string" || rawUrl === "") return null
   const match = rawUrl.match(/student-cards\/(.+)$/)
   const candidate = (match ? match[1] : rawUrl).split("?")[0]
   if (/^[a-z][a-z0-9+.-]*:/i.test(candidate) || candidate.includes("..")) return null
+  if (typeof userId !== "string" || userId === "" || !candidate.startsWith(`${userId}/`)) return null
   return candidate
 }
 
@@ -80,7 +82,7 @@ export default async function AdminVerificationsPage({ searchParams } = {}) {
   // Aucun repli sur le chemin brut : sans URL signée, la carte est signalée indisponible.
   const pathByUser = {}
   for (const [userId, sp] of Object.entries(studentMap)) {
-    const storagePath = cardStoragePath(sp.card_url)
+    const storagePath = cardStoragePath(sp.card_url, userId)
     if (storagePath) pathByUser[userId] = storagePath
   }
   const paths = [...new Set(Object.values(pathByUser))]

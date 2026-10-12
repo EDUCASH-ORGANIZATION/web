@@ -76,7 +76,8 @@ export function CardUploadForm({ hasCard }) {
         .upload(fileName, file, { upsert: true })
 
       if (uploadError) {
-        setError("Erreur upload : " + uploadError.message)
+        console.error("[card-upload-form] upload", uploadError)
+        setError("L'envoi de la carte a échoué. Réessayez.")
         return
       }
 
@@ -92,10 +93,8 @@ export function CardUploadForm({ hasCard }) {
         return
       }
 
-      const { data: urlData } = supabase.storage.from("student-cards").getPublicUrl(fileName)
-
-      // Sauvegarder l'URL via Server Action (uniquement une string - pas de fichier)
-      const result = await saveStudentCardUrl(urlData.publicUrl)
+      // Sauvegarder le chemin du fichier via Server Action (uniquement une string - pas de fichier)
+      const result = await saveStudentCardUrl(fileName)
 
       if (result?.error) {
         setError(result.error)

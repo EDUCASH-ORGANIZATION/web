@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
-import { requireUser } from "@/lib/auth/require-role"
+import { requireUser, requireRole } from "@/lib/auth/require-role"
+import { toOwnedAvatarUrl, toOwnedStoragePath } from "@/lib/storage/owned-paths"
 
 // Colonnes de la ligne de l'appelant, lues côté serveur : les colonnes privées (phone,
 // rejection_reason, verification_submitted_at, card_url) ne sont plus lisibles avec la session.
@@ -11,6 +12,9 @@ const MY_PROFILE_COLUMNS =
   "user_id, full_name, city, avatar_url, bio, role, is_verified, verified_until, phone, rejection_reason, verification_submitted_at"
 const MY_STUDENT_PROFILE_COLUMNS =
   "user_id, school, level, skills, availability, card_url"
+
+const ERR_AVATAR = "Cette photo n'est pas valide. Envoie-la à nouveau."
+const ERR_CARD = "Cette carte n'est pas valide. Envoie-la à nouveau."
 
 /**
  * Lit la ligne `profiles` de l'utilisateur connecté, colonnes privées comprises.
@@ -75,15 +79,17 @@ export async function getMyStudentProfile() {
  */
 export async function updateStudentProfile(data) {
   try {
-    const supabase = await createClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) return { error: "Non authentifié." }
+    const auth = await requireRole(["student"])
+    if (auth.error) return { error: auth.error }
+    const { supabase, user } = auth
 
     const { fullName, city, phone, bio, school, level, availability, skills, avatarUrl } = data
 
     if (!fullName?.trim()) return { error: "Le nom complet est requis." }
     if (!city?.trim())     return { error: "La ville est requise." }
+
+    const avatar = avatarUrl ? toOwnedAvatarUrl(avatarUrl, user.id) : null
+    if (avatarUrl && !avatar) return { error: ERR_AVATAR }
 
     const profileUpdate = {
       full_name: fullName.trim(),
@@ -91,7 +97,7 @@ export async function updateStudentProfile(data) {
       phone: phone?.trim() || null,
       bio: bio?.trim() || null,
     }
-    if (avatarUrl) profileUpdate.avatar_url = avatarUrl
+    if (avatarUrl) profileUpdate.avatar_url = avatar
 
     const { error: profileError } = await supabase
       .from("profiles")
@@ -130,22 +136,23 @@ export async function updateStudentProfile(data) {
 }
 
 /**
- * Enregistre l'URL de la carte étudiante (upload fait côté client).
+ * Enregistre la carte étudiante (upload fait côté client). Seul le chemin dans le bucket privé
+ * `student-cards` est stocké, et il doit se trouver dans le dossier de l'appelant.
  *
- * @param {string} cardUrl - URL publique de la carte dans Supabase Storage
+ * @param {string} cardUrl - chemin dans le bucket, ou URL Storage du projet (normalisée en chemin)
  */
 export async function saveStudentCardUrl(cardUrl) {
   try {
-    const supabase = await createClient()
+    const auth = await requireRole(["student"])
+    if (auth.error) return { error: auth.error }
+    const { supabase, user } = auth
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) return { error: "Non authentifié." }
-
-    if (!cardUrl) return { error: "URL de carte manquante." }
+    const cardPath = toOwnedStoragePath(cardUrl, "student-cards", user.id)
+    if (!cardPath) return { error: ERR_CARD }
 
     const { error: updateError } = await supabase
       .from("student_profiles")
-      .upsert({ user_id: user.id, card_url: cardUrl }, { onConflict: "user_id" })
+      .upsert({ user_id: user.id, card_url: cardPath }, { onConflict: "user_id" })
 
     if (updateError) {
       console.error("[saveStudentCardUrl]", updateError.message)
@@ -179,15 +186,20 @@ export async function saveStudentCardUrl(cardUrl) {
  */
 export async function updateStudentProfileWithCard(data) {
   try {
-    const supabase = await createClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) return { error: "Non authentifié." }
+    const auth = await requireRole(["student"])
+    if (auth.error) return { error: auth.error }
+    const { supabase, user } = auth
 
     const { fullName, city, phone, bio, school, level, availability, skills, avatarUrl, cardUrl } = data
 
     if (!fullName?.trim()) return { error: "Le nom complet est requis." }
     if (!city?.trim())     return { error: "La ville est requise." }
+
+    const avatar = avatarUrl ? toOwnedAvatarUrl(avatarUrl, user.id) : null
+    if (avatarUrl && !avatar) return { error: ERR_AVATAR }
+
+    const cardPath = cardUrl ? toOwnedStoragePath(cardUrl, "student-cards", user.id) : null
+    if (cardUrl && !cardPath) return { error: ERR_CARD }
 
     // Mise à jour du profil principal
     const profileUpdate = {
@@ -196,10 +208,10 @@ export async function updateStudentProfileWithCard(data) {
       phone:     phone?.trim() || null,
       bio:       bio?.trim()   || null,
     }
-    if (avatarUrl) profileUpdate.avatar_url = avatarUrl
+    if (avatarUrl) profileUpdate.avatar_url = avatar
 
     // Si une nouvelle carte est soumise : repasse en attente de vérification
-    if (cardUrl) {
+    if (cardPath) {
       profileUpdate.is_verified               = false
       profileUpdate.rejection_reason          = null
       profileUpdate.verification_submitted_at = new Date().toISOString()
@@ -223,7 +235,7 @@ export async function updateStudentProfileWithCard(data) {
       availability: availability?.trim() || null,
       skills:       Array.isArray(skills) ? skills : [],
     }
-    if (cardUrl) studentUpdate.card_url = cardUrl
+    if (cardPath) studentUpdate.card_url = cardPath
 
     const { error: studentError } = await supabase
       .from("student_profiles")
@@ -251,15 +263,17 @@ export async function updateStudentProfileWithCard(data) {
  */
 export async function updateClientProfile(data) {
   try {
-    const supabase = await createClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) return { error: "Non authentifié." }
+    const auth = await requireRole(["client"])
+    if (auth.error) return { error: auth.error }
+    const { supabase, user } = auth
 
     const { fullName, city, phone, companyName, avatarUrl } = data
 
     if (!fullName?.trim()) return { error: "Le nom complet est requis." }
     if (!city?.trim())     return { error: "La ville est requise." }
+
+    const avatar = avatarUrl ? toOwnedAvatarUrl(avatarUrl, user.id) : null
+    if (avatarUrl && !avatar) return { error: "Ce logo n'est pas valide. Envoyez-le à nouveau." }
 
     const profileUpdate = {
       full_name: fullName.trim(),
@@ -267,7 +281,7 @@ export async function updateClientProfile(data) {
       phone: phone?.trim() || null,
       bio: companyName?.trim() || null,
     }
-    if (avatarUrl) profileUpdate.avatar_url = avatarUrl
+    if (avatarUrl) profileUpdate.avatar_url = avatar
 
     const { error: profileError } = await supabase
       .from("profiles")
