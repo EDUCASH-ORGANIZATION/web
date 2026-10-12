@@ -23,7 +23,7 @@ import Wallets from "./wallets/page.js"
 /** Constructeur de requête chaînable et attendable. */
 function query(result) {
   const q = {}
-  for (const m of ["select", "eq", "order", "range", "limit", "gte", "is"]) q[m] = () => q
+  for (const m of ["select", "eq", "order", "range", "limit", "gte", "is", "in"]) q[m] = () => q
   q.then = (resolve) => resolve(result)
   return q
 }
@@ -53,7 +53,7 @@ describe("admin/verifications : erreur visible", () => {
   beforeEach(() => {
     requireRole.mockReset()
     createServiceClient.mockReset()
-    requireRole.mockResolvedValue({ supabase: { storage: { from: () => ({}) } }, user: { id: "a" }, role: "admin", profile: {} })
+    requireRole.mockResolvedValue({ supabase: {}, user: { id: "a" }, role: "admin", profile: {} })
   })
 
   function serviceWith(profiles, students) {
@@ -71,7 +71,7 @@ describe("admin/verifications : erreur visible", () => {
 
   it("affiche une alerte si la lecture des student_profiles échoue", async () => {
     createServiceClient.mockReturnValue(
-      serviceWith({ data: [], error: null }, { data: null, error: { message: "boom" } })
+      serviceWith({ data: [{ user_id: "u1" }], error: null }, { data: null, error: { message: "boom" } })
     )
     expect(JSON.stringify(await Verifications())).toContain('"role":"alert"')
   })
@@ -79,5 +79,105 @@ describe("admin/verifications : erreur visible", () => {
   it("rend les onglets sans alerte quand tout va bien", async () => {
     createServiceClient.mockReturnValue(serviceWith({ data: [], error: null }, { data: [], error: null }))
     expect(JSON.stringify(await Verifications())).not.toContain('"role":"alert"')
+  })
+})
+
+describe("admin/verifications : cartes et pagination", () => {
+  const createSignedUrls = vi.fn()
+  const ranges = []
+
+  beforeEach(() => {
+    requireRole.mockReset()
+    createServiceClient.mockReset()
+    createSignedUrls.mockReset()
+    ranges.length = 0
+    requireRole.mockResolvedValue({ supabase: {}, user: { id: "a" }, role: "admin", profile: {} })
+  })
+
+  function service(students, { count = 1 } = {}) {
+    const profiles = students.map((s) => ({ user_id: s.user_id, full_name: "E", is_verified: false, created_at: "2026-01-01T00:00:00Z" }))
+    return {
+      from: (t) => {
+        const q = query(t === "profiles" ? { data: profiles, error: null, count } : { data: students, error: null })
+        const range = q.range
+        q.range = (...a) => { ranges.push(a); return range() }
+        return q
+      },
+      storage: { from: (bucket) => ({ createSignedUrls: (...a) => createSignedUrls(bucket, ...a) }) },
+    }
+  }
+
+  const cards = (tree) => JSON.stringify(tree)
+
+  it("signe toutes les cartes en un seul appel de 1 heure", async () => {
+    createServiceClient.mockReturnValue(service([
+      { user_id: "u1", card_url: "u1/a.jpg" },
+      { user_id: "u2", card_url: "https://x.supabase.co/storage/v1/object/sign/student-cards/u2/b.jpg?token=t" },
+    ]))
+    createSignedUrls.mockResolvedValue({ data: [
+      { path: "u1/a.jpg", signedUrl: "https://signed/a", error: null },
+      { path: "u2/b.jpg", signedUrl: "https://signed/b", error: null },
+    ], error: null })
+    const tree = cards(await Verifications({ searchParams: Promise.resolve({}) }))
+    expect(createSignedUrls).toHaveBeenCalledTimes(1)
+    expect(createSignedUrls).toHaveBeenCalledWith("student-cards", ["u1/a.jpg", "u2/b.jpg"], 3600)
+    expect(tree).toContain("https://signed/a")
+    expect(tree).toContain("https://signed/b")
+  })
+
+  it("n'expose jamais le chemin brut quand la signature échoue", async () => {
+    createServiceClient.mockReturnValue(service([{ user_id: "u1", card_url: "u1/secret-card.jpg" }]))
+    createSignedUrls.mockResolvedValue({ data: [{ path: "u1/secret-card.jpg", signedUrl: null, error: "not found" }], error: null })
+    const tree = cards(await Verifications({ searchParams: Promise.resolve({}) }))
+    expect(tree).not.toContain("secret-card")
+    expect(tree).toContain('"card_preview_unavailable":true')
+  })
+
+  it("n'expose pas une URL externe qui n'est pas un chemin du bucket", async () => {
+    createServiceClient.mockReturnValue(service([{ user_id: "u1", card_url: "https://evil.example/x.jpg" }]))
+    const tree = cards(await Verifications({ searchParams: Promise.resolve({}) }))
+    expect(createSignedUrls).not.toHaveBeenCalled()
+    expect(tree).not.toContain("evil.example")
+  })
+
+  it.each([
+    [{ page: "abc" }, [0, 49]],
+    [{ page: "-3" }, [0, 49]],
+    [{ page: "2" }, [50, 99]],
+    [{}, [0, 49]],
+  ])("pagination %j lit la plage %j", async (params, expected) => {
+    createServiceClient.mockReturnValue(service([]))
+    await Verifications({ searchParams: Promise.resolve(params) })
+    expect(ranges[0]).toEqual(expected)
+  })
+})
+
+describe("pages admin : lectures via le client service role", () => {
+  beforeEach(() => {
+    requireRole.mockReset()
+    createServiceClient.mockReset()
+  })
+
+  it.each([
+    ["users", Users, [{ searchParams: Promise.resolve({ page: "abc" }) }]],
+    ["missions", Missions, [{ searchParams: Promise.resolve({ page: "NaN" }) }]],
+    ["wallets", Wallets, []],
+  ])("%s lit avec le client service et jamais avec la session", async (_name, Page, args) => {
+    const session = { from: vi.fn(() => { throw new Error("lecture avec la session interdite") }) }
+    requireRole.mockResolvedValue({ supabase: session, user: { id: "a" }, role: "admin", profile: {} })
+    const ranges = []
+    const service = {
+      from: () => {
+        const q = query({ data: [], error: null, count: 0 })
+        const range = q.range
+        q.range = (...a) => { ranges.push(a); return range() }
+        return q
+      },
+      auth: { admin: { getUserById: async () => ({ data: null }) } },
+    }
+    createServiceClient.mockReturnValue(service)
+    await Page(...args)
+    expect(session.from).not.toHaveBeenCalled()
+    for (const r of ranges) expect(r[0]).toBe(0)
   })
 })

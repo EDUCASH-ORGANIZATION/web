@@ -8,6 +8,8 @@ import {
 } from "../../supabase/functions/_shared/payments-flag.js"
 import { POST } from "@/app/api/webhooks/fedapay/route.js"
 
+vi.mock("server-only", () => ({}))
+
 describe("paymentsEnabled", () => {
   it("n'active que la valeur exacte true", () => {
     expect(paymentsEnabled("true")).toBe(true)

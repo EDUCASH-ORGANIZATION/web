@@ -8,6 +8,9 @@ import { WAITLIST_LIMITS, isRateLimited } from "@/lib/publish-waitlist/rate-limi
 const DEFAULT_INBOX = "contact@educash.bj"
 const SUBJECT = "Prévenez-moi : ouverture de la publication"
 
+// Limites : le compteur du rate-limit est en mémoire de l'instance, il n'est donc pas partagé entre
+// instances serverless (c'est un frein, pas une garantie). x-forwarded-for n'est fiable que si
+// l'hébergeur le réécrit (Vercel le fait) : derrière un autre proxy, un client pourrait le forger.
 async function callerKey() {
   const h = await headers()
   const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim()

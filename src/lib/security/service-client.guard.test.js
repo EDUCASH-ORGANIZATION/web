@@ -28,6 +28,21 @@ export function findServiceClientLeaks(files) {
     .map(({ file }) => file)
 }
 
+const SERVICE_KEY_ALLOWED = ["lib/supabase/service.js"]
+
+/**
+ * @param {Array<{ file: string, source: string }>} files fichiers relatifs à src/
+ * @returns {string[]} fichiers qui citent la clé service role hors de la liste autorisée
+ */
+export function findServiceKeyReferences(files) {
+  return files
+    .filter(({ file, source }) => {
+      const normalized = file.split(path.sep).join("/")
+      return source.includes("SUPABASE_SERVICE_ROLE_KEY") && !SERVICE_KEY_ALLOWED.includes(normalized)
+    })
+    .map(({ file }) => file)
+}
+
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
     const full = path.join(dir, name)
@@ -65,6 +80,23 @@ describe("garde-fou client service role", () => {
       source: readFileSync(full, "utf8"),
     }))
     expect(findServiceClientLeaks(files)).toEqual([])
+  })
+
+  it("détecte la clé service role citée hors de service.js (fixture)", () => {
+    const leaks = findServiceKeyReferences([
+      { file: "lib/actions/x.js", source: "createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY)" },
+      { file: "app/api/webhooks/y/route.js", source: "process.env.SUPABASE_SERVICE_ROLE_KEY" },
+      { file: "lib/supabase/service.js", source: "process.env.SUPABASE_SERVICE_ROLE_KEY" },
+    ])
+    expect(leaks).toEqual(["lib/actions/x.js", "app/api/webhooks/y/route.js"])
+  })
+
+  it("seul lib/supabase/service.js cite SUPABASE_SERVICE_ROLE_KEY", () => {
+    const files = walk(SRC).map((full) => ({
+      file: path.relative(SRC, full),
+      source: readFileSync(full, "utf8"),
+    }))
+    expect(findServiceKeyReferences(files)).toEqual([])
   })
 
   it("service.js garde l'import server-only", () => {

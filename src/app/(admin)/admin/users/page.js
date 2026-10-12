@@ -10,6 +10,12 @@ export const metadata = { title: "Utilisateurs - Admin EduCash" }
 
 const PAGE_SIZE = 20
 
+// Numéro de page robuste : toute valeur non numérique ou inférieure à 1 donne la page 1.
+function parsePage(value) {
+  const n = Number.parseInt(value ?? "1", 10)
+  return Number.isFinite(n) && n >= 1 ? n : 1
+}
+
 const ROLE_CONFIG = {
   admin:   { label: "Admin",    cls: "bg-purple-100 text-purple-700" },
   client:  { label: "Client",   cls: "bg-blue-100 text-blue-700"    },
@@ -19,17 +25,16 @@ const ROLE_CONFIG = {
 export default async function AdminUsersPage({ searchParams }) {
   const auth = await requireRole(["admin"])
   if (auth.error) redirect("/auth/login")
-  const { supabase } = auth
-
   // ── Fix Next.js 16 : await searchParams ───────────────────────
   const { page: pageParam, role: roleFilter } = await searchParams
-  const page = Math.max(1, parseInt(pageParam ?? "1", 10))
+  const page = parsePage(pageParam)
   const from = (page - 1) * PAGE_SIZE
   const to   = from + PAGE_SIZE - 1
 
+  // Lectures via le client service role, après le contrôle admin ci-dessus
   const admin = createServiceClient()
 
-  let query = supabase
+  let query = admin
     .from("profiles")
     .select("user_id, full_name, avatar_url, role, is_verified, is_suspended, missions_done, created_at", { count: "exact" })
     .order("created_at", { ascending: false })

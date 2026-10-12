@@ -98,7 +98,10 @@ export async function updateStudentProfile(data) {
       .update(profileUpdate)
       .eq("user_id", user.id)
 
-    if (profileError) return { error: profileError.message }
+    if (profileError) {
+      console.error("[updateStudentProfile]", profileError.message)
+      return { error: "Impossible d'enregistrer ton profil." }
+    }
 
     const { error: studentError } = await supabase
       .from("student_profiles")
@@ -113,7 +116,10 @@ export async function updateStudentProfile(data) {
         { onConflict: "user_id" }
       )
 
-    if (studentError) return { error: studentError.message }
+    if (studentError) {
+      console.error("[updateStudentProfile]", studentError.message)
+      return { error: "Impossible d'enregistrer ton profil." }
+    }
 
     revalidatePath("/profile")
     return { success: true }
@@ -141,7 +147,10 @@ export async function saveStudentCardUrl(cardUrl) {
       .from("student_profiles")
       .upsert({ user_id: user.id, card_url: cardUrl }, { onConflict: "user_id" })
 
-    if (updateError) return { error: updateError.message }
+    if (updateError) {
+      console.error("[saveStudentCardUrl]", updateError.message)
+      return { error: "Impossible d'enregistrer ta carte étudiante." }
+    }
 
     revalidatePath("/profile")
     return { success: true }
@@ -201,7 +210,10 @@ export async function updateStudentProfileWithCard(data) {
       .update(profileUpdate)
       .eq("user_id", user.id)
 
-    if (profileError) return { error: profileError.message }
+    if (profileError) {
+      console.error("[updateStudentProfileWithCard]", profileError.message)
+      return { error: "Impossible d'enregistrer ton profil." }
+    }
 
     // Mise à jour du profil académique
     const studentUpdate = {
@@ -217,7 +229,10 @@ export async function updateStudentProfileWithCard(data) {
       .from("student_profiles")
       .upsert(studentUpdate, { onConflict: "user_id" })
 
-    if (studentError) return { error: studentError.message }
+    if (studentError) {
+      console.error("[updateStudentProfileWithCard]", studentError.message)
+      return { error: "Impossible d'enregistrer ton profil." }
+    }
 
     revalidatePath("/profile")
     revalidatePath("/student/profile")
@@ -259,7 +274,10 @@ export async function updateClientProfile(data) {
       .update(profileUpdate)
       .eq("user_id", user.id)
 
-    if (profileError) return { error: profileError.message }
+    if (profileError) {
+      console.error("[updateClientProfile]", profileError.message)
+      return { error: "Impossible d'enregistrer ton profil." }
+    }
 
     revalidatePath("/client/profile")
     return { success: true }

@@ -63,8 +63,7 @@ function BarChart({ rows }) {
 export default async function AdminDashboardPage() {
   const auth = await requireRole(["admin"])
   if (auth.error) redirect("/auth/login")
-  const { supabase } = auth
-
+  // Lectures via le client service role, après le contrôle admin ci-dessus
   const service = createServiceClient()
 
   const sevenDaysAgo = new Date()
@@ -88,14 +87,14 @@ export default async function AdminDashboardPage() {
   ] = await Promise.all([
     service.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "student"),
     service.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "client"),
-    supabase.from("missions").select("*", { count: "exact", head: true }),
-    supabase.from("missions").select("*", { count: "exact", head: true }).eq("status", "open"),
-    supabase.from("missions").select("*", { count: "exact", head: true }).eq("status", "done"),
+    service.from("missions").select("*", { count: "exact", head: true }),
+    service.from("missions").select("*", { count: "exact", head: true }).eq("status", "open"),
+    service.from("missions").select("*", { count: "exact", head: true }).eq("status", "done"),
     service.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "student").eq("is_verified", false),
-    supabase.from("transactions").select("commission").eq("status", "paid"),
-    supabase.from("missions").select("id, title, created_at, status").gte("created_at", sevenDaysAgoIso).order("created_at", { ascending: true }),
-    supabase.from("profiles").select("user_id, full_name, avatar_url, created_at").eq("role", "student").eq("is_verified", false).order("created_at", { ascending: false }).limit(5),
-    supabase.from("profiles").select("user_id, full_name, role, created_at").order("created_at", { ascending: false }).limit(8),
+    service.from("transactions").select("commission").eq("status", "paid"),
+    service.from("missions").select("id, title, created_at, status").gte("created_at", sevenDaysAgoIso).order("created_at", { ascending: true }),
+    service.from("profiles").select("user_id, full_name, avatar_url, created_at").eq("role", "student").eq("is_verified", false).order("created_at", { ascending: false }).limit(5),
+    service.from("profiles").select("user_id, full_name, role, created_at").order("created_at", { ascending: false }).limit(8),
   ])
 
   const totalCommission = (commissionData ?? []).reduce((s, t) => s + (t.commission ?? 0), 0)
