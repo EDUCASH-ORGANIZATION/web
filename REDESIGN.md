@@ -24,7 +24,7 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
   `brand-soft` et `ink` dans `globals.css`.
 - **Couches CSS** : `tokens.css` dans la couche `theme`, `components.css` et
   `layouts.css` dans la couche `components` (reset dans la couche `base`
-  imbriquée). `.ds` ne porte que les styles de racine (police DejaVu Sans, couleur
+  imbriquée). `.ds` ne porte que les styles de racine (police Figtree, couleur
   encre, fond givre). Le reset et les sélecteurs de composants sont globaux,
   dans la couche `components` : les utilitaires Tailwind gardent la priorité,
   mais un nom de classe du système utilisé hors `.ds` est stylé. Ne jamais
@@ -34,16 +34,17 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
 - **Anti-collision Tailwind** : préfixe `ds-` pour les classes qui portent un
   nom d'utilitaire : `ds-grid`, `ds-container`, `ds-grow`, `ds-table`, `ds-table-wrap`,
   `ds-h1` à `ds-h4`, `ds-pulse`. `sr-only` est fourni par Tailwind.
-- **Police** : DejaVu Sans seule (Regular 400, Bold 700), repli Arial puis
-  sans-serif, en self-host via `next/font/local` dans `layout.js` (woff2 et
-  licence dans `src/app/fonts/`, générés par `scripts/fonts/build-dejavu.sh`).
-  Variable `--font-dejavu`, branchée sur `--f-display` et `--f-text`, y compris
-  pour les espaces connectés. Plus de `next/font/google` ni d'`@import` Google Fonts.
+- **Polices** : chargées par `next/font/google` dans `layout.js` (plus aucun
+  `@import` Google Fonts). Variables `--font-anton`, `--font-figtree` et
+  `--font-inter`, branchées sur `--f-display` (Anton) et `--f-text` (Figtree).
+  Inter est conservée pour les espaces connectés pas encore refondus. DejaVu Sans
+  (charte) est la police du logo uniquement, vectorisée en tracés dans le kit :
+  le site ne la charge pas.
 - **Sprite d'icônes** : externe, `public/sprite.svg`, appelé avec `?v=`
   (cache-busting) via `<Icon name="i-..." className="ic" />`
   (`src/components/design/icon.jsx`).
 - **Logo et PWA** : logo en chemins issu du kit `design-rebrand/logo-final`
-  (aucune police requise), logo final et icônes dans `public/` (chemins
+  (aucune police requise, DejaVu Sans n'étant utilisée que pour le logo), logo final et icônes dans `public/` (chemins
   inchangés), `manifest.json` en `theme_color #1028F0` et `background_color #F3F5FC`.
   Logo complet >= 150 px de large à l'écran, symbole >= 32 px, jamais retapé
   en texte (emails compris).
@@ -51,8 +52,8 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
   charte) n'est jamais utilisé en texte sur fond clair (1,35:1 sur blanc) ni sous
   du texte blanc ; le bleu n'est jamais du texte sur encre (utiliser `--c-bleu-clair`).
 - **Texte secondaire** : `--c-ardoise` sur clair, `--c-brume` sur encre, blanc sur bleu ; taille `--t-para` (16 px, 15 px sous 768) ; jamais d'opacité sur du texte ; `--t-micro` (13 px) est le minimum absolu. Écart assumé avec maquettes/_system (RD-FIX-03).
-- **Titres** : DejaVu Sans Bold en casse de phrase (capitales réservées aux micro-libellés), interligne via `--lh-display`. Écart assumé avec maquettes/_system (RD-FIX-05).
-- **Garde-fous de marque** : `brand-tokens.test.js` (contrastes AA calculés depuis `tokens.css`), `typography.test.js`, `no-legacy-palette.guard.test.js`, `email-brand.guard.test.js`, `e2e/brand.spec.js` (Playwright, `npm run test:e2e`).
+- **Titres Anton** : interligne via `--lh-display` (1.14 minimum, 1.16 en xxl), sauf chiffres sans accents. Écart assumé avec maquettes/_system (RD-FIX-05).
+- **Garde-fous de marque** : `brand-tokens.test.js` (contrastes AA calculés depuis `tokens.css`), `fonts-origin.guard.test.js` (polices inchangées), `email-brand.guard.test.js`.
 - **Logos d'opérateurs** : vrais logos MTN et Moov dans `public/logos/operators/`, affichés via `OperatorLogo`, à la place des pastilles typographiques des maquettes (RD-FIX-05).
 - Les composants se consomment par les **classes** du système (`.btn`, `.card`,
   `.bento-card`, `.shell`, `.chat`, `.badge`, `.field`...), comme dans les
