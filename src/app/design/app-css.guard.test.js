@@ -5,6 +5,7 @@ import { parseColorTokens, contrastRatio } from "@/lib/design/contrast"
 
 // Garde-fou des feuilles v2.1 (RD-CLIENT-01 ST-01) : coquille connectee
 // (app-shell.css) et espace client (client.css + client/*.css).
+// RD-STUDENT-01 ST-01 : espace etudiant (student.css + student/*.css), en fin de fichier.
 
 const dir = import.meta.dirname
 const read = (rel) => readFileSync(path.join(dir, rel), "utf8")
@@ -185,7 +186,8 @@ describe("feuilles app-shell.css et client/*.css", () => {
     const offenders = []
     for (const sel of selectorsOf(ALL)) {
       for (const part of sel.split(",").map((p) => p.trim())) {
-        if (part.startsWith(".c2 ") || part === ".c2") continue
+        // .e2 est la racine de l'espace etudiant (RD-STUDENT-01) : meme portee que .c2, aucune page actuelle ne la porte.
+        if (part.startsWith(".c2 ") || part === ".c2" || part.startsWith(".e2 ")) continue
         const names = [...part.matchAll(/\.([A-Za-z][\w-]*)/g)].map((m) => m[1])
         if (!names.some(isNew)) offenders.push(part)
       }
@@ -628,6 +630,8 @@ function computedStyle(rules, { tag, classes, ancestors, states = [] }) {
 const LOAD_ORDER = ["components.css", "layouts.css", "app-shell.css", ...[...read("client.css").matchAll(/@import "\.\/(client\/[\w-]+\.css)";/g)].map((m) => m[1])]
 const RULES = LOAD_ORDER.reduce((acc, f) => acc.concat(topLevelRules(stripComments(read(f)), acc.length)), [])
 const ANCESTORS = ["ds", "c2", "shell", "shell--v2", "shell__frame", "shell__main", "money2", "money2--split", "hero2__actions", "money2__foot"]
+// Meme cascade, avec les feuilles de l'espace etudiant (student.css charge apres client.css).
+const RULES_E2 = [...LOAD_ORDER, ...[...read("student.css").matchAll(/@import "\.\/(student\/[\w-]+\.css)";/g)].map((m) => m[1])].reduce((acc, f) => acc.concat(topLevelRules(stripComments(read(f)), acc.length)), [])
 
 describe("cascade statique : specificite et ordre de chargement", () => {
   it("calcule la specificite", () => {
@@ -949,5 +953,367 @@ describe("C03 : barre mobile de publication a 320 px", () => {
   it("a 320 px le montant de 9 chiffres (11 caracteres insecables, ~9.3 px chacun) tient sur une ligne", () => {
     expect(primaryContent(320)).toBeGreaterThanOrEqual(104)
     expect(11 * 9.3).toBeLessThanOrEqual(primaryContent(320))
+  })
+})
+
+// =====================================================================================================
+// Espace etudiant (RD-STUDENT-01 ST-01) : student.css + student/*.css, port de v2-etudiant.css.
+// Memes controles que pour client/*.css (couleurs, variables, seuils, portee, ordre mobile, 13 px), plus la
+// presence de chaque classe de la source, la barre d'action fixe et le respect de la capsule RD-NAV-02.
+// =====================================================================================================
+
+const STUDENT_FILES = readdirSync(path.join(dir, "student")).filter((f) => f.endsWith(".css")).sort()
+const STUDENT_FILE_CSS = STUDENT_FILES.map((f) => stripComments(read(`student/${f}`)))
+const STUDENT = STUDENT_FILE_CSS.join("\n")
+const STUDENT_BASE = stripComments(read("student/base.css"))
+const STUDENT_IMPORTS = [...read("student.css").matchAll(/@import "\.\/(student\/[\w-]+\.css)";/g)].map((m) => m[1])
+
+// Classes des selecteurs de v2-etudiant.css (la planche), au renommage ds- pres, moins REMOVED_E2.
+const STUDENT_SOURCE_CLASSES = `
+amount--plus av2 avatar badge btn btn--dark btn--secondary bubble bubble--location bubble--me bubble--media bubble--them
+bubble__img bubble__map bubble__meta bubble__play card chat__day check chip choice choice__mark composer__field composer__send
+control count detail-card drawer e-achat__band e-shot--error e-shot--ok e-success__mark e-thumb__img e-thumb__img--ticket
+e2-02-bar e2-02-bar__left e2-02-cols e2-02-count e2-02-filters e2-02-group e2-02-gtitle e2-02-mcount e2-02-msearch
+e2-02-sfoot e2-02-sort e2-02-tag e2-02-tags e2-03-actions e2-03-aside e2-03-badges e2-03-caption e2-03-client e2-03-gain
+e2-03-list e2-03-mbody e2-03-meta e2-03-modal e2-03-msg e2-03-mtype e2-03-sfoot e2-03-sub e2-03-ta e2-03-ta--s e2-03-top
+e2-04-acts e2-04-gain e2-04-hl e2-04-list e2-04-macts e2-04-row e2-04-status e2-04-toast e2-05-actions e2-05-aside
+e2-05-caption e2-05-client e2-05-fieldset e2-05-foot e2-05-meta e2-05-min e2-05-modal e2-05-pad e2-05-pad-l e2-05-pad12
+e2-05-progress e2-05-progress__bar e2-05-progress__row e2-05-quote e2-05-req e2-05-req__amount e2-05-ta e2-05-ta--s
+e2-05-toasts e2-05-top e2-06-convo e2-06-convo__mission e2-06-convo__name e2-06-convo__preview e2-06-convo__side e2-06-count
+e2-06-inbox e2-06-inbox--tall e2-06-list e2-06-list__head e2-06-list__items e2-06-list__title e2-06-pane e2-06-skel
+e2-07-achat e2-07-chat e2-07-composer e2-07-fail e2-07-form e2-07-head e2-07-ic e2-07-map e2-07-mhead e2-07-pane e2-07-shot
+e2-07-status e2-07-status__text e2-08-axis e2-08-bars e2-08-pending e2-09-sentence e2-10-day e2-10-days e2-10-dist
+e2-10-dist__row e2-10-id e2-10-id__actions e2-10-id__main e2-10-id__meta e2-10-id__top e2-10-links e2-10-review e2-10-score
+e2-10-seal e2-11-carte e2-11-day e2-11-days e2-11-photo e2-11-photo__txt e2-11-save e2-11-save__info e2-11-sub e2-12-actions
+e2-12-file e2-12-status e2-12-tips e2-12-tips__title e2-12-upload e2-12-why e2-13-actions e2-13-form e2-13-quote e2-13-rate
+e2-13-stars e2-13-stars--s e2-amount e2-amount--l e2-amount--m e2-amount--s e2-back e2-cols e2-cols--l e2-empty
+e2-empty__actions e2-empty__ic e2-empty__text e2-empty__title e2-form e2-form--1 e2-grid2 e2-grid3 e2-kv e2-kv__row
+e2-kv__row--total e2-lead e2-link e2-link--quiet e2-mbar e2-mbar--stack e2-mbar__info e2-mcard e2-mcard__foot e2-mcard__gain
+e2-mcard__meta e2-mcard__title e2-mcard__top e2-mcard__type e2-mtop e2-mtop__spacer e2-mtop__title e2-muted e2-note
+e2-note--blanc e2-note__actions e2-note__body e2-note__text e2-note__title e2-op e2-op__amount e2-op__date e2-pagehead
+e2-pill e2-pills e2-pills--scroll e2-sec e2-sec__body e2-sec__head e2-sec__title e2-span e2-stack e2-step e2-step--done
+e2-step--now e2-step__dot e2-step__sub e2-step__title e2-tab e2-tabs e2-text e2-track e2-who e2-who__name e2-who__sub
+field__count file--error file--ok file__meta file__thumb head2__title hero2__actions hero2__text hero2__title ic iconbtn2
+input is-active is-checked is-current is-disabled is-done is-focus is-hover is-now is-off is-on is-recording is-selected
+is-sending is-unread item2__ic item2__sub item2__title list2__filters list2__tools mission modal modal__foot modal__head
+modal__icon money2 msg-system page-btn progress radio recap search2 segmented select sheet stars step step__dot step__line
+tab tcard toast toast--succes toast__action toast__icon typing ds-table ds-table-wrap
+`.trim().split(/\s+/)
+
+const WHY_E2_M = "variante --m des planches (DOM mobile separe), remplacee par les media queries sur les classes de base"
+const REMOVED_E2 = {
+  v2e: "portee de la planche (body.v2e), remplacee par .e2 (racine posee par le layout etudiant)",
+  mpage2: "gabarit mobile des planches, remplace par les media queries (la page reelle est .page2 de la coquille)",
+  "mpage2--bar": "reserve du bas de page, remplacee par .shell--v2:has(.e2-mbar) .shell__main dans app-shell.css",
+  "mpage2--nonav": "reserve du bas de page, remplacee par .shell--v2:has(.e2-mtop) .shell__main dans app-shell.css",
+  "list2--m": WHY_E2_M, "e2-06-list--m": WHY_E2_M, "e2-sec--m": WHY_E2_M, "e2-note--m": WHY_E2_M, "e2-empty--m": WHY_E2_M,
+  "e2-mcard--m": WHY_E2_M, "e2-05-foot--m": WHY_E2_M, "e2-10-id--m": WHY_E2_M, "e2-11-save--m": WHY_E2_M,
+  "e2-12-upload--m": WHY_E2_M, "e2-13-stars--m": WHY_E2_M,
+  "e2-11-save--stack": "empilement du message d'enregistrement, remplace par la media query 480 px",
+  "bottom-nav--v2": "barre du bas : capsule RD-NAV-02 (app-shell.css), jamais surchargee par la portee etudiant",
+  "bnav-item": "barre du bas : capsule RD-NAV-02 (app-shell.css), jamais surchargee par la portee etudiant",
+  table: "renomme ds-table (anti-collision Tailwind)", "table-wrap": "renomme ds-table-wrap (anti-collision Tailwind)",
+}
+const STUDENT_CLASSES = STUDENT_SOURCE_CLASSES.filter((c) => !(c in REMOVED_E2))
+// Classes nouvelles hors prefixe e2- : propres a la planche etudiant, jamais utilisees par le code ancien.
+const E2_OWN = new Set(["list2__tools", "list2__filters"])
+const isE2Own = (c) => /^e2-/.test(c) || E2_OWN.has(c)
+
+describe("feuilles student.css et student/*.css", () => {
+  it("student.css importe chaque feuille de student/ une fois, base en premier, e01 a e13 dans l'ordre", () => {
+    expect(STUDENT_IMPORTS[0]).toBe("student/base.css")
+    expect([...STUDENT_IMPORTS.map((f) => f.replace("student/", ""))].sort()).toEqual(STUDENT_FILES)
+    expect(new Set(STUDENT_IMPORTS).size).toBe(STUDENT_IMPORTS.length)
+    expect(STUDENT_FILES).toEqual(["base.css", ...Array.from({ length: 13 }, (_, i) => `e${String(i + 1).padStart(2, "0")}.css`)])
+    expect(STUDENT_IMPORTS.slice(1)).toEqual(STUDENT_FILES.filter((f) => f !== "base.css").map((f) => `student/${f}`))
+  })
+
+  it("est branche dans globals.css en couche components, apres client.css", () => {
+    const globals = readFileSync(path.join(dir, "..", "globals.css"), "utf8")
+    expect(globals).toContain('@import "./design/student.css" layer(components);')
+    const order = ["tokens.css", "components.css", "layouts.css", "app-shell.css", "client.css", "student.css"].map((f) => globals.indexOf(`./design/${f}`))
+    expect(order.every((i) => i >= 0)).toBe(true)
+    expect([...order].sort((a, b) => a - b)).toEqual(order)
+  })
+
+  it("chaque feuille porte le marqueur @ds-screen RD-STUDENT-01 en tete", () => {
+    for (const f of STUDENT_FILES) expect(read(`student/${f}`).startsWith("/* @ds-screen RD-STUDENT-01 */"), f).toBe(true)
+  })
+
+  it("contient chaque classe de v2-etudiant.css (renommages ds- pres), les retraits etant documentes dans REMOVED_E2", () => {
+    expect(STUDENT_CLASSES.filter((c) => !hasClass(STUDENT, c))).toEqual([])
+    expect(Object.keys(REMOVED_E2).filter((c) => hasClass(STUDENT, c))).toEqual([])
+    for (const reason of Object.values(REMOVED_E2)) expect(reason.length).toBeGreaterThan(10)
+  })
+
+  it("applique le renommage ds- (table) et la portee .e2 a la place de body.v2e", () => {
+    expect(STUDENT).toContain(".e2 .ds-table-wrap")
+    expect(STUDENT).toContain(".e2 .ds-table td")
+    expect(STUDENT).not.toMatch(/\.table(?![\w-])/)
+    expect(STUDENT).not.toMatch(/v2e/)
+    expect(STUDENT).toMatch(/\.e2 \.card, \.e2 \.mission, \.e2 \.detail-card \{/)
+  })
+
+  it("ne contient aucune couleur en dur (hex, rgb, rgba, hsl) ni de nom de couleur CSS nu", () => {
+    expect(STUDENT).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
+    expect(STUDENT).not.toMatch(/\b(?:rgba?|hsla?)\(/)
+    expect(STUDENT).not.toMatch(/:\s*(?:white|black|red|green|blue)\s*[;}]/)
+  })
+
+  it("n'utilise que des variables definies dans les feuilles du systeme", () => {
+    const defined = new Set()
+    for (const f of [...DESIGN_CSS, "student.css", ...STUDENT_FILES.map((x) => `student/${x}`)]) for (const m of read(f).matchAll(/(--[\w-]+)\s*:/g)) defined.add(m[1])
+    const used = new Set([...STUDENT.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]))
+    expect([...used].filter((v) => !defined.has(v))).toEqual([])
+  })
+
+  it("ne reutilise aucun nom d'utilitaire Tailwind comme classe propre", () => {
+    const own = [...classNamesOf(STUDENT)].filter(isE2Own)
+    expect(own.length).toBeGreaterThan(100)
+    expect(own.filter((n) => TAILWIND_BARE.has(n))).toEqual([])
+    expect(own.filter((n) => /^-?(?:m|p|w|h|gap|space|text|bg|border|rounded|col|row)[trblxy]?-\d/.test(n))).toEqual([])
+    // Aucune classe propre ne collisionne avec une feuille deja chargee (systeme, coquille, client).
+    const before = [read("components.css"), read("layouts.css"), read("app-shell.css"), ...CLIENT_FILES.map((f) => read(`client/${f}`))].join("\n")
+    expect(own.filter((n) => hasClass(before, n) && !n.startsWith("e2-"))).toEqual([])
+    // app-shell.css cite .e2-mtop et .e2-mbar a dessein (regles :has de la coquille) : exclu de cette comparaison.
+    const beforeE2 = [read("components.css"), read("layouts.css"), ...CLIENT_FILES.map((f) => read(`client/${f}`))].join("\n")
+    expect(own.filter((n) => n.startsWith("e2-") && new RegExp(`\\.${n}(?![\\w-])`).test(beforeE2))).toEqual([])
+  })
+
+  it("garde chaque regle sous .e2 ou sur une classe propre (aucun changement de rendu des pages existantes)", () => {
+    const offenders = []
+    for (const sel of selectorsOf(STUDENT)) {
+      for (const part of sel.split(",").map((p) => p.trim())) {
+        if (part === ".e2" || part.startsWith(".e2 ") || part.startsWith(".e2:")) continue
+        const names = [...part.matchAll(/\.([A-Za-z][\w-]*)/g)].map((m) => m[1])
+        if (!names.some(isE2Own)) offenders.push(part)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it("n'utilise que les seuils de media query 1023.98, 767.98 et 480 (plus le mouvement reduit)", () => {
+    const conditions = [...STUDENT.matchAll(/@media\s*([^{]+)\{/g)].map((m) => m[1].trim())
+    const allowed = ["(max-width: 1023.98px)", "(max-width: 767.98px)", "(max-width: 480px)", "(prefers-reduced-motion: reduce)"]
+    expect(conditions.filter((c) => !allowed.includes(c))).toEqual([])
+    for (const a of allowed) expect(conditions).toContain(a)
+    expect(STUDENT).not.toMatch(/@media[^{]*\bmin-width/)
+  })
+
+  it("n'utilise qu'une requete de conteneur : la liste de candidatures E04 (e2list, 900 px), sans seuil d'ecran", () => {
+    const conditions = [...STUDENT.matchAll(/@container\s*([^{]+)\{/g)].map((m) => m[1].trim())
+    expect(conditions).toEqual(["e2list (max-width: 900px)"])
+    expect(stripComments(read("student/e04.css"))).toMatch(/\.e2-04-list \{[^}]*container: e2list \/ inline-size;/)
+  })
+
+  it("range les regles mobiles apres les regles de base de leur propre fichier", () => {
+    for (const css of STUDENT_FILE_CSS) {
+      const firstMedia = css.search(/@(?:media|container)/)
+      if (firstMedia === -1) continue
+      const outside = css.slice(firstMedia).replace(AT_BLOCK, "")
+      expect(outside.trim()).toBe("")
+    }
+  })
+
+  it("n'utilise aucune font-size en px inferieure a 13 et protege toute taille relative par max(var(--t-micro), ...)", () => {
+    const sizes = [...STUDENT.matchAll(/font-size:\s*([\d.]+)px/g)].map((m) => Number(m[1]))
+    expect(sizes.length).toBeGreaterThan(0)
+    expect(sizes.filter((px) => px < 13)).toEqual([])
+    expect(relativeSizeOffenders(STUDENT)).toEqual([])
+    expect(STUDENT_BASE).toContain(".e2-amount small { font-size: max(var(--t-micro), .62em);")
+  })
+
+  it("les compteurs d'onglets et de pastilles sont en ardoise (>= 4,5:1 sur blanc), jamais en acier (3,96:1)", () => {
+    const colors = parseColorTokens(read("tokens.css"))
+    expect(contrastRatio(colors["--c-ardoise"], colors["--c-blanc"])).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(colors["--c-acier"], colors["--c-blanc"])).toBeLessThan(4.5)
+    expect(STUDENT_BASE).toMatch(/\.e2-tab b \{[^}]*color: var\(--c-ardoise\)/)
+    expect(STUDENT_BASE).toMatch(/\.e2-pill b \{[^}]*color: var\(--c-ardoise\)/)
+  })
+
+  it("aucune classe racine ne fixe la meme propriete dans deux feuilles etudiant", () => {
+    const owners = {}
+    for (const f of STUDENT_IMPORTS) {
+      for (const rule of topLevelRules(stripComments(read(f)))) {
+        if (!/^\.[\w-]+$/.test(rule.selector)) continue
+        for (const prop of Object.keys(rule.declarations)) (owners[`${rule.selector} { ${prop} }`] ??= new Set()).add(f)
+      }
+    }
+    expect(Object.entries(owners).filter(([, files]) => files.size > 1).map(([k]) => k)).toEqual([])
+  })
+
+  it("E01 n'a aucune regle propre : la planche n'utilise que la coquille et le systeme", () => {
+    expect(read("student/e01.css").replace(/\/\*[\s\S]*?\*\//g, "").trim()).toBe("")
+  })
+})
+
+// Bloc mobile (sous 1024) d'une feuille : jusqu'au bloc 768 s'il existe, sinon jusqu'au suivant ou a la fin.
+const tabletOf = (css) => {
+  const start = css.indexOf("@media (max-width: 1023.98px)")
+  const next = [css.indexOf("@media (max-width: 767.98px)", start), css.indexOf("@media (max-width: 480px)", start), css.indexOf("@container", start)].filter((i) => i > start)
+  return css.slice(start, next.length ? Math.min(...next) : undefined)
+}
+const tablet = tabletOf(STUDENT_BASE)
+
+describe("student : en-tete de sous-page, barre d'action fixe et barre du bas", () => {
+
+  it(".e2-mbar est fixe avec la safe-area, masquee au bureau, affichee sous 1024 ; jamais position: absolute", () => {
+    expect(STUDENT_BASE).toMatch(/\.e2-mbar \{[^}]*position: fixed; left: 0; right: 0; bottom: 0; z-index: var\(--z-nav\);[^}]*env\(safe-area-inset-bottom[^}]*display: none;/)
+    expect(STUDENT_BASE).not.toMatch(/\.e2-mbar \{[^}]*position: absolute/)
+    expect(tablet).toContain(".e2-mbar { display: flex; }")
+  })
+
+  it(".e2-mtop est masque au bureau et affiche sous 1024, et remplace .mtop2 sur la page qui le porte", () => {
+    expect(STUDENT_BASE).toMatch(/\.e2-mtop \{[^}]*display: none;/)
+    expect(tablet).toContain(".e2-mtop { display: flex; }")
+    expect(tablet).toContain(".e2:has(.e2-mtop) .mtop2 { display: none; }")
+    expect(specificity(".e2:has(.e2-mtop) .mtop2")[1]).toBeGreaterThan(specificity(".mtop2")[1])
+  })
+
+  it("app-shell.css masque la barre du bas et reserve la hauteur de .e2-mbar, regles :has seules dans leur liste", () => {
+    const shellTablet = SHELL.slice(SHELL.indexOf("@media (max-width: 1023.98px)"))
+    expect(shellTablet).toMatch(/\n\s*\.shell--v2:has\(\.e2-mbar\) \.bottom-nav--v2 \{ display: none; \}/)
+    expect(shellTablet).toMatch(/\n\s*\.shell--v2:has\(\.e2-mtop\) \.bottom-nav--v2 \{ display: none; \}/)
+    expect(shellTablet).toMatch(/\n\s*\.shell--v2:has\(\.e2-mbar\) \.shell__main \{ padding-bottom: calc\(150px \+ env\(safe-area-inset-bottom, 0px\)\); \}/)
+    // La reserve de la barre fixe vient APRES celle de la simple sous-page : elle l'emporte a specificite egale.
+    expect(shellTablet.indexOf(":has(.e2-mbar) .shell__main")).toBeGreaterThan(shellTablet.indexOf(":has(.e2-mtop) .shell__main"))
+    expect(selectorsOf(SHELL).filter((sel) => sel.includes(":has(") && sel.includes(","))).toEqual([])
+    // Specificite : (0,3,0) contre .bottom-nav.bottom-nav--v2 (0,2,0) et .shell--v2 .shell__main (0,2,0).
+    expect(specificity(".shell--v2:has(.e2-mbar) .bottom-nav--v2")[1]).toBeGreaterThan(specificity(".bottom-nav.bottom-nav--v2")[1])
+    expect(specificity(".shell--v2:has(.e2-mbar) .shell__main")[1]).toBeGreaterThan(specificity(".shell--v2 .shell__main")[1])
+  })
+
+  it("les toasts passent au-dessus de la barre d'action fixe, comme au-dessus de .mbar2", () => {
+    expect(tablet).toContain(".e2:has(.e2-mbar) .toasts--mobile.ds-toasts-fixed { bottom: calc(140px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }")
+  })
+
+  it("ne touche pas la capsule RD-NAV-02 : aucune regle etudiante sur .bottom-nav ni .bnav-item", () => {
+    expect(STUDENT).not.toMatch(/bottom-nav|bnav-item|bnav2/)
+  })
+
+  it("capsule : dans .e2, l'onglet actif reste citron/encre/13 px et les onglets gardent 44 px (40 px a 480), sans libelle rogne", () => {
+    const ancestors = ["ds", "e2", "shell", "shell--v2", "shell__main", "bottom-nav", "bottom-nav--v2"]
+    const active = computedStyle(RULES_E2, { tag: "a", classes: ["bnav-item", "is-active"], ancestors })
+    expect(active.background).toBe("var(--c-citron)")
+    expect(active.color).toBe("var(--c-encre)")
+    expect(active["font-size"]).toBe("var(--t-micro)")
+    expect(active["min-width"]).toBe("44px")
+    expect(active.margin).toBe("0")
+    const idle = computedStyle(RULES_E2, { tag: "a", classes: ["bnav-item"], ancestors })
+    expect(idle["min-width"]).toBe("44px")
+    expect(idle.color).toBe("var(--c-brume)")
+    // La planche posait min-width: 0 (specificite 0,3,0) : reprise telle quelle, elle aurait ecrase le min-width de la capsule.
+    const planche = computedStyle([...RULES_E2, { selector: ".e2 .bottom-nav--v2 .bnav-item", declarations: { "min-width": "0" }, order: 9999 }], { tag: "a", classes: ["bnav-item"], ancestors })
+    expect(planche["min-width"]).toBe("0")
+    // Libelle actif a 320 px : 4 onglets (aucun bouton central), 3 inactifs de 40 px, capsule de marges 8 px et padding 4 px.
+    const label = (screen) => screen - 16 - 8 - 3 * 40 - (24 + 6 + 20)
+    expect(label(320)).toBeGreaterThanOrEqual(86) // « Candidatures » (~83 px a 13 px, 800) tient sans ellipse
+    expect(label(360)).toBeGreaterThanOrEqual(126)
+  })
+})
+
+describe("student : cascade statique (specificite et ordre de chargement)", () => {
+  const ancestors = ["ds", "e2", "shell", "shell--v2", "shell__main", "money2"]
+
+  it("lien d'evitement : hors ecran au repos, visible avec anneau de focus au focus clavier dans .e2", () => {
+    const el = { tag: "a", classes: ["ds-skip-link", "btn", "btn--secondary"], ancestors }
+    const rest = computedStyle(RULES_E2, el)
+    expect(rest.transform).toBe("translateY(-200%)")
+    expect(rest["box-shadow"]).toBe("none")
+    const focus = computedStyle(RULES_E2, { ...el, states: ["focus-visible"] })
+    expect(focus.transform).toBe("none")
+    expect(focus["box-shadow"]).toBe("var(--sh-focus)")
+    expect(focus.position).toBe("fixed")
+    expect(focus["z-index"]).toBe("var(--z-toast)")
+  })
+
+  it("pied de feuille de candidature : .e2-03-sfoot passe en ligne malgre .sheet .modal__foot (meme specificite, charge apres)", () => {
+    const foot = computedStyle(RULES_E2, { tag: "div", classes: ["modal__foot", "e2-03-sfoot"], ancestors: ["ds", "e2", "sheet"] })
+    expect(foot["flex-direction"]).toBe("row")
+    expect(foot["padding-bottom"]).toMatch(/env\(safe-area-inset-bottom/)
+    const dark = computedStyle(RULES_E2, { tag: "button", classes: ["btn", "btn--dark"], ancestors: ["ds", "e2", "sheet", "e2-03-sfoot", "modal__foot"] })
+    expect(dark.flex).toBe("1")
+    expect(dark.width).toBe("auto")
+  })
+
+  it("chip : le filet d'un pixel n'annule pas la bordure encre du chip selectionne (3 classes contre 2)", () => {
+    const base = { tag: "button", classes: ["chip"], ancestors: ["ds", "e2"] }
+    expect(computedStyle(RULES_E2, { ...base, classes: ["chip", "is-selected"] })["border-color"]).toBe("var(--c-encre)")
+    expect(computedStyle(RULES_E2, { ...base, states: ["hover"] })["border-color"]).toBe("var(--c-acier)")
+    expect(computedStyle(RULES_E2, base).border).toBe("1px solid var(--c-ligne)")
+  })
+
+  it("onglet : actif souligne en encre, compteur discret", () => {
+    const tab = computedStyle(RULES_E2, { tag: "button", classes: ["tab", "is-active"], ancestors: ["ds", "e2", "tabs"] })
+    expect(tab["border-bottom-color"]).toBe("var(--c-encre)")
+    expect(tab["border-bottom-width"]).toBe("2px")
+    const count = computedStyle(RULES_E2, { tag: "span", classes: ["count"], ancestors: ["ds", "e2", "tab", "is-active"] })
+    expect(count.background).toBe("transparent")
+  })
+
+  it("bouton icone : le survol givre l'emporte sur le fond transparent de .e2 .btn-icon", () => {
+    const el = { tag: "button", classes: ["btn-icon", "btn-icon--sm", "btn-icon--plain"], ancestors: ["ds", "e2", "modal__head"] }
+    expect(computedStyle(RULES_E2, el).width).toBe("36px")
+    expect(computedStyle(RULES_E2, el).background).toBe("transparent")
+    expect(computedStyle(RULES_E2, { ...el, states: ["hover"] }).background).toBe("var(--c-givre)")
+  })
+
+  it("carte argent : le bouton « Retirer » inactif prend le fond translucide, pas le fond gris du systeme", () => {
+    const el = { tag: "button", classes: ["btn", "btn--ghost-blanc", "btn--sm", "is-disabled"], ancestors }
+    expect(computedStyle(RULES_E2, el).background).toBe("color-mix(in srgb, var(--c-blanc) 18%, transparent)")
+    expect(computedStyle(RULES_E2, el).color).toBe("var(--c-bleu-100)")
+    expect(computedStyle(RULES_E2, { ...el, ancestors: ["ds", "e2"] }).background).toBe("var(--c-off-bg)")
+  })
+
+  it("etoiles de notation : encre pleine et survol givre dans .e2 (jamais le citron du systeme)", () => {
+    const on = computedStyle(RULES_E2, { tag: "svg", classes: ["is-on"], ancestors: ["ds", "e2", "stars", "stars--input"] })
+    expect(on.fill).toBe("var(--c-encre)")
+    expect(on.stroke).toBe("var(--c-encre)")
+    expect(computedStyle(RULES_E2, { tag: "svg", classes: ["is-hover"], ancestors: ["ds", "e2", "stars", "stars--input"] }).fill).toBe("var(--c-ligne)")
+  })
+
+  it("avatar et image d'avatar : rognes dans le cercle dans .e2, zone tactile de l'en-tete mobile rendue visible", () => {
+    expect(computedStyle(RULES_E2, { tag: "span", classes: ["av2"], ancestors: ["ds", "e2"] }).overflow).toBe("hidden")
+    expect(tablet).toContain(".e2 .mtop2 > a.av2 { overflow: visible; }")
+    expect(specificity(".e2 .mtop2 > a.av2")[1]).toBeGreaterThan(specificity(".e2 .av2")[1])
+  })
+
+  it("cibles tactiles de 44 px et mouvement reduit sont dans la requete mobile, hors du bloc de base", () => {
+    const before = STUDENT_BASE.slice(0, STUDENT_BASE.indexOf("@media"))
+    for (const rule of [".e2 .iconbtn2, .e2 .btn-icon, .e2 .btn-icon--sm { width: 44px; height: 44px; }", ".e2-back, .e2-link { min-height: 44px; }", ".e2 .chip { min-height: 44px; }", ".e2-pill { min-height: 44px; }"]) {
+      expect(tablet, rule).toContain(rule)
+      expect(before, rule).not.toContain(rule)
+    }
+    const reduced = STUDENT_BASE.slice(STUDENT_BASE.indexOf("@media (prefers-reduced-motion: reduce)"))
+    expect(reduced).toMatch(/\.e2, \.e2 \*, \.e2 \*::before, \.e2 \*::after \{[^}]*scroll-behavior: auto !important[^}]*animation-duration: \.01ms !important/)
+  })
+
+  it("mise en page : colonnes fluides sans seuil d'ecran, une colonne sous 1024 malgre .e2-02-cols (charge apres)", () => {
+    expect(STUDENT_BASE).toMatch(/\.e2-cols \{[^}]*grid-template-columns: minmax\(0, 1fr\) clamp\(280px, 30vw, 360px\)/)
+    expect(tablet).toContain(".e2 .e2-cols, .e2 .e2-cols--l { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }")
+    expect(specificity(".e2 .e2-cols")[1]).toBeGreaterThan(specificity(".e2-02-cols")[1])
+    const e02 = stripComments(read("student/e02.css"))
+    expect(tabletOf(e02)).toContain(".e2 .e2-02-cols { grid-template-columns: minmax(0, 1fr); }")
+    expect(tablet).toContain(".e2 .e2-02-filters, .e2 .e2-03-aside, .e2 .e2-05-aside { position: static; }")
+    expect(STUDENT_BASE).toMatch(/\.e2-grid3 \{[^}]*repeat\(auto-fill, minmax\(min\(100%, 240px\), 1fr\)\)/)
+  })
+
+  it("E04 : sous 900 px de liste, la ligne passe en deux colonnes et ses enfants s'empilent dans la colonne de droite", () => {
+    const e04 = stripComments(read("student/e04.css"))
+    const compact = e04.match(/@container e2list \(max-width: 900px\) \{([\s\S]*?)\n\}/)?.[1] ?? ""
+    expect(compact).toMatch(/\.e2-04-row \{ grid-template-columns: 36px minmax\(0, 1fr\);/)
+    expect(compact).toContain(".e2-04-row > :nth-child(n+3) { grid-column: 2; }")
+    expect(compact).toContain(".e2-04-acts { justify-content: flex-start; flex-wrap: wrap;")
+  })
+
+  it("E06 et E07 : la hauteur suit la fenetre au bureau, une colonne et hauteur libre sous 1024, bas de conversation sur la safe-area", () => {
+    const e06 = stripComments(read("student/e06.css"))
+    expect(e06).toMatch(/\.e2-06-inbox \{[^}]*height: max\(480px, calc\(100dvh - 224px\)\)/)
+    expect(e06).not.toMatch(/\d{3,4}px; min-height: 0;\s*\}/)
+    expect(tabletOf(e06)).toContain(".e2-06-inbox, .e2-06-inbox--tall { grid-template-columns: minmax(0, 1fr); height: auto; }")
+    const e07 = stripComments(read("student/e07.css"))
+    expect(tabletOf(e07)).toContain(".e2:has(.e2-07-mhead) .mtop2 { display: none; }")
+    expect(tabletOf(e07)).toMatch(/\.shell--v2:has\(\.e2-07-pane\) \.shell__main \{ padding-bottom: calc\(var\(--s-2\) \+ env\(safe-area-inset-bottom/)
+    expect(tabletOf(e07)).toMatch(/\.e2-07-pane \{ height: calc\(100dvh - var\(--s-2\) - env\(safe-area-inset-bottom/)
   })
 })

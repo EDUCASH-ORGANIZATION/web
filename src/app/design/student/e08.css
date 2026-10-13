@@ -1,0 +1,14 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E08 Portefeuille : gains des 8 dernières semaines, « à venir » sur la carte argent. */
+.e2-08-bars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; align-items: end; height: 92px; margin-top: var(--s-3); }
+.e2-08-bars i { display: block; border-radius: 6px 6px 2px 2px; background: var(--c-ligne); min-height: 4px; }
+.e2-08-bars i.is-now { background: var(--c-encre); }
+.e2-08-axis { display: flex; justify-content: space-between; font-size: var(--t-micro); color: var(--c-ardoise); margin-top: 6px; }
+.e2 .money2 .e2-08-pending { margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid color-mix(in srgb, var(--c-blanc) 22%, transparent); font-size: var(--t-caption); color: var(--c-bleu-100); display: flex; align-items: flex-start; gap: 8px; line-height: 1.45; }
+.e2 .money2 .e2-08-pending .ic { width: 16px; height: 16px; flex: none; margin-top: 1px; color: var(--c-blanc); }
+.e2 .money2 .e2-08-pending b { color: var(--c-blanc); }
+.e2 .money2 .btn:disabled, .e2 .money2 .btn.is-disabled { background: color-mix(in srgb, var(--c-blanc) 18%, transparent); color: var(--c-bleu-100); }
+
+@media (max-width: 480px) {
+  .e2-08-bars { gap: 6px; }
+}

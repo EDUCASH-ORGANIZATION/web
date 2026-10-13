@@ -1,0 +1,4 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E09 Retrait : phrase de récapitulatif (les autres règles de la fenêtre sont dans base.css, section 1). */
+.e2-09-sentence { font-size: var(--t-body-l); line-height: 1.45; padding: var(--s-4) var(--s-5); border-radius: 16px; background: var(--c-givre); }
+.e2-09-sentence b { font-weight: var(--fw-xbold); white-space: nowrap; }
