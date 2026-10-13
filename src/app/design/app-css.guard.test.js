@@ -587,6 +587,33 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     const blanc = computedStyle(without, { tag: "a", classes: ["btn", "btn--blanc"], ancestors: ANCESTORS })
     expect(blanc.color).toBe("var(--c-blanc)")
   })
+
+  // Collision de racines (RD-CLIENT-01 vague 4) : C10 redefinissait `.review2` (le <dl> de C03). Une meme classe
+  // nue (`.nom { ... }`, premier niveau) ne doit jamais fixer la meme propriete dans deux feuilles ; deux feuilles
+  // qui la completent avec des proprietes differentes (ex. `.inbox2` C12 et C13) ne sont pas un conflit.
+  it("aucune classe racine ne fixe la meme propriete dans deux feuilles differentes (app-shell, c0x, c1x)", () => {
+    const owners = {}
+    for (const f of LOAD_ORDER) {
+      for (const rule of topLevelRules(stripComments(read(f)))) {
+        if (!/^\.[\w-]+$/.test(rule.selector)) continue
+        for (const prop of Object.keys(rule.declarations)) {
+          const key = `${rule.selector} { ${prop} }`
+          ;(owners[key] ??= new Set()).add(f)
+        }
+      }
+    }
+    const collisions = Object.entries(owners).filter(([, files]) => files.size > 1).map(([k, files]) => `${k}: ${[...files].join(", ")}`)
+    expect(collisions).toEqual([])
+  })
+
+  it("le recapitulatif de publication `.review2` (dl C03) reste une grille, la page C10 utilise `.rate-page2`", () => {
+    const dl = computedStyle(RULES, { tag: "dl", classes: ["review2"], ancestors: [] })
+    expect(dl.display).toBe("grid")
+    expect(dl["grid-template-columns"]).toBe("160px minmax(0, 1fr)")
+    const c10 = stripComments(read("client/c10.css"))
+    expect(c10).not.toMatch(/\.review2(?![\w-])/)
+    expect(c10).toMatch(/\.rate-page2 \{[^}]*flex-direction: column/)
+  })
 })
 
 describe("regles des primitives interactives (app-ui)", () => {

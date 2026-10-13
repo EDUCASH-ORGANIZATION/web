@@ -10,11 +10,13 @@ import { StatusBadge } from "@/components/app-ui/status-badge"
 import { Avatar } from "@/components/app-ui/avatar"
 import { createClientReview } from "@/lib/actions/review.actions"
 import { escrowSplit } from "@/lib/app/money"
+import { COMMISSION_RATE } from "@/lib/constants/missions"
 import { formatAmount, formatDateFr } from "@/lib/app/format"
 import { clientMissionHref, clientMissionsHref } from "@/lib/app/client-routes"
 import { firstName, publicDisplayName } from "@/lib/vitrine/public-name"
 
 export const COMMENT_MAX = 300
+const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100)
 const ERR_RATING = "Choisissez une note de 1 à 5 étoiles."
 const ERR_UNEXPECTED = "Votre avis n'a pas pu être enregistré. Réessayez dans un instant."
 
@@ -72,7 +74,6 @@ function StarsDisplay({ rating }) {
 
 function MissionRecap({ mission, student }) {
   const split = escrowSplit(mission.budget)
-  const name = firstName(student?.fullName, { fallback: "l'étudiant" })
   return (
     <section className="card2" aria-label="La mission">
       <div className="sec2">
@@ -97,11 +98,11 @@ function MissionRecap({ mission, student }) {
           <b>{formatAmount(split.total)}</b>
         </div>
         <div className="lines2__row">
-          <span>Commission 12 %</span>
+          <span>Commission {COMMISSION_PERCENT} %</span>
           <b>{formatAmount(split.commission, { sign: "debit" })}</b>
         </div>
         <div className="lines2__row lines2__row--total">
-          <span>Versé à {name}</span>
+          <span>Part de l&apos;étudiant</span>
           <b>{formatAmount(split.student)}</b>
         </div>
       </div>
@@ -173,7 +174,7 @@ function ReviewForm({ page, onDone }) {
       <form className="form2" onSubmit={onSubmit} noValidate>
         <div className="person2 person2--lg">
           <Avatar name={student?.fullName ?? ""} src={student?.avatarUrl ?? undefined} />
-          <div className="review2__who">
+          <div className="rate-page2__who">
             <h2 className="person2__name" id={`${uid}-title`}>
               Comment s&apos;est passée la mission avec {name} ?
             </h2>
@@ -331,7 +332,7 @@ export function ReviewView({ page }) {
   else if (state === "not_done") title = "Noter l'étudiant"
 
   return (
-    <div className="review2">
+    <div className="rate-page2">
       <PageHead date={mission.title} title={title} />
       {done ? (
         <ThanksCard page={page} review={done} />
