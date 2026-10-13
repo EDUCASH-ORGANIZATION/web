@@ -107,7 +107,21 @@ function classTokens(code) {
 
 const BANNED_WORDS = /\b(?:livraisons?|courses?|coursiers?|saisie|bientôt|fedapay)\b/i
 // Bornes unicode : \b traite "ê" comme non-mot et ferait matcher "tes" dans "êtes".
-const TUTOIEMENT = /(?<![\p{L}\p{N}_])(?:tu|ton|ta|tes|toi)(?![\p{L}\p{N}_])|Réessaie|Recharge ton/iu
+// Le trait d'union fait partie des bornes : "data-ta" n'est pas un possessif.
+const WORD_START = "(?<![\\p{L}\\p{N}_-])"
+const WORD_END = "(?![\\p{L}\\p{N}_])"
+// Pronoms, possessifs et élisions (insensible à la casse) : tu, ton, tes, toi, te, t'as, t’inquiète.
+const TUTOIEMENT_PRONOUNS = new RegExp(`${WORD_START}(?:tu|ton|tes|toi|te)${WORD_END}|${WORD_START}t['’](?=\\p{L})`, "iu")
+// "ta" sans le sigle TA : seule la forme minuscule ou capitalisée est un possessif.
+const TUTOIEMENT_TA = new RegExp(`${WORD_START}[Tt]a${WORD_END}`, "u")
+// Impératifs courants du tutoiement, en début de phrase (majuscule) : "Il publie" reste permis.
+const TUTOIEMENT_IMPERATIVES = new RegExp(
+  `${WORD_START}(?:Vérifie|Publie|Rafraîchis|Réessaie|Envoie|Clique|Choisis|Ajoute|Retourne)${WORD_END}`,
+  "u",
+)
+const TUTOIEMENT = {
+  test: (text) => [TUTOIEMENT_PRONOUNS, TUTOIEMENT_TA, TUTOIEMENT_IMPERATIVES].some((re) => re.test(text)),
+}
 
 /** Texte JSX : ce qui se trouve entre une balise et la suivante (hors `=>` et expressions). */
 function jsxText(code) {
@@ -117,6 +131,10 @@ function jsxText(code) {
   while ((m = re.exec(code))) if (/\S/.test(m[1])) out.push(m[1])
   return out
 }
+
+const SUPABASE_SPECIFIER = /["'](?:@\/lib\/supabase|(?:\.{1,2}\/)+(?:lib\/)?supabase)\/[^"'\s]*/g
+// database.constants est un module pur de constantes : sa lecture seule est autorisée.
+const PURE_SUPABASE_CONSTANTS = /\/database\.constants(?:\.js)?$/
 
 const RULES = [
   { id: "hex", run: ({ code }) => code.match(/#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})\b/gi) ?? [] },
@@ -133,7 +151,7 @@ const RULES = [
     run: ({ code, file }) =>
       file.startsWith("src/hooks/")
         ? []
-        : (code.match(/["'](?:@\/lib\/supabase|(?:\.{1,2}\/)+(?:lib\/)?supabase)\//g) ?? []),
+        : (code.match(SUPABASE_SPECIFIER) ?? []).filter((spec) => !PURE_SUPABASE_CONSTANTS.test(spec)),
   },
   { id: "commission-literal", run: ({ code }) => code.match(/\b0\.(?:88|12)\b/g) ?? [] },
   {
@@ -221,6 +239,8 @@ describe("détecteurs (fixtures en mémoire)", () => {
     ["lucide", 'import { X } from "lucide-react"', 'import { Icon } from "@/components/design/icon"'],
     ["supabase-import", 'import { createClient } from "@/lib/supabase/client"', 'import { Icon } from "@/components/design/icon"'],
     ["supabase-import", 'import { x } from "../supabase/server.js"', 'import { f } from "../vitrine/format.js"'],
+    ["supabase-import", 'import { x } from "../supabase/database.constants.js/../server.js"', 'import { T } from "@/lib/supabase/database.constants"'],
+    ["supabase-import", 'import { x } from "@/lib/supabase/database.constants-client"', 'import { T } from "../supabase/database.constants.js"'],
     ["commission-literal", "const fee = budget * 0.12", "const n = 10.125 + 0.5"],
     ["banned-words", 'const t = "Votre livraison"', "// livraison en commentaire\nconst t = 1"],
     ["banned-words", "<p>Paiement via FedaPay</p>", "<p>Paiement sécurisé</p>"],
@@ -229,6 +249,20 @@ describe("détecteurs (fixtures en mémoire)", () => {
     ["tutoiement", "<p>Tu peux publier</p>", "<p>Vous pouvez publier</p>"],
     ["tutoiement", 'const t = "Réessaie plus tard"', 'const t = "Veuillez réessayer"'],
     ["tutoiement", "<p>Toi aussi</p>", "<p>Une tonalité neutre</p>"],
+    ["tutoiement", 'const t = "Nous te contactons"', 'const t = "Nous vous contactons, êtes-vous là ?"'],
+    ["tutoiement", "const t = \"Dis-moi si t'as besoin\"", 'const t = "Vous avez eu l\'été et une tournée"'],
+    ["tutoiement", 'const t = "Dis-moi si t\u2019es prêt"', 'const t = "Découvrez la tournée de l\u2019été"'],
+    ["tutoiement", 'const t = "t\'a-t-il écrit ?"', 'const t = "il a écrit, rien d\'autre"'],
+    ["tutoiement", 'const t = "t\u2019inquiète pas"', 'const t = "Elle n\u2019est pas là, c\u2019est tout"'],
+    ["tutoiement", 'const t = "Ta mission est publiée"', 'const t = "TA et data-ta restent des identifiants"'],
+    ["tutoiement", '<p>Vérifie ton solde</p>', '<p>Vérifiez votre solde</p>'],
+    ["tutoiement", 'const t = "Publie ta mission"', 'const t = "Publiez votre mission. Il publie ensuite."'],
+    ["tutoiement", 'const t = "Rafraîchis la page"', 'const t = "Rafraîchissez la page"'],
+    ["tutoiement", 'const t = "Envoie un message"', 'const t = "Envoyez un message"'],
+    ["tutoiement", 'const t = "Clique ici"', 'const t = "Cliquez ici"'],
+    ["tutoiement", 'const t = "Choisis un montant"', 'const t = "Choisissez un montant"'],
+    ["tutoiement", 'const t = "Ajoute un moyen de paiement"', 'const t = "Ajoutez un moyen de paiement"'],
+    ["tutoiement", 'const t = "Retourne à la liste"', 'const t = "Retournez à la liste"'],
     ["raw-type", "<span>{mission.type}</span>", "<span>{missionTypeLabel(mission.type)}</span>"],
   ]
 
