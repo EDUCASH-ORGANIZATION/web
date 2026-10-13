@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireUser, requireRole } from "@/lib/auth/require-role"
 import { toOwnedAvatarUrl, toOwnedStoragePath } from "@/lib/storage/owned-paths"
+import { CITIES } from "@/lib/supabase/database.constants"
+import { parseBeninPhone } from "@/lib/utils/phone"
+import { firstName } from "@/lib/vitrine/public-name"
 
 // Colonnes de la ligne de l'appelant, lues côté serveur : les colonnes privées (phone,
 // rejection_reason, verification_submitted_at, card_url) ne sont plus lisibles avec la session.
@@ -13,6 +16,14 @@ const MY_PROFILE_COLUMNS =
 const MY_STUDENT_PROFILE_COLUMNS =
   "user_id, school, level, skills, availability, card_url"
 
+// Résumé du profil client (C17) : colonnes explicites, `phone` lu en service role après requireRole.
+const CLIENT_SUMMARY_COLUMNS = "user_id, full_name, city, avatar_url, bio, rating, created_at, phone"
+const SUMMARY_REVIEWS_LIMIT = 10
+const LEDGER_PAGE_SIZE = 1000 // plafond de lignes par requête de PostgREST
+const LEDGER_MAX_PAGES = 50
+const NAME_MAX = 100
+
+const ERR_SUMMARY = "Impossible de charger votre profil."
 const ERR_AVATAR = "Cette photo n'est pas valide. Envoie-la à nouveau."
 const ERR_CARD = "Cette carte n'est pas valide. Envoie-la à nouveau."
 
@@ -41,6 +52,158 @@ export async function getMyProfile() {
   } catch (err) {
     console.error("[getMyProfile]", err)
     return { error: "Impossible de charger ton profil." }
+  }
+}
+
+// Contrôle de présence d'un caractère de contrôle (hors tabulation) dans un texte libre.
+const CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/
+
+/**
+ * Total dépensé : somme des libérations de séquestre (type `release`, montant brut commission comprise)
+ * du grand livre de la session. La table legacy `transactions` n'est plus alimentée.
+ * PostgREST plafonne chaque réponse à 1000 lignes : la lecture est paginée (stable : date puis id) pour que
+ * la somme reste exacte au-delà. Une erreur de lecture, un montant illisible ou plus de 50 000 libérations
+ * donnent `null` (affiché « Indisponible ») : jamais un faux 0 ni un total partiel.
+ *
+ * @returns {Promise<number | null>}
+ */
+async function readTotalSpent(supabase, userId) {
+  let total = 0
+  for (let page = 0; page < LEDGER_MAX_PAGES; page++) {
+    const from = page * LEDGER_PAGE_SIZE
+    const { data, error } = await supabase
+      .from("wallet_transactions")
+      .select("amount")
+      .eq("user_id", userId)
+      .eq("type", "release")
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + LEDGER_PAGE_SIZE - 1)
+    if (error) {
+      console.error("[getClientProfileSummary] total dépensé", error.message)
+      return null
+    }
+    const rows = data ?? []
+    for (const row of rows) total += Number(row.amount ?? 0)
+    if (!Number.isFinite(total)) return null
+    if (rows.length < LEDGER_PAGE_SIZE) return total
+  }
+  return null
+}
+
+/** Compte exact (requête `head`), `null` en cas d'erreur de lecture. */
+async function countRows(query, label) {
+  const { count, error } = await query
+  if (error) {
+    console.error(`[getClientProfileSummary] ${label}`, error.message)
+    return null
+  }
+  return count ?? 0
+}
+
+/**
+ * @typedef {Object} ClientProfileSummary Forme consommée par les écrans C17 (consultation et édition).
+ * @property {{ userId: string, fullName: string, companyName: string|null, city: string|null, avatarUrl: string|null,
+ *   phone: string|null, memberSince: string|null }} identity `phone` est privé : il n'est lu que pour l'appelant
+ * @property {{ published: number|null, active: number|null, done: number|null, cancelled: number|null,
+ *   totalSpent: number|null, rating: number, reviewsCount: number|null }} stats
+ *   `null` = lecture en échec (jamais un faux 0) ; `totalSpent` est la somme des `release` du grand livre
+ * @property {Array<{ id: string, rating: number, comment: string|null, createdAt: string,
+ *   authorFirstName: string, missionTitle: string|null }>} reviews Avis reçus (10 au plus), l'auteur réduit à son prénom
+ */
+
+/**
+ * Résumé du profil du client connecté : identité, chiffres et avis reçus. `requireRole(["client"])` d'abord.
+ * Colonnes explicites (jamais select("*")) ; le téléphone, colonne privée, est lu par le service role après le
+ * contrôle du rôle, avec un filtre sur l'identifiant de la session. Les avis n'exposent que le prénom de l'auteur
+ * (ni email ni téléphone). Les chiffres sont indépendants : une lecture en échec donne `null` pour ce chiffre seul.
+ *
+ * @returns {Promise<{ summary: ClientProfileSummary } | { error: string }>}
+ */
+export async function getClientProfileSummary() {
+  const auth = await requireRole(["client"])
+  if (auth.error) return { error: auth.error }
+  const { supabase, user } = auth
+
+  try {
+    const { data: profile, error: profileError } = await createServiceClient()
+      .from("profiles")
+      .select(CLIENT_SUMMARY_COLUMNS)
+      .eq("user_id", user.id)
+      .maybeSingle()
+    if (profileError || !profile) {
+      if (profileError) console.error("[getClientProfileSummary] profil", profileError.message)
+      return { error: ERR_SUMMARY }
+    }
+
+    const missions = () => supabase.from("missions").select("id", { count: "exact", head: true }).eq("client_id", user.id)
+    const [published, active, done, cancelled, totalSpent, reviewsCount, reviewsRes] = await Promise.all([
+      countRows(missions(), "missions publiées"),
+      countRows(missions().in("status", ["open", "in_progress"]), "missions actives"),
+      countRows(missions().eq("status", "done"), "missions terminées"),
+      countRows(missions().eq("status", "cancelled"), "missions annulées"),
+      readTotalSpent(supabase, user.id),
+      countRows(supabase.from("reviews").select("id", { count: "exact", head: true }).eq("reviewed_id", user.id), "avis"),
+      supabase
+        .from("reviews")
+        .select("id, rating, comment, created_at, reviewer_id, mission_id")
+        .eq("reviewed_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(SUMMARY_REVIEWS_LIMIT),
+    ])
+
+    if (reviewsRes.error) console.error("[getClientProfileSummary] avis", reviewsRes.error.message)
+    const rawReviews = reviewsRes.error ? [] : (reviewsRes.data ?? [])
+    const authorIds = [...new Set(rawReviews.map((r) => r.reviewer_id).filter(Boolean))]
+    const missionIds = [...new Set(rawReviews.map((r) => r.mission_id).filter(Boolean))]
+
+    // Noms et titres sont décoratifs : une erreur donne le prénom par défaut ou pas de titre, sans faire échouer le profil.
+    const [authorsRes, titlesRes] = await Promise.all([
+      authorIds.length
+        ? supabase.from("profiles").select("user_id, full_name").in("user_id", authorIds)
+        : Promise.resolve({ data: [], error: null }),
+      missionIds.length
+        ? supabase.from("missions").select("id, title").eq("client_id", user.id).in("id", missionIds)
+        : Promise.resolve({ data: [], error: null }),
+    ])
+    if (authorsRes.error) console.error("[getClientProfileSummary] auteurs", authorsRes.error.message)
+    if (titlesRes.error) console.error("[getClientProfileSummary] titres", titlesRes.error.message)
+    const names = new Map((authorsRes.data ?? []).map((p) => [p.user_id, p.full_name]))
+    const titles = new Map((titlesRes.data ?? []).map((m) => [m.id, m.title]))
+
+    return {
+      summary: {
+        identity: {
+          userId: user.id,
+          fullName: typeof profile.full_name === "string" ? profile.full_name : "",
+          companyName: profile.bio?.trim() ? profile.bio.trim() : null,
+          city: profile.city ?? null,
+          avatarUrl: profile.avatar_url ?? null,
+          phone: profile.phone ?? null,
+          memberSince: profile.created_at ?? null,
+        },
+        stats: {
+          published,
+          active,
+          done,
+          cancelled,
+          totalSpent,
+          rating: Number(profile.rating) || 0,
+          reviewsCount,
+        },
+        reviews: rawReviews.map((r) => ({
+          id: r.id,
+          rating: Number(r.rating) || 0,
+          comment: r.comment ?? null,
+          createdAt: r.created_at,
+          authorFirstName: firstName(names.get(r.reviewer_id), { fallback: "Étudiant" }),
+          missionTitle: titles.get(r.mission_id) ?? null,
+        })),
+      },
+    }
+  } catch (err) {
+    console.error("[getClientProfileSummary]", err)
+    return { error: ERR_SUMMARY }
   }
 }
 
@@ -271,6 +434,20 @@ export async function updateClientProfile(data) {
 
     if (!fullName?.trim()) return { error: "Le nom complet est requis." }
     if (!city?.trim())     return { error: "La ville est requise." }
+    if (!CITIES.includes(city.trim())) return { error: "Choisissez une ville de la liste." }
+    for (const text of [fullName, companyName]) {
+      if (typeof text === "string" && (text.trim().length > NAME_MAX || CONTROL_CHARS.test(text))) {
+        return { error: `Les noms ne doivent pas dépasser ${NAME_MAX} caractères ni contenir de caractère spécial.` }
+      }
+    }
+
+    // Téléphone facultatif ; s'il est renseigné, numéro béninois enregistré au format +22901XXXXXXXX.
+    let phoneValue = null
+    if (typeof phone === "string" && phone.trim()) {
+      const parsed = parseBeninPhone(phone)
+      if (!parsed.ok) return { error: "Le numéro doit avoir 10 chiffres et commencer par 01. Ex. 01 97 45 21 08" }
+      phoneValue = parsed.e164
+    }
 
     const avatar = avatarUrl ? toOwnedAvatarUrl(avatarUrl, user.id) : null
     if (avatarUrl && !avatar) return { error: "Ce logo n'est pas valide. Envoyez-le à nouveau." }
@@ -278,7 +455,7 @@ export async function updateClientProfile(data) {
     const profileUpdate = {
       full_name: fullName.trim(),
       city: city.trim(),
-      phone: phone?.trim() || null,
+      phone: phoneValue,
       bio: companyName?.trim() || null,
     }
     if (avatarUrl) profileUpdate.avatar_url = avatar
@@ -290,7 +467,7 @@ export async function updateClientProfile(data) {
 
     if (profileError) {
       console.error("[updateClientProfile]", profileError.message)
-      return { error: "Impossible d'enregistrer ton profil." }
+      return { error: "Impossible d'enregistrer votre profil." }
     }
 
     revalidatePath("/client/profile")

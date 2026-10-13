@@ -11,8 +11,29 @@
 .progress2 { height: 6px; border-radius: 6px; background: var(--c-givre); overflow: hidden; }
 .progress2 i { display: block; height: 100%; background: var(--c-encre); border-radius: 6px; }
 .c2 .checklist li:not(.is-ok) { color: var(--c-ardoise); }
+.me2__text { min-width: 0; flex: 1 1 auto; }
+.me2__edit { margin-left: auto; align-self: flex-start; white-space: nowrap; }
+.me2 .me2__name { margin: 0; overflow-wrap: anywhere; }
+.profile2__comment { margin-top: 6px; white-space: pre-line; overflow-wrap: anywhere; }
+.person2__who { min-width: 0; }
+.profile2__out { background: none; border: 0; padding: 0; font-family: inherit; line-height: inherit; text-decoration: none; min-height: 44px; align-items: center; }
+.profile2__out:focus-visible, .logo2__clear:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
+.profile2 { display: flex; flex-direction: column; gap: var(--s-5); }
+/* Chiffres : quatre colonnes en bureau, une valeur plus petite pour ne pas déborder ; les
+   sous-titres longs passent à la ligne au lieu d'être coupés. */
+.profile2 .stats2--4 .stat2__value { font-size: var(--t-amount-s); }
+.profile2 .stats2--4 .stat2__sub { white-space: normal; }
+.profile2__na { font-size: var(--t-body); color: var(--c-ardoise); font-weight: var(--fw-bold); letter-spacing: 0; }
+.profile2 .review2x .person2 .av2 { width: 40px; height: 40px; font-size: 13px; }
+.profile2 .meta2 .ic { flex: none; }
+.profile2__form { max-width: 720px; }
+.logo2 { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
+.logo2__img { width: 72px; height: 72px; font-size: 22px; }
+.logo2__clear { background: none; border: 0; padding: 0; font-family: inherit; line-height: inherit; min-height: 44px; align-items: center; }
+.profile2 .link2, .profile2 .sec2__more { min-height: 44px; display: inline-flex; align-items: center; }
 
 @media (max-width: 1023.98px) {
+  .profile2 { gap: var(--s-4); }
   .stats2--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stats2--4 .stat2:nth-child(3) { border-left: 0; }
   .stats2--4 .stat2:nth-child(n+3) { border-top: 1px solid var(--c-ligne); }
@@ -20,6 +41,7 @@
   .me2__name { font-size: 20px; }
 }
 @media (max-width: 480px) {
-  .me2 { gap: var(--s-4); }
+  .me2 { gap: var(--s-4); flex-wrap: wrap; }
+  .me2__edit { margin-left: 0; flex: 1 1 100%; }
   .me2__sub { font-size: var(--t-body-s); }
 }
