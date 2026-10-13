@@ -240,6 +240,21 @@ describe("getClientConversations", () => {
     expect(JSON.stringify(conversations)).not.toContain("Spam d'un inconnu")
   })
 
+  it("ne lit les candidatures que des missions du client, après avoir lu ses missions", async () => {
+    await getClientConversations()
+    const tables = log.map((q) => q.table)
+    expect(tables.indexOf("missions")).toBeLessThan(tables.indexOf("applications"))
+    const appFilter = reads("applications")[0].filters.find(([kind, col]) => kind === "in" && col === "mission_id")
+    expect(appFilter[2]).not.toContain(M_OTHER)
+    expect(appFilter[2].sort()).toEqual([M1, M2].sort())
+  })
+
+  it("ne lit aucune candidature quand aucune mission des messages n'appartient au client", async () => {
+    db.missions = db.missions.map((m) => ({ ...m, client_id: "autre-client" }))
+    expect((await getClientConversations()).conversations).toEqual([])
+    expect(reads("applications")).toHaveLength(0)
+  })
+
   it("lit des colonnes explicites et ne renvoie que des champs publics (nom court, avatar)", async () => {
     const result = await getClientConversations()
     for (const q of log) expect(q.columns).not.toContain("*")

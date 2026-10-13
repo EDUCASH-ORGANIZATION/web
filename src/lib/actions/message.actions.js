@@ -146,16 +146,22 @@ export async function getClientConversations() {
 
   const missionIds = [...new Set(built.map((c) => c.missionId))]
   const studentIds = [...new Set(built.map((c) => c.studentId))]
-  const [missionsRes, applicationsRes, profilesRes] = await Promise.all([
-    supabase.from("missions").select(MISSION_COLUMNS).eq("client_id", user.id).in("id", missionIds),
-    supabase.from("applications").select("mission_id, student_id, status").in("mission_id", missionIds),
+  // Les missions du client d'abord : les candidatures ne sont lues que pour les missions retenues, jamais pour
+  // des identifiants issus de messages écrits par un tiers.
+  const missionsRes = await supabase.from("missions").select(MISSION_COLUMNS).eq("client_id", user.id).in("id", missionIds)
+  if (missionsRes.error) {
+    console.error("[getClientConversations] lecture", missionsRes.error.message)
+    return { error: ERR_LOAD }
+  }
+  const ownedMissionIds = (missionsRes.data ?? []).map((m) => m.id)
+  const [applicationsRes, profilesRes] = await Promise.all([
+    ownedMissionIds.length > 0
+      ? supabase.from("applications").select("mission_id, student_id, status").in("mission_id", ownedMissionIds)
+      : Promise.resolve({ data: [], error: null }),
     supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).in("user_id", studentIds),
   ])
-  if (missionsRes.error || applicationsRes.error || profilesRes.error) {
-    console.error(
-      "[getClientConversations] lecture",
-      missionsRes.error?.message ?? applicationsRes.error?.message ?? profilesRes.error?.message,
-    )
+  if (applicationsRes.error || profilesRes.error) {
+    console.error("[getClientConversations] lecture", applicationsRes.error?.message ?? profilesRes.error?.message)
     return { error: ERR_LOAD }
   }
 
