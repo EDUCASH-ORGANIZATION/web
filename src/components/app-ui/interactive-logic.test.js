@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest"
 import { trapFocus } from "@/hooks/use-modal-focus"
 import {
   addToast,
+  chipKeyAction,
   confirmStepView,
+  createDialogStack,
+  createScrimGuard,
+  gateDocument,
   formatAmountInput,
   hasMoreToScroll,
   nextRadioIndex,
@@ -99,6 +103,12 @@ describe("pile de toasts", () => {
   it("retire un toast par identifiant", () => {
     expect(removeToast([{ id: 1 }, { id: 2 }], 1)).toEqual([{ id: 2 }])
   })
+  it("duration null : toast persistant (null conservé) ; Infinity et NaN retombent sur la durée par défaut", () => {
+    expect(toastDuration("success", null)).toBeNull()
+    expect(toastDuration("error", null)).toBeNull()
+    expect(toastDuration("success", Infinity)).toBe(5000)
+    expect(toastDuration("error", NaN)).toBe(8000)
+  })
   it("garde une erreur plus longtemps", () => {
     expect(toastDuration("error")).toBeGreaterThan(toastDuration("success"))
     expect(toastDuration("success", 1200)).toBe(1200)
@@ -167,5 +177,143 @@ describe("trapFocus", () => {
     const cleanup = trapFocus({ doc, getContainer: () => container, onClose: vi.fn() })
     cleanup()
     expect(listeners.keydown).toBeUndefined()
+  })
+})
+
+describe("chipKeyAction", () => {
+  it("mode lien : les flèches déplacent seulement le focus, jamais la sélection", () => {
+    expect(chipKeyAction({ key: "ArrowRight", linked: true, count: 4, at: 3 })).toEqual({ type: "focus", index: 0 })
+    expect(chipKeyAction({ key: "ArrowLeft", linked: true, count: 4, at: 0 })).toEqual({ type: "focus", index: 3 })
+    expect(chipKeyAction({ key: "Home", linked: true, count: 4, at: 2 })).toEqual({ type: "focus", index: 0 })
+    expect(chipKeyAction({ key: "End", linked: true, count: 4, at: 1 })).toEqual({ type: "focus", index: 3 })
+  })
+  it("mode lien : Entrée et Espace activent", () => {
+    expect(chipKeyAction({ key: "Enter", linked: true, count: 3, at: 1 })).toEqual({ type: "activate" })
+    expect(chipKeyAction({ key: " ", linked: true, count: 3, at: 1 })).toEqual({ type: "activate" })
+  })
+  it("mode bouton : une flèche sélectionne ; Entrée et Espace gardent le comportement natif", () => {
+    expect(chipKeyAction({ key: "ArrowRight", linked: false, count: 3, at: 0 })).toEqual({ type: "select", index: 1 })
+    expect(chipKeyAction({ key: "Enter", linked: false, count: 3, at: 0 })).toBeNull()
+    expect(chipKeyAction({ key: " ", linked: false, count: 3, at: 0 })).toBeNull()
+  })
+  it("ignore les autres touches", () => {
+    expect(chipKeyAction({ key: "a", linked: true, count: 3, at: 0 })).toBeNull()
+    expect(chipKeyAction({ key: "Tab", linked: false, count: 3, at: 0 })).toBeNull()
+  })
+})
+
+describe("createScrimGuard", () => {
+  const scrim = {}
+  const inside = {}
+  const ev = (target) => ({ target, currentTarget: scrim })
+  it("ferme quand l'appui et le clic sont sur le voile", () => {
+    const onClose = vi.fn()
+    const guard = createScrimGuard(onClose)
+    guard.onPointerDown(ev(scrim))
+    guard.onClick(ev(scrim))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+  it("ne ferme pas si l'appui est parti de la boîte (glisser de sélection relâché sur le voile)", () => {
+    const onClose = vi.fn()
+    const guard = createScrimGuard(onClose)
+    guard.onPointerDown(ev(inside))
+    guard.onClick(ev(scrim))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+  it("ne ferme pas sans appui préalable ni pour un clic dans la boîte, et l'origine est oubliée après chaque clic", () => {
+    const onClose = vi.fn()
+    const guard = createScrimGuard(onClose)
+    guard.onClick(ev(scrim))
+    guard.onPointerDown(ev(scrim))
+    guard.onClick(ev(inside))
+    guard.onClick(ev(scrim))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+})
+
+// Deux dialogues empilés (Drawer, puis ConfirmDialog au dessus) sur un même document simulé.
+function stackedDialogs() {
+  const listeners = []
+  const doc = {
+    body: { style: { overflow: "" } },
+    activeElement: null,
+    addEventListener: (type, fn) => { if (type === "keydown") listeners.push(fn) },
+    removeEventListener: (type, fn) => {
+      const i = listeners.indexOf(fn)
+      if (i >= 0) listeners.splice(i, 1)
+    },
+  }
+  const makeItems = (n) =>
+    Array.from({ length: n }, () => ({
+      focus: vi.fn(function focus() { doc.activeElement = this }),
+      getClientRects: () => [1],
+      closest: () => null,
+    }))
+  const dialogs = createDialogStack()
+  const open = (id, count) => {
+    const items = makeItems(count)
+    const container = { querySelectorAll: () => items }
+    const onClose = vi.fn()
+    dialogs.push(id)
+    const cleanup = trapFocus({ doc: gateDocument(doc, () => dialogs.isTop(id)), getContainer: () => container, onClose })
+    return { items, onClose, close: () => { cleanup(); dialogs.remove(id) } }
+  }
+  const press = (key, shiftKey = false) => {
+    const event = { key, shiftKey, preventDefault: vi.fn() }
+    for (const fn of [...listeners]) fn(event)
+  }
+  return { open, press, dialogs, listeners }
+}
+
+describe("pile de dialogues", () => {
+  it("createDialogStack : seul le dernier empilé est au dessus, la fermeture rend la main au dessous", () => {
+    const stack = createDialogStack()
+    expect(stack.isTop("a")).toBe(false)
+    stack.push("a")
+    stack.push("b")
+    expect(stack.isTop("b")).toBe(true)
+    expect(stack.isTop("a")).toBe(false)
+    stack.remove("b")
+    expect(stack.isTop("a")).toBe(true)
+    stack.push("a")
+    expect(stack.size()).toBe(1)
+  })
+
+  it("Drawer + ConfirmDialog : Échap ne ferme que le dialogue du dessus", () => {
+    const { open, press } = stackedDialogs()
+    const drawer = open("drawer", 2)
+    const confirm = open("confirm", 2)
+    press("Escape")
+    expect(confirm.onClose).toHaveBeenCalledTimes(1)
+    expect(drawer.onClose).not.toHaveBeenCalled()
+    confirm.close()
+    press("Escape")
+    expect(drawer.onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it("Drawer + ConfirmDialog : Tab boucle dans le dialogue du dessus seulement, puis le dessous reprend", () => {
+    const { open, press } = stackedDialogs()
+    const drawer = open("drawer", 3)
+    const confirm = open("confirm", 2)
+    expect(confirm.items[0].focus).toHaveBeenCalled()
+    press("Tab")
+    press("Tab")
+    // Le Tab est traité par le dessus (ConfirmDialog) : le Drawer n'a eu que son focus initial.
+    expect(drawer.items.map((el) => el.focus.mock.calls.length)).toEqual([1, 0, 0])
+    expect(confirm.items.map((el) => el.focus.mock.calls.length)).toEqual([2, 1])
+    confirm.close()
+    press("Tab")
+    // Le focus n'étant dans aucun élément du Drawer, Tab le place sur le premier : le dessous a repris la main.
+    expect(drawer.items.map((el) => el.focus.mock.calls.length)).toEqual([2, 0, 0])
+  })
+
+  it("le filtre retire ses écouteurs au nettoyage", () => {
+    const { open, listeners } = stackedDialogs()
+    const a = open("a", 1)
+    const b = open("b", 1)
+    expect(listeners).toHaveLength(2)
+    b.close()
+    a.close()
+    expect(listeners).toHaveLength(0)
   })
 })

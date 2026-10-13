@@ -18,12 +18,19 @@ export function TabsNav({ items, activeKey, label }) {
     const update = () => setMore(hasMoreToScroll(el))
     update()
     el.addEventListener("scroll", update, { passive: true })
-    window.addEventListener("resize", update)
+    // Le ResizeObserver couvre la fenêtre, le conteneur et le contenu : aucune dépendance sur `items`.
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update)
+    observer?.observe(el)
+    for (const child of el.children) observer?.observe(child)
+    // Onglets ajoutés, retirés ou renommés : le contenu change sans que la fenêtre bouge.
+    const mutations = new MutationObserver(update)
+    mutations.observe(el, { childList: true, subtree: true, characterData: true })
     return () => {
       el.removeEventListener("scroll", update)
-      window.removeEventListener("resize", update)
+      observer?.disconnect()
+      mutations.disconnect()
     }
-  }, [items])
+  }, [])
 
   return (
     <nav aria-label={label} className={cx("tabs-wrap", more && "tabs-wrap--more")}>

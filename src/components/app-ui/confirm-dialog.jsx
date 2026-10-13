@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
 import { Modal } from "./modal"
 import { confirmStepView } from "./interactive-logic"
@@ -54,6 +54,11 @@ function ConfirmDialogOpen({ onClose, onConfirm, steps, tone, cancelLabel }) {
   const [error, setError] = useState(null)
   const cancelRef = useRef(null)
   const { isLast } = confirmStepView({ step, totalSteps: steps.length, tone })
+
+  // Au passage à l'étape 2, le bouton de confirmation a le focus : on le ramène sur « Annuler » (choix sûr).
+  useEffect(() => {
+    if (step > 0) cancelRef.current?.focus()
+  }, [step])
 
   const confirm = async () => {
     if (!isLast) {

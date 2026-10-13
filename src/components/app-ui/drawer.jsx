@@ -1,7 +1,7 @@
 "use client"
 
 import { useId } from "react"
-import { CloseButton, scrimClickHandler, useDialogBehavior, useIsCompact } from "./modal"
+import { CloseButton, useDialogBehavior, useIsCompact, useScrimClose } from "./modal"
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
 
@@ -9,9 +9,10 @@ function DrawerOpen({ onClose, title, footer, initialFocusRef, children }) {
   const titleId = `${useId()}-title`
   const compact = useIsCompact()
   const containerRef = useDialogBehavior({ onClose, initialFocusRef })
+  const scrim = useScrimClose(onClose)
 
   return (
-    <div className="scrim scrim--right ds-scrim-fixed" onClick={scrimClickHandler(onClose)}>
+    <div className="scrim scrim--right ds-scrim-fixed" onPointerDown={scrim.onPointerDown} onClick={scrim.onClick}>
       <aside
         ref={containerRef}
         role="dialog"

@@ -238,3 +238,37 @@ describe("StarsInput", () => {
     expect(html.match(/tabindex="0"/g)).toHaveLength(1)
   })
 })
+
+describe("StarsInput : étiquetage", () => {
+  it("labelledBy remplace aria-label ; describedBy est relié ; sans eux, aria-label par défaut", () => {
+    const html = renderToStaticMarkup(<StarsInput value={2} labelledBy="note-titre" describedBy="note-aide" />)
+    expect(html).toContain('aria-labelledby="note-titre"')
+    expect(html).toContain('aria-describedby="note-aide"')
+    expect(html).not.toContain('role="radiogroup" aria-label=')
+    const plain = renderToStaticMarkup(<StarsInput value={2} />)
+    expect(plain).toContain('aria-label="Note"')
+    expect(plain).not.toContain("aria-labelledby")
+  })
+})
+
+describe("Toast : annonce des erreurs", () => {
+  it("la variante erreur est assertive (role alert), les autres restent dans la zone polie", () => {
+    const toasts = [
+      { id: 1, title: "Ok", variant: "success", duration: 5000 },
+      { id: 2, title: "Échec", variant: "error", duration: null },
+    ]
+    const html = renderToStaticMarkup(<ToastViewport toasts={toasts} onDismiss={noop} compact={false} />)
+    expect(html.match(/aria-live="assertive"/g)).toHaveLength(1)
+    expect(html).toContain('role="alert"')
+    expect(html).toContain('aria-live="polite"')
+  })
+})
+
+describe("ChipFilter : étiquettes et tabulation en mode lien", () => {
+  it("garde un seul arrêt de tabulation et le rôle radio sur chaque lien", () => {
+    const options = [{ value: "a", label: "A", href: "/a" }, { value: "b", label: "B", href: "/b" }]
+    const html = renderToStaticMarkup(<ChipFilter options={options} value="b" label="Filtre" />)
+    expect(html.match(/tabindex="0"/g)).toHaveLength(1)
+    expect(html.match(/role="radio"/g)).toHaveLength(2)
+  })
+})

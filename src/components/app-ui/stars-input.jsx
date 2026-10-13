@@ -7,7 +7,8 @@ import { nextStarValue } from "./interactive-logic"
 const STARS = [1, 2, 3, 4, 5]
 
 // Note de 1 à 5 : groupe radio d'étoiles. `value` : entier ou 0 (aucune note). Flèches, Début et Fin au clavier.
-export function StarsInput({ value = 0, onChange, label = "Note", disabled = false }) {
+// `labelledBy` (id d'un libellé visible) remplace `label` ; `describedBy` pointe vers une aide ou une erreur.
+export function StarsInput({ value = 0, onChange, label = "Note", labelledBy, describedBy, disabled = false }) {
   const refs = useRef([])
   // Un seul arrêt de tabulation : l'étoile choisie, ou la première sans note.
   const tabbable = value >= 1 && value <= 5 ? value : 1
@@ -21,7 +22,13 @@ export function StarsInput({ value = 0, onChange, label = "Note", disabled = fal
   }
 
   return (
-    <div className="stars stars--input" role="radiogroup" aria-label={label}>
+    <div
+      className="stars stars--input"
+      role="radiogroup"
+      aria-label={labelledBy ? undefined : label}
+      aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
+    >
       {STARS.map((n) => (
         <button
           key={n}

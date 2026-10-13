@@ -1,9 +1,16 @@
 "use client"
 
+// Modal et Drawer : pas de portail. Le voile est en `position: fixed` dans l'arbre où le composant est
+// rendu ; un ancêtre avec `transform`, `filter` ou `contain` casserait ce positionnement (le voile
+// ne couvrirait plus la fenêtre). Ne placez donc pas une Modal dans un <form> (les boutons de la boîte
+// le soumettraient), un <p> (HTML invalide) ni un `.item2` (transform possible) : rendez-la à côté.
+// Les dialogues empilés (Drawer puis ConfirmDialog) partagent une pile au niveau du module : seul celui
+// du dessus traite Échap et le piège de focus.
+
 import { useEffect, useId, useRef, useSyncExternalStore } from "react"
 import { Icon } from "@/components/design/icon"
-import { useModalFocus } from "@/hooks/use-modal-focus"
-import { COMPACT_MEDIA_QUERY } from "./interactive-logic"
+import { trapFocus } from "@/hooks/use-modal-focus"
+import { COMPACT_MEDIA_QUERY, createDialogStack, createScrimGuard, gateDocument } from "./interactive-logic"
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
 
@@ -22,23 +29,45 @@ export function useIsCompact() {
   )
 }
 
-// Piège de focus, Échap et retour du focus communs à Modal et Drawer.
+// Pile des dialogues ouverts, au niveau du module (un seul document).
+const dialogs = createDialogStack()
+
+// Piège de focus, Échap et retour du focus communs à Modal et Drawer. Seul le dialogue du dessus
+// de la pile traite Échap et Tab ; à la fermeture, celui du dessous reprend la main.
 export function useDialogBehavior({ onClose, initialFocusRef }) {
   const containerRef = useRef(null)
-  const returnFocusRef = useRef(null)
-  // Déclaré avant useModalFocus : l'élément qui avait le focus à l'ouverture est mémorisé avant le déplacement du focus.
+  const onCloseRef = useRef(onClose)
+  const token = useId()
   useEffect(() => {
-    returnFocusRef.current = document.activeElement
-  }, [])
-  useModalFocus({ containerRef, initialFocusRef, returnFocusRef, onClose })
+    onCloseRef.current = onClose
+  })
+  useEffect(() => {
+    const returnTarget = document.activeElement
+    dialogs.push(token)
+    const cleanup = trapFocus({
+      doc: gateDocument(document, () => dialogs.isTop(token)),
+      getContainer: () => containerRef.current,
+      initialFocus: initialFocusRef?.current,
+      returnTarget,
+      onClose: () => onCloseRef.current?.(),
+    })
+    return () => {
+      cleanup()
+      dialogs.remove(token)
+    }
+  }, [token, initialFocusRef])
   return containerRef
 }
 
-// Un clic sur le voile (et non dans la boîte) ferme.
-export function scrimClickHandler(onClose) {
-  return (e) => {
-    if (e.target === e.currentTarget) onClose()
-  }
+// Poignées du voile : ferme seulement si l'appui et le clic sont tous deux sur le voile (pas dans la boîte).
+export function useScrimClose(onClose) {
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
+  const guardRef = useRef(null)
+  if (guardRef.current === null) guardRef.current = createScrimGuard(() => onCloseRef.current?.())
+  return guardRef.current
 }
 
 export function CloseButton({ onClose }) {
@@ -55,9 +84,10 @@ function ModalOpen({ onClose, title, description, footer, size, tone, initialFoc
   const descriptionId = `${uid}-desc`
   const compact = useIsCompact()
   const containerRef = useDialogBehavior({ onClose, initialFocusRef })
+  const scrim = useScrimClose(onClose)
 
   return (
-    <div className={cx("scrim ds-scrim-fixed", compact && "scrim--bottom")} onClick={scrimClickHandler(onClose)}>
+    <div className={cx("scrim ds-scrim-fixed", compact && "scrim--bottom")} onPointerDown={scrim.onPointerDown} onClick={scrim.onClick}>
       <div
         ref={containerRef}
         role="dialog"

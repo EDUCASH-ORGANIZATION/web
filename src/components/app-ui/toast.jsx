@@ -18,12 +18,18 @@ export function useAppToast() {
 
 function ToastItem({ toast, onDismiss }) {
   useEffect(() => {
+    // duration null : toast persistant, fermé seulement par l'utilisateur ou dismiss(id).
+    if (toast.duration === null) return undefined
     const timer = setTimeout(() => onDismiss(toast.id), toast.duration)
     return () => clearTimeout(timer)
   }, [toast.id, toast.duration, onDismiss])
 
   return (
-    <div className={`toast ${VARIANT_CLASS[toast.variant]}`}>
+    <div
+      className={`toast ${VARIANT_CLASS[toast.variant]}`}
+      role={toast.variant === "error" ? "alert" : undefined}
+      aria-live={toast.variant === "error" ? "assertive" : undefined}
+    >
       <span className="toast__icon"><Icon name={ICONS[toast.variant]} /></span>
       <div>
         <div className="toast__title">{toast.title}</div>
@@ -56,7 +62,7 @@ export function ToastViewport({ toasts, onDismiss, compact }) {
   )
 }
 
-// useAppToast() -> { toast({ title, text, variant, duration }), success(title, text), error(title, text), dismiss(id) }
+// useAppToast() -> { toast({ title, text, variant, duration (ms ; null = persistant) }), success(title, text), error(title, text), dismiss(id) }
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
   const nextId = useRef(0)

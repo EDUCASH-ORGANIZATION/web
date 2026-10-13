@@ -2,25 +2,30 @@
 
 import Link from "next/link"
 import { useRef } from "react"
-import { nextRadioIndex } from "./interactive-logic"
+import { chipKeyAction } from "./interactive-logic"
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
 
 // Groupe de puces à choix unique. options : [{ value, label, href?, count? }].
 // Avec `href` sur les options : mode lien (la sélection est l'URL) ; sinon mode bouton (`onChange(value)`).
-// Flèches gauche/droite (et haut/bas, Début, Fin) déplacent le choix ; un seul arrêt de tabulation.
+// Un seul arrêt de tabulation. Mode bouton : les flèches (et Début, Fin) changent le choix.
+// Mode lien (activation manuelle) : les flèches déplacent seulement le focus, Entrée ou Espace activent le lien.
 export function ChipFilter({ options, value, onChange, label }) {
   const refs = useRef([])
   const selectedIndex = options.findIndex((o) => o.value === value)
   const tabbable = selectedIndex >= 0 ? selectedIndex : 0
 
   const onKeyDown = (e, index) => {
-    const next = nextRadioIndex(options.length, index, e.key)
-    if (next < 0) return
+    const action = chipKeyAction({ key: e.key, linked: Boolean(options[index]?.href), count: options.length, at: index })
+    if (!action) return
     e.preventDefault()
-    const el = refs.current[next]
+    if (action.type === "activate") {
+      refs.current[index]?.click()
+      return
+    }
+    const el = refs.current[action.index]
     el?.focus()
-    el?.click()
+    if (action.type === "select") el?.click()
   }
 
   return (
