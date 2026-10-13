@@ -16,7 +16,10 @@ const DAY = 24 * HOUR
 function toDate(value) {
   if (value === null || value === undefined) return new Date(NaN)
   const dateOnly = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
-  return dateOnly ? new Date(`${value}T00:00:00Z`) : new Date(value)
+  if (!dateOnly) return new Date(value)
+  const date = new Date(`${value}T00:00:00Z`)
+  // Contrôle aller-retour : "2026-02-30" déborderait sur mars, la date est refusée.
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value ? date : new Date(NaN)
 }
 
 /**
@@ -47,6 +50,7 @@ export function formatRelative(isoOrDate, now = new Date()) {
   const time = toDate(isoOrDate).getTime()
   if (Number.isNaN(time)) return ""
   const diff = now.getTime() - time
+  if (Number.isNaN(diff)) return ""
   const abs = Math.abs(diff)
   if (abs < MIN) return "à l'instant"
   let amount

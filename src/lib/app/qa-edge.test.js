@@ -182,16 +182,16 @@ describe("QA client-routes", () => {
     expect(u.searchParams.get("q")).toBe("a&onglet=done#frag")
     expect(u.hash).toBe("")
     const w = new URL(clientWalletHref({ montant: "1&recharger=0", filtre: "x&y" }), "http://x")
-    expect(w.searchParams.get("montant")).toBe("1&recharger=0")
+    expect(w.searchParams.get("montant")).toBeNull()
     expect(w.searchParams.get("recharger")).toBeNull()
     const c = new URL(clientMissionHref("1", { candidat: "s&confirmer=1" }), "http://x")
     expect(c.searchParams.get("confirmer")).toBeNull()
   })
-  it("paramètres vides omis, filtre tout omis, montant 0 conservé", () => {
+  it("paramètres vides omis, filtre tout omis, montant 0 ou non numérique omis", () => {
     expect(clientMissionsHref()).toBe("/client/missions")
     expect(clientMissionsHref({ onglet: "", q: undefined })).toBe("/client/missions")
     expect(clientWalletHref({ filtre: "tout" })).toBe("/client/wallet")
-    expect(clientWalletHref({ recharger: true, montant: 0 })).toBe("/client/wallet?recharger=1&montant=0")
+    expect(clientWalletHref({ recharger: true, montant: 0 })).toBe("/client/wallet?recharger=1")
     expect(clientWalletHref({ recharger: false })).toBe("/client/wallet")
     expect(clientConversationHref("m")).toBe("/client/messages/m")
   })
@@ -200,6 +200,24 @@ describe("QA client-routes", () => {
     expect(clientMissionHref(undefined, { confirmer: true })).toBe("/client/missions")
     for (const m of [NaN, Infinity, -Infinity]) expect(clientWalletHref({ recharger: true, montant: m })).toBe("/client/wallet?recharger=1")
     expect(clientWalletHref({ montant: 5000 })).toBe("/client/wallet?montant=5000")
+  })
+  it("conversation et avis sans identifiant : repli ; montant négatif ou non numérique omis", () => {
+    for (const v of [undefined, null, ""]) {
+      expect(clientConversationHref(v)).toBe("/client/messages")
+      expect(clientConversationHref(v, "s1")).toBe("/client/messages")
+      expect(clientReviewHref(v)).toBe("/client/missions")
+    }
+    for (const m of [-5, 0, "abc", "", "0", true]) expect(clientWalletHref({ montant: m })).toBe("/client/wallet")
+    expect(clientWalletHref({ montant: "2500" })).toBe("/client/wallet?montant=2500")
+  })
+  it("formatShortDate refuse les dates qui débordent ; formatRelative sans NaN", () => {
+    expect(formatShortDate("2026-02-30")).toBe("")
+    expect(formatShortDate("2026-13-01")).toBe("")
+    expect(formatShortDate("2026-02-28")).not.toBe("")
+    expect(formatShortDate("2024-02-29")).not.toBe("")
+    expect(formatShortDate("2026-02-29")).toBe("")
+    expect(formatRelative("2026-02-30", new Date("2026-10-13T12:00:00Z"))).toBe("")
+    expect(formatRelative("2026-10-10T12:00:00Z", new Date("x"))).toBe("")
   })
   it("clientPublishHref : duplicate seul, avec préremplissage, injection", () => {
     expect(clientPublishHref()).toBe("/client/missions/new")

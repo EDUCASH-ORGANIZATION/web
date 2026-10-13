@@ -11,6 +11,13 @@ function withQuery(path, entries) {
   return qs ? `${path}?${qs}` : path
 }
 
+// Montant numérique strictement positif, sinon undefined (paramètre omis).
+function positiveAmount(montant) {
+  if (montant === undefined || montant === null || montant === "" || typeof montant === "boolean") return undefined
+  const n = Number(montant)
+  return Number.isFinite(n) && n > 0 ? n : undefined
+}
+
 /** @param {{ onglet?: string, q?: string }} [params] */
 export function clientMissionsHref({ onglet, q } = {}) {
   return withQuery("/client/missions", [["onglet", onglet], ["q", q]])
@@ -28,6 +35,7 @@ export function clientMissionHref(id, { candidat, confirmer, publiee } = {}) {
 
 /** `studentId` est le paramètre lu par la page de conversation existante. */
 export function clientConversationHref(missionId, studentId) {
+  if (missionId === undefined || missionId === null || missionId === "") return "/client/messages"
   return withQuery(`/client/messages/${encodeURIComponent(missionId)}`, [["studentId", studentId]])
 }
 
@@ -35,7 +43,7 @@ export function clientConversationHref(missionId, studentId) {
 export function clientWalletHref({ recharger, montant, filtre } = {}) {
   return withQuery("/client/wallet", [
     ["recharger", recharger],
-    ["montant", typeof montant === "number" && !Number.isFinite(montant) ? undefined : montant],
+    ["montant", positiveAmount(montant)],
     ["filtre", filtre && filtre !== "tout" ? filtre : undefined],
   ])
 }
@@ -50,5 +58,6 @@ export function clientPublishHref({ duplicate, ...prefill } = {}) {
 
 /** Renvoie l'écran d'avis existant tant que C10 n'existe pas. */
 export function clientReviewHref(missionId) {
+  if (missionId === undefined || missionId === null || missionId === "") return "/client/missions"
   return `/review/${encodeURIComponent(missionId)}`
 }
