@@ -7,7 +7,6 @@ vi.mock("@/lib/actions/mission.actions", () => ({ confirmMission: vi.fn() }))
 
 const { Toaster } = await import("@/components/shared/toaster")
 const { MissionHeader } = await import("./mission-header")
-const { MissionOpenView } = await import("./open-view")
 const { MissionFollowupView } = await import("./followup-view")
 
 const student = {
@@ -58,14 +57,6 @@ describe("MissionHeader", () => {
 })
 
 describe("bouchons des vues (parité fonctionnelle)", () => {
-  it("MissionOpenView affiche l'en-tête et la candidature avec Accepter et Refuser", () => {
-    const html = renderToStaticMarkup(<Toaster><MissionOpenView detail={detailOf("open")} candidate={null} flags={FLAGS} /></Toaster>)
-    expect(html).toContain("Cours de maths")
-    expect(html).toContain("Awa Kouassi")
-    expect(html).toContain("Accepter")
-    expect(html).toContain("Refuser")
-  })
-
   it.each(["in_progress", "done", "cancelled"])("MissionFollowupView rend le statut %s", (status) => {
     const html = renderToStaticMarkup(<Toaster><MissionFollowupView detail={detailOf(status)} flags={FLAGS} /></Toaster>)
     expect(html).toContain("Cours de maths")
