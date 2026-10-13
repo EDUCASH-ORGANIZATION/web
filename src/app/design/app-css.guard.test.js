@@ -470,7 +470,9 @@ describe("cascade statique : specificite et ordre de chargement", () => {
 
   it("unites de montant : jamais sous 13 px (.amount--s small, .fund2__amt small), dans .c2", () => {
     const amountS = { tag: "small", classes: [], ancestors: [...ANCESTORS, "amount", "amount--s"] }
-    expect(computedStyle(RULES, amountS)["font-size"]).toBe("max(var(--t-micro), .42em)")
+    expect(computedStyle(RULES, amountS)["font-size"]).toBe("max(var(--t-micro), .76em)")
+    const amountM = { tag: "small", classes: [], ancestors: [...ANCESTORS, "amount"] }
+    expect(computedStyle(RULES, amountM)["font-size"]).toBe("max(var(--t-micro), .42em)")
     const fund = { tag: "small", classes: [], ancestors: [...ANCESTORS, "fund2__amt"] }
     expect(computedStyle(RULES, fund)["font-size"]).toBe("max(var(--t-micro), .8em)")
     const c14 = stripComments(read("client/c14.css"))
@@ -496,7 +498,7 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     inTablet("client/c05.css", ".c2 .drawer .link2 { min-height: 44px; }")
     inTablet("client/c08.css", ".c2 .fup2 .status2 .link2 { display: inline-flex; min-height: 44px; }")
     inTablet("client/c08.css", ".c2 .head2__date .meta2 > a::after { content: \"\"; position: absolute; inset: -12px -6px; }")
-    inTablet("client/c09.css", ".c2 .modal__body .check { min-height: 44px; align-items: center; }")
+    inTablet("client/c09.css", ".c2 .modal__body .check { min-height: 44px; align-items: flex-start; }")
     inTablet("client/c09.css", ".c2 .modal__body .note2 .link2 { display: inline-flex; min-height: 44px; }")
     inTablet("client/c15.css", ".c2 .banner__actions .link2 { min-height: 44px; }")
     inTablet("client/c16.css", ".c2 .modal__body .chip { min-height: 44px; }")
