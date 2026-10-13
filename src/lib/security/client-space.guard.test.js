@@ -208,6 +208,10 @@ const FILES = [
   ...MARKED_DIRS.flatMap((d) => walk(d)).filter((f) => readFileSync(f, "utf8").includes(MARKER)),
 ]
 
+// Fichiers de src/app/(client) dispensés du marqueur (aucun aujourd'hui : layout, loading, error et
+// not-found le portent aussi). Toute entrée doit être justifiée ici et rester existante.
+const MARKER_EXEMPT = []
+
 // ─── Tests ──────────────────────────────────────────────────────────────────────────────────
 
 describe("garde-fou de l'espace client (RD-CLIENT-01)", () => {
@@ -215,6 +219,14 @@ describe("garde-fou de l'espace client (RD-CLIENT-01)", () => {
     expect(FILES).toContain("src/lib/app/format.js")
     expect(FILES).toContain("src/lib/app/client-routes.js")
     expect(FILES.filter((f) => f.startsWith("src/lib/app/")).length).toBeGreaterThanOrEqual(6)
+  })
+
+  it("tout fichier de src/app/(client) porte le marqueur ou figure dans la liste justifiée", () => {
+    const files = walk("src/app/(client)")
+    expect(files.length).toBeGreaterThan(0)
+    const unmarked = files.filter((f) => !MARKER_EXEMPT.includes(f) && !readFileSync(f, "utf8").includes(MARKER))
+    expect(unmarked).toEqual([])
+    expect(MARKER_EXEMPT.filter((f) => !existsSync(f))).toEqual([])
   })
 
   it("aucun fichier scanné ne viole une règle", () => {
