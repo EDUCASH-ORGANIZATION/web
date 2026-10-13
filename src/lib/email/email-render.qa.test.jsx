@@ -5,9 +5,8 @@ import { contrastRatio } from "@/lib/design/contrast"
 import { LOGO_URLS } from "@/lib/email/brand"
 
 // QA independante : rendu HTML reel des gabarits Resend migres.
-const EXEMPT = ["payment-received-wallet.jsx", "wallet-deposited.jsx"]
 const DIR = "src/lib/email/templates"
-const files = readdirSync(DIR).filter((f) => f.endsWith(".jsx") && !EXEMPT.includes(f))
+const files = readdirSync(DIR).filter((f) => f.endsWith(".jsx"))
 const LEGACY = /#2F3BED|#C8F03C|#0E0F1A|#1A6B4A|#f9fafb|#374151/i
 
 async function render(file, props = {}) {
@@ -16,7 +15,7 @@ async function render(file, props = {}) {
 }
 
 describe("rendu HTML des gabarits migres", () => {
-  it("10 gabarits migres", () => expect(files).toHaveLength(10))
+  it("12 gabarits migres", () => expect(files).toHaveLength(12))
 
   for (const f of files) {
     describe(f, () => {

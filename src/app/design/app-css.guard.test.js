@@ -248,6 +248,16 @@ describe("feuilles app-shell.css et client/*.css", () => {
     expect(SHELL).toMatch(/\.side2__brand \.logo \{ height: 37px; width: auto; align-self: flex-start; \}/)
   })
 
+  it("durcit la coquille : pastille 20 px, libelles tronques, avatar image rogne, formulaire de recherche et .search2 sans debordement", () => {
+    expect(SHELL).toContain(".bottom-nav--v2 .bnav-item__dot { min-width: 20px; height: 20px; }")
+    expect(SHELL).toContain(".bottom-nav--v2 .bnav-item { min-width: 0; }")
+    expect(SHELL).toContain(".bottom-nav--v2 .bnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }")
+    expect(SHELL).toContain(".c2 .av2 { overflow: hidden; }")
+    expect(SHELL).toContain(".c2 .av2 img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }")
+    expect(SHELL).toContain(".shell--v2 .top2 form { flex: 0 1 auto; min-width: 0; }")
+    expect(SHELL).toMatch(/\.search2 \{[^}]*width: 440px; max-width: 100%;/)
+  })
+
   it("donne a .head2__title l'interligne des titres Anton", () => {
     expect(SHELL).toMatch(/\.head2__title \{[^}]*line-height: var\(--lh-display\)/)
   })

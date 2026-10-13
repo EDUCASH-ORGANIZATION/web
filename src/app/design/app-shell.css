@@ -64,7 +64,7 @@
 .top2__actions { margin-left: auto; display: flex; align-items: center; gap: var(--s-2); }
 .top2__stamp { font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); margin-right: var(--s-2); }
 /* Recherche simple : un champ, pas de chips */
-.search2 { display: flex; align-items: center; gap: 10px; width: 440px; height: 44px; padding: 0 12px 0 14px; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: 12px; color: var(--c-ardoise); }
+.search2 { display: flex; align-items: center; gap: 10px; width: 440px; max-width: 100%; height: 44px; padding: 0 12px 0 14px; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: 12px; color: var(--c-ardoise); }
 .search2 .ic { width: 18px; height: 18px; stroke-width: 1.75; }
 .search2 input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: var(--t-body-s); color: var(--c-encre); }
 .search2 input::placeholder { color: var(--c-ardoise); opacity: 1; }
@@ -157,6 +157,12 @@
 .bottom-nav--v2 .bnav-item.is-active { background: var(--c-blanc); color: var(--c-encre); }
 .bottom-nav--v2 .bnav-item.is-active .ic { color: var(--c-bleu); }
 .bottom-nav--v2 .bnav-item__dot { background: var(--c-blanc); color: var(--c-encre); font-size: var(--t-micro); }
+.bottom-nav--v2 .bnav-item__dot { min-width: 20px; height: 20px; }
+.bottom-nav--v2 .bnav-item { min-width: 0; }
+.bottom-nav--v2 .bnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c2 .av2 { overflow: hidden; }
+.c2 .av2 img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.shell--v2 .top2 form { flex: 0 1 auto; min-width: 0; }
 
 /* ---------- Squelette fidèle de la v2 ---------- */
 .skel2-hero { height: 196px; border-radius: 16px; }
