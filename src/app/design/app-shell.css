@@ -156,6 +156,8 @@
    inactifs : icone seule, brume. Specificite : toutes les regles sont en (0,2,0) minimum et chargees apres
    layouts.css, elles l'emportent sur .bottom-nav et .bnav-item ; .c2 n'a aucune regle sur a, button ou .ic. */
 .bottom-nav--v2 { display: none; }
+/* Police : memes familles que la racine .ds (--f-text, Figtree) ; les espaces etudiant et admin n'ont pas .ds et heriteraient d'Inter/Arial. */
+.bottom-nav--v2, .bnav2-more__panel { font-family: var(--f-text); }
 .bottom-nav--v2 .bnav-item { flex: 1 1 0; flex-direction: row; gap: 0; min-width: 44px; height: 48px; margin: 0; padding: 0; border: 0; background: transparent; color: var(--c-brume); font-family: inherit; font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: 0; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease), padding var(--dur-3) var(--ease), transform var(--dur-1) var(--ease); }
 .bottom-nav--v2 .bnav-item .ic { width: 24px; height: 24px; }
 .bottom-nav--v2 .bnav-item:hover { background: color-mix(in srgb, var(--c-blanc) 8%, transparent); color: var(--c-blanc); }

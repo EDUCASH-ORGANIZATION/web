@@ -370,6 +370,19 @@ describe("feuilles app-shell.css et client/*.css", () => {
     expect(onActive["border-color"]).toBe("var(--c-citron)")
   })
 
+  it("capsule : meme police que la racine .ds (--f-text), y compris dans les espaces etudiant et admin sans .ds", () => {
+    const ds = read("components.css")
+    const dsFont = ds.match(/^\.ds \{[^}]*font-family: ([^;]+);/m)[1]
+    expect(dsFont).toBe("var(--f-text)")
+    expect(SHELL).toContain(".bottom-nav--v2, .bnav2-more__panel { font-family: var(--f-text); }")
+    // --f-text vient de la variable next/font Figtree, posee sur <html> par le layout racine (donc presente dans tous les espaces).
+    const tokens = read("tokens.css")
+    expect(tokens).toMatch(/--f-text: var\(--font-figtree\)/)
+    const root = readFileSync(path.join(dir, "..", "layout.js"), "utf8")
+    expect(root).toMatch(/variable: "--font-figtree"/)
+    expect(root).toMatch(/<html [^>]*\$\{figtree\.variable\}/)
+  })
+
   it("capsule : Plus (panneau encre, ombre dure, liens de 48 px, actif citron), espaceur masque hors media et dimensionne sous 1024", () => {
     expect(SHELL).toMatch(/\.bnav2-more \{ display: flex; flex: 1 1 0; min-width: 44px; \}/)
     expect(SHELL).toMatch(/\.bnav2-more__panel \{[^}]*bottom: calc\(100% \+ var\(--s-2\)\)[^}]*background: var\(--c-encre\); box-shadow: var\(--sh-dur-s\); z-index: var\(--z-menu\);/)
