@@ -9,7 +9,7 @@ const cx = (...parts) => parts.filter(Boolean).join(" ")
 // Groupe de puces à choix unique. options : [{ value, label, href?, count? }].
 // Avec `href` sur les options : mode lien (la sélection est l'URL) ; sinon mode bouton (`onChange(value)`).
 // Un seul arrêt de tabulation. Mode bouton : les flèches (et Début, Fin) changent le choix.
-// Mode lien (activation manuelle) : les flèches déplacent seulement le focus, Entrée ou Espace activent le lien.
+// Mode lien (activation manuelle) : les flèches déplacent seulement le focus, Espace active le lien, Entrée reste native.
 export function ChipFilter({ options, value, onChange, label }) {
   const refs = useRef([])
   const selectedIndex = options.findIndex((o) => o.value === value)

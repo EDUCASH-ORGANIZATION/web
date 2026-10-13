@@ -4,13 +4,20 @@ import { useEffect, useRef, useSyncExternalStore } from "react"
 import { Icon } from "@/components/design/icon"
 import { useAppToast } from "./toast"
 
-function subscribeOnline(onChange) {
+// Abonnement aux événements réseau du navigateur (exporté pour les tests).
+export function subscribeOnline(onChange) {
   window.addEventListener("online", onChange)
   window.addEventListener("offline", onChange)
   return () => {
     window.removeEventListener("online", onChange)
     window.removeEventListener("offline", onChange)
   }
+}
+
+// Transition de connexion : `notify` est vrai au retour du réseau après une coupure observée.
+export function reconnectTransition(wasOffline, online) {
+  if (!online) return { wasOffline: true, notify: false }
+  return { wasOffline: false, notify: wasOffline }
 }
 
 // Bandeau encre affiché hors connexion ; au retour du réseau, un toast le confirme.
@@ -21,12 +28,9 @@ export function OfflineBanner() {
   const wasOffline = useRef(false)
 
   useEffect(() => {
-    if (!online) {
-      wasOffline.current = true
-    } else if (wasOffline.current) {
-      wasOffline.current = false
-      success("Connexion rétablie")
-    }
+    const next = reconnectTransition(wasOffline.current, online)
+    wasOffline.current = next.wasOffline
+    if (next.notify) success("Connexion rétablie")
   }, [online, success])
 
   if (online) return null

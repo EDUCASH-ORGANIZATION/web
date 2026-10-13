@@ -239,6 +239,9 @@
 
 /* ---------- Primitives interactives (app-ui) ---------- */
 .ds-toasts-fixed { position: fixed; z-index: var(--z-toast); }
+.ds-toasts-fixed { gap: 0; }
+.ds-toasts__zone { display: flex; flex-direction: column; gap: 10px; }
+.ds-toasts__zone:not(:empty) + .ds-toasts__zone:not(:empty) { margin-top: 10px; }
 .toasts--mobile.ds-toasts-fixed { bottom: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
 /* Ecrans de detail : les toasts passent au-dessus de .mbar2 (repli :has en regle separee) */
 .shell--detail .toasts--mobile.ds-toasts-fixed { bottom: calc(140px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }

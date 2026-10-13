@@ -196,8 +196,8 @@ describe("chipKeyAction", () => {
     expect(chipKeyAction({ key: "Home", linked: true, count: 4, at: 2 })).toEqual({ type: "focus", index: 0 })
     expect(chipKeyAction({ key: "End", linked: true, count: 4, at: 1 })).toEqual({ type: "focus", index: 3 })
   })
-  it("mode lien : Entrée et Espace activent", () => {
-    expect(chipKeyAction({ key: "Enter", linked: true, count: 3, at: 1 })).toEqual({ type: "activate" })
+  it("mode lien : Espace active, Entrée garde le comportement natif du lien", () => {
+    expect(chipKeyAction({ key: "Enter", linked: true, count: 3, at: 1 })).toBeNull()
     expect(chipKeyAction({ key: " ", linked: true, count: 3, at: 1 })).toEqual({ type: "activate" })
   })
   it("mode bouton : une flèche sélectionne ; Entrée et Espace gardent le comportement natif", () => {

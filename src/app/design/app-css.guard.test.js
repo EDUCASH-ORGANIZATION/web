@@ -111,7 +111,7 @@ function classNamesOf(css) {
 const NEW_CLASS = /(?:2(?:x|-[a-z]+)?(?:__[\w-]+|--[\w-]+)?|--v2)$/
 const NEW_SYSTEM = new Set([
   "btn--soft", "btn--sidebar", "btn--blanc", "btn--ghost-blanc", "sidebar__me",
-  "ds-toasts-fixed", "ds-drawer--full", "ds-stars__btn",
+  "ds-toasts-fixed", "ds-toasts__zone", "ds-drawer--full", "ds-stars__btn",
 ])
 const isNew = (c) => NEW_CLASS.test(c) || NEW_SYSTEM.has(c)
 

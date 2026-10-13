@@ -101,6 +101,7 @@ describe("ToastProvider", () => {
     expect(html).toContain("<p>Page</p>")
     expect(html).toContain('aria-live="polite"')
     expect(html).toContain('role="status"')
+    expect(html).toContain('aria-live="assertive"')
     expect(html).not.toContain('class="toast ')
   })
 
@@ -252,15 +253,26 @@ describe("StarsInput : étiquetage", () => {
 })
 
 describe("Toast : annonce des erreurs", () => {
-  it("la variante erreur est assertive (role alert), les autres restent dans la zone polie", () => {
+  const zones = (html) => html.split('class="ds-toasts__zone"').slice(1)
+
+  it("les erreurs vont dans une zone assertive séparée, les autres dans la zone polie", () => {
     const toasts = [
       { id: 1, title: "Ok", variant: "success", duration: 5000 },
       { id: 2, title: "Échec", variant: "error", duration: null },
     ]
-    const html = renderToStaticMarkup(<ToastViewport toasts={toasts} onDismiss={noop} compact={false} />)
-    expect(html.match(/aria-live="assertive"/g)).toHaveLength(1)
-    expect(html).toContain('role="alert"')
-    expect(html).toContain('aria-live="polite"')
+    const [polite, assertive] = zones(renderToStaticMarkup(<ToastViewport toasts={toasts} onDismiss={noop} compact={false} />))
+    expect(polite).toContain('aria-live="polite"')
+    expect(polite).toContain("Ok")
+    expect(polite).not.toContain("Échec")
+    expect(assertive).toContain('aria-live="assertive"')
+    expect(assertive).toContain("Échec")
+    expect(assertive).not.toContain("Ok")
+  })
+
+  it("aucun toast n'est lui-même un role alert dans la zone polie, et les deux zones existent sans toast", () => {
+    const html = renderToStaticMarkup(<ToastViewport toasts={[{ id: 1, title: "Échec", variant: "error", duration: null }]} onDismiss={noop} compact />)
+    expect(html.match(/role="alert"/g)).toHaveLength(1)
+    expect(zones(renderToStaticMarkup(<ToastViewport toasts={[]} onDismiss={noop} compact />))).toHaveLength(2)
   })
 })
 

@@ -25,11 +25,7 @@ function ToastItem({ toast, onDismiss }) {
   }, [toast.id, toast.duration, onDismiss])
 
   return (
-    <div
-      className={`toast ${VARIANT_CLASS[toast.variant]}`}
-      role={toast.variant === "error" ? "alert" : undefined}
-      aria-live={toast.variant === "error" ? "assertive" : undefined}
-    >
+    <div className={`toast ${VARIANT_CLASS[toast.variant]}`}>
       <span className="toast__icon"><Icon name={ICONS[toast.variant]} /></span>
       <div>
         <div className="toast__title">{toast.title}</div>
@@ -47,17 +43,18 @@ function ToastItem({ toast, onDismiss }) {
   )
 }
 
-// Zone d'annonce : présente en permanence pour que les lecteurs d'écran annoncent chaque ajout.
+// Zones d'annonce, présentes en permanence pour que les lecteurs d'écran annoncent chaque ajout :
+// une zone polie (succès, information) et une zone assertive séparée pour les erreurs.
 export function ToastViewport({ toasts, onDismiss, compact }) {
+  const render = (list) => list.map((t) => <ToastItem key={t.id} toast={t} onDismiss={onDismiss} />)
   return (
-    <div
-      className={`toasts ds-toasts-fixed ${compact ? "toasts--mobile" : "toasts--bureau"}`}
-      role="status"
-      aria-live="polite"
-    >
-      {toasts.map((t) => (
-        <ToastItem key={t.id} toast={t} onDismiss={onDismiss} />
-      ))}
+    <div className={`toasts ds-toasts-fixed ${compact ? "toasts--mobile" : "toasts--bureau"}`}>
+      <div className="ds-toasts__zone" role="status" aria-live="polite">
+        {render(toasts.filter((t) => t.variant !== "error"))}
+      </div>
+      <div className="ds-toasts__zone" role="alert" aria-live="assertive">
+        {render(toasts.filter((t) => t.variant === "error"))}
+      </div>
     </div>
   )
 }

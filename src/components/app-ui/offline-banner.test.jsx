@@ -10,7 +10,7 @@ vi.mock("react", async (importOriginal) => {
 vi.mock("./modal", () => ({ useIsCompact: () => false }))
 
 const { ToastProvider } = await import("./toast")
-const { OfflineBanner } = await import("./offline-banner")
+const { OfflineBanner, subscribeOnline, reconnectTransition } = await import("./offline-banner")
 
 function render(onLine) {
   vi.stubGlobal("navigator", { onLine })
@@ -39,5 +39,45 @@ describe("OfflineBanner sous ToastProvider", () => {
     const text = html.replace(/<[^>]+>/g, " ")
     expect(text).toMatch(/\bVous\b/)
     expect(text).not.toMatch(/(?<![\p{L}-])(?:tu|ton|ta|tes|te|toi)(?![\p{L}])/iu)
+  })
+})
+
+describe("subscribeOnline", () => {
+  function fakeWindow() {
+    const listeners = {}
+    return {
+      listeners,
+      addEventListener: (type, fn) => { (listeners[type] ??= new Set()).add(fn) },
+      removeEventListener: (type, fn) => { listeners[type]?.delete(fn) },
+    }
+  }
+
+  it("écoute online et offline, appelle le rappel à chaque événement et se désabonne", () => {
+    const win = fakeWindow()
+    vi.stubGlobal("window", win)
+    const onChange = vi.fn()
+    const unsubscribe = subscribeOnline(onChange)
+    expect(Object.keys(win.listeners).sort()).toEqual(["offline", "online"])
+    for (const fn of win.listeners.online) fn()
+    for (const fn of win.listeners.offline) fn()
+    expect(onChange).toHaveBeenCalledTimes(2)
+    unsubscribe()
+    expect(win.listeners.online.size).toBe(0)
+    expect(win.listeners.offline.size).toBe(0)
+  })
+})
+
+describe("reconnectTransition et toast de reconnexion", () => {
+  it("notifie une seule fois au retour du réseau, jamais au premier rendu en ligne", () => {
+    expect(reconnectTransition(false, true)).toEqual({ wasOffline: false, notify: false })
+    expect(reconnectTransition(false, false)).toEqual({ wasOffline: true, notify: false })
+    expect(reconnectTransition(true, false)).toEqual({ wasOffline: true, notify: false })
+    expect(reconnectTransition(true, true)).toEqual({ wasOffline: false, notify: true })
+  })
+
+  it("le texte du toast est « Connexion rétablie » et l'instantané serveur est en ligne", async () => {
+    const source = (await import("node:fs")).readFileSync(new URL("./offline-banner.jsx", import.meta.url), "utf8")
+    expect(source).toContain('success("Connexion rétablie")')
+    expect(source).toMatch(/useSyncExternalStore\(subscribeOnline, \(\) => navigator\.onLine, \(\) => true\)/)
   })
 })

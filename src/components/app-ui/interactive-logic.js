@@ -29,10 +29,11 @@ export function nextRadioIndex(count, at, key) {
 }
 
 // Action d'une touche dans un ChipFilter. En mode lien (activation manuelle) les flèches déplacent
-// seulement le focus et Entrée ou Espace activent ; en mode bouton une flèche sélectionne (comportement APG).
+// seulement le focus et Espace active ; Entrée garde le comportement natif du lien (Cmd ou Ctrl+Entrée ouvre un onglet) ;
+// en mode bouton une flèche sélectionne (comportement APG).
 // Renvoie null quand la touche ne fait rien de particulier (le navigateur garde son comportement).
 export function chipKeyAction({ key, linked, count, at }) {
-  if (linked && (key === "Enter" || key === " " || key === "Spacebar")) return { type: "activate" }
+  if (linked && (key === " " || key === "Spacebar")) return { type: "activate" }
   const index = nextRadioIndex(count, at, key)
   if (index < 0) return null
   return { type: linked ? "focus" : "select", index }
