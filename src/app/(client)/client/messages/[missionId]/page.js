@@ -1,73 +1,26 @@
-import { redirect, notFound } from "next/navigation"
-import { getCurrentUser } from "@/lib/actions/auth.actions"
-import { createClient } from "@/lib/supabase/server"
-import { ConversationView } from "@/components/messages/conversation-view"
+// @ds-screen RD-CLIENT-01
+import { notFound } from "next/navigation"
+import { getClientConversation } from "@/lib/actions/message.actions"
+import { ConversationView } from "@/components/client-space/messages/conversation-view"
+import { ErrorState } from "@/components/app-ui/state-block"
 
 export const metadata = { title: "Conversation - EduCash" }
 
+// Premier paramètre d'URL sous forme de texte (jamais un tableau ni autre chose).
+function paramText(value) {
+  return typeof value === "string" ? value : undefined
+}
+
+// Pas de Suspense autour de la lecture : notFound() doit répondre 404 avant l'envoi de la page, et ce
+// segment ne porte aucun loading.js (même raison, voir le parent client/messages).
 export default async function ClientConversationPage({ params, searchParams }) {
   const { missionId } = await params
-  const { studentId: studentIdParam } = await searchParams
-  const user = await getCurrentUser()
-  if (!user) redirect("/auth/login")
+  const query = (await searchParams) ?? {}
 
-  const supabase = await createClient()
-
-  const [{ data: messages }, { data: mission }] = await Promise.all([
-    supabase
-      .from("messages")
-      .select("*")
-      .eq("mission_id", missionId)
-      .order("created_at", { ascending: true }),
-
-    supabase
-      .from("missions")
-      .select("title, status, selected_student_id, client_id")
-      .eq("id", missionId)
-      .eq("client_id", user.id) // garde : seul le propriétaire
-      .single(),
-  ])
-
-  if (!mission) notFound()
-
-  // Ordre de priorité pour trouver l'interlocuteur :
-  // 1. Étudiant sélectionné sur la mission
-  // 2. studentId passé en query param (candidature pending)
-  // 3. Depuis les messages existants
-  let interlocuteur = null
-  const targetStudentId = mission.selected_student_id ?? studentIdParam ?? null
-
-  if (targetStudentId) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, avatar_url, is_verified, verified_until")
-      .eq("user_id", targetStudentId)
-      .single()
-    interlocuteur = data
+  const result = await getClientConversation({ missionId, studentId: paramText(query.studentId) })
+  if (result.notFound) notFound()
+  if (result.error || !result.conversation) {
+    return <ErrorState titleAs="h1" title="Conversation indisponible" text={result.error ?? "Le chargement a échoué. Veuillez réessayer."} />
   }
-
-  // Fallback : trouve l'interlocuteur depuis les messages existants
-  if (!interlocuteur && messages?.length) {
-    const otherId = messages[0].sender_id === user.id
-      ? messages[0].receiver_id
-      : messages[0].sender_id
-    const { data } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, avatar_url, is_verified, verified_until")
-      .eq("user_id", otherId)
-      .single()
-    interlocuteur = data
-  }
-
-  return (
-    <ConversationView
-      initialMessages={messages ?? []}
-      missionId={missionId}
-      currentUserId={user.id}
-      interlocuteur={interlocuteur ?? { user_id: "", full_name: "Étudiant", avatar_url: null }}
-      missionTitle={mission.title}
-      missionStatus={mission.status}
-      userRole="client"
-    />
-  )
+  return <ConversationView conversation={result.conversation} now={new Date().toISOString()} />
 }
