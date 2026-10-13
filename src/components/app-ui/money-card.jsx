@@ -39,6 +39,7 @@ function TitleText({ text }) {
  * Carte argent : la seule carte colorée de l'écran (bleu plein, texte blanc).
  * - Variante partagée : `available` et `escrow` (nombres) côte à côte.
  * - Variante simple : `amount` (nombre) avec libellé et mention.
+ * `label` (défaut de l'espace client) et `title` sont surchargeables ; les autres libellés sont neutres.
  * `action` va dans l'en-tête, ou en pied avec `actionIn="foot"` ; `secondaryAction` et `hint` sont en pied.
  */
 export function MoneyCard({

@@ -175,6 +175,19 @@ describe("États vide, erreur, chargement", () => {
     expect(out).toContain("fonds ne sont pas touchés")
   })
 
+  it("erreur et vide : rendus identiques à ceux d'avant la paramétrisation, et textes surchargeables", () => {
+    const strip = (out) => out.replace(/\?v=[0-9a-f]+/g, "?v=V")
+    expect(strip(html(<ErrorState />))).toBe("<div class=\"empty2\" role=\"alert\"><span class=\"empty2__ic empty2__ic--erreur\"><svg class=\"ic\" aria-hidden=\"true\" focusable=\"false\"><use href=\"/sprite.svg?v=V#i-alert-triangle\"></use></svg></span><div class=\"empty2__title\">Un problème est survenu</div><div class=\"empty2__text\">Le chargement a échoué. Vos données et vos fonds ne sont pas touchés.</div><button type=\"button\" class=\"btn btn--soft btn--sm\"><svg class=\"ic\" aria-hidden=\"true\" focusable=\"false\"><use href=\"/sprite.svg?v=V#i-refresh\"></use></svg>Réessayer</button></div>")
+    expect(strip(html(<ErrorState compact title="T" text="X" />))).toBe("<div class=\"empty2 empty2--sm\" role=\"alert\"><span class=\"empty2__ic empty2__ic--erreur\"><svg class=\"ic\" aria-hidden=\"true\" focusable=\"false\"><use href=\"/sprite.svg?v=V#i-alert-triangle\"></use></svg></span><div class=\"empty2__title\">T</div><div class=\"empty2__text\">X</div><button type=\"button\" class=\"btn btn--soft btn--sm\"><svg class=\"ic\" aria-hidden=\"true\" focusable=\"false\"><use href=\"/sprite.svg?v=V#i-refresh\"></use></svg>Réessayer</button></div>")
+    expect(strip(html(<EmptyState icon="i-book" title="Aucune mission" text="Publiez-en une." action={{ href: "/client/missions/new", label: "Rédiger" }} compact />))).toBe("<div class=\"empty2 empty2--sm\"><span class=\"empty2__ic\"><svg class=\"ic\" aria-hidden=\"true\" focusable=\"false\"><use href=\"/sprite.svg?v=V#i-book\"></use></svg></span><div class=\"empty2__title\">Aucune mission</div><div class=\"empty2__text\">Publiez-en une.</div><a class=\"hero2__link\" href=\"/client/missions/new\">Rédiger</a></div>")
+    const custom = html(<ErrorState title="Titre neutre" text="Texte neutre." />)
+    expect(custom).toContain("Titre neutre")
+    expect(custom).toContain("Texte neutre.")
+    expect(custom).not.toContain("Un problème est survenu")
+    expect(custom).not.toContain("Vos données")
+    expect(html(<ErrorState text="" />)).not.toContain("empty2__text")
+  })
+
   it("retry appelle le callback puis router.refresh", () => {
     const order = []
     retry({ refresh: () => order.push("refresh") }, () => order.push("cb"))
