@@ -29,6 +29,14 @@ export async function confirmOnce(guard, onConfirm) {
   }
 }
 
+/** Délai pendant lequel un clic de confirmation suivant le passage à l'étape 2 est tenu pour un double clic. */
+export const STEP_SETTLE_MS = 300
+
+/** Vrai tant que `now` est dans la fenêtre qui suit l'entrée à l'étape courante (`enteredAt` : null avant tout changement). */
+export function isWithinSettle(now, enteredAt, delay = STEP_SETTLE_MS) {
+  return enteredAt !== null && now - enteredAt < delay
+}
+
 // Vue pure : l'étape, l'envoi et l'erreur viennent de l'extérieur.
 export function ConfirmDialogView({ steps, step, pending, error, tone, cancelLabel, onCancel, onConfirm, cancelRef }) {
   const current = steps[step]
@@ -76,6 +84,7 @@ function ConfirmDialogOpen({ onClose, onConfirm, steps, tone, cancelLabel }) {
   const [error, setError] = useState(null)
   const cancelRef = useRef(null)
   const sending = useRef(false)
+  const enteredAt = useRef(null)
   const { isLast } = confirmStepView({ step, totalSteps: steps.length, tone })
 
   // Au passage à l'étape 2, le bouton de confirmation a le focus : on le ramène sur « Annuler » (choix sûr).
@@ -84,7 +93,9 @@ function ConfirmDialogOpen({ onClose, onConfirm, steps, tone, cancelLabel }) {
   }, [step])
 
   const confirm = async () => {
+    if (isWithinSettle(Date.now(), enteredAt.current)) return
     if (!isLast) {
+      enteredAt.current = Date.now()
       setStep(step + 1)
       return
     }
