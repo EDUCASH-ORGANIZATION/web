@@ -16,7 +16,7 @@ vi.mock("@/lib/actions/profile.actions", () => ({ updateClientProfile: vi.fn() }
 
 const { formatAmount } = await import("@/lib/app/format")
 const { ClientProfileView, monthYear, ratingValue, missingProfileItems } = await import("./profile-view")
-const { ProfileEditView, checkLogoFile, validateProfileForm, submitProfile, LOGO_MAX_BYTES } = await import("./profile-edit-form")
+const { ProfileEditView, logoPath, checkLogoFile, validateProfileForm, submitProfile, LOGO_MAX_BYTES } = await import("./profile-edit-form")
 
 const IDENTITY = {
   userId: "u1",
@@ -350,5 +350,34 @@ describe("submitProfile", () => {
     expect(res.kind).toBe("error")
     expect(res.error).not.toMatch(/secret/)
     expect(res.error).toMatch(/Réessayez/)
+  })
+})
+
+describe("chemin du logo", () => {
+  it("donne un nom unique dans le dossier de l'utilisateur, accepté par toOwnedAvatarUrl", async () => {
+    const { toOwnedAvatarUrl } = await import("@/lib/storage/owned-paths")
+    const first = logoPath("u1", "image/png", 1760000000000)
+    const second = logoPath("u1", "image/png", 1760000000001)
+    expect(first).toBe("u1/avatar-1760000000000.png")
+    expect(second).not.toBe(first)
+    expect(logoPath("u1", "image/jpeg", 5)).toBe("u1/avatar-5.jpg")
+    expect(logoPath("u1", "image/webp", 5)).toBe("u1/avatar-5.webp")
+    const previous = process.env.NEXT_PUBLIC_SUPABASE_URL
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://proj.supabase.co"
+    try {
+      const url = `https://proj.supabase.co/storage/v1/object/public/avatars/${first}`
+      expect(toOwnedAvatarUrl(url, "u1")).toBe(url)
+      expect(toOwnedAvatarUrl(url, "u2")).toBeNull()
+    } finally {
+      if (previous === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL
+      else process.env.NEXT_PUBLIC_SUPABASE_URL = previous
+    }
+  })
+
+  it("n'écrase plus avatar.<ext> : la source n'utilise ni nom fixe ni upsert", async () => {
+    const { readFileSync } = await import("node:fs")
+    const source = readFileSync(new URL("./profile-edit-form.jsx", import.meta.url), "utf8")
+    expect(source).not.toContain("upsert: true")
+    expect(source).not.toMatch(/avatar\.\$\{/)
   })
 })

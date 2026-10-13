@@ -22,6 +22,11 @@ const CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F​-‏‪-‮⁦-⁩﻿]/
 export const LOGO_MAX_BYTES = 3 * 1024 * 1024
 export const LOGO_EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" }
 
+/** Chemin d'un nouveau logo : nom unique (horodatage) dans le dossier de l'utilisateur, jamais d'écrasement. */
+export function logoPath(userId, mimeType, stamp = Date.now()) {
+  return `${userId}/avatar-${stamp}.${LOGO_EXTENSIONS[mimeType]}`
+}
+
 const ERR_LOGO_TYPE = "Choisissez une image PNG, JPG ou WebP."
 const ERR_LOGO_SIZE = "Cette image dépasse 3 Mo. Choisissez-en une plus légère."
 const ERR_LOGO_UPLOAD = "Le logo n'a pas pu être envoyé. Réessayez ou retirez-le."
@@ -213,8 +218,8 @@ export function ProfileEditForm({ identity }) {
   }
 
   async function uploadLogo(file) {
-    const path = `${identity.userId}/avatar.${LOGO_EXTENSIONS[file.type]}`
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true })
+    const path = logoPath(identity.userId, file.type)
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: false })
     if (error) throw error
     return supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl
   }
