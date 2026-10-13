@@ -11,6 +11,8 @@
 .c2 .btn.is-disabled, .c2 .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
 /* Unité des montants (FCFA) : .amount small (.42em) et .amount--s small (.76em) descendaient sous 13 px dans C04 et C08 */
 .c2 .amount small, .c2 .amount .amount__cur { font-size: max(var(--t-micro), .42em); }
+/* .c2 .amount small (0,2,1) l'emporte sur .amount--s small (.76em) : l'intention .76em est reprise ici, plancher 13 px */
+.c2 .amount--s small { font-size: max(var(--t-micro), .76em); }
 .disabled2 { font-size: var(--t-caption); color: var(--c-ardoise); text-align: center; }
 .c2 .detail-head__actions { display: flex; align-items: center; gap: var(--s-5); padding-bottom: 6px; }
 .link2--muted { color: var(--c-ardoise); }
