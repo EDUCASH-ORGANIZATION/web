@@ -149,16 +149,47 @@
 .bnav2__item.is-active::before { content: ""; position: absolute; top: 0; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--c-bleu); }
 .bnav2__count { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: var(--r-pill); background: var(--c-encre); color: var(--c-blanc); font-size: var(--t-micro); font-weight: var(--fw-xbold); display: grid; place-items: center; }
 
-/* Bottom nav façon v1 (barre encre flottante), couleurs v2 : actif blanc.
-   Posee sur .bottom-nav du systeme (absolute) : masquee au bureau, fixe sous 1024. */
+/* Barre du bas : capsule encre flottante (maquette nav-mobile validee), commune aux espaces client, etudiant et admin.
+   Posee sur .bottom-nav du systeme (absolute, grille 5 colonnes) : masquee au bureau, fixe sous 1024.
+   Geometrie : marges 10 px, bas 14 px + safe-area, hauteur --h-bottomnav (72 px) : 14 + 72 = 86 px, la reserve
+   de contenu deja utilisee par la coquille et les toasts. Onglet actif : pastille citron (icone + libelle, encre) ;
+   inactifs : icone seule, brume. Specificite : toutes les regles sont en (0,2,0) minimum et chargees apres
+   layouts.css, elles l'emportent sur .bottom-nav et .bnav-item ; .c2 n'a aucune regle sur a, button ou .ic. */
 .bottom-nav--v2 { display: none; }
-.bottom-nav--v2 .bnav-item { font-size: var(--t-micro); }
-.bottom-nav--v2 .bnav-item.is-active { background: var(--c-blanc); color: var(--c-encre); }
-.bottom-nav--v2 .bnav-item.is-active .ic { color: var(--c-bleu); }
-.bottom-nav--v2 .bnav-item__dot { background: var(--c-blanc); color: var(--c-encre); font-size: var(--t-micro); }
-.bottom-nav--v2 .bnav-item__dot { min-width: 20px; height: 20px; }
-.bottom-nav--v2 .bnav-item { min-width: 0; }
-.bottom-nav--v2 .bnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Police : memes familles que la racine .ds (--f-text, Figtree) ; les espaces etudiant et admin n'ont pas .ds et heriteraient d'Inter/Arial. */
+.bottom-nav--v2, .bnav2-more__panel { font-family: var(--f-text); }
+.bottom-nav--v2 .bnav-item { flex: 1 1 0; flex-direction: row; gap: 0; min-width: 44px; height: 48px; margin: 0; padding: 0; border: 0; background: transparent; color: var(--c-brume); font-family: inherit; font-size: var(--t-micro); font-weight: var(--fw-xbold); letter-spacing: 0; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease), padding var(--dur-3) var(--ease), transform var(--dur-1) var(--ease); }
+.bottom-nav--v2 .bnav-item .ic { width: 24px; height: 24px; }
+.bottom-nav--v2 .bnav-item:hover { background: color-mix(in srgb, var(--c-blanc) 8%, transparent); color: var(--c-blanc); }
+.bottom-nav--v2 .bnav-item.is-active { flex: 0 1 auto; gap: var(--s-2); padding: 0 var(--s-4) 0 var(--s-3); background: var(--c-citron); color: var(--c-encre); }
+.bottom-nav--v2 .bnav-item.is-active:hover { background: var(--c-citron-600); color: var(--c-encre); }
+.bottom-nav--v2 .bnav-item:active { transform: scale(.94); }
+.bottom-nav--v2 .bnav-label { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; animation: bnav2-label-in var(--dur-3) var(--ease); }
+@keyframes bnav2-label-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
+.bottom-nav--v2 .bnav-item__dot { top: 2px; right: calc(50% - 20px); min-width: 20px; height: 20px; padding: 0 5px; border: 2px solid var(--c-encre); background: var(--c-erreur-sombre); color: var(--c-encre); font-size: var(--t-micro); font-style: normal; line-height: 16px; }
+.bottom-nav--v2 .bnav-item.is-active .bnav-item__dot { top: 0; right: -4px; border-color: var(--c-citron); }
+.bottom-nav--v2 .bnav-item:focus-visible, .bnav2-more__link:focus-visible { outline: 2px solid transparent; box-shadow: var(--sh-focus); }
+/* Entree « Plus » (admin) : bouton de divulgation et panneau au-dessus de la barre */
+.bnav2-more { display: flex; flex: 1 1 0; min-width: 44px; }
+.bnav2-more:has(> .bnav-item.is-active) { flex: 0 1 auto; }
+.bnav2-more__panel { position: absolute; right: 0; bottom: calc(100% + var(--s-2)); display: flex; flex-direction: column; gap: var(--s-1); width: max-content; max-width: calc(100vw - 20px); margin: 0; padding: var(--s-2); list-style: none; border-radius: var(--r-xl); background: var(--c-encre); box-shadow: var(--sh-dur-s); z-index: var(--z-menu); }
+.bnav2-more__panel[hidden] { display: none; }
+.bnav2-more__link { display: flex; align-items: center; gap: var(--s-3); min-height: 48px; padding: 0 var(--s-4); border-radius: var(--r-pill); color: var(--c-brume); font-size: var(--t-micro); font-weight: var(--fw-xbold); text-decoration: none; transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease); }
+.bnav2-more__link .ic { width: 24px; height: 24px; }
+.bnav2-more__link:hover { background: color-mix(in srgb, var(--c-blanc) 8%, transparent); color: var(--c-blanc); }
+.bnav2-more__link[aria-current="page"] { background: var(--c-citron); color: var(--c-encre); }
+/* Espaceur de reserve en bas (etudiant, admin : pas de .main2) : rendu seulement quand la barre l'est */
+.bnav2-spacer { display: none; }
+/* Bouton « Publier une mission » (client), au centre de la barre : disque bleu de 52 px, icone blanche (8,13:1), sans libelle.
+   Souleve de 18 px (son bord haut depasse la capsule de 8 px) ; liseré encre de 4 px par box-shadow (hors flux) qui le detache
+   du fond de page. Le depassement (8 + 4 px) reste sous les 24 px de la reserve de contenu : aucune reserve a recalculer.
+   Le soulevement passe par top (pas par transform) pour laisser transform a l'echelle d'appui. Actif : anneau citron. */
+.bottom-nav--v2 .bottom-nav__cta { position: relative; top: -18px; flex: none; display: grid; place-items: center; width: 52px; height: 52px; margin: 0 var(--s-1); padding: 0; border: 0; border-radius: 50%; background: var(--c-bleu); color: var(--c-blanc); text-decoration: none; cursor: pointer; box-shadow: 0 0 0 4px var(--c-encre), var(--sh-dur-s); -webkit-tap-highlight-color: transparent; transition: background-color var(--dur-2) var(--ease), transform var(--dur-1) var(--ease); }
+.bottom-nav--v2 .bottom-nav__cta .ic { width: 24px; height: 24px; stroke-width: 2.5; }
+.bottom-nav--v2 .bottom-nav__cta:hover { background: var(--c-bleu-700); color: var(--c-blanc); }
+.bottom-nav--v2 .bottom-nav__cta:active { background: var(--c-bleu-800); transform: scale(.94); }
+.bottom-nav--v2 .bottom-nav__cta[aria-current="page"] { box-shadow: 0 0 0 3px var(--c-encre), 0 0 0 6px var(--c-citron); }
+.bottom-nav--v2 .bottom-nav__cta:focus-visible { outline: 2px solid transparent; box-shadow: var(--sh-focus); }
 .c2 .av2 { overflow: hidden; }
 .c2 .av2 img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .shell--v2 .top2 form { flex: 0 1 auto; min-width: 0; }
@@ -260,7 +291,8 @@
 .ds-toasts-fixed { gap: 0; }
 .ds-toasts__zone { display: flex; flex-direction: column; gap: 10px; }
 .ds-toasts__zone:not(:empty) + .ds-toasts__zone:not(:empty) { margin-top: 10px; }
-.toasts--mobile.ds-toasts-fixed { bottom: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
+/* Au-dessus de la barre (86) ET du bouton Publier, qui depasse de la capsule d'environ 14 px (decalage 8 + anneau 6) : 24 px d'air, soit 10 px sous les toasts */
+.toasts--mobile.ds-toasts-fixed { bottom: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
 /* Ecrans de detail : les toasts passent au-dessus de .mbar2 (repli :has en regle separee) */
 .shell--detail .toasts--mobile.ds-toasts-fixed { bottom: calc(140px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
 .shell--v2:has(.mbar2) .toasts--mobile.ds-toasts-fixed { bottom: calc(140px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
@@ -280,7 +312,8 @@
   .shell--v2 .shell__main { padding: 0 var(--s-4) calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
   .mtop2 { display: flex; }
   .bnav2 { display: grid; }
-  .bottom-nav.bottom-nav--v2 { display: grid; position: fixed; left: 10px; right: 10px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .bottom-nav.bottom-nav--v2 { display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); height: var(--h-bottomnav); max-width: 520px; margin: 0 auto; padding: 0 var(--s-2); gap: var(--s-1); align-items: center; justify-content: space-between; border-radius: var(--r-pill); background: var(--c-encre); box-shadow: var(--sh-dur-s); z-index: var(--z-nav); }
+  .bnav2-spacer { display: block; height: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
   .main2 { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
   /* Ecrans de detail : pas de barre du bas, la barre d'action .mbar2 prend la place.
      Les repli :has() sont des regles separees : un navigateur sans :has ignore sa seule regle. */
@@ -365,9 +398,19 @@
   .item2 { padding: var(--s-3); }
   .mtop2 { padding: 0 var(--s-3) 0 var(--s-4); }
   .mpage2 { padding-left: var(--s-3); padding-right: var(--s-3); }
+  /* Etroit (480 et moins, valide a 320 px par la maquette) : marges de 8 px, padding de capsule 4 px, ecart 0, pastille active a 10 px.
+     Exception assumee a 44 px de large : les onglets inactifs passent a 40 px (hauteur 48 inchangee). WCAG 2.2 (2.5.8) exige 24 px
+     et l'espacement est suffisant. Budget a 320 px : 320 - 16 (marges) - 8 (padding) - 52 (Publier) - 3 x 40 (inactifs) = 124 px,
+     dont 50 px pour l'icone, l'ecart et le padding de l'actif : 74 px de libelle pour « Portefeuille » (~71 px) sans ellipse (repli conserve). */
+  .bottom-nav.bottom-nav--v2 { left: 8px; right: 8px; padding: 0 var(--s-1); gap: 0; }
+  .bottom-nav--v2 .bnav-item, .bnav2-more { min-width: 40px; }
+  .bottom-nav--v2 .bnav-item.is-active { gap: 6px; padding: 0 10px; }
+  .bottom-nav--v2 .bottom-nav__cta { margin: 0; }
 }
 
 /* ---------- Mouvement reduit ---------- */
 @media (prefers-reduced-motion: reduce) {
   .app2 *, .c2 *, .c2 *::before, .c2 *::after, .shell--v2 * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  .bottom-nav--v2, .bottom-nav--v2 * { transition: none !important; animation: none !important; }
+  .bottom-nav--v2 .bnav-item:active, .bottom-nav--v2 .bottom-nav__cta:active { transform: none !important; }
 }

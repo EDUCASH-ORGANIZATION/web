@@ -44,7 +44,7 @@ export function Toaster({ children }) {
       {/* Toast stack */}
       <div
         aria-live="polite"
-        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-full max-w-sm px-4 lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0 lg:px-0"
+        className="fixed bottom-[calc(86px+env(safe-area-inset-bottom)+1.5rem)] left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-full max-w-sm px-4 lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0 lg:px-0"
       >
         {toasts.map((t) => (
           <div

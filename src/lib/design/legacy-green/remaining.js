@@ -26,7 +26,6 @@ export const REMAINING_GREEN = [
   "src/components/profile/card-upload-form.js",
   "src/components/profile/profile-edit-form.js",
   "src/components/review/review-form.js",
-  "src/components/shared/bottom-nav.jsx",
   "src/components/shared/mission-card.js",
   "src/components/shared/navbar.jsx",
   "src/components/shared/offline-page.js",
