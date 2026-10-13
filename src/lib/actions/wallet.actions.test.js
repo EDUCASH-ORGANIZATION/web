@@ -6,6 +6,8 @@ const single = vi.fn()
 const eq = vi.fn()
 const range = vi.fn()
 const requireUser = vi.fn()
+const inFilter = vi.fn()
+const getServerRole = vi.fn()
 let txResult
 
 function builder() {
@@ -13,6 +15,7 @@ function builder() {
     select: () => b,
     eq: (...a) => { eq(...a); return b },
     order: () => b,
+    in: (...a) => { inFilter(...a); return b },
     range: (...a) => { range(...a); return Promise.resolve(txResult) },
     single,
     then: (res, rej) => Promise.resolve(txResult).then(res, rej),
@@ -28,6 +31,7 @@ const supabase = {
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => supabase) }))
 vi.mock("@/lib/auth/require-role", () => ({ requireUser: (...a) => requireUser(...a) }))
+vi.mock("@/lib/auth/server-role", () => ({ getServerRole: (...a) => getServerRole(...a) }))
 vi.mock("@/lib/actions/auth.actions", () => ({
   getCurrentUser: vi.fn(async () => ({ id: "user-1" })),
 }))
@@ -36,8 +40,9 @@ import { PAYMENTS_PENDING_COPY } from "@/lib/constants/payments"
 import { initiateWithdrawal, initiateDeposit, getWallet, getWalletTransactions, getWalletStats } from "./wallet.actions"
 
 beforeEach(() => {
-  for (const f of [invoke, getSession, single, eq, range, requireUser]) f.mockReset()
+  for (const f of [invoke, getSession, single, eq, range, requireUser, inFilter, getServerRole]) f.mockReset()
   txResult = { data: [], error: null }
+  getServerRole.mockResolvedValue({ role: "student" })
   vi.spyOn(console, "error").mockImplementation(() => {})
   requireUser.mockResolvedValue({ supabase, user: { id: "user-1" } })
   single.mockResolvedValue({ data: { balance: 10000, reserved: 0 } })
@@ -173,5 +178,82 @@ describe("lectures du portefeuille", () => {
   it("calcule les statistiques", async () => {
     txResult = { data: [{ type: "deposit", amount: 100 }, { type: "release", amount: 40 }, { type: "deposit", amount: 5 }], error: null }
     expect(await getWalletStats()).toEqual({ totalDeposited: 105, totalEarned: 40, totalWithdrawn: 0, totalCommissions: 0 })
+  })
+})
+
+describe("filtre par type de mouvement", () => {
+  it("sans filtre, aucune clause de type (comportement étudiant inchangé)", async () => {
+    await getWalletTransactions("user-1", 20, 0)
+    expect(inFilter).not.toHaveBeenCalled()
+  })
+
+  it("filtre sur les types demandés et garde la pagination", async () => {
+    await getWalletTransactions("user-1", 20, 40, ["refund", "deposit"])
+    expect(inFilter).toHaveBeenCalledWith("type", ["refund", "deposit"])
+    expect(range).toHaveBeenLastCalledWith(40, 59)
+  })
+
+  it("ignore les types inconnus et renvoie une liste vide si aucun n'est connu", async () => {
+    await getWalletTransactions("user-1", 20, 0, ["deposit", "drop table"])
+    expect(inFilter).toHaveBeenLastCalledWith("type", ["deposit"])
+    range.mockClear()
+    expect(await getWalletTransactions("user-1", 20, 0, ["inconnu"])).toEqual([])
+    expect(range).not.toHaveBeenCalled()
+  })
+})
+
+describe("messages d'erreur selon le rôle", () => {
+  const failRead = () => {
+    single.mockResolvedValue({ data: null, error: { message: "boom" } })
+    txResult = { data: null, error: { message: "boom" } }
+  }
+
+  it("le client est vouvoyé sur toutes les lectures", async () => {
+    getServerRole.mockResolvedValue({ role: "client" })
+    failRead()
+    for (const res of [await getWallet(), await getWalletTransactions(), await getWalletStats()]) {
+      expect(res.error).toBe("Impossible de charger votre portefeuille.")
+    }
+    expect((await getWallet("victime")).error).toBe("Vous n'avez pas accès à ce portefeuille.")
+  })
+
+  it("l'étudiant garde exactement les messages tutoyés", async () => {
+    failRead()
+    for (const res of [await getWallet(), await getWalletTransactions(), await getWalletStats()]) {
+      expect(res.error).toBe("Impossible de charger ton portefeuille.")
+    }
+    expect((await getWallet("victime")).error).toBe("Tu n'as pas accès à ce portefeuille.")
+  })
+
+  it("un rôle illisible garde le texte étudiant", async () => {
+    getServerRole.mockRejectedValue(new Error("db"))
+    failRead()
+    expect((await getWallet()).error).toBe("Impossible de charger ton portefeuille.")
+  })
+
+  it("le client est vouvoyé quand la fonction de paiement échoue", async () => {
+    getServerRole.mockResolvedValue({ role: "client" })
+    invoke.mockResolvedValue({ data: null, error: { message: "x", context: { status: 500, text: async () => "{}" } } })
+    expect((await initiateDeposit({ amount: 5000 })).error).toBe("Le dépôt n'a pas pu être initié. Réessayez dans un instant.")
+    expect((await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })).error).toBe(
+      "Le retrait n'a pas pu être initié. Réessayez dans un instant.",
+    )
+  })
+
+  it("l'étudiant garde les messages tutoyés quand la fonction de paiement échoue", async () => {
+    invoke.mockResolvedValue({ data: null, error: { message: "x", context: { status: 500, text: async () => "{}" } } })
+    expect((await initiateDeposit({ amount: 5000 })).error).toBe("Le dépôt n'a pas pu être initié. Réessaie dans un instant.")
+    expect((await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })).error).toBe(
+      "Le retrait n'a pas pu être initié. Réessaie dans un instant.",
+    )
+  })
+
+  it("le portefeuille illisible lors d'un retrait suit le rôle", async () => {
+    getServerRole.mockResolvedValue({ role: "client" })
+    single.mockResolvedValue({ data: null, error: { message: "boom" } })
+    expect((await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })).error).toBe(
+      "Impossible de charger votre portefeuille.",
+    )
+    expect(invoke).not.toHaveBeenCalled()
   })
 })
