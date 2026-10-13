@@ -4,14 +4,15 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Icon } from "@/components/design/icon"
 import { logout } from "@/lib/actions/auth.actions"
-import { useUnreadCount } from "@/hooks/use-unread-count"
-import { activeKey, countLabel, formatCount, initialsOf } from "./nav-model"
+import { useUnread } from "./unread-provider"
+import { activeKey, countLabel, formatCount } from "./nav-model"
+import { initialsOf } from "@/lib/app/format"
 
 // Sidebar encre du bureau (masquée sous 1024 par la feuille de la coquille). Les compteurs de messages
-// suivent le temps réel via useUnreadCount, initialisé par la valeur lue sur le serveur.
-export function Sidebar({ nav, fullName, userId, unreadCount = 0 }) {
+// suivent le temps réel via UnreadProvider (un seul abonnement pour la coquille).
+export function Sidebar({ nav, fullName }) {
   const pathname = usePathname()
-  const unread = useUnreadCount(userId, unreadCount)
+  const unread = useUnread()
   const active = activeKey(pathname, nav.groups.flatMap((group) => group.items))
   const counts = { messages: unread }
 

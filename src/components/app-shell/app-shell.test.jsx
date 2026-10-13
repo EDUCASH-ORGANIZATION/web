@@ -5,9 +5,10 @@ import path from "node:path"
 
 let pathname = "/client/dashboard"
 let unread = 2
+const unreadHook = vi.fn((_id, initial) => (unread ?? initial))
 
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }))
-vi.mock("@/hooks/use-unread-count", () => ({ useUnreadCount: (_id, initial) => (unread ?? initial) }))
+vi.mock("@/hooks/use-unread-count", () => ({ useUnreadCount: (...args) => unreadHook(...args) }))
 vi.mock("@/lib/actions/auth.actions", () => ({ logout: vi.fn() }))
 
 const { AppShell } = await import("./app-shell")
@@ -51,6 +52,13 @@ describe("AppShell (rendu statique)", () => {
     expect(html.match(/<aside/g)).toHaveLength(1)
     expect(html.match(/class="bottom-nav bottom-nav--v2"/g)).toHaveLength(1)
     expect(html.match(/<main/g)).toHaveLength(1)
+  })
+
+  it("un seul abonnement aux messages non lus pour la sidebar et la barre du bas", () => {
+    unreadHook.mockClear()
+    render()
+    expect(unreadHook).toHaveBeenCalledTimes(1)
+    expect(unreadHook).toHaveBeenCalledWith("client-1", 2)
   })
 
   it("ajoute shell--detail pour les écrans de détail", () => {

@@ -1,6 +1,8 @@
 // Composants d'affichage partagés de l'espace connecté : rendu statique, états, accessibilité, citron.
 import { describe, expect, it, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
+import { readFileSync } from "node:fs"
+import path from "node:path"
 import { missionStatusView } from "@/lib/app/mission-status"
 import { applicationStatusView } from "@/lib/app/application-status"
 import { StatusBadge } from "./status-badge"
@@ -8,10 +10,13 @@ import { Amount, splitAmount } from "./amount"
 import { MoneyCard } from "./money-card"
 import { Stat, StatGroup } from "./stats"
 import { Item, ItemList } from "./item-list"
-import { EmptyState, ErrorState, retry } from "./state-block"
+import { ErrorState, retry } from "./state-block"
+import * as stateBlock from "./state-block"
+import { EmptyState } from "./empty-state"
 import { SkeletonHero, SkeletonRows, SkeletonStats } from "./skeletons"
 import { PageHead } from "./page-head"
-import { Avatar, initialsOf } from "./avatar"
+import { Avatar } from "./avatar"
+import { initialsOf } from "@/lib/app/format"
 import { SectionCard } from "./section-card"
 import { Lines } from "./lines"
 import { HeroDecision } from "./hero-decision"
@@ -187,6 +192,22 @@ describe("États vide, erreur, chargement", () => {
     expect(rows).toContain('role="status"')
     expect(rows).toContain('aria-busy="true"')
     expect(rows).toContain("Chargement en cours")
+  })
+
+  it("squelettes : announce={false} rend un bloc nu aria-hidden, sans statut", () => {
+    for (const node of [<SkeletonHero key="h" announce={false} />, <SkeletonStats key="s" announce={false} />, <SkeletonRows key="r" count={2} announce={false} />]) {
+      const out = html(node)
+      expect(out).toMatch(/^<div aria-hidden="true">/)
+      expect(out).not.toContain("role=")
+      expect(out).not.toContain("aria-busy")
+      expect(out).not.toContain("Chargement en cours")
+    }
+    expect(html(<SkeletonRows count={2} announce={false} />).match(/skel2-row/g)).toHaveLength(2)
+  })
+
+  it("EmptyState est un composant serveur ré-exporté par state-block", () => {
+    expect(stateBlock.EmptyState).toBe(EmptyState)
+    expect(readFileSync(path.join(process.cwd(), "src/components/app-ui/empty-state.jsx"), "utf8")).not.toMatch(/use client/)
   })
 })
 

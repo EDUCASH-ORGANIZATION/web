@@ -1,11 +1,17 @@
 // @ds-screen RD-CLIENT-01
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 
 // T05 : erreur inattendue d'une page client, affichée dans la coquille (la navigation reste utilisable).
-export default function ClientError({ reset }) {
+export default function ClientError({ error, reset }) {
+  // Seul le digest est journalisé (jamais le message ni la pile) : il suffit à retrouver l'erreur côté serveur.
+  useEffect(() => {
+    console.error("[client error]", error?.digest)
+  }, [error])
+
   return (
     <div className="empty empty--erreur" role="alert">
       <div className="empty__art">
@@ -13,7 +19,7 @@ export default function ClientError({ reset }) {
       </div>
       <h1 className="empty__title">Une erreur est survenue</h1>
       <div className="empty__text">
-        Cette page n&apos;a pas pu s&apos;afficher. Vos fonds sont en sécurité : aucune opération n&apos;a été modifiée.
+        Cette page n&apos;a pas pu s&apos;afficher. Vos fonds sont en sécurité.
       </div>
       <div className="empty__actions">
         <button type="button" className="btn btn--primary btn--sm" onClick={() => reset()}>
