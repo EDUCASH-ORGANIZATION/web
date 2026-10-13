@@ -9,13 +9,17 @@
 .e2-02-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; min-height: 40px; }
 .e2-02-bar__left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .e2-02-count { font-size: var(--t-body-s); font-weight: var(--fw-bold); }
-.e2-02-sort { display: flex; align-items: center; gap: 8px; font-size: var(--t-caption); color: var(--c-ardoise); }
+.e2-02-sort { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: var(--t-caption); color: var(--c-ardoise); }
 .e2-02-sort .select { width: auto; }
 .e2-pill.e2-02-tag { height: 32px; padding: 0 10px 0 12px; font-size: var(--t-caption); position: relative; }
 .e2-02-msearch { width: 100%; }
-.sheet .modal__foot.e2-02-sfoot { flex-direction: row; padding-bottom: calc(var(--s-5) + env(safe-area-inset-bottom, 0px)); }
+/* Pied de la feuille : la Modal pose .modal__foot, ce bloc range les deux boutons sur une ligne */
+.e2-02-sfoot { display: flex; align-items: center; gap: var(--s-3); width: 100%; padding-bottom: env(safe-area-inset-bottom, 0px); }
 .sheet .e2-02-sfoot .btn { width: auto; flex: none; }
 .sheet .e2-02-sfoot .btn--dark { flex: 1; }
+/* Carte entière cliquable : le lien « Voir » étend sa zone sur la carte (relative), « Voir » reste le libellé accessible */
+.e2-02-grid .e2-mcard__foot .e2-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.e2-02-skel { height: 220px; border-radius: var(--r-l); }
 .sheet .e2-02-group + .e2-02-group { padding-top: var(--s-3); }
 .e2-02-mcount { font-size: var(--t-caption); color: var(--c-ardoise); padding: 0 4px; }
 
