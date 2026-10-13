@@ -138,11 +138,13 @@ describe("AppShell (rendu statique)", () => {
     expect(bar.match(/aria-current="page"/g)).toHaveLength(1)
     expect(bar).toMatch(/bnav-item is-active" aria-current="page" href="\/client\/missions\/new"/)
     expect(bar).toContain('class="bnav-label">Publier</span>')
-    expect(bar).toContain('aria-label="Navigation principale"')
+    expect(bar).toContain('aria-label="Navigation mobile"')
   })
 
-  it("les deux navigations portent un nom accessible", () => {
-    expect(render().match(/aria-label="Navigation principale"/g)).toHaveLength(2)
+  it("les deux navigations portent un nom accessible distinct", () => {
+    const html = render()
+    expect(html.match(/aria-label="Navigation principale"/g)).toHaveLength(1)
+    expect(html.match(/aria-label="Navigation mobile"/g)).toHaveLength(1)
   })
 
   it("aucune classe Tailwind, aucun style en ligne, aucun lien vers /client/notifications", () => {

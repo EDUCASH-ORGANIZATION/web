@@ -15,7 +15,7 @@ export function BottomNav({ items }) {
   const counts = { messages: unread }
 
   return (
-    <nav className="bottom-nav bottom-nav--v2" aria-label="Navigation principale">
+    <nav className="bottom-nav bottom-nav--v2" aria-label="Navigation mobile">
       {items.map((item) => {
         const isActive = item.key === active
         const count = item.badge ? formatCount(counts[item.badge]) : null
