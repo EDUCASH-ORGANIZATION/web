@@ -46,5 +46,7 @@
   .c2 .inbox2 .c-inbox__list { border-right: 0; border-bottom: 1px solid var(--c-ligne); }
   .c2 .c-inbox { flex: none; }
   .c2 .segmented__item { height: 44px; }
+  /* Cibles tactiles : « Publier une mission » de l'état vide atteint 44 px. */
+  .c2 .inbox-empty2 .actions2 .link2 { min-height: 44px; align-items: center; }
   .inbox-tools2, .inbox-list2 { max-width: none; }
 }

@@ -63,4 +63,6 @@
   .c2 .conv2 .composer { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   .c2 .conv2 .chat-status .btn { min-height: 44px; }
   .c2 .bubble__actions2 .link2 { min-height: 44px; }
+  /* Lien de position OpenStreetMap : zone tactile de 44 px, ligne centrée. */
+  .c2 .bubble__place2 { min-height: 44px; }
 }

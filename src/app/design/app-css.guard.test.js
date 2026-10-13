@@ -378,6 +378,22 @@ describe("C17 profil : requetes de conteneur de la colonne principale", () => {
   })
 })
 
+describe("cibles tactiles de 44 px sous 1024 px (liens isoles)", () => {
+  const phone = (file) => {
+    const css = stripComments(read(`client/${file}`))
+    return css.slice(css.indexOf("@media (max-width: 1023.98px)"))
+  }
+
+  it.each([
+    ["c12.css", ".c2 .inbox-empty2 .actions2 .link2"],
+    ["c10.css", ".c2 .done2 .actions2 .link2"],
+    ["c13.css", ".c2 .bubble__place2"],
+  ])("%s : %s a une hauteur minimale de 44 px dans le bloc mobile", (file, selector) => {
+    const escaped = selector.replace(/\./g, "\\.")
+    expect(phone(file)).toMatch(new RegExp(`${escaped} \\{[^}]*min-height: 44px`))
+  })
+})
+
 // ---------- Mini-cascade statique : specificite et ordre (les garde-fous de presence ne voient pas ces conflits) ----------
 
 /** Specificite (ids, classes + pseudo-classes, balises) d'un selecteur sans combinateur autre que l'espace. */

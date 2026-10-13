@@ -10,11 +10,10 @@ function placeHref(lat, lng) {
 
 function Body({ message }) {
   if (message.type === "image") {
+    // Pas de lien vers l'objet brut : le compartiment public servirait un fichier HTML déguisé sur l'origine du stockage.
     return message.mediaUrl ? (
-      <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer" className="bubble__place2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="bubble__photo2" src={message.mediaUrl} alt="Image envoyée" loading="lazy" />
-      </a>
+      // eslint-disable-next-line @next/next/no-img-element
+      <img className="bubble__photo2" src={message.mediaUrl} alt="Image envoyée" loading="lazy" />
     ) : (
       <span className="bubble__text2">Image indisponible</span>
     )

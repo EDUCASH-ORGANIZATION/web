@@ -301,6 +301,14 @@ describe("Bubble", () => {
     expect(render(msg({ type: "voice", mediaUrl: image }))).toContain("<audio")
   })
 
+  it("n'ouvre jamais l'objet brut d'une image : <img> sans lien (HTML déguisé sur l'origine du stockage)", () => {
+    const image = `${ORIGIN}/storage/v1/object/public/message-media/u/a.jpg`
+    const html = render(msg({ type: "image", mediaUrl: image }))
+    expect(html).toContain("<img")
+    expect(html).not.toContain("<a ")
+    expect(html).not.toContain("href=")
+  })
+
   it("affiche un média indisponible quand l'adresse a été refusée", () => {
     expect(render(msg({ type: "image", mediaUrl: null }))).toContain("Image indisponible")
     expect(render(msg({ type: "voice", mediaUrl: null }))).toContain("Message vocal indisponible")
