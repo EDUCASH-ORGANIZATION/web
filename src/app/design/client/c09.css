@@ -14,6 +14,11 @@
 .modal .lines2 { font-size: var(--t-body-s); }
 .c2 .modal__body .check { align-items: flex-start; }
 
+/* Modale de confirmation de la fin : echec et lien dans une phrase */
+.c2 .modal__body .banner--erreur { margin-bottom: 4px; }
+.c2 .modal__body .banner__body { font-size: var(--t-body-s); line-height: 1.5; }
+.c2 .modal__body .note2 .link2 { display: inline; }
+
 @media (max-width: 1023.98px) {
   .done2 { margin-top: 0; }
   .done2__title { font-size: 21px; }

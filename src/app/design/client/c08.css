@@ -19,6 +19,19 @@
 .buy2__sub { font-size: var(--t-caption); color: var(--c-ardoise); }
 .mpage2--bar.mpage2 { padding-bottom: calc(170px + env(safe-area-inset-bottom, 0px)); }
 
+/* Suivi de mission : en cours, terminee, annulee (C08, C11) */
+.fup2 { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+.fup2 .btn--block { margin-top: 4px; }
+.fup2 .status2 .link2 { display: inline; }
+.fup2__who { min-width: 0; }
+
+@media (max-width: 1023.98px) {
+  /* La barre d'action du bas porte « Confirmer la fin » : le bouton de la carte est masque */
+  .fup2 .fup2__desk { display: none; }
+  .fup2 .person2__acts .link2, .fup2 .detail-head__actions .link2 { min-height: 44px; }
+  .fup2 .person2__acts .btn { min-height: 44px; }
+}
+
 @media (max-width: 767.98px) {
   .c2 .detail-head__actions { flex-wrap: wrap; gap: var(--s-4); }
   .status2__title { font-size: 17px; }
