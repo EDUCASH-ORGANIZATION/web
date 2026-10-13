@@ -7,15 +7,12 @@ vi.mock("next/link", () => ({
 vi.mock("@/components/shared/toaster", () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }))
 vi.mock("@/lib/actions/client-wallet.actions", () => ({ getClientWalletMoreTransactions: vi.fn() }))
-vi.mock("@/components/client/deposit-modal", () => ({ DepositModal: () => <div data-modal="deposit" /> }))
-vi.mock("@/components/client/withdraw-modal", () => ({ WithdrawModal: () => <div data-modal="withdraw" /> }))
 vi.mock("@/components/client-space/wallet/deposit-dialog", () => ({ DepositDialog: () => <div data-modal="deposit" /> }))
 vi.mock("@/components/client-space/wallet/withdraw-dialog", () => ({ WithdrawDialog: () => <div data-modal="withdraw" /> }))
 vi.mock("@/components/student/withdraw-modal", () => ({ StudentWithdrawModal: () => <div data-modal="student-withdraw" /> }))
 
 const { WalletView } = await import("@/components/client-space/wallet/wallet-view")
 const { StudentWalletShell } = await import("@/components/student/wallet-shell")
-const { DashboardWalletCard } = await import("@/components/client/dashboard-wallet-card")
 
 const wallet = { balance: 20000, reserved: 5000 }
 const stats = { totalDeposited: 20000, totalEarned: 8000, totalWithdrawn: 0, totalCommissions: 960 }
@@ -31,7 +28,6 @@ const clientData = {
 const renders = {
   client: (props) => renderToStaticMarkup(<WalletView data={clientData} today="2026-10-13" paymentsEnabled={false} {...props} />),
   student: (props) => renderToStaticMarkup(<StudentWalletShell wallet={wallet} available={15000} transactions={[]} stats={stats} completedMissions={[]} {...props} />),
-  dashboard: (props) => renderToStaticMarkup(<DashboardWalletCard balance={20000} reserved={5000} available={15000} {...props} />),
 }
 
 describe.each(Object.keys(renders))("%s, paiements coupés (défaut)", (name) => {

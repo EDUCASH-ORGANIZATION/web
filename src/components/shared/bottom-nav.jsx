@@ -8,7 +8,6 @@ import {
   FileText,
   MessageSquare,
   User,
-  Plus,
 } from "lucide-react"
 import clsx from "clsx"
 import { useUnreadCount } from "@/hooks/use-unread-count"
@@ -21,26 +20,16 @@ const STUDENT_ITEMS = [
   { label: "Profil",       href: "/profile",       icon: User },
 ]
 
-const CLIENT_ITEMS = [
-  { label: "Accueil", href: "/client/dashboard", icon: Home },
-  { label: "Mes missions", href: "/client/missions", icon: Briefcase },
-  { label: "Nouveau", href: "/client/missions/new", icon: Plus },
-  { label: "Messages", href: "/client/messages", icon: MessageSquare },
-  { label: "Profil", href: "/client/profile", icon: User },
-]
-
-export function BottomNav({ role = "student", userId, unreadCount: initialUnreadCount = 0 }) {
+export function BottomNav({ userId, unreadCount: initialUnreadCount = 0 }) {
   const pathname     = usePathname()
-  const items        = role === "client" ? CLIENT_ITEMS : STUDENT_ITEMS
-  const messagesHref = role === "client" ? "/client/messages" : "/messages"
   const unreadCount  = useUnreadCount(userId, initialUnreadCount)
 
   return (
     <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 safe-area-pb">
       <div className="flex items-center justify-around h-16">
-        {items.map(({ label, href, icon: Icon }) => {
+        {STUDENT_ITEMS.map(({ label, href, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/")
-          const isMessages = href === messagesHref
+          const isMessages = href === "/messages"
           return (
             <Link
               key={href}

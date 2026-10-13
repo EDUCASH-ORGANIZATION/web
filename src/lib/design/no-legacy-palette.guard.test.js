@@ -71,6 +71,6 @@ describe("garde-fou de palette", () => {
   it("aucun doublon entre les modules d'exemption", () => {
     const all = Object.values(GREEN_MODULES).flat()
     expect(all.filter((f, i) => all.indexOf(f) !== i)).toEqual([])
-    expect(EXEMPT_GREEN.length).toBeLessThanOrEqual(60)
+    expect(EXEMPT_GREEN.length).toBeLessThanOrEqual(42)
   })
 })

@@ -1,4 +1,4 @@
-// Exemptions de la famille verte historique : Tout le reste (admin, étudiant, composants partagés, vitrine du lot B).
+// Exemptions de la famille verte historique : espaces étudiant et admin, composants partagés encore non portés, vitrine du lot B.
 // Vider cette liste quand le fichier est migré (le garde-fou refuse une entrée inutile).
 export const REMAINING_GREEN = [
   "src/app/(admin)/admin/dashboard/page.js",
@@ -15,16 +15,6 @@ export const REMAINING_GREEN = [
   "src/components/admin/admin-sidebar.js",
   "src/components/admin/verifications-tabs.js",
   "src/components/auth/card-upload-zone.js",
-  "src/components/client/confirm-mission-modal.js",
-  "src/components/client/deposit-modal.js",
-  "src/components/client/mission-detail-tabs.js",
-  "src/components/client/missions-tabs.js",
-  "src/components/client/new-mission-form.js",
-  "src/components/client/resume-publish-link.jsx",
-  "src/components/client/student-card.js",
-  "src/components/client/wallet-required-gate.js",
-  "src/components/client/wallet-shell.js",
-  "src/components/client/withdraw-modal.js",
   "src/components/messages/conversation-view.js",
   "src/components/messages/image-preview-modal.js",
   "src/components/messages/location-picker-modal.js",
@@ -34,11 +24,9 @@ export const REMAINING_GREEN = [
   "src/components/missions/apply-sticky-button.js",
   "src/components/missions/student-apply-form.js",
   "src/components/profile/card-upload-form.js",
-  "src/components/profile/client-edit-form.js",
   "src/components/profile/profile-edit-form.js",
   "src/components/review/review-form.js",
   "src/components/shared/bottom-nav.jsx",
-  "src/components/shared/client-header.js",
   "src/components/shared/mission-card.js",
   "src/components/shared/navbar.jsx",
   "src/components/shared/offline-page.js",

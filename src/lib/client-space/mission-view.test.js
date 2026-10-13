@@ -8,7 +8,6 @@ import {
   reservedAt,
   sortApplications,
   missionView,
-  toLegacyTabsProps,
 } from "./mission-view.js"
 
 const TODAY = "2026-10-13"
@@ -140,22 +139,5 @@ describe("missionView", () => {
   it("compte les candidatures", () => {
     const v = missionView(detail({ applications: [{ status: "pending" }, { status: "rejected" }] }), TODAY)
     expect(v.counts).toEqual({ total: 2, pending: 1, accepted: 0, rejected: 1 })
-  })
-})
-
-describe("toLegacyTabsProps", () => {
-  it("reconstitue la forme attendue par l'ancien composant", () => {
-    const props = toLegacyTabsProps(detail({
-      applications: [{
-        id: "ap1", studentId: "s1", status: "pending", message: "Bonjour", createdAt: "2026-10-01T00:00:00Z",
-        student: { fullName: "Awa K", avatarUrl: null, city: "Cotonou", rating: 4, missionsDone: 2, isVerified: true, verifiedUntil: "2027-01-01", school: "UAC", level: "L3", skills: ["Babysitting"] },
-      }],
-    }))
-    expect(props.mission).toEqual({ id: "m1", title: "Cours", budget: 10000, status: "open" })
-    expect(props.applications[0]).toMatchObject({
-      id: "ap1", mission_id: "m1", student_id: "s1", message: "Bonjour", status: "pending",
-      profiles: { full_name: "Awa K", missions_done: 2, is_verified: true },
-      student_profiles: { school: "UAC", skills: ["Babysitting"] },
-    })
   })
 })
