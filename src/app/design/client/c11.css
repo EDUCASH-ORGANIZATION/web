@@ -1,1 +1,9 @@
-/* C11 Terminee ou annulee : feuille reservee, possedee par le lot ecran correspondant (RD-CLIENT-01). */
+/* ---------- C11 Mission terminée ou annulée ---------- */
+.fup2__facts { display: flex; flex-direction: column; margin: 0; font-size: var(--t-body-s); }
+.fup2__facts > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-4); padding: 10px 0; }
+.fup2__facts > div + div { border-top: 1px solid var(--c-ligne-2); }
+.fup2__facts dt { color: var(--c-ardoise); }
+.fup2__facts dd { margin: 0; font-weight: var(--fw-bold); text-align: right; }
+.fup2__rating { display: flex; align-items: center; gap: 8px; font-size: var(--t-body); }
+.fup2__rating .ic { width: 18px; height: 18px; stroke-width: 1.75; }
+.fup2__quote { margin: 0; padding: 12px 14px; border-radius: var(--r-m); background: var(--c-givre); font-size: var(--t-body-s); line-height: 1.5; color: var(--c-encre); overflow-wrap: anywhere; }

@@ -105,4 +105,12 @@ describe("garde-fou role-authority", () => {
       expect(readFileSync(path.join(ROOT, rel), "utf8")).not.toMatch(/auth\.signOut/)
     }
   })
+
+  it("le layout client passe par getClientShellData et redirige ; l'action exige requireRole([\"client\"])", () => {
+    const layout = readFileSync(path.join(ROOT, "src/app/(client)/layout.js"), "utf8")
+    expect(layout).toMatch(/import\s*\{[^}]*getClientShellData[^}]*\}\s*from/)
+    expect(layout).toMatch(/redirect\(/)
+    const action = readFileSync(path.join(ROOT, "src/lib/actions/client-shell.actions.js"), "utf8")
+    expect(action).toContain('requireRole(["client"])')
+  })
 })

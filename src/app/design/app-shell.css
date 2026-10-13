@@ -29,7 +29,6 @@
 /* Sidebar claire : logo, espace, navigation, identité en bas */
 .side2 { background: var(--c-blanc); border-right: 1px solid var(--c-ligne); display: flex; flex-direction: column; gap: 2px; padding: var(--s-6) var(--s-4) var(--s-4); min-height: 0; }
 .side2__brand { display: flex; flex-direction: column; gap: 6px; padding: 0 10px var(--s-6); }
-.side2__brand .logo { height: 37px; width: auto; align-self: flex-start; }
 .side2__space { font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
 .side2__cta { margin: 0 0 var(--s-4); }
 .side2__group { font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); padding: var(--s-5) 10px 6px; }
@@ -64,7 +63,7 @@
 .top2__actions { margin-left: auto; display: flex; align-items: center; gap: var(--s-2); }
 .top2__stamp { font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); margin-right: var(--s-2); }
 /* Recherche simple : un champ, pas de chips */
-.search2 { display: flex; align-items: center; gap: 10px; width: 440px; height: 44px; padding: 0 12px 0 14px; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: 12px; color: var(--c-ardoise); }
+.search2 { display: flex; align-items: center; gap: 10px; width: 440px; max-width: 100%; height: 44px; padding: 0 12px 0 14px; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: 12px; color: var(--c-ardoise); }
 .search2 .ic { width: 18px; height: 18px; stroke-width: 1.75; }
 .search2 input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: var(--t-body-s); color: var(--c-encre); }
 .search2 input::placeholder { color: var(--c-ardoise); opacity: 1; }
@@ -157,6 +156,12 @@
 .bottom-nav--v2 .bnav-item.is-active { background: var(--c-blanc); color: var(--c-encre); }
 .bottom-nav--v2 .bnav-item.is-active .ic { color: var(--c-bleu); }
 .bottom-nav--v2 .bnav-item__dot { background: var(--c-blanc); color: var(--c-encre); font-size: var(--t-micro); }
+.bottom-nav--v2 .bnav-item__dot { min-width: 20px; height: 20px; }
+.bottom-nav--v2 .bnav-item { min-width: 0; }
+.bottom-nav--v2 .bnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c2 .av2 { overflow: hidden; }
+.c2 .av2 img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.shell--v2 .top2 form { flex: 0 1 auto; min-width: 0; }
 
 /* ---------- Squelette fidèle de la v2 ---------- */
 .skel2-hero { height: 196px; border-radius: 16px; }
@@ -203,6 +208,7 @@
 .shell--v2 .top2 { height: 56px; padding: 0; }
 .shell--v2 .top2 .iconbtn2:hover { background: var(--c-givre); }
 .shell--v2 .search2 { background: var(--c-givre); border-color: var(--c-givre); }
+.shell--v2 .search2:focus-within, .shell--v2 .search2.is-focus { border-color: var(--c-bleu); }
 .shell--v2 .page2 { padding: 0 0 var(--s-4); gap: var(--s-5); }
 .shell--v2 .head2__title { font-size: 38px; }
 
@@ -223,11 +229,16 @@
 .money2--split { display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 0; }
 .money2--split .stat2 { padding: var(--s-5) var(--s-6); }
 .money2--split .stat2 + .stat2 { border-left: 1px solid color-mix(in srgb, var(--c-blanc) 22%, transparent); }
+.money2__glue { white-space: nowrap; }
 .money2__head { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: var(--s-4) var(--s-6) 0; font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-bleu-100); }
 /* Bouton posé sur la carte argent : blanc, texte encre (19,6:1) */
 .btn--blanc { background: var(--c-blanc); color: var(--c-encre); border-color: var(--c-blanc); }
 .btn--blanc:hover, .btn--blanc.is-hover { background: var(--c-bleu-50); }
 .money2 .stat2__value { color: var(--c-blanc); }
+/* Boutons-liens sur la carte argent : `.money2 a` (0,1,1) ne doit ni griser la couleur ni souligner le texte des boutons du systeme */
+.money2 a.btn--blanc, .money2 a.btn--blanc:visited { color: var(--c-encre); text-decoration: none; font-weight: var(--fw-xbold); }
+.money2 a.btn, .money2 a.btn:visited { text-decoration: none; font-weight: var(--fw-xbold); }
+.money2 a.btn--ghost-blanc, .money2 a.btn--ghost-blanc:visited { color: var(--c-blanc); }
 
 /* ---------- Focus clavier ---------- */
 .nav2:focus-visible, .iconbtn2:focus-visible, .item2__action:focus-visible, .bnav2__item:focus-visible, .shell--v2 .nav-item:focus-visible, .shell--v2 .item2:focus-visible { outline: 2px solid transparent; box-shadow: var(--sh-focus); }
@@ -236,6 +247,13 @@
 /* Fonds sombres (encre, bleu) : anneau bleu + citron */
 .money2 .btn:focus-visible, .money2 .btn-icon:focus-visible { box-shadow: var(--sh-focus-sombre); }
 .shell--v2 .btn--sidebar:focus-visible, .c2 .btn--blanc:focus-visible, .shell--v2 .btn--blanc:focus-visible, .c2 .money2 a:focus-visible, .shell--v2 .money2 a:focus-visible { outline: none; box-shadow: var(--sh-focus-sombre); }
+
+/* Lien d'evitement : `.c2 .btn--secondary` (0,2,0, charge apres) annule transform et ombre ; ces regles (0,2,1 et plus) gagnent quel que soit l'ordre */
+.c2 a.ds-skip-link { transform: translateY(-200%); box-shadow: none; }
+.c2 a.ds-skip-link:focus, .c2 a.ds-skip-link:focus-visible { transform: none; }
+.c2 a.ds-skip-link:focus-visible { position: fixed; left: var(--s-2); top: var(--s-2); z-index: var(--z-toast); outline: none; box-shadow: var(--sh-focus); }
+/* Anneau de focus des boutons secondaires et accent : `.c2 .btn--secondary` impose box-shadow: none */
+.c2 .btn--secondary:focus-visible, .c2 .btn--accent:focus-visible { outline: none; box-shadow: var(--sh-focus); }
 
 /* ---------- Primitives interactives (app-ui) ---------- */
 .ds-toasts-fixed { position: fixed; z-index: var(--z-toast); }
@@ -308,10 +326,34 @@
   .search2 { width: auto; flex: 1; }
 }
 
+/* ---------- Mobile : cibles tactiles de 44 px et sous-textes complets (sous 1024, portee .c2) ---------- */
+@media (max-width: 1023.98px) {
+  /* Liens-texte des rangees et des cartes : zone de 44 px de haut, texte inchange (>= 13 px) */
+  .c2 .item2__action, .c2 .hero2__link { display: inline-flex; align-items: center; min-height: 44px; }
+  .c2 .btn--sm { min-height: 44px; }
+  .c2 .list2__more { display: inline-flex; align-items: center; min-height: 44px; }
+  /* Symbole (34 x 32) et avatar (32 x 32) de l'en-tete, seuls liens directs de .mtop2 : zone de 44 px de haut
+     (46 x 44 et 44 x 44) par pseudo-element, apparence inchangee. Les 6 px de debord restent sous l'ecart
+     de 12 px entre cibles voisines : aucun chevauchement. */
+  .c2 .mtop2 > a { position: relative; }
+  .c2 .mtop2 > a::after { content: ""; position: absolute; inset: -6px; }
+  /* .c2 .av2 { overflow: hidden } (0,2,0) rognait ce pseudo-element sur l'avatar : la zone de 44 px n'existait pas */
+  .c2 .mtop2 > a.av2 { overflow: visible; }
+  /* inset se calcule depuis la boite de remplissage : avec la bordure de 1 px, -6px donnait 42 x 42 ; -7px donne 44 x 44 */
+  .c2 .mtop2 > a.av2::after { inset: -7px; }
+  /* Sous-textes des cartes de chiffres et de la carte argent : retour a la ligne au lieu de l'ellipse */
+  .c2 .stat2__sub, .c2 .money2 .stat2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+
 /* ---------- Responsive : 768 ---------- */
 @media (max-width: 767.98px) {
   .head2 { flex-direction: column; align-items: flex-start; gap: var(--s-3); }
   .hero2__figure { font-size: 36px; }
+  /* Montants a 7 chiffres et plus dans 3 colonnes : la taille suit la largeur (jamais sous 13 px), l'unite passe a la ligne */
+  .stats2 .stat2__value, .money2--split .stat2__value { font-size: max(var(--t-micro), clamp(13px, 3.8vw, var(--t-amount-s))); }
+  /* Montants a 10 chiffres (plus d'un milliard) : la valeur peut passer a la ligne plutot que deborder de sa cellule a 320 px */
+  .stats2 .stat2__value, .money2--split .stat2__value { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .stats2 .stat2__value small, .money2--split .stat2__value small { display: block; margin-left: 0; }
 }
 
 /* ---------- Responsive : 480 ---------- */

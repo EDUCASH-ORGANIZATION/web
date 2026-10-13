@@ -73,7 +73,10 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
 ## Cohabitation pendant la transition
 
 - Les espaces connectés restent en Tailwind avec parité stricte avec `main`
-  (Inter, fond blanc, mode sombre) tant qu'un écran n'est pas porté.
+  (Inter, fond blanc, mode sombre) tant qu'un écran n'est pas porté. Les
+  écrans connectés déjà portés utilisent Anton et Figtree sous `.ds` ; Inter ne
+  reste que pour les écrans pas encore portés, et la charte ne change pas les
+  polices du site.
 - Plus aucune page MUI : MUI et Emotion sont retirés du projet (RD-02).
 - Nouvel écran : uniquement les classes du système sous `.ds`, d'après la
   maquette de `design-rebrand/maquettes/`.
@@ -210,23 +213,23 @@ authentification A01 à A08 faite (RD-02) ; tout le reste à faire.
 ### Client (C01 à C17)
 | Écran | Titre | État |
 |---|---|---|
-| C01 | Tableau de bord client | à faire |
-| C02 | Mes missions | à faire |
-| C03 | Publier une mission | à faire |
-| C04 | Mission ouverte et candidatures | à faire |
-| C05 | Profil du candidat | à faire |
-| C06 | Modifier une mission | à faire |
-| C07 | Annuler une mission | à faire |
-| C08 | Mission en cours | à faire |
-| C09 | Confirmer la fin de mission | à faire |
-| C10 | Noter l'étudiant | à faire |
-| C11 | Mission terminée ou annulée | à faire |
-| C12 | Messages | à faire |
-| C13 | Conversation | à faire |
-| C14 | Portefeuille client | à faire |
-| C15 | Recharge et retour de paiement | à faire |
-| C16 | Retrait client | à faire |
-| C17 | Profil client | à faire |
+| C01 | Tableau de bord client | fait (RD-CLIENT-01) |
+| C02 | Mes missions | fait (RD-CLIENT-01) |
+| C03 | Publier une mission | fait (RD-CLIENT-01) |
+| C04 | Mission ouverte et candidatures | fait (RD-CLIENT-01) |
+| C05 | Profil du candidat | fait (RD-CLIENT-01) |
+| C06 | Modifier une mission | hors périmètre (RD-CLIENT-02), aucune entrée « Modifier » affichée |
+| C07 | Annuler une mission | fait (RD-CLIENT-01) |
+| C08 | Mission en cours | fait (RD-CLIENT-01) |
+| C09 | Confirmer la fin de mission | fait (RD-CLIENT-01) |
+| C10 | Noter l'étudiant | fait (RD-CLIENT-01) |
+| C11 | Mission terminée ou annulée | fait (RD-CLIENT-01) |
+| C12 | Messages | fait (RD-CLIENT-01) |
+| C13 | Conversation | fait (RD-CLIENT-01) |
+| C14 | Portefeuille client | fait (RD-CLIENT-01) |
+| C15 | Recharge et retour de paiement | fait (RD-CLIENT-01) |
+| C16 | Retrait client | fait (RD-CLIENT-01) |
+| C17 | Profil client | fait (RD-CLIENT-01) |
 
 ### Admin (AD01 à AD16)
 | Écran | Titre | État |
@@ -284,7 +287,7 @@ authentification A01 à A08 faite (RD-02) ; tout le reste à faire.
 
 - `<Select>` (`src/components/design/select.jsx`) remplace le `<select>` natif sur la vitrine : accueil (ville du hero), `/missions` (ville, Ville, Budget, Urgence, Tri) et `/contact` (Sujet). Motif APG select-only combobox, liste `.menu` / `.menu__item` du système.
 - La maquette V02 montre les listes ouvertes (titre `.menu__title`, option cochée) et V08 la liste du sujet ; la liste du hero (sans maquette dédiée) reprend les mêmes styles.
-- Hors périmètre : les selects des espaces connectés (`(student)`, `(client)`, `(admin)`, `components/client|student|admin|profile|auth`) restent natifs, en parité Tailwind avec `main`. Ils adopteront `<Select>` à leur refonte.
+- Les selects des espaces connectés non portés (`(student)`, `(admin)`, `components/student|admin|profile|auth`) restent natifs, en parité Tailwind avec `main`. L'espace client porté utilise `<Select>` par `SelectField` (`app-ui/fields.jsx`) ; l'étudiant et l'admin l'adopteront à leur refonte.
 
 ## En-tête fixe et photo du hero (RD-FIX-07)
 
@@ -349,3 +352,20 @@ authentification A01 à A08 faite (RD-02) ; tout le reste à faire.
 - Pagination : `PaginationLink` (liens de `MissionsPagination`) pose, pour un clic gauche simple non annulé hors lien de la page courante, un marqueur (`markPagination`, expire en 10 s, une seule consommation, annulé par `popstate`) ; quand seule la recherche change, `RouteScroll` ne remonte que si ce marqueur est posé. Les filtres naviguent avec `scroll: false` et gardent leur position : ne jamais élargir à toute la query. Vérifié en e2e avec `window.next.router.push` (`query-e2e.cjs`) : `scroll: false` garde la position, sans l'option la page remonte, Chromium et WebKit. Le clic réel sur la pagination n'est pas rejouable en local (aucune mission en base, donc pas de pagination) : couvert par test unitaire ; `/student/missions` demande un compte.
 - Limite assumée : `scroll: false` vers un AUTRE chemin est ignoré par `RouteScroll` (aucun lien du site ne s'en sert). Il faudrait alors un marqueur de refus sur le modèle de `markPagination`.
 - Focus : après une remontée, `focusMain` place le focus sur `#contenu` (tabindex -1, `preventScroll`) seulement si la dernière interaction était au clavier (Entrée, Espace, Tab) ou si le focus est perdu (élément actif disparu avec l'ancienne page, ou retombé sur le body) ; un focus resté ailleurs n'est pas déplacé. Limite : une page à squelette de chargement n'a pas encore `#contenu` à ce moment (le squelette n'a pas cet id) et les espaces connectés n'en ont pas : le focus n'y est pas déplacé.
+
+## Espace client (RD-CLIENT-01)
+
+Les 17 écrans C01 à C17 (hors C06) sont portés sur le système de design, d'après les planches v2.1 (décision 25 de `INVENTAIRE.md`).
+
+- Racine : le layout client pose `<div className="ds c2">` ; toutes les feuilles de l'espace sont sous `.c2`. Polices du site inchangées (Anton titres, Figtree texte).
+- Coquille réutilisable par l'étudiant et l'admin : `src/components/app-shell/` (sidebar, barre du haut, en-tête et barre du bas mobiles, lien d'évitement `#contenu`), configurée par `src/components/client-space/shell/client-nav.js`. Données de la coquille par `getClientShellData()` (`requireRole(["client"])`). Feuille `src/app/design/app-shell.css`.
+- Composants d'interface partagés : `src/components/app-ui/` (modale, tiroir, confirmation, toast, onglets, filtres, champs, étoiles, badges, montants, carte argent, listes, états vide et erreur, squelettes, en-tête de page, avatar, héros de décision). Logique pure : `src/lib/app/` (formats, statuts, partage du séquestre `escrowSplit`, filtres du portefeuille, fabriques d'URL `client-routes.js`).
+- Écrans : `src/components/client-space/<écran>/` (vues pures `XxxView`, sans accès aux données), `src/lib/client-space/` (modèles purs), données par server actions de `src/lib/actions/` ; feuilles `src/app/design/client/cNN.css` réunies par `client.css`. Chaque page est mince : elle appelle les actions et passe `paymentsEnabled={paymentsEnabled()}`.
+- Règles : client vouvoyé partout (erreurs des actions comprises) ; types de mission par `missionTypeLabel()` ; montants par `COMMISSION_RATE`, `netAmount()` et `escrowSplit()` (jamais 0.88 ni 0.12 en dur) ; aucune couleur en dur, aucun `style={{}}`, aucun utilitaire Tailwind de couleur ou de mise en page ; icônes par `Icon` ; mots bannis proscrits ; paiements coupés : aucun bouton ni modale de recharge, retrait ou publication, textes de `PAYMENTS_PENDING_COPY`.
+- Contrats d'URL : `/client/missions?onglet=&q=` (`?tab=` alias), `/client/missions/[id]?candidat=&confirmer=1&publiee=1`, `/client/missions/new?besoin&ville&type&duplicate`, `/client/wallet?filtre=&recharger=1&montant=` (retour du prestataire `?id=&status=approved|canceled`, alias `?recharge=`), `/client/messages/[missionId]?studentId=`, `/client/review/[missionId]`. Les drapeaux d'URL n'exécutent jamais d'action : ils ouvrent une modale, un tiroir ou une bannière. `/review/[missionId]` redirige un client vers la route client.
+- Pièges : pas de `loading.js` dans un segment qui appelle `notFound()` ni dans ses parents (squelettes par `<Suspense>`) ; `not-found.js` sous la coquille pour `missions/[id]`, `messages/[missionId]` et `review/[missionId]` (un seul h1, vouvoyé) ; `requireRole(["client"])` en première instruction de chaque action de page ; le layout ne protège pas les server actions ; conflits de spécificité CSS entre `.c2` et les composants du système à contrôler par captures (les garde-fous CSS vérifient des chaînes, pas le style calculé).
+- Garde-fous : `client-space.guard.test.js` (règles de style, vocabulaire, vouvoiement, modules purs ; tout fichier de `src/app/(client)` porte le marqueur `@ds-screen RD-CLIENT-01`), `app-css.guard.test.js`, `no-legacy-palette.guard.test.js` (plus aucune exemption client), `email-brand.guard.test.js` (sans exemption), `wallet-shells.test.jsx`, `role-authority`, `client-boundary`, `mission-type-display`.
+- Code hérité supprimé : `src/components/client/*`, `shared/client-header.js`, `profile/client-edit-form.js`, branches client de `shared/{sidebar,bottom-nav}.jsx`. `components/messages/*` et `components/review/*` restent pour l'étudiant.
+- Hors périmètre (RD-CLIENT-02) : C06 modification, annulation d'une mission en cours par demande, état « travail livré », achats et demandes de paiement, brouillons, invitation, motif de refus, avis croisés différés, Agenda, notifications, paramètres, signalement, type de client.
+- Écarts connus avec les planches : fil d'Ariane, puces « Urgent » et « Avant le… », référence de mission, compteur de vues, « Total dépensé » du portefeuille, boutons « Exporter » et « Toutes les dates », libellés « versé à <nom> » du reçu (le grand livre client est brut), logo de la coquille ; C03 sans brouillon, quartier ni achats, description de 50 caractères minimum et date limite obligatoire ; C12 et C13 en routes séparées, localisation en lien, sans demande de paiement ; C10 et C17 sans type de client, badge « Email vérifié » ni quartier, 10 avis les plus récents ; C05 sans état « en cours d'examen ».
+- Limites connues : `getWalletTransactions` plafonné à 50 par appel ; `getClientDashboard` borné (100 missions actives, 20 terminées récentes, 1000 candidatures) ; `confirmMission` non idempotente si le statut final échoue après la libération ; messagerie (débit non atomique, `messages_insert` permissive, bucket `message-media` public) à traiter avec la migration Neon ; C17 entre 1024 et 1100 px : colonne d'identité étroite à corriger.

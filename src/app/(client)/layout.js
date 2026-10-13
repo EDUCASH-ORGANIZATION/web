@@ -1,56 +1,31 @@
+// @ds-screen RD-CLIENT-01
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { getServerRole } from "@/lib/auth/server-role"
-import { dashboardFor } from "@/lib/auth/destinations"
-import { Sidebar } from "@/components/shared/sidebar"
-import { ClientHeader } from "@/components/shared/client-header"
+import { isInternalPath } from "@/lib/auth/internal-path"
+import { getClientShellData } from "@/lib/actions/client-shell.actions"
+import { AppShell } from "@/components/app-shell/app-shell"
+import { CLIENT_NAV } from "@/components/client-space/shell/client-nav"
+import { ToastProvider } from "@/components/app-ui/toast"
+import { OfflineBanner } from "@/components/app-ui/offline-banner"
 import { PwaInstallBannerLoader } from "@/components/shared/pwa-install-banner-loader"
-import { BottomNav } from "@/components/shared/bottom-nav"
 
 export default async function ClientLayout({ children }) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
-
-  // Autorité : profiles.role (jamais user_metadata). Rôle introuvable : retour à l'accueil (fail-closed).
-  const { role } = await getServerRole(supabase, user)
-  if (!role) redirect("/")
-  if (role !== "client") redirect(dashboardFor(role) ?? "/")
-
-  const [{ data: profile }, { count: unreadCount }, { data: walletData }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("full_name, avatar_url, role, bio")
-      .eq("user_id", user.id)
-      .single(),
-    supabase
-      .from("messages")
-      .select("*", { count: "exact", head: true })
-      .eq("receiver_id", user.id)
-      .eq("read", false),
-    supabase
-      .from("wallets")
-      .select("balance, reserved")
-      .eq("user_id", user.id)
-      .single(),
-  ])
-
-  const walletAvailable = walletData
-    ? (walletData.balance ?? 0) - (walletData.reserved ?? 0)
-    : 0
+  // Garde : getClientShellData exige profiles.role = client (jamais user_metadata), refuse un compte
+  // suspendu et renvoie la destination fail-closed (connexion, accueil ou tableau de bord du bon rôle).
+  const data = await getClientShellData()
+  // La coquille est exigée : une réponse sans `shell` (refus, réponse vide) ne rend jamais les enfants.
+  // La destination n'est suivie que si c'est un chemin interne ; sinon accueil. redirect() hors try/catch.
+  if (!data?.shell) redirect(isInternalPath(data?.redirectTo) ? data.redirectTo : "/")
+  const { shell } = data
 
   return (
-    <div className="flex h-full min-h-screen bg-[#F5F6FA]">
-      <Sidebar role="client" profile={profile} userId={user.id} unreadCount={unreadCount ?? 0} walletAvailable={walletAvailable} />
-      <div className="flex-1 min-w-0 flex flex-col">
-        <ClientHeader profile={profile} />
-        <main className="flex-1 pb-20 lg:pb-0 overflow-auto">
+    <div className="ds c2">
+      <ToastProvider>
+        <OfflineBanner />
+        <AppShell nav={CLIENT_NAV} user={{ id: shell.userId, fullName: shell.fullName }} unreadCount={shell.unreadCount}>
           <PwaInstallBannerLoader space="client" />
           {children}
-        </main>
-      </div>
-      <BottomNav role="client" userId={user.id} unreadCount={unreadCount ?? 0} />
+        </AppShell>
+      </ToastProvider>
     </div>
   )
 }

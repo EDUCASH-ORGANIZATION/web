@@ -1,5 +1,9 @@
+/* @ds-screen RD-CLIENT-01 */
 /* ---------- C05 Profil du candidat (tiroir) ---------- */
-.c2 .drawer { width: 520px; border-radius: 24px 0 0 24px; }
+/* Largeur et arrondi seulement hors plein écran : .ds-drawer--full (sous 1024 px, app-shell.css, 0,1,0) serait
+   sinon écrasé par .c2 .drawer (0,2,0, chargé après). */
+.c2 .drawer:not(.ds-drawer--full) { width: 520px; border-radius: 24px 0 0 24px; }
+.c2 .drawer.ds-drawer--full { border-left: 0; }
 .c2 .drawer__head { border-bottom: 1px solid var(--c-ligne); }
 .c2 .drawer__foot { border-top: 1px solid var(--c-ligne); align-items: center; }
 .c2 .drawer__foot .btn--dark { margin-left: auto; }
@@ -18,11 +22,15 @@
 .review2x__stars { display: inline-flex; gap: 2px; }
 .review2x__stars .ic { width: 14px; height: 14px; fill: var(--c-encre); stroke: var(--c-encre); }
 .stats2--3s { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stats2--3s .stat2__value { white-space: normal; overflow-wrap: anywhere; }
 
 @media (max-width: 1023.98px) {
+  /* Liens du tiroir (Voir les N avis, Ouvrir le profil public) : zone de 44 px de haut */
+  .c2 .drawer .link2 { min-height: 44px; }
   .stats2--3s .stat2, .c2 .drawer .stats2--3s .stat2 { padding: 10px 12px; }
   .stats2--3s .stat2__value { font-size: var(--t-body); white-space: normal; }
 }
-@media (max-width: 767.98px) {
-  .c2 .drawer { width: 100%; border-radius: 0; }
+@media (max-width: 480px) {
+  .c2 .drawer__foot { flex-wrap: wrap; }
+  .c2 .drawer__foot .btn--dark { margin-left: 0; flex: 1 1 100%; }
 }

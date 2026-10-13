@@ -1,12 +1,15 @@
 import { describe, it, expect } from "vitest"
 import { readFileSync, readdirSync } from "node:fs"
 import path from "node:path"
+import { parseColorTokens, contrastRatio } from "@/lib/design/contrast"
 
 // Garde-fou des feuilles v2.1 (RD-CLIENT-01 ST-01) : coquille connectee
 // (app-shell.css) et espace client (client.css + client/*.css).
 
 const dir = import.meta.dirname
 const read = (rel) => readFileSync(path.join(dir, rel), "utf8")
+// Bloc @media ou @container (un niveau de regles imbriquees) : retire du « premier niveau » des feuilles.
+const AT_BLOCK = /@(?:media|container)[^{]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g
 const stripComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "")
 
 const CLIENT_FILES = readdirSync(path.join(dir, "client")).filter((f) => f.endsWith(".css")).sort()
@@ -24,7 +27,7 @@ cal2__legend cal2__month card2 card2--m count day2 day2--m day2__count day2__hea
 duo2 flag2 flag2--neutre has-due head2 head2__date head2__title hero2 hero2--m hero2__actions
 hero2__col hero2__figure hero2__label hero2__link hero2__meta hero2__text hero2__title ic
 iconbtn2 iconbtn2__dot is-active is-focus is-hover is-out is-today item2 item2__action item2__ic
-item2__meta item2__sub item2__title list2 list2--m list2__head list2__more list2__title logo
+item2__meta item2__sub item2__title list2 list2--m list2__head list2__more list2__title
 logo-sym main2 mapp2 money2 money2--m money2--split money2__head mpage2 mtop2 mtop2__space nav-item nav2 nav2__count page2 row2 search2 shell--v2 shell__main side2 side2__brand side2__cta
 side2__foot side2__group side2__me side2__space sidebar__brand sidebar__group sidebar__me
 sidebar__space skel2-hero skel2-row skel2-stats slot2 stat2 stat2__label stat2__sub stat2__value
@@ -197,12 +200,32 @@ describe("feuilles app-shell.css et client/*.css", () => {
     for (const a of allowed) expect(conditions).toContain(a)
   })
 
+  // Les requetes de conteneur sont AUTORISEES, et seulement celles-ci : la lisibilite d'une carte depend de la
+  // largeur de la carte (ex. 332 px pour l'historique d'un bureau de 1024-1149 px avec sidebar), pas de celle de
+  // l'ecran, et le garde-fou des media queries interdit tout seuil de largeur d'ecran supplementaire. Le controle
+  // des media queries ci-dessus reste inchange.
+  // C03 (publication) ajoute une requete de conteneur anonyme (520 px) sur .wizard2__choices2 : les cartes d'urgence
+  // passent a trois colonnes selon la largeur du champ, pas celle de l'ecran.
+  // C03 (publication) ajoute une requete de conteneur nommee wizard2card (400 px) sur la carte du formulaire
+  // (.wizard2 .form2) : le <dl class="review2"> du recapitulatif passe de une colonne (libelles au-dessus des valeurs)
+  // a deux colonnes 160 px + 1fr quand le contenu de la carte atteint 400 px.
+  // C17 (profil) : la colonne principale (.profile2 .col2, conteneur profile2col) mesure environ 330 px entre 1024 et
+  // 1150 px d'ecran (colonne = ecran - 693 px) : deux requetes, 480 px (identite empilee) et 720 px (chiffres sur 2 colonnes).
+  it("n'utilise que les requetes de conteneur txs2 (600 px), money2 (480 px), profile2col (480 et 720 px) et celles de C03 : cartes d'urgence (520 px) et carte du formulaire wizard2card (400 px)", () => {
+    const conditions = [...ALL.matchAll(/@container\s*([^{]+)\{/g)].map((m) => m[1].trim())
+    expect(conditions.sort()).toEqual([
+      "(min-width: 520px)", "money2 (max-width: 480px)", "profile2col (max-width: 480px)", "profile2col (max-width: 720px)", "txs2 (max-width: 600px)",
+      "wizard2card (min-width: 400px)",
+    ])
+    expect(ALL).not.toMatch(/@media[^{]*\bmin-width/)
+  })
+
   it("range les regles mobiles apres les regles de base de leur propre fichier", () => {
     for (const css of [SHELL, ...CLIENT_FILES.map((f) => stripComments(read(`client/${f}`)))]) {
       const firstMedia = css.indexOf("@media")
       if (firstMedia === -1) continue
       const rest = css.slice(firstMedia)
-      const outside = rest.replace(/@media[^{]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "")
+      const outside = rest.replace(AT_BLOCK, "")
       expect(outside.trim()).toBe("")
     }
   })
@@ -243,9 +266,38 @@ describe("feuilles app-shell.css et client/*.css", () => {
     expect(SHELL).toMatch(/\.c2 \*::before, \.c2 \*::after[^}]*scroll-behavior: auto !important[^}]*animation-duration: \.01ms !important/)
   })
 
-  it("garde les logos aux minimums de la charte (symbole 32 px, logo complet 37 px)", () => {
+  it("garde les logos aux minimums de la charte, sur les VRAIES classes (sidebar__brand, mtop2)", () => {
     expect(SHELL).toMatch(/\.mtop2 \.logo-sym \{ height: 32px; width: auto; \}/)
-    expect(SHELL).toMatch(/\.side2__brand \.logo \{ height: 37px; width: auto; align-self: flex-start; \}/)
+    // La sidebar reelle est .sidebar__brand > img.logo (layouts.css : 40 px de haut, >= 37), largeur >= 150 px.
+    const logoRule = stripComments(read("layouts.css")).match(/\n\.logo \{([^}]*)\}/)?.[1] ?? ""
+    expect(Number(logoRule.match(/height:\s*(\d+)px/)?.[1])).toBeGreaterThanOrEqual(37)
+    expect(SHELL).not.toMatch(/\.sidebar__brand[^{]*\.logo[^{]*\{[^}]*height:\s*(?:[0-2]\d|3[0-6])px/)
+    const sidebar = readFileSync(path.join(dir, "..", "..", "components", "app-shell", "sidebar.jsx"), "utf8")
+    expect(sidebar).toContain('className="sidebar__brand"')
+    expect(Number(sidebar.match(/<img className="logo"[^>]*width=\{(\d+)\}/)?.[1])).toBeGreaterThanOrEqual(150)
+    expect(SHELL).not.toContain(".side2__brand .logo")
+  })
+
+  it("garde les montants a 7 chiffres dans 3 colonnes : taille fluide jamais sous 13 px, unite a la ligne", () => {
+    const phone = SHELL.slice(SHELL.indexOf("@media (max-width: 767.98px)"))
+    expect(phone).toMatch(/\.stats2 \.stat2__value, \.money2--split \.stat2__value \{ font-size: max\(var\(--t-micro\), clamp\(13px, [\d.]+vw, var\(--t-amount-s\)\)\); \}/)
+    expect(phone).toMatch(/\.stats2 \.stat2__value small, \.money2--split \.stat2__value small \{ display: block;/)
+  })
+
+  it("laisse un montant de 10 chiffres passer a la ligne dans sa cellule au lieu de deborder, sans reduire la taille", () => {
+    const phone = SHELL.slice(SHELL.indexOf("@media (max-width: 767.98px)"))
+    expect(phone).toMatch(/\.stats2 \.stat2__value, \.money2--split \.stat2__value \{ min-width: 0; white-space: normal; overflow-wrap: anywhere; \}/)
+    expect(SHELL).toMatch(/\.stat2 \{[^}]*min-width: 0;/)
+  })
+
+  it("durcit la coquille : pastille 20 px, libelles tronques, avatar image rogne, formulaire de recherche et .search2 sans debordement", () => {
+    expect(SHELL).toContain(".bottom-nav--v2 .bnav-item__dot { min-width: 20px; height: 20px; }")
+    expect(SHELL).toContain(".bottom-nav--v2 .bnav-item { min-width: 0; }")
+    expect(SHELL).toContain(".bottom-nav--v2 .bnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }")
+    expect(SHELL).toContain(".c2 .av2 { overflow: hidden; }")
+    expect(SHELL).toContain(".c2 .av2 img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }")
+    expect(SHELL).toContain(".shell--v2 .top2 form { flex: 0 1 auto; min-width: 0; }")
+    expect(SHELL).toMatch(/\.search2 \{[^}]*width: 440px; max-width: 100%;/)
   })
 
   it("donne a .head2__title l'interligne des titres Anton", () => {
@@ -297,6 +349,350 @@ describe("feuilles app-shell.css et client/*.css", () => {
   })
 })
 
+describe("C17 profil : requetes de conteneur de la colonne principale", () => {
+  const c17 = stripComments(read("client/c17.css"))
+  const container = (cond) => c17.match(new RegExp(`@container profile2col \\(${cond}\\) \\{((?:[^{}]*\\{[^{}]*\\})*)\\s*\\}`))?.[1] ?? ""
+
+  it("declare le conteneur sur la colonne, et empile le lien Modifier sous le nom en colonne etroite", () => {
+    expect(c17).toMatch(/\.profile2 \.col2 \{ container: profile2col \/ inline-size; \}/)
+    expect(container("max-width: 480px")).toMatch(/\.me2 \{ flex-wrap: wrap; \}/)
+    expect(container("max-width: 480px")).toMatch(/\.me2__edit \{ margin-left: 0; flex: 1 1 100%; \}/)
+  })
+
+  it("passe les 4 chiffres sur 2 colonnes, valeurs a la ligne et sous-textes sans ellipse", () => {
+    const narrow = container("max-width: 720px")
+    expect(narrow).toMatch(/\.stats2--4 \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/)
+    expect(narrow).toMatch(/\.stat2__value \{[^}]*white-space: normal; overflow-wrap: anywhere;/)
+    expect(c17).toMatch(/\.stat2__sub \{ white-space: normal; overflow: visible; text-overflow: clip; \}/)
+  })
+
+  it("le nom passe a la ligne par mots (jamais anywhere) et l'avatar ne se comprime pas", () => {
+    expect(c17).toMatch(/\.me2 \.me2__name \{[^}]*overflow-wrap: break-word;/)
+    expect(c17).not.toMatch(/\.me2 \.me2__name \{[^}]*anywhere/)
+    expect(c17).toMatch(/\.me2 \.av2 \{ flex: none; \}/)
+  })
+
+  it("la plage 1024-1150 px (colonne = ecran - 693 px, soit 331 a 457 px) tombe dans les deux requetes", () => {
+    for (const screen of [1024, 1100, 1150]) {
+      const col = screen - 693
+      expect(col).toBeLessThanOrEqual(480)
+      expect(col).toBeGreaterThanOrEqual(320)
+      // Avatar 80 + ecart 20 + carte 2 x 32 : le texte garde au moins 120 px, un mot comme « Houngbedji » (~110 px a 24 px) tient.
+      expect(col - 64 - 80 - 20).toBeGreaterThanOrEqual(120 - 1)
+    }
+  })
+})
+
+describe("cibles tactiles de 44 px sous 1024 px (liens isoles)", () => {
+  const phone = (file) => {
+    const css = stripComments(read(`client/${file}`))
+    return css.slice(css.indexOf("@media (max-width: 1023.98px)"))
+  }
+
+  it.each([
+    ["c12.css", ".c2 .inbox-empty2 .actions2 .link2"],
+    ["c10.css", ".c2 .done2 .actions2 .link2"],
+    ["c13.css", ".c2 .bubble__place2"],
+  ])("%s : %s a une hauteur minimale de 44 px dans le bloc mobile", (file, selector) => {
+    const escaped = selector.replace(/\./g, "\\.")
+    expect(phone(file)).toMatch(new RegExp(`${escaped} \\{[^}]*min-height: 44px`))
+  })
+})
+
+describe("indicateurs de focus des fonds clairs (>= 3:1)", () => {
+  const colors = parseColorTokens(read("tokens.css"))
+
+  // Carte d'urgence C03 selectionnee (fond blanc) : anneau --sh-focus (2 px blanc puis 3 px bleu), conserve par c03.css.
+  // Champ de saisie de la conversation : bordure bleue pleine au focus (le halo 18 % n'est qu'un renfort).
+  // Aucune de ces deux regles ne necessite de renfort : le bleu atteint 8,1:1 sur blanc et 7,4:1 sur givre.
+  it.each([["--c-blanc"], ["--c-givre"]])("le bleu de l'indicateur de focus contraste >= 3:1 avec %s", (bg) => {
+    expect(contrastRatio(colors["--c-bleu"], colors[bg])).toBeGreaterThanOrEqual(3)
+  })
+
+  it("garde l'anneau plein sur la carte d'urgence selectionnee et la bordure bleue du champ de conversation", () => {
+    expect(read("tokens.css")).toMatch(/--sh-focus: 0 0 0 2px var\(--c-blanc\), 0 0 0 5px var\(--c-bleu\)/)
+    expect(CLIENT).toContain(".c2 .choice.is-selected:focus-visible { box-shadow: var(--sh-focus); }")
+    expect(CLIENT).toMatch(/\.c2 \.composer__field:focus-within \{[^}]*border-color: var\(--c-bleu\)/)
+  })
+})
+
+// ---------- Mini-cascade statique : specificite et ordre (les garde-fous de presence ne voient pas ces conflits) ----------
+
+/** Specificite (ids, classes + pseudo-classes, balises) d'un selecteur sans combinateur autre que l'espace. */
+function specificity(selector) {
+  let classes = 0
+  let tags = 0
+  for (const c of selector.trim().split(/\s+/)) {
+    classes += (c.match(/\.[\w-]+/g) ?? []).length + (c.match(/:[\w-]+/g) ?? []).length
+    if (/^[a-z]/i.test(c)) tags += 1
+  }
+  return [0, classes, tags]
+}
+const compareSpec = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]
+
+function parseCompound(c) {
+  return {
+    tag: c.match(/^[a-z][\w-]*/i)?.[0] ?? null,
+    classes: (c.match(/\.[\w-]+/g) ?? []).map((x) => x.slice(1)),
+    states: (c.match(/:[\w-]+/g) ?? []).map((x) => x.slice(1)),
+  }
+}
+
+/** Regles de premier niveau (hors @media), dans l'ordre du texte : { selector, declarations, order }. */
+function topLevelRules(css, startOrder = 0) {
+  const flat = css.replace(AT_BLOCK, "")
+  const rules = []
+  let order = startOrder
+  for (const m of flat.matchAll(/([^{}@]+)\{([^{}]*)\}/g)) {
+    const declarations = {}
+    for (const d of m[2].split(";")) {
+      const i = d.indexOf(":")
+      if (i > 0) declarations[d.slice(0, i).trim()] = d.slice(i + 1).trim()
+    }
+    for (const sel of m[1].split(",").map((x) => x.trim())) {
+      if (/[>+~*()[]|::/.test(sel)) continue
+      rules.push({ selector: sel, declarations, order: order++ })
+    }
+  }
+  return rules
+}
+
+/** Valeurs calculees (specificite puis ordre) d'un element : balise, classes, ancetres, pseudo-classes d'etat. */
+function computedStyle(rules, { tag, classes, ancestors, states = [] }) {
+  const won = {}
+  for (const rule of rules) {
+    const parts = rule.selector.split(/\s+/).map(parseCompound)
+    const subject = parts.pop()
+    if (subject.tag && subject.tag !== tag) continue
+    if (!subject.classes.every((c) => classes.includes(c)) || !subject.states.every((s) => states.includes(s))) continue
+    if (!parts.every((p) => p.classes.every((c) => ancestors.includes(c)))) continue
+    const spec = specificity(rule.selector)
+    for (const [prop, value] of Object.entries(rule.declarations)) {
+      const cur = won[prop]
+      const cmp = cur ? compareSpec(spec, cur.spec) : 1
+      if (cmp > 0 || (cmp === 0 && rule.order > cur.order)) won[prop] = { value, spec, order: rule.order }
+    }
+  }
+  return Object.fromEntries(Object.entries(won).map(([k, v]) => [k, v.value]))
+}
+
+// Ordre de chargement reel : components, layouts, app-shell, puis client.css (base en premier).
+const LOAD_ORDER = ["components.css", "layouts.css", "app-shell.css", ...[...read("client.css").matchAll(/@import "\.\/(client\/[\w-]+\.css)";/g)].map((m) => m[1])]
+const RULES = LOAD_ORDER.reduce((acc, f) => acc.concat(topLevelRules(stripComments(read(f)), acc.length)), [])
+const ANCESTORS = ["ds", "c2", "shell", "shell--v2", "shell__frame", "shell__main", "money2", "money2--split", "hero2__actions", "money2__foot"]
+
+describe("cascade statique : specificite et ordre de chargement", () => {
+  it("calcule la specificite", () => {
+    expect(specificity(".btn--blanc")).toEqual([0, 1, 0])
+    expect(specificity(".c2 .btn--secondary")).toEqual([0, 2, 0])
+    expect(specificity(".money2 a")).toEqual([0, 1, 1])
+    expect(specificity(".c2 a.ds-skip-link:focus-visible")).toEqual([0, 3, 1])
+  })
+
+  it("lien d'evitement : hors ecran au repos, visible avec anneau de focus au focus clavier dans .c2", () => {
+    const el = { tag: "a", classes: ["ds-skip-link", "btn", "btn--secondary"], ancestors: ANCESTORS }
+    const rest = computedStyle(RULES, el)
+    expect(rest.transform).toBe("translateY(-200%)")
+    expect(rest["box-shadow"]).toBe("none")
+    const focus = computedStyle(RULES, { ...el, states: ["focus-visible"] })
+    expect(focus.transform).toBe("none")
+    expect(focus["box-shadow"]).toBe("var(--sh-focus)")
+    expect(focus.position).toBe("fixed")
+    expect(focus["z-index"]).toBe("var(--z-toast)")
+  })
+
+  it("detecte le conflit d'origine : sans les regles de la coquille, .c2 .btn--secondary annule le transform", () => {
+    const without = RULES.filter((r) => !r.selector.startsWith(".c2 a.ds-skip-link") && !r.selector.startsWith(".c2 .btn--secondary:focus-visible"))
+    const rest = computedStyle(without, { tag: "a", classes: ["ds-skip-link", "btn", "btn--secondary"], ancestors: ANCESTORS })
+    expect(rest.transform).toBe("none")
+  })
+
+  it("recherche de .c2 : la bordure bleue de focus de .search:focus-within n'est pas annulee, et c02.css ne la double pas", () => {
+    expect(specificity(".c2 .search:focus-within")).toEqual([0, 3, 0])
+    const el = { tag: "div", classes: ["search"], ancestors: ANCESTORS }
+    expect(computedStyle(RULES, el).border).toBe("1px solid var(--c-ligne)")
+    expect(computedStyle(RULES, { ...el, states: ["focus-within"] })["border-color"]).toBe("var(--c-bleu)")
+    expect(read("client/c02.css")).not.toContain(".search:focus-within")
+  })
+
+  it("recherche de la barre du haut : le focus bleu l'emporte sur la bordure givre de .shell--v2 .search2", () => {
+    expect(specificity(".shell--v2 .search2:focus-within")).toEqual([0, 3, 0])
+    expect(specificity(".shell--v2 .search2")).toEqual([0, 2, 0])
+    const el = { tag: "div", classes: ["search2"], ancestors: ANCESTORS }
+    expect(computedStyle(RULES, el)["border-color"]).toBe("var(--c-givre)")
+    expect(computedStyle(RULES, { ...el, states: ["focus-within"] })["border-color"]).toBe("var(--c-bleu)")
+    expect(SHELL).toMatch(/\.shell--v2 \.search2:focus-within, \.shell--v2 \.search2\.is-focus \{ border-color: var\(--c-bleu\); \}/)
+    expect(SHELL.indexOf(".shell--v2 .search2:focus-within")).toBeGreaterThan(SHELL.indexOf(".shell--v2 .search2 {"))
+  })
+
+  it("mobile : cibles tactiles de 44 px et sous-textes a la ligne, uniquement sous 1024 px et dans .c2", () => {
+    const m = SHELL.match(/@media \(max-width: 1023\.98px\) \{\s*\.c2 \.item2__action[\s\S]*?\n\}/)
+    expect(m, "bloc mobile dedie").not.toBeNull()
+    const block = m[0]
+    expect(block).toMatch(/\.c2 \.item2__action, \.c2 \.hero2__link \{ display: inline-flex; align-items: center; min-height: 44px; \}/)
+    expect(block).toMatch(/\.c2 \.btn--sm \{ min-height: 44px; \}/)
+    expect(block).toMatch(/\.c2 \.list2__more \{ display: inline-flex; align-items: center; min-height: 44px; \}/)
+    expect(block).toMatch(/\.c2 \.mtop2 > a \{ position: relative; \}/)
+    expect(block).toMatch(/\.c2 \.mtop2 > a::after \{ content: ""; position: absolute; inset: -6px; \}/)
+    expect(block).toMatch(/\.c2 \.stat2__sub, \.c2 \.money2 \.stat2__sub \{ white-space: normal; overflow: visible; text-overflow: clip; \}/)
+    // aucune de ces regles n'existe hors media : la version bureau reste inchangee
+    const outside = SHELL.replace(block, "")
+    expect(outside).not.toMatch(/min-height: 44px/)
+    expect(outside).not.toContain(".mtop2 > a::after")
+    for (const line of block.split("\n").filter((l) => l.includes("{") && !l.startsWith("@") && l.trim().startsWith("."))) {
+      expect(line.trim().startsWith(".c2 "), line).toBe(true)
+    }
+  })
+
+  it("unites de montant : jamais sous 13 px (.amount--s small, .fund2__amt small), dans .c2", () => {
+    const amountS = { tag: "small", classes: [], ancestors: [...ANCESTORS, "amount", "amount--s"] }
+    expect(computedStyle(RULES, amountS)["font-size"]).toBe("max(var(--t-micro), .76em)")
+    const amountM = { tag: "small", classes: [], ancestors: [...ANCESTORS, "amount"] }
+    expect(computedStyle(RULES, amountM)["font-size"]).toBe("max(var(--t-micro), .42em)")
+    const fund = { tag: "small", classes: [], ancestors: [...ANCESTORS, "fund2__amt"] }
+    expect(computedStyle(RULES, fund)["font-size"]).toBe("max(var(--t-micro), .8em)")
+    const c14 = stripComments(read("client/c14.css"))
+    expect(relativeSizeOffenders(c14)).toEqual([])
+    expect(relativeSizeOffenders(stripComments(read("client/c08.css")))).toEqual([])
+  })
+
+  it("C04 : pastille « a examiner » sur une ligne, titre et tri a la ligne, badge sous le nom, sous .c2", () => {
+    const c04 = stripComments(read("client/c04.css"))
+    expect(c04).toContain(".c2 .cand2__list .flag2 { white-space: nowrap; }")
+    expect(c04).toMatch(/\.c2 \.cand2__list \.list2__head \{ flex-wrap: wrap;/)
+    expect(c04).toMatch(/\.c2 \.cand2 \.cand2__top \{ flex-wrap: wrap;/)
+  })
+
+  it("cibles tactiles de 44 px sous 1024 px (I7), scopees .c2, dans la requete (max-width: 1023.98px)", () => {
+    const inTablet = (file, rule) => {
+      const css = stripComments(read(file))
+      const tablet = css.slice(css.indexOf("@media (max-width: 1023.98px)"))
+      expect(tablet, `${file} : ${rule}`).toContain(rule)
+      expect(css.slice(0, css.indexOf("@media (max-width: 1023.98px)")), `${file} hors media`).not.toContain(rule)
+    }
+    inTablet("client/base.css", ".c2 .modal__head .btn-icon, .c2 .drawer__head .btn-icon { width: 44px; height: 44px; }")
+    inTablet("client/c05.css", ".c2 .drawer .link2 { min-height: 44px; }")
+    inTablet("client/c08.css", ".c2 .fup2 .status2 .link2 { display: inline-flex; min-height: 44px; }")
+    inTablet("client/c08.css", ".c2 .head2__date .meta2 > a::after { content: \"\"; position: absolute; inset: -12px -6px; }")
+    inTablet("client/c09.css", ".c2 .modal__body .check { min-height: 44px; align-items: flex-start; }")
+    inTablet("client/c09.css", ".c2 .modal__body .note2 .link2 { display: inline-flex; min-height: 44px; }")
+    inTablet("client/c15.css", ".c2 .banner__actions .link2 { min-height: 44px; }")
+    inTablet("client/c16.css", ".c2 .modal__body .chip { min-height: 44px; }")
+  })
+
+  it("avatar de l'en-tete mobile : .c2 .av2 { overflow: hidden } ne rogne plus le pseudo-element de la zone de 44 px", () => {
+    expect(SHELL).toContain(".c2 .av2 { overflow: hidden; }")
+    const block = SHELL.slice(SHELL.indexOf(".c2 .mtop2 > a::after"))
+    expect(block).toContain(".c2 .mtop2 > a.av2 { overflow: visible; }")
+    expect(specificity(".c2 .mtop2 > a.av2")[1]).toBeGreaterThan(specificity(".c2 .av2")[1])
+    // la structure reelle : les deux liens directs de .mtop2, dont l'avatar a la classe av2
+    const mobileTop = readFileSync(path.join(dir, "..", "..", "components", "app-shell", "mobile-top.jsx"), "utf8")
+    expect(mobileTop).toContain('<header className="mtop2">')
+    expect(mobileTop).toMatch(/<Link className="av2 av2--sm" href=\{nav\.profileHref\}/)
+  })
+
+  it("bouton « Retirer » inactif de la carte argent : l'opacite .45 de .c2 .btn.is-disabled ne s'applique pas", () => {
+    const el = { tag: "button", classes: ["btn", "btn--ghost-blanc", "btn--sm", "is-disabled"], ancestors: ANCESTORS }
+    expect(computedStyle(RULES, el).opacity).toBe("1")
+    // hors carte argent (.money2), le bouton inactif de .c2 garde son opacite reduite
+    const elsewhere = { tag: "button", classes: ["btn", "is-disabled"], ancestors: ["c2", "shell--v2"] }
+    expect(computedStyle(RULES, elsewhere).opacity).toBe(".45")
+  })
+
+  it("historique et carte argent : requetes de conteneur sur la carte (B2), jamais un seuil d'ecran", () => {
+    const c14 = stripComments(read("client/c14.css"))
+    expect(c14).toMatch(/\.txs2 \{ container: txs2 \/ inline-size; \}/)
+    expect(c14).toMatch(/\.money2--split \{ container: money2 \/ inline-size; \}/)
+    const tx = c14.match(/@container txs2 \(max-width: 600px\) \{([\s\S]*?)\n\}/)?.[1] ?? ""
+    expect(tx).toMatch(/\.tx2 \{ grid-template-columns: minmax\(0, 1fr\) auto; grid-template-areas: "main amt" "date badge";/)
+    expect(tx).toMatch(/\.tx2__title, \.tx2__sub \{ white-space: normal;/)
+    expect(tx).toContain(".tx2__badge { grid-area: badge;")
+    const money = c14.match(/@container money2 \(max-width: 480px\) \{([\s\S]*?)\n\}/)?.[1] ?? ""
+    expect(money).toMatch(/\.money2--split \.stat2__value \{ font-size: max\(var\(--t-micro\), clamp\(13px, 7\.6cqi, var\(--t-amount-s\)\)\);[^}]*white-space: normal;/)
+    // taille fluide conservee dans le conteneur (jamais une taille fixe qui ecrase celle d'app-shell.css), plancher 13 px
+    expect(money).not.toMatch(/\.stat2__value \{ font-size: var\(--t-amount-s\)/)
+    // 10 chiffres a 320 px : la valeur peut passer a la ligne et l'unite descend sous le chiffre
+    expect(money).toMatch(/\.money2--split \.stat2__value \{[^}]*min-width: 0;[^}]*overflow-wrap: anywhere;/)
+    expect(money).toContain(".money2--split .stat2__value small { display: block; margin-left: 0; }")
+    // sous-textes de la carte argent : retour a la ligne, pas d'ellipse, avant les requetes de conteneur
+    expect(c14).toMatch(/\.money2--split \.stat2__sub \{ white-space: normal; overflow: visible; text-overflow: clip; \}/)
+    expect(c14.indexOf(".money2--split .stat2__sub {")).toBeLessThan(c14.indexOf("@container money2"))
+    // la grille complete a 4 colonnes reste celle des cartes larges
+    expect(c14).toMatch(/\.tx2 \{ grid-template-columns: 60px minmax\(0, 1fr\) 132px 120px; \}/)
+  })
+
+  it("avatar de l'en-tete mobile : zone tactile de 44 x 44 (inset -7px, bordure de 1 px comprise)", () => {
+    const tablet = SHELL.match(/@media \(max-width: 1023\.98px\) \{([\s\S]*?)\n\}/g)?.join("\n") ?? ""
+    expect(tablet).toContain('.c2 .mtop2 > a::after { content: ""; position: absolute; inset: -6px; }')
+    expect(tablet).toContain(".c2 .mtop2 > a.av2::after { inset: -7px; }")
+    expect(tablet).toContain(".c2 .mtop2 > a.av2 { overflow: visible; }")
+  })
+
+  it("boutons secondaire et accent de .c2 : l'anneau de focus n'est pas annule par box-shadow: none", () => {
+    for (const tone of ["btn--secondary", "btn--accent"]) {
+      const focus = computedStyle(RULES, { tag: "button", classes: ["btn", tone], ancestors: ANCESTORS, states: ["focus-visible"] })
+      expect(focus["box-shadow"], tone).toBe("var(--sh-focus)")
+    }
+  })
+
+  it("carte argent : bouton blanc en encre sans soulignement, bouton contour en blanc sans soulignement", () => {
+    for (const small of [[], ["btn--sm"]]) {
+      for (const states of [[], ["visited"]]) {
+        const blanc = computedStyle(RULES, { tag: "a", classes: ["btn", "btn--blanc", ...small], ancestors: ANCESTORS, states })
+        expect(blanc.color).toBe("var(--c-encre)")
+        expect(blanc.background).toBe("var(--c-blanc)")
+        expect(blanc["text-decoration"]).toBe("none")
+        const ghost = computedStyle(RULES, { tag: "a", classes: ["btn", "btn--ghost-blanc", ...small], ancestors: ANCESTORS, states })
+        expect(ghost.color).toBe("var(--c-blanc)")
+        expect(ghost.background).toBe("transparent")
+        expect(ghost["text-decoration"]).toBe("none")
+      }
+    }
+  })
+
+  it("carte argent : le lien simple reste blanc souligne, jamais bleu sur bleu", () => {
+    const link = computedStyle(RULES, { tag: "a", classes: ["hero2__link"], ancestors: ANCESTORS })
+    expect(link.color).toBe("var(--c-blanc)")
+    expect(link["text-decoration"]).toBe("underline")
+    const sub = computedStyle(RULES, { tag: "a", classes: [], ancestors: [...ANCESTORS, "stat2__sub"] })
+    expect(sub.color).toBe("var(--c-blanc)")
+  })
+
+  it("detecte le conflit d'origine : sans la correction, `.money2 a` rend le bouton blanc sur blanc", () => {
+    const without = RULES.filter((r) => !/^\.money2 a\.btn/.test(r.selector))
+    const blanc = computedStyle(without, { tag: "a", classes: ["btn", "btn--blanc"], ancestors: ANCESTORS })
+    expect(blanc.color).toBe("var(--c-blanc)")
+  })
+
+  // Collision de racines (RD-CLIENT-01 vague 4) : C10 redefinissait `.review2` (le <dl> de C03). Une meme classe
+  // nue (`.nom { ... }`, premier niveau) ne doit jamais fixer la meme propriete dans deux feuilles ; deux feuilles
+  // qui la completent avec des proprietes differentes (ex. `.inbox2` C12 et C13) ne sont pas un conflit.
+  it("aucune classe racine ne fixe la meme propriete dans deux feuilles differentes (app-shell, c0x, c1x)", () => {
+    const owners = {}
+    for (const f of LOAD_ORDER) {
+      for (const rule of topLevelRules(stripComments(read(f)))) {
+        if (!/^\.[\w-]+$/.test(rule.selector)) continue
+        for (const prop of Object.keys(rule.declarations)) {
+          const key = `${rule.selector} { ${prop} }`
+          ;(owners[key] ??= new Set()).add(f)
+        }
+      }
+    }
+    const collisions = Object.entries(owners).filter(([, files]) => files.size > 1).map(([k, files]) => `${k}: ${[...files].join(", ")}`)
+    expect(collisions).toEqual([])
+  })
+
+  it("le recapitulatif de publication `.review2` (dl C03) reste une grille, la page C10 utilise `.rate-page2`", () => {
+    const dl = computedStyle(RULES, { tag: "dl", classes: ["review2"], ancestors: [] })
+    expect(dl.display).toBe("grid")
+    // Une colonne par defaut (carte etroite) ; 160px + 1fr via la requete de conteneur wizard2card (voir plus bas).
+    expect(dl["grid-template-columns"]).toBe("minmax(0, 1fr)")
+    const c10 = stripComments(read("client/c10.css"))
+    expect(c10).not.toMatch(/\.review2(?![\w-])/)
+    expect(c10).toMatch(/\.rate-page2 \{[^}]*flex-direction: column/)
+  })
+})
+
 describe("regles des primitives interactives (app-ui)", () => {
   it("fournit toasts fixes, tiroir plein ecran, bouton d'etoile et focus clavier tab/chip limite a .c2 et .shell--v2", () => {
     expect(SHELL).toMatch(/\.ds-toasts-fixed \{[^}]*position: fixed/)
@@ -329,5 +725,81 @@ describe("client.css et globals.css", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order)
     expect(globals).toContain('@import "./design/app-shell.css" layer(components);')
     expect(globals).toContain('@import "./design/client.css" layer(components);')
+  })
+})
+
+// Recapitulatif de publication C03 (RD-CLIENT-01 vague 4 bis) : le garde-fou ne voit pas le style calcule, ces tests
+// verifient la structure des regles et calculent la largeur disponible d'apres la formule mesuree : colonne
+// principale = largeur d'ecran - 693 px (sidebar + colonne laterale + marges), carte = colonne, contenu = carte - 64 px.
+describe("C03 : recapitulatif et pied de formulaire entre 1024 et 1150 px", () => {
+  const c03 = stripComments(read("client/c03.css"))
+  const CARD_PADDING = 64
+  const TWO_COLUMNS_FROM = 400
+  const LABEL_COLUMN = 160
+  const GAP = 16
+  const contentWidth = (screen) => screen - 693 - CARD_PADDING
+  const container = c03.match(/@container wizard2card \(min-width: (\d+)px\) \{([\s\S]*?)\n\}/)
+
+  it("la carte du formulaire est un conteneur nomme et le seuil de deux colonnes est celui du calcul", () => {
+    expect(c03).toMatch(/\.wizard2 \.form2 \{ container: wizard2card \/ inline-size; \}/)
+    expect(Number(container[1])).toBe(TWO_COLUMNS_FROM)
+    expect(container[2]).toMatch(/\.review2 \{ grid-template-columns: 160px minmax\(0, 1fr\);/)
+  })
+
+  it("une colonne par defaut, sans media query de largeur d'ecran supplementaire pour le recapitulatif", () => {
+    const base = computedStyle(RULES, { tag: "dl", classes: ["review2"], ancestors: [] })
+    expect(base["grid-template-columns"]).toBe("minmax(0, 1fr)")
+    expect(c03).not.toMatch(/@media[^{]*\{[^@]*\.review2/)
+  })
+
+  it.each([1024, 1060, 1100, 1149])("a %i px le contenu de la carte reste sous le seuil : libelles empiles, valeurs pleine largeur", (screen) => {
+    const w = contentWidth(screen)
+    expect(w).toBeGreaterThanOrEqual(267)
+    expect(w).toBeLessThan(TWO_COLUMNS_FROM)
+    // Empile : la valeur occupe tout le contenu (au moins 267 px) ; l'ancienne grille 160 px + 1fr ne lui laissait
+    // que 91 a 160 px, sous les 224 px obtenus au seuil de deux colonnes.
+    expect(w - LABEL_COLUMN - GAP).toBeLessThan(TWO_COLUMNS_FROM - LABEL_COLUMN - GAP)
+  })
+
+  it("au seuil la colonne des valeurs mesure au moins 224 px", () => {
+    expect(TWO_COLUMNS_FROM - LABEL_COLUMN - GAP).toBeGreaterThanOrEqual(224)
+    expect(contentWidth(1280)).toBeGreaterThanOrEqual(TWO_COLUMNS_FROM)
+  })
+
+  it("le pied de formulaire passe a la ligne et le bouton ne depasse jamais de la carte", () => {
+    expect(c03).toMatch(/\.wizard2 \.form2__foot--split \{ flex-wrap: wrap; \}/)
+    expect(c03).toMatch(/\.wizard2 \.form2__foot--split > \.btn \{ min-width: 0; max-width: 100%; \}/)
+    expect(c03).toMatch(/\.wizard2 \.btn--dark \{[^}]*height: auto; min-height: var\(--h-btn\);[^}]*white-space: normal;/)
+  })
+})
+
+// Barre mobile de l'assistant (.mbar2) a 320 px avec un budget de 9 chiffres : « Retour » compact, le bouton principal
+// prend le reste. Largeurs d'apres les mesures : bouton plein 139 px (22 px de padding), fleche decorative du bouton principal masquee (20 px + gap 8 px gagnes).
+describe("C03 : barre mobile de publication a 320 px", () => {
+  const c03 = stripComments(read("client/c03.css"))
+  const narrow = c03.match(/@media \(max-width: 480px\) \{([\s\S]*?)\n\}/)?.[1] ?? ""
+  const PADDING = 14
+  const BAR_PADDING = 32
+  const ROW_GAP = 12
+  const BORDER = 3
+  const RETOUR = 139 - 2 * (22 - PADDING)
+  const primaryContent = (screen) => screen - BAR_PADDING - ROW_GAP - RETOUR - BORDER - 2 * PADDING
+
+  it("Retour est compact et le bouton principal prend le reste sans deborder, dans le media 480 px existant", () => {
+    expect(narrow).toMatch(/\.wizard2 \.mbar2__row \.btn--soft \{ flex: none; padding-left: 14px; padding-right: 14px; \}/)
+    expect(narrow).toMatch(/\.wizard2 \.mbar2__row \.btn--dark \{ flex: 1 1 0; min-width: 0; [^}]*overflow-wrap: anywhere; \}/)
+    expect(narrow).toMatch(/\.wizard2 \.mbar2__row \.btn--dark \.ic \{ display: none; \}/)
+    expect(narrow).not.toMatch(/(?:background|color|box-shadow|transform)\s*:/)
+    expect(c03.match(/@media/g)).toHaveLength(2)
+  })
+
+  it("le bouton garde une hauteur d'au moins 44 px", () => {
+    expect(c03).toMatch(/\.wizard2 \.btn--dark \{[^}]*min-height: var\(--h-btn\);/)
+    expect(48).toBeGreaterThanOrEqual(44)
+  })
+
+  it("a 320 px le montant de 9 chiffres (11 caracteres insecables, ~9.3 px chacun) tient sur une ligne", () => {
+    expect(primaryContent(320)).toBeGreaterThanOrEqual(104)
+    expect(11 * 9.3).toBeLessThanOrEqual(primaryContent(320))
   })
 })

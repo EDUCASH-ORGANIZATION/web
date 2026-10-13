@@ -174,7 +174,7 @@ describe("QA client-routes", () => {
     expect(clientMissionHref("a/b?c#d")).toBe("/client/missions/a%2Fb%3Fc%23d")
     expect(clientMissionHref("../../admin")).not.toContain("../")
     expect(clientConversationHref("m 1", "s&x=1")).toBe("/client/messages/m%201?studentId=s%26x%3D1")
-    expect(clientReviewHref("../x")).toBe("/review/..%2Fx")
+    expect(clientReviewHref("../x")).toBe("/client/review/..%2Fx")
   })
   it("injection dans les paramètres : un seul paramètre, valeur encodée", () => {
     const u = new URL(clientMissionsHref({ q: "a&onglet=done#frag" }), "http://x")

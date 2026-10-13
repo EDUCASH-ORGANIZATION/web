@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
 import { Modal } from "./modal"
 import { Drawer } from "./drawer"
-import { ConfirmDialog, ConfirmDialogView } from "./confirm-dialog"
+import { ConfirmDialog, ConfirmDialogView, confirmOnce, isWithinSettle, STEP_SETTLE_MS } from "./confirm-dialog"
 import { ToastProvider, ToastViewport } from "./toast"
 import { TabsNav } from "./tabs-nav"
 import { ChipFilter } from "./chip-filter"
@@ -92,6 +92,28 @@ describe("ConfirmDialog", () => {
     expect(html).toContain('role="alert"')
     expect(html).toContain("Solde insuffisant.")
     expect(html).toContain('role="dialog"')
+  })
+})
+
+describe("confirmOnce (double clic sur la dernière étape)", () => {
+  it("n'appelle onConfirm qu'une fois pour deux clics rapprochés", async () => {
+    let resolve
+    const onConfirm = vi.fn(() => new Promise((r) => { resolve = r }))
+    const guard = { current: false }
+    const first = confirmOnce(guard, onConfirm)
+    expect(await confirmOnce(guard, onConfirm)).toEqual({ skipped: true })
+    resolve({})
+    expect(await first).toEqual({ done: true })
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+  })
+
+  it("libère le verrou après une erreur ou une exception pour permettre un nouvel essai", async () => {
+    const guard = { current: false }
+    expect(await confirmOnce(guard, async () => ({ error: "refus" }))).toEqual({ error: "refus" })
+    expect(guard.current).toBe(false)
+    expect((await confirmOnce(guard, async () => { throw new Error("x") })).error).toMatch(/réessayer/)
+    expect(guard.current).toBe(false)
+    expect(await confirmOnce(guard, async () => ({}))).toEqual({ done: true })
   })
 })
 
@@ -282,5 +304,16 @@ describe("ChipFilter : étiquettes et tabulation en mode lien", () => {
     const html = renderToStaticMarkup(<ChipFilter options={options} value="b" label="Filtre" />)
     expect(html.match(/tabindex="0"/g)).toHaveLength(1)
     expect(html.match(/role="radio"/g)).toHaveLength(2)
+  })
+})
+
+describe("isWithinSettle (double clic à travers les 2 étapes)", () => {
+  it("ignore les clics de confirmation juste après le passage à l'étape 2, pas avant ni après le délai", () => {
+    expect(STEP_SETTLE_MS).toBe(300)
+    expect(isWithinSettle(1000, null)).toBe(false)
+    expect(isWithinSettle(1100, 1000)).toBe(true)
+    expect(isWithinSettle(1299, 1000)).toBe(true)
+    expect(isWithinSettle(1300, 1000)).toBe(false)
+    expect(isWithinSettle(5000, 1000)).toBe(false)
   })
 })

@@ -19,6 +19,11 @@ function asUser(role, metaRole = role) {
   maybeSingle.mockResolvedValue({ data: role ? { role, full_name: "A", city: "B", is_suspended: false } : null, error: null })
 }
 
+function asSuspended(role) {
+  getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: { role } } } })
+  maybeSingle.mockResolvedValue({ data: { role, full_name: "A", city: "B", is_suspended: true }, error: null })
+}
+
 async function run(path) {
   const res = await middleware(new NextRequest(`http://localhost${path}`))
   const location = res.headers.get("location")
@@ -255,13 +260,6 @@ describe("middleware - autorité profiles.role", () => {
     }
   })
 
-  it("profil suspendu : le rôle du profil reste lu (le refus relève des layouts et des actions)", async () => {
-    getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: {} } } })
-    maybeSingle.mockResolvedValue({ data: { role: "student", full_name: "A", city: "B", is_suspended: true }, error: null })
-    expect((await run("/dashboard")).location).toBeNull()
-    expect((await run("/admin/dashboard")).location?.pathname).toBe("/dashboard")
-  })
-
   it("rôle null : laisse passer /auth, renvoie vers l'accueil sur un préfixe protégé", async () => {
     asUser(null, null)
     getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: {} } } })
@@ -287,5 +285,65 @@ describe("middleware - autorité profiles.role", () => {
     await run("/missions")
     await run("/auth/callback")
     expect(from).not.toHaveBeenCalled()
+  })
+})
+
+describe("middleware - compte suspendu en cours de session", () => {
+  const PROTECTED_PATHS = ["/client/dashboard", "/student/missions", "/admin/dashboard", "/dashboard", "/applications", "/messages", "/profile", "/wallet"]
+
+  it.each(["student", "client", "admin"])("renvoie un %s suspendu vers /auth/login?suspended=1 sur tout préfixe protégé", async (role) => {
+    asSuspended(role)
+    for (const path of PROTECTED_PATHS) {
+      const res = await run(path)
+      expect(res.location?.pathname, `${role} ${path}`).toBe("/auth/login")
+      expect(res.location?.search, `${role} ${path}`).toBe("?suspended=1")
+    }
+  })
+
+  it.each(["student", "client", "admin"])("ne renvoie pas un %s suspendu depuis /auth/login vers son espace", async (role) => {
+    asSuspended(role)
+    const paths = [
+      "/auth/login",
+      "/auth/login?suspended=1",
+      `/auth/login?next=${encodeURIComponent("/client/dashboard")}`,
+      "/auth/register",
+      "/auth/forgot-password",
+      "/auth/verify-email",
+    ]
+    for (const path of paths) {
+      const res = await run(path)
+      expect(res.location, `${role} ${path}`).toBeNull()
+    }
+  })
+
+  it("rejoue la séquence : plus de boucle de redirections pour un client suspendu", async () => {
+    asSuspended("client")
+    // 1. Le layout client renvoie vers /auth/login?suspended=1 ; on part de /client/dashboard.
+    const first = await run("/client/dashboard")
+    expect(first.location?.pathname).toBe("/auth/login")
+    expect(first.location?.search).toBe("?suspended=1")
+    // 2. Le middleware voit /auth/login?suspended=1 : avant correction il renvoyait vers
+    // /client/dashboard (ERR_TOO_MANY_REDIRECTS). Désormais la page s'affiche.
+    const second = await run(first.location.pathname + first.location.search)
+    expect(second.status).toBe(200)
+    expect(second.location).toBeNull()
+  })
+
+  it("client non suspendu : inchangé", async () => {
+    asUser("client")
+    expect((await run("/client/dashboard")).location).toBeNull()
+    expect((await run("/auth/login")).location?.pathname).toBe("/client/dashboard")
+  })
+
+  it("visiteur : inchangé", async () => {
+    asUser(null)
+    expectLoginRedirect(await run("/client/dashboard"), "/client/dashboard")
+    expect((await run("/auth/login")).location).toBeNull()
+  })
+
+  it("suspendu sans rôle valide : toujours fail-closed vers l'accueil sur un préfixe protégé", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: {} } } })
+    maybeSingle.mockResolvedValue({ data: { role: "root", full_name: "A", city: "B", is_suspended: true }, error: null })
+    expect((await run("/client/dashboard")).location?.pathname).toBe("/")
   })
 })

@@ -37,6 +37,12 @@ function loginRedirect(request) {
   return NextResponse.redirect(loginUrl)
 }
 
+// Compte suspendu sur un préfixe protégé : retour au login avec le message. Sur /auth/*, il n'est pas
+// renvoyé vers son espace (sinon boucle avec les layouts qui le renvoient ici). Lecture de profiles seule.
+function suspendedRedirect(request) {
+  return NextResponse.redirect(new URL("/auth/login?suspended=1", request.url))
+}
+
 export async function middleware(request) {
   // /clients n'existe plus : les liens déjà partagés arrivent sur l'accueil (requête conservée).
   // Placé avant l'appel Supabase : aucune session à rafraîchir pour une redirection publique.
@@ -85,8 +91,9 @@ export async function middleware(request) {
 
     // Connecté → rediriger vers le dashboard selon le rôle
     if (user) {
-      const { role } = await getServerRole(supabase, user)
+      const { role, profile } = await getServerRole(supabase, user)
       if (!role) return response
+      if (profile?.is_suspended === true) return response
       // Connecté sur /auth/login?next= : retour vers le next autorisé pour son rôle.
       if (pathname === "/auth/login") {
         const next = safeNextPath(request.nextUrl.searchParams.get("next"))
@@ -108,8 +115,9 @@ export async function middleware(request) {
     if (!user) {
       return loginRedirect(request)
     }
-    const { role } = await getServerRole(supabase, user)
+    const { role, profile } = await getServerRole(supabase, user)
     if (!role) return NextResponse.redirect(new URL("/", request.url))
+    if (profile?.is_suspended === true) return suspendedRedirect(request)
     if (role !== "student") {
       return NextResponse.redirect(new URL(dashboardOf(role), request.url))
     }
@@ -121,8 +129,9 @@ export async function middleware(request) {
     if (!user) {
       return loginRedirect(request)
     }
-    const { role } = await getServerRole(supabase, user)
+    const { role, profile } = await getServerRole(supabase, user)
     if (!role) return NextResponse.redirect(new URL("/", request.url))
+    if (profile?.is_suspended === true) return suspendedRedirect(request)
     if (role !== "admin") {
       const dashboard = role === "client" ? "/client/dashboard" : "/dashboard"
       return NextResponse.redirect(new URL(dashboard, request.url))
@@ -144,8 +153,9 @@ export async function middleware(request) {
       }
 
       // Mauvais rôle → son propre dashboard
-      const { role } = await getServerRole(supabase, user)
+      const { role, profile } = await getServerRole(supabase, user)
       if (!role) return NextResponse.redirect(new URL("/", request.url))
+      if (profile?.is_suspended === true) return suspendedRedirect(request)
       if (role !== requiredRole) {
         return NextResponse.redirect(new URL(dashboardOf(role), request.url))
       }

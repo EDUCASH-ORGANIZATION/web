@@ -9,6 +9,10 @@
 .status2 .actions2 { margin-top: 10px; }
 .person2__acts { display: flex; align-items: center; gap: var(--s-4); margin-top: 6px; flex-wrap: wrap; }
 .c2 .btn.is-disabled, .c2 .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+/* Unité des montants (FCFA) : .amount small (.42em) et .amount--s small (.76em) descendaient sous 13 px dans C04 et C08 */
+.c2 .amount small, .c2 .amount .amount__cur { font-size: max(var(--t-micro), .42em); }
+/* .c2 .amount small (0,2,1) l'emporte sur .amount--s small (.76em) : l'intention .76em est reprise ici, plancher 13 px */
+.c2 .amount--s small { font-size: max(var(--t-micro), .76em); }
 .disabled2 { font-size: var(--t-caption); color: var(--c-ardoise); text-align: center; }
 .c2 .detail-head__actions { display: flex; align-items: center; gap: var(--s-5); padding-bottom: 6px; }
 .link2--muted { color: var(--c-ardoise); }
@@ -18,6 +22,24 @@
 .buy2__title { font-size: var(--t-body-s); font-weight: var(--fw-bold); }
 .buy2__sub { font-size: var(--t-caption); color: var(--c-ardoise); }
 .mpage2--bar.mpage2 { padding-bottom: calc(170px + env(safe-area-inset-bottom, 0px)); }
+
+/* Suivi de mission : en cours, terminee, annulee (C08, C11) */
+.fup2 { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+.fup2 .btn--block { margin-top: 4px; }
+.fup2 .status2 .link2 { display: inline; }
+.fup2__who { min-width: 0; }
+
+@media (max-width: 1023.98px) {
+  /* La barre d'action du bas porte « Confirmer la fin » : le bouton de la carte est masque */
+  .fup2 .fup2__desk { display: none; }
+  .fup2 .person2__acts .link2, .fup2 .detail-head__actions .link2 { min-height: 44px; }
+  .fup2 .person2__acts .btn { min-height: 44px; }
+  /* « Signaler un problème » dans la phrase du statut (inline sur bureau) : cible de 44 px de haut */
+  .c2 .fup2 .status2 .link2 { display: inline-flex; min-height: 44px; }
+  /* Fil d'Ariane : zone de 44 px de haut par pseudo-element, la mise en page ne bouge pas */
+  .c2 .head2__date .meta2 > a { position: relative; }
+  .c2 .head2__date .meta2 > a::after { content: ""; position: absolute; inset: -12px -6px; }
+}
 
 @media (max-width: 767.98px) {
   .c2 .detail-head__actions { flex-wrap: wrap; gap: var(--s-4); }

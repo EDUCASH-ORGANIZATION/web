@@ -371,8 +371,16 @@ describe("confirmMission", () => {
   it("refuse la mission d'un autre client sans libérer", async () => {
     const { client, rpc } = makeService({ missions: { data: { ...mission, client_id: "autre" }, error: null } })
     createServiceClient.mockReturnValue(client)
-    expect(await confirmMission("m-1")).toEqual({ error: "Action non autorisée." })
+    expect(await confirmMission("m-1")).toEqual({ error: "Action non autorisée.", code: "generic" })
     expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it("code not_in_progress pour une mission ouverte ou annulée", async () => {
+    for (const status of ["open", "cancelled"]) {
+      const { client } = makeService({ missions: { data: { ...mission, status }, error: null } })
+      createServiceClient.mockReturnValue(client)
+      expect(await confirmMission("m-1")).toEqual({ error: "Cette mission n'est pas en cours.", code: "not_in_progress" })
+    }
   })
 
   it("refuse une mission non en cours ou sans étudiant", async () => {
@@ -411,6 +419,7 @@ describe("confirmMission", () => {
       createServiceClient.mockReturnValue(client)
       const res = await confirmMission("m-1")
       expect(res.error).toBeTruthy()
+      expect(res.code).toBe("generic")
       expect(calls.some((c) => c.op === "update")).toBe(false)
     }
   })
@@ -419,7 +428,7 @@ describe("confirmMission", () => {
     for (const ledger of [{ data: [], error: null }, { data: null, error: null }]) {
       const { client, rpc, calls } = makeService({ wallet_transactions: ledger, missions: { data: mission, error: null } })
       createServiceClient.mockReturnValue(client)
-      expect(await confirmMission("m-1")).toEqual({ error: "Impossible de libérer les fonds pour cette mission." })
+      expect(await confirmMission("m-1")).toEqual({ error: "Impossible de libérer les fonds pour cette mission.", code: "generic" })
       expect(rpc).not.toHaveBeenCalled()
       expect(calls.some((c) => c.op === "update")).toBe(false)
     }
@@ -429,7 +438,7 @@ describe("confirmMission", () => {
     const ledger = { data: [{ type: "reserve" }, { type: "release" }], error: null }
     const { client, rpc, calls } = makeService({ wallet_transactions: ledger, missions: { data: mission, error: null } })
     createServiceClient.mockReturnValue(client)
-    expect(await confirmMission("m-1")).toEqual({ error: "Impossible de libérer les fonds pour cette mission." })
+    expect(await confirmMission("m-1")).toEqual({ error: "Impossible de libérer les fonds pour cette mission.", code: "already_released" })
     expect(rpc).not.toHaveBeenCalled()
     expect(calls.some((c) => c.op === "update")).toBe(false)
   })
@@ -437,7 +446,9 @@ describe("confirmMission", () => {
   it("refuse sans libérer quand le grand livre est illisible, et journalise", async () => {
     const { client, rpc } = makeService({ wallet_transactions: { data: null, error: { message: "boom" } }, missions: { data: mission, error: null } })
     createServiceClient.mockReturnValue(client)
-    expect((await confirmMission("m-1")).error).toBe("Impossible de libérer les fonds pour cette mission.")
+    const res = await confirmMission("m-1")
+    expect(res.error).toBe("Impossible de libérer les fonds pour cette mission.")
+    expect(res.code).toBe("generic")
     expect(rpc).not.toHaveBeenCalled()
     expect(console.error).toHaveBeenCalled()
   })
@@ -456,7 +467,7 @@ describe("confirmMission", () => {
   it("double confirmation : le second appel renvoie une erreur propre sans mise à jour", async () => {
     const { client, rpc, calls } = makeService({ missions: { data: { ...mission, status: "done" }, error: null } })
     createServiceClient.mockReturnValue(client)
-    expect(await confirmMission("m-1")).toEqual({ error: "Cette mission est déjà terminée." })
+    expect(await confirmMission("m-1")).toEqual({ error: "Cette mission est déjà terminée.", code: "already_done" })
     expect(rpc).not.toHaveBeenCalled()
     expect(calls.some((c) => c.op === "update")).toBe(false)
   })
@@ -468,7 +479,7 @@ describe("confirmMission", () => {
     )
     createServiceClient.mockReturnValue(client)
     const res = await confirmMission("m-1")
-    expect(res).toEqual({ error: "Une erreur est survenue. Réessayez dans un instant." })
+    expect(res).toEqual({ error: "Une erreur est survenue. Réessayez dans un instant.", code: "generic" })
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining("fonds libérés"), expect.anything())
   })
 

@@ -1,1 +1,15 @@
-/* C15 Recharge : feuille reservee, possedee par le lot ecran correspondant (RD-CLIENT-01). */
+/* ---------- C15 Recharge et retour de paiement ---------- */
+/* Montants rapides : les puces de ChipFilter retournent a la ligne (pas de defilement) dans la modale */
+.amount-chips2 .chips--scroll { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+.banner .link2:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 4px; }
+.dialog2__content { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+.dialog2__content:focus { outline: none; }
+
+@media (max-width: 1023.98px) {
+  .amount-chips2 .chip { min-height: 44px; }
+  /* Réessayer et Contacter l'aide des bannières de retour de paiement */
+  .c2 .banner__actions .link2 { min-height: 44px; }
+  .c2 .sheet:has(.dialog2__content) .modal__head .btn-icon { width: 44px; height: 44px; }
+  .c2 .modal:has(.dialog2__content) .modal__head .btn-icon { width: 44px; height: 44px; }
+  .c2 .banner__actions .btn-icon { width: 44px; height: 44px; }
+}

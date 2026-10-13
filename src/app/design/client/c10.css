@@ -6,6 +6,21 @@
 .quote2 { border: 1px solid var(--c-ligne); border-radius: var(--r-m); padding: var(--s-4) var(--s-5); display: flex; flex-direction: column; gap: 6px; text-align: left; width: 100%; }
 .quote2__top { display: flex; justify-content: space-between; align-items: center; font-weight: var(--fw-bold); font-size: var(--t-body-s); }
 
+.rate-page2 { display: flex; flex-direction: column; gap: var(--s-5); }
+.rate-page2__who { min-width: 0; }
+.rate-page2__who .person2__name { margin: 0; }
+/* Récapitulatif : le titre d'une mission longue passe à la ligne au lieu de pousser la carte (la règle de base impose nowrap). */
+.c2 .rate-page2 .lines2__row b { white-space: normal; overflow-wrap: anywhere; }
+/* Étoiles : zone cliquable de 44 px minimum, sans toucher couleur ni ombre de focus du composant. */
+.c2 .rate-page2 .stars--input .ds-stars__btn { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; }
+.c2 .rate-page2 .stars--input { gap: 0; }
+.c2 .rate-page2 .quote2 .prof2__p { color: var(--c-encre); overflow-wrap: anywhere; white-space: pre-line; }
+.c2 .rate-page2 .done2 .link2, .c2 .rate-page2 .form2__foot .link2 { min-height: 44px; align-items: center; }
+
 @media (max-width: 1023.98px) {
+  .rate-page2 { gap: var(--s-4); }
   .c2 .stars--input .ic { width: 36px; height: 36px; }
+  .c2 .rate-page2 .lines2 + .link2 { min-height: 44px; align-items: center; }
+  /* Cibles tactiles : « Voir mes missions » de l'écran Merci (et liens de ses cartes) atteignent 44 px sans changer la mise en page. */
+  .c2 .done2 .actions2 .link2 { min-height: 44px; align-items: center; }
 }

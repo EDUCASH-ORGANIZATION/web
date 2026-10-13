@@ -102,8 +102,8 @@ export function VitrineNavbarClient({ tone = "blanc", audience = "clients", paym
               className="logo"
               src={bleu ? "/logo-horizontal-blanc.svg" : "/logo-horizontal-bleu.svg"}
               alt="EduCash"
-              width={534}
-              height={100}
+              width={165}
+              height={40}
             />
           </Link>
           <nav className="site-header__nav ds-desk-only" aria-label="Navigation principale">

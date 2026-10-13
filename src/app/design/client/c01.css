@@ -1,1 +1,10 @@
-/* C01 Tableau de bord : feuille reservee, possedee par le lot ecran correspondant (RD-CLIENT-01). */
+/* C01 Tableau de bord : seul le mobile differe du bureau (decision prioritaire seule, "1 sur N").
+   Portee .dash2 (racine de l'ecran) : aucune autre page n'est touchee. Ne change ni couleur,
+   ni ombre, ni transform d'un composant du systeme : seulement display, largeur et filet. */
+
+@media (max-width: 767.98px) {
+  .c2 .dash2 .hero2 > .hero2__col:first-child { display: none; }
+  .c2 .dash2 .hero2 > .hero2__col + .hero2__col { border-top: 0; }
+  .c2 .dash2 .hero2__actions > .btn { width: 100%; }
+  .c2 .dash2 .banner__actions > .btn { width: 100%; }
+}

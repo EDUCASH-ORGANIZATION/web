@@ -15,7 +15,7 @@ export function VitrineFooter({ audience = "clients" }) {
     <footer className="ds site-footer">
       <nav className="site-footer__top" aria-label="Pied de page">
         <div className="site-footer__brand">
-          <img className="logo" src="/logo-horizontal-blanc.svg" alt="EduCash" width={171} height={32} />
+          <img className="logo" src="/logo-horizontal-blanc.svg" alt="EduCash" width={165} height={40} />
           {forStudents ? (
             <p className="site-footer__pitch">Des petites missions.<br /><span>Du vrai cash.</span></p>
           ) : (

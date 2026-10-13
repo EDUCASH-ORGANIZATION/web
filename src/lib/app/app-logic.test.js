@@ -187,7 +187,7 @@ describe("client-routes", () => {
       "/client/missions/new?ville=Cotonou&duplicate=m1",
     )
   })
-  it("clientReviewHref renvoie l'écran d'avis existant", () => {
-    expect(clientReviewHref("m1")).toBe("/review/m1")
+  it("clientReviewHref renvoie l'écran d'avis client", () => {
+    expect(clientReviewHref("m1")).toBe("/client/review/m1")
   })
 })

@@ -20,13 +20,15 @@
 .money2__foot { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--s-4); padding: 0 var(--s-6) var(--s-5); }
 .money2__foot .btn--blanc { flex: none; }
 .money2 .btn--ghost-blanc { background: transparent; color: var(--c-blanc); border: 1.5px solid color-mix(in srgb, var(--c-blanc) 45%, transparent); }
-.money2 .btn--ghost-blanc.is-disabled { opacity: .55; }
+.money2 .btn--ghost-blanc.is-disabled { color: var(--c-bleu-100); border-color: color-mix(in srgb, var(--c-blanc) 25%, transparent); opacity: 1; }
 .money2__hint { font-size: var(--t-caption); color: var(--c-bleu-100); }
 .steps2 { display: flex; flex-direction: column; gap: 12px; counter-reset: s2; }
 .steps2 li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; font-size: var(--t-body-s); color: var(--c-ardoise); line-height: 1.45; counter-increment: s2; }
 .steps2 li::before { content: counter(s2); width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--c-brume); display: grid; place-items: center; font-size: var(--t-micro); font-weight: var(--fw-xbold); color: var(--c-encre); }
 .steps2 b { display: block; color: var(--c-encre); font-weight: var(--fw-bold); }
 .fund2__amt small, .tx2__amt small { margin-left: 3px; }
+/* L'unité du montant d'une mission financée ne descend jamais sous 13 px (le <small> du navigateur donnait 11,2 px) */
+.fund2__amt small { font-size: max(var(--t-micro), .8em); font-weight: var(--fw-bold); }
 .filters2 { padding: 12px var(--s-6); }
 .filters2 { gap: 6px; }
 .filters2 .chip { padding: 0 11px; }
@@ -34,18 +36,73 @@
 .money2__foot { flex-wrap: wrap; }
 .fund2 + .lines2 { border-top: 1px solid var(--c-ligne); margin-top: 0; }
 
+.tx2__main { min-width: 0; }
+.tx2__hint { font-weight: var(--fw-semibold); color: var(--c-ardoise); }
+.tx2__amt--plus { color: var(--c-succes); }
+.fund2__title { overflow-wrap: anywhere; }
+a.fund2__title:hover { text-decoration: underline; }
+.tx2__sub a:focus-visible, a.fund2__title:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 4px; }
+.fund2--total { padding-top: 16px; }
+.fund2--total .fund2__title, .fund2--total .fund2__amt { font-weight: var(--fw-xbold); }
+.filters2 .chips--scroll { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+
+/* Requêtes de conteneur (B2) : la lisibilité dépend de la largeur de la CARTE, pas de l'écran. À 1024-1149 px
+   le bureau a une sidebar et la carte d'historique ne fait que 332 px. */
+.txs2 { container: txs2 / inline-size; }
+.money2--split { container: money2 / inline-size; }
+/* Sous-textes de la carte argent (« pour publier ou retirer », « bloqués pour N missions ») : retour à la ligne, jamais d'ellipse
+   (la colonne ne fait que ~165 px entre 1024 et 1060 px). */
+.money2--split .stat2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
+
 @media (max-width: 1023.98px) {
   .filters2 { padding: var(--s-3) var(--s-4); }
   .tx2 { grid-template-columns: 60px minmax(0, 1fr) auto auto; gap: var(--s-3); padding: 12px var(--s-4); }
   .list2__foot { padding: var(--s-3) var(--s-4); flex-wrap: wrap; }
   .money2__foot { padding: 0 var(--s-4) var(--s-4); }
   .money2__hint { flex-basis: 100%; }
+  .filters2 .chip { min-height: 44px; }
+  .tx2__sub a { display: inline-flex; align-items: center; min-height: 44px; }
+  a.fund2__title { display: inline-flex; align-items: center; min-height: 44px; }
 }
 @media (max-width: 767.98px) {
   .filters2 { flex-wrap: nowrap; overflow-x: auto; padding: 0 0 2px; border: 0; -webkit-mask-image: linear-gradient(90deg, var(--c-encre) 85%, transparent); mask-image: linear-gradient(90deg, var(--c-encre) 85%, transparent); }
   .filters2 .chip { flex: none; }
-  .tx2 { grid-template-columns: minmax(0, 1fr) auto; }
-  .tx2__date { grid-column: 1 / -1; }
-  .tx2 { gap: var(--s-3); }
-  .tx2__amt { font-size: var(--t-body-s); }
+  .filters2 { padding-block: 5px; margin-block: -5px; }
+  .filters2 .chips--scroll { flex-wrap: nowrap; }
+  .tx2 { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main amt" "date badge"; align-items: start; gap: var(--s-2) var(--s-3); }
+  .tx2__main { grid-area: main; }
+  .tx2__amt { grid-area: amt; font-size: var(--t-body-s); }
+  .tx2__date { grid-area: date; align-self: center; }
+  .tx2__badge { grid-area: badge; justify-self: end; }
+  .tx2__title { white-space: normal; overflow: visible; text-overflow: clip; }
+  .tx2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+
+/* Historique (.txs2) selon la largeur de la carte, la grille complète exigeant 408 px hors colonne principale
+   (60 date + 132 badge + 120 montant + 3 gouttières de 16 + 48 de marges) :
+   - 300 px : deux lignes (libellé et montant, puis date et badge), libellés à la ligne, aucun texte coupé ;
+   - 332 px (bureau avec sidebar, 1024-1149 px) : idem ;
+   - 450 px : idem, le libellé dispose de plus de place ;
+   - 600 px et moins : même mise en page ;
+   - 700 px : grille complète sur une ligne, colonne principale de 292 px. */
+@container txs2 (max-width: 600px) {
+  .tx2 { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main amt" "date badge"; align-items: start; gap: var(--s-2) var(--s-3); padding: 12px var(--s-4); }
+  .tx2__main { grid-area: main; }
+  .tx2__amt { grid-area: amt; font-size: var(--t-body-s); }
+  .tx2__date { grid-area: date; align-self: center; }
+  .tx2__badge { grid-area: badge; justify-self: end; }
+  .tx2__title, .tx2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+
+/* Carte « Votre argent » selon sa largeur : deux colonnes de montants de 24 px exigent environ 440 px.
+   - 300 px et 332 px : marges réduites, montants de 17 px, unité sous le chiffre ; aucun montant coupé ;
+   - 450 px : même mise en page (7 chiffres sans coupure) ;
+   - 700 px : mise en page d'origine. */
+@container money2 (max-width: 480px) {
+  .money2--split .stat2 { padding: var(--s-3) var(--s-4) 14px; }
+  .money2--split .stat2__value { font-size: max(var(--t-micro), clamp(13px, 7.6cqi, var(--t-amount-s))); min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .money2--split .stat2__value small { display: block; margin-left: 0; }
+  .money2__head { padding: var(--s-3) var(--s-4) 0; }
+  .money2__foot { padding: 0 var(--s-4) var(--s-4); }
+  .money2__hint { flex-basis: 100%; }
 }

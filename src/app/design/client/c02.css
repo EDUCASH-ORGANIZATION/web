@@ -1,1 +1,5 @@
-/* C02 Liste des missions : feuille reservee, possedee par le lot ecran correspondant (RD-CLIENT-01). */
+/* C02 Mes missions (RD-CLIENT-01). La liste réutilise item2, tools2, tabs, card2--flush et empty2 de base.css. */
+
+/* Champ de recherche natif (type="search") : pas d'apparence du navigateur, la carte .search porte le style. */
+.c2 .tools2 .search input[type="search"] { appearance: none; -webkit-appearance: none; }
+.c2 .tools2 .search input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }

@@ -276,7 +276,7 @@ export async function createMission(data) {
  */
 export async function confirmMission(missionId) {
   const auth = await requireRole(["client"])
-  if (auth.error) return { error: auth.error }
+  if (auth.error) return { error: auth.error, code: "generic" }
   const { user } = auth
 
   const service = createServiceClient()
@@ -288,11 +288,11 @@ export async function confirmMission(missionId) {
     .eq("id", missionId)
     .maybeSingle()
 
-  if (missionError || !mission) return { error: "Mission introuvable." }
-  if (mission.client_id !== user.id) return { error: "Action non autorisée." }
-  if (mission.status === "done")     return { error: "Cette mission est déjà terminée." }
-  if (mission.status !== "in_progress") return { error: "Cette mission n'est pas en cours." }
-  if (!mission.selected_student_id) return { error: "Aucun étudiant sélectionné pour cette mission." }
+  if (missionError || !mission) return { error: "Mission introuvable.", code: "generic" }
+  if (mission.client_id !== user.id) return { error: "Action non autorisée.", code: "generic" }
+  if (mission.status === "done")     return { error: "Cette mission est déjà terminée.", code: "already_done" }
+  if (mission.status !== "in_progress") return { error: "Cette mission n'est pas en cours.", code: "not_in_progress" }
+  if (!mission.selected_student_id) return { error: "Aucun étudiant sélectionné pour cette mission.", code: "generic" }
 
   // 2. Exige une réservation et aucune libération déjà faite (mission héritée ou double confirmation)
   const { data: movements, error: movementsError } = await service
@@ -303,10 +303,11 @@ export async function confirmMission(missionId) {
     .in("type", ["reserve", "release"])
   if (movementsError) {
     console.error("[confirmMission] lecture du grand livre impossible", movementsError.message)
-    return { error: ERR_CONFIRM }
+    return { error: ERR_CONFIRM, code: "generic" }
   }
   const types = new Set((movements ?? []).map((m) => m.type))
-  if (!types.has("reserve") || types.has("release")) return { error: ERR_CONFIRM }
+  if (types.has("release")) return { error: ERR_CONFIRM, code: "already_released" }
+  if (!types.has("reserve")) return { error: ERR_CONFIRM, code: "generic" }
 
   // 3. Libère les fonds (un second appel est refusé par la fonction SQL)
   const release = await callWalletRpc(service, "wallet_release", {
@@ -316,7 +317,7 @@ export async function confirmMission(missionId) {
     p_amount_total:    mission.budget,
     p_commission_rate: COMMISSION_RATE,
   })
-  if (!release.ok) return { error: ERR_CONFIRM }
+  if (!release.ok) return { error: ERR_CONFIRM, code: "generic" }
 
   const amountStudent = release.data.amount_student ?? 0
 
@@ -333,7 +334,7 @@ export async function confirmMission(missionId) {
       "[confirmMission] ALERTE : fonds libérés mais statut done non enregistré, intervention manuelle requise",
       { missionId, error: doneError ?? null },
     )
-    return { error: ERR_GENERIC }
+    return { error: ERR_GENERIC, code: "generic" }
   }
 
   // 5. Notification email à l'étudiant (adresse lue via l'API admin du client service role)
