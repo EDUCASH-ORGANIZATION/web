@@ -58,14 +58,6 @@ export function countLabel(label, value, unit = "non lus") {
   return shown.endsWith("+") ? `${label}, plus de ${COUNT_CAP} ${unit}` : `${label}, ${shown} ${unit}`
 }
 
-/** Initiales d'un nom complet (deux lettres au plus), « ? » si le nom est vide. */
-export function initialsOf(fullName) {
-  const words = typeof fullName === "string" ? fullName.trim().split(/\s+/).filter(Boolean) : []
-  if (words.length === 0) return "?"
-  const letters = words.length === 1 ? [words[0]] : [words[0], words[words.length - 1]]
-  return letters.map((w) => w.charAt(0).toLocaleUpperCase("fr-FR")).join("")
-}
-
 const TYPING_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"])
 
 /**

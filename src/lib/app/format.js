@@ -88,3 +88,16 @@ export function formatAmount(n, { sign = "none" } = {}) {
   const prefix = rounded === 0 ? "" : sign === "debit" ? MINUS : sign === "credit" ? "+" : ""
   return `${prefix}${digits}${NBSP}FCFA`
 }
+
+/**
+ * Initiales d'un nom : première lettre du premier mot et du dernier mot ; un seul mot : ses deux premières
+ * lettres ; nom vide ou absent : « ? ».
+ * @param {string|null|undefined} name
+ * @returns {string}
+ */
+export function initialsOf(name) {
+  const words = String(name ?? "").trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return "?"
+  const letters = words.length === 1 ? [...words[0]].slice(0, 2) : [[...words[0]][0], [...words[words.length - 1]][0]]
+  return letters.join("").toLocaleUpperCase("fr-FR")
+}

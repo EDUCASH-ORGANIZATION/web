@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { initialsOf } from "./nav-model"
+import { initialsOf } from "@/lib/app/format"
 
 // En-tête mobile (sous 1024) : logo symbole, libellé d'espace, avatar vers le profil.
 export function MobileTop({ nav, fullName }) {

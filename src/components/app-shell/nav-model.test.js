@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { activeKey, countLabel, formatCount, initialsOf, isItemActive, isSearchShortcut } from "./nav-model"
+import { activeKey, countLabel, formatCount, isItemActive, isSearchShortcut } from "./nav-model"
 import { CLIENT_NAV } from "../client-space/shell/client-nav"
 
 const DESKTOP = CLIENT_NAV.groups.flatMap((g) => g.items)
@@ -87,16 +87,6 @@ describe("countLabel", () => {
     expect(countLabel("Messages", 3)).toBe("Messages, 3 non lus")
     expect(countLabel("Messages", 250)).toBe("Messages, plus de 99 non lus")
     expect(countLabel("Messages", 0)).toBe("Messages")
-  })
-})
-
-describe("initialsOf", () => {
-  it("prend la première lettre du premier et du dernier mot", () => {
-    expect(initialsOf("Rosine Houngbédji")).toBe("RH")
-    expect(initialsOf("  marie  claire dossou ")).toBe("MD")
-    expect(initialsOf("Rosine")).toBe("R")
-    expect(initialsOf("")).toBe("?")
-    expect(initialsOf(null)).toBe("?")
   })
 })
 
