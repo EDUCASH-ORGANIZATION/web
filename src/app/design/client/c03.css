@@ -1,0 +1,30 @@
+/* ---------- C03 Publier une mission (formulaires à étapes, réutilisés par C06) ---------- */
+.c2 .stepper { gap: 10px; }
+.c2 .step__label { font-size: var(--t-body-s); }
+.c2 .step.is-current .step__label { font-weight: var(--fw-xbold); }
+.wizard2 { display: flex; flex-direction: column; gap: var(--s-5); }
+.form2 .chips .chip.is-selected { background: var(--c-encre); border-color: var(--c-encre); color: var(--c-blanc); }
+.form2 .ds-grid--3 { gap: var(--s-3); }
+.c2 .field__count { margin-left: auto; }
+.preview2 { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--c-ligne); border-radius: var(--r-m); padding: var(--s-4) var(--s-5); }
+.preview2__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-ardoise); }
+.preview2__top span { display: inline-flex; align-items: center; gap: 6px; }
+.preview2__title { font-size: var(--t-body); font-weight: var(--fw-xbold); line-height: 1.3; }
+.preview2__price { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid var(--c-ligne-2); }
+.preview2__price b { font-size: var(--t-amount-s); font-weight: var(--fw-xbold); font-variant-numeric: tabular-nums; }
+.preview2__price span { font-size: var(--t-caption); color: var(--c-ardoise); }
+.eyebrow2 { font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-ardoise); }
+.review2 { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 8px var(--s-4); font-size: var(--t-body-s); }
+.review2 dt { color: var(--c-ardoise); }
+.review2 dd { font-weight: var(--fw-semibold); }
+.mstep2 { font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-ardoise); display: flex; align-items: center; justify-content: space-between; }
+.mstep2 .progress { width: 120px; height: 6px; }
+.c2 .divider { border: 0; border-top: 1px solid var(--c-ligne); height: 0; background: none; margin: 4px 0; }
+.c2 .checklist li.is-ok { color: var(--c-encre); font-weight: var(--fw-semibold); }
+.preview2__price span { white-space: nowrap; }
+.preview2__price b small { margin-left: 3px; }
+
+@media (max-width: 480px) {
+  .review2 { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .review2 dd { margin-bottom: var(--s-2); }
+}

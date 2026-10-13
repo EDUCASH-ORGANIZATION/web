@@ -1,0 +1,23 @@
+/* ---------- C04 Candidatures ---------- */
+.cand2 { display: flex; flex-direction: column; gap: 10px; padding: var(--s-5) var(--s-6); }
+.cand2 + .cand2 { border-top: 1px solid var(--c-ligne); }
+.cand2__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-4); }
+.cand2__msg { font-size: var(--t-body-s); color: var(--c-encre); line-height: 1.55; margin: 0; }
+.cand2__msg a { color: var(--c-bleu); font-weight: var(--fw-bold); }
+.cand2__msg--clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cand2__acts { display: flex; align-items: center; gap: var(--s-5); flex-wrap: wrap; }
+.cand2__acts .btn { margin-left: auto; }
+.cand2--muted .person2__name, .cand2--muted .cand2__msg { color: var(--c-ardoise); }
+.cand2--m { padding: var(--s-4); }
+.cand2--m .cand2__acts { gap: var(--s-4); }
+.list2__head .flag2 { margin-left: 10px; vertical-align: middle; }
+.list2__head .select { width: auto; height: 36px; }
+.radios2 { display: flex; flex-direction: column; gap: 10px; }
+
+@media (max-width: 1023.98px) {
+  .cand2 { padding: var(--s-4); }
+}
+@media (max-width: 480px) {
+  .cand2__top { flex-direction: column; gap: var(--s-2); }
+  .cand2__acts .btn { margin-left: 0; width: 100%; }
+}
