@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
-import { MESSAGE_MAX_LENGTH, fileProblem } from "@/lib/client-space/conversations"
+import { MESSAGE_MAX_LENGTH, fileProblem, imageExtensionOf } from "@/lib/client-space/conversations"
 import { ImageDialog } from "./image-dialog"
 import { LocationDialog } from "./location-dialog"
 
@@ -13,12 +13,6 @@ const ERR_EMPTY_RECORDING = "L'enregistrement est vide. Veuillez réessayer."
 
 export function clockText(seconds) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`
-}
-
-function imageExtension(file) {
-  const fromName = typeof file.name === "string" && file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : ""
-  if (fromName) return fromName
-  return (file.type ?? "").split("/")[1] ?? "jpg"
 }
 
 // Extension et type de base d'un enregistrement (Safari produit du mp4, Chrome du webm).
@@ -113,7 +107,7 @@ export function Composer({ onSend }) {
   function confirmImage() {
     const { file } = preview
     setPreview(null)
-    onSend({ type: "image", file, ext: imageExtension(file) })
+    onSend({ type: "image", file, ext: imageExtensionOf(file) })
   }
 
   async function startRecording() {

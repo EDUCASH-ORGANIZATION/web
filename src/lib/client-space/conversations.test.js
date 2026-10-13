@@ -11,6 +11,7 @@ import {
   formatClock,
   formatDayLabel,
   formatListTime,
+  imageExtensionOf,
   isPairRow,
   mediaKindOfPath,
   mergeMessages,
@@ -173,6 +174,20 @@ describe("fichiers joints", () => {
     expect(mediaKindOfPath("u/a.svg")).toBeNull()
     expect(mediaKindOfPath("u/noext")).toBeNull()
     expect(mediaKindOfPath(null)).toBeNull()
+  })
+
+  it("déduit l'extension d'une image de son type MIME, pas de son nom", () => {
+    expect(imageExtensionOf({ type: "image/jpeg", name: "photo.jfif" })).toBe("jpg")
+    expect(imageExtensionOf({ type: "image/jpeg", name: "photo" })).toBe("jpg")
+    expect(imageExtensionOf({ type: "image/png", name: "a.jpeg" })).toBe("png")
+    expect(imageExtensionOf({ type: "IMAGE/WEBP", name: "" })).toBe("webp")
+    expect(imageExtensionOf({ type: "image/heic", name: "IMG.HEIC" })).toBe("heic")
+    expect(imageExtensionOf({ type: "", name: "a.gif" })).toBe("gif")
+    expect(imageExtensionOf({ type: "", name: "a.jfif" })).toBe("jpg")
+    expect(imageExtensionOf({})).toBe("jpg")
+    for (const type of ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"]) {
+      expect(mediaKindOfPath(`u/a.${imageExtensionOf({ type })}`)).toBe("image")
+    }
   })
 
   it("contrôle taille et type avant l'envoi", () => {

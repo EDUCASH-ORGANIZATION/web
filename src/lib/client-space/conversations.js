@@ -42,6 +42,28 @@ export function mediaKindOfPath(path) {
   return null
 }
 
+const IMAGE_MIME_EXTENSIONS = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/heic": "heic",
+  "image/heif": "heif",
+}
+
+/**
+ * Extension du chemin de stockage d'une image : déduite du type MIME (un `.jfif` ou un nom sans extension
+ * reste accepté), puis du nom si le type est vide ; « jpg » en dernier recours.
+ * @param {{ type?: string, name?: string }} file
+ * @returns {string} une valeur de IMAGE_EXTENSIONS
+ */
+export function imageExtensionOf(file) {
+  const mime = typeof file?.type === "string" ? file.type.toLowerCase() : ""
+  if (IMAGE_MIME_EXTENSIONS[mime]) return IMAGE_MIME_EXTENSIONS[mime]
+  const fromName = extensionOf(file?.name)
+  return IMAGE_EXTENSIONS.includes(fromName) ? fromName : "jpg"
+}
+
 /**
  * Contrôle d'un fichier avant téléversement (navigateur). Les mêmes bornes que le compartiment de stockage.
  * @param {{ size?: number, type?: string, name?: string }} file
