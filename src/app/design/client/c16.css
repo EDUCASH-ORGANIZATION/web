@@ -7,6 +7,8 @@
 .c2 .chip .payer__logo { height: 24px; width: auto; }
 
 @media (max-width: 1023.98px) {
+  /* Puces opérateur du retrait : 44 px de haut */
+  .c2 .modal__body .chip { min-height: 44px; }
   .c2 .banner { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; position: relative; }
   .c2 .banner__actions { grid-column: 2; margin: 6px 0 0; display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
   .c2 .banner__actions .btn-icon { position: absolute; top: 8px; right: 8px; }

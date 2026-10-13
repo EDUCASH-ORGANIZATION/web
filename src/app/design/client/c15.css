@@ -7,6 +7,8 @@
 
 @media (max-width: 1023.98px) {
   .amount-chips2 .chip { min-height: 44px; }
+  /* Réessayer et Contacter l'aide des bannières de retour de paiement */
+  .c2 .banner__actions .link2 { min-height: 44px; }
   .c2 .sheet:has(.dialog2__content) .modal__head .btn-icon { width: 44px; height: 44px; }
   .c2 .modal:has(.dialog2__content) .modal__head .btn-icon { width: 44px; height: 44px; }
   .c2 .banner__actions .btn-icon { width: 44px; height: 44px; }

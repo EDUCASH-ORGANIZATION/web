@@ -337,6 +337,8 @@
      de 12 px entre cibles voisines : aucun chevauchement. */
   .c2 .mtop2 > a { position: relative; }
   .c2 .mtop2 > a::after { content: ""; position: absolute; inset: -6px; }
+  /* .c2 .av2 { overflow: hidden } (0,2,0) rognait ce pseudo-element sur l'avatar : la zone de 44 px n'existait pas */
+  .c2 .mtop2 > a.av2 { overflow: visible; }
   /* Sous-textes des cartes de chiffres et de la carte argent : retour a la ligne au lieu de l'ellipse */
   .c2 .stat2__sub, .c2 .money2 .stat2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
 }

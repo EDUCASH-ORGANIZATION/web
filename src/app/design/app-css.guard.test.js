@@ -483,6 +483,34 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     expect(c04).toMatch(/\.c2 \.cand2 \.cand2__top \{ flex-wrap: wrap;/)
   })
 
+  it("cibles tactiles de 44 px sous 1024 px (I7), scopees .c2, dans la requete (max-width: 1023.98px)", () => {
+    const inTablet = (file, rule) => {
+      const css = stripComments(read(file))
+      const tablet = css.slice(css.indexOf("@media (max-width: 1023.98px)"))
+      expect(tablet, `${file} : ${rule}`).toContain(rule)
+      expect(css.slice(0, css.indexOf("@media (max-width: 1023.98px)")), `${file} hors media`).not.toContain(rule)
+    }
+    inTablet("client/base.css", ".c2 .modal__head .btn-icon, .c2 .drawer__head .btn-icon { width: 44px; height: 44px; }")
+    inTablet("client/c05.css", ".c2 .drawer .link2 { min-height: 44px; }")
+    inTablet("client/c08.css", ".c2 .fup2 .status2 .link2 { display: inline-flex; min-height: 44px; }")
+    inTablet("client/c08.css", ".c2 .head2__date .meta2 > a::after { content: \"\"; position: absolute; inset: -12px -6px; }")
+    inTablet("client/c09.css", ".c2 .modal__body .check { min-height: 44px; align-items: center; }")
+    inTablet("client/c09.css", ".c2 .modal__body .note2 .link2 { display: inline-flex; min-height: 44px; }")
+    inTablet("client/c15.css", ".c2 .banner__actions .link2 { min-height: 44px; }")
+    inTablet("client/c16.css", ".c2 .modal__body .chip { min-height: 44px; }")
+  })
+
+  it("avatar de l'en-tete mobile : .c2 .av2 { overflow: hidden } ne rogne plus le pseudo-element de la zone de 44 px", () => {
+    expect(SHELL).toContain(".c2 .av2 { overflow: hidden; }")
+    const block = SHELL.slice(SHELL.indexOf(".c2 .mtop2 > a::after"))
+    expect(block).toContain(".c2 .mtop2 > a.av2 { overflow: visible; }")
+    expect(specificity(".c2 .mtop2 > a.av2")[1]).toBeGreaterThan(specificity(".c2 .av2")[1])
+    // la structure reelle : les deux liens directs de .mtop2, dont l'avatar a la classe av2
+    const mobileTop = readFileSync(path.join(dir, "..", "..", "components", "app-shell", "mobile-top.jsx"), "utf8")
+    expect(mobileTop).toContain('<header className="mtop2">')
+    expect(mobileTop).toMatch(/<Link className="av2 av2--sm" href=\{nav\.profileHref\}/)
+  })
+
   it("bouton « Retirer » inactif de la carte argent : l'opacite .45 de .c2 .btn.is-disabled ne s'applique pas", () => {
     const el = { tag: "button", classes: ["btn", "btn--ghost-blanc", "btn--sm", "is-disabled"], ancestors: ANCESTORS }
     expect(computedStyle(RULES, el).opacity).toBe("1")

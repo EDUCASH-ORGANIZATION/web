@@ -32,6 +32,11 @@
   .fup2 .fup2__desk { display: none; }
   .fup2 .person2__acts .link2, .fup2 .detail-head__actions .link2 { min-height: 44px; }
   .fup2 .person2__acts .btn { min-height: 44px; }
+  /* « Signaler un problème » dans la phrase du statut (inline sur bureau) : cible de 44 px de haut */
+  .c2 .fup2 .status2 .link2 { display: inline-flex; min-height: 44px; }
+  /* Fil d'Ariane : zone de 44 px de haut par pseudo-element, la mise en page ne bouge pas */
+  .c2 .head2__date .meta2 > a { position: relative; }
+  .c2 .head2__date .meta2 > a::after { content: ""; position: absolute; inset: -12px -6px; }
 }
 
 @media (max-width: 767.98px) {

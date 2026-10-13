@@ -25,6 +25,8 @@
 .stats2--3s .stat2__value { white-space: normal; overflow-wrap: anywhere; }
 
 @media (max-width: 1023.98px) {
+  /* Liens du tiroir (Voir les N avis, Ouvrir le profil public) : zone de 44 px de haut */
+  .c2 .drawer .link2 { min-height: 44px; }
   .stats2--3s .stat2, .c2 .drawer .stats2--3s .stat2 { padding: 10px 12px; }
   .stats2--3s .stat2__value { font-size: var(--t-body); white-space: normal; }
 }
