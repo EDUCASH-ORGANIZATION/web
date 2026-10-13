@@ -262,6 +262,8 @@ describe("validation serveur du montant (initiateDeposit / initiateWithdrawal)",
     expect((await w.initiateWithdrawal({ amount: Infinity, phone: "0197452108", operator: "mtn" })).error).toBe("Solde insuffisant")
   })
   // Constats : ces cas ne sont PAS bloqués par l'action serveur elle-même (la fonction Edge revalide).
+  // Risque (c) du plan RD-CLIENT-01 : la validation du retrait (montant entier, numéro, opérateur) est à faire côté
+  // lot sécurité. Quand elle sera ajoutée, l'inversion de ces tests CONSTAT est ATTENDUE (ce n'est pas une régression).
   it("CONSTAT : montant décimal ou chaîne numérique transmis tel quel à la fonction Edge (initiateWithdrawal)", async () => {
     invoke = vi.fn(async () => ({ data: {}, error: null }))
     await w.initiateWithdrawal({ amount: 2000.5, phone: "0197452108", operator: "mtn" })
