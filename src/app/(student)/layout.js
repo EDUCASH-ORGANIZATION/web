@@ -5,7 +5,9 @@ import { dashboardFor } from "@/lib/auth/destinations"
 import { Sidebar } from "@/components/shared/sidebar"
 import { StudentHeader } from "@/components/shared/student-header"
 import { PwaInstallBannerLoader } from "@/components/shared/pwa-install-banner-loader"
-import { BottomNav } from "@/components/shared/bottom-nav"
+import { BottomNav } from "@/components/app-shell/bottom-nav"
+import { UnreadProvider } from "@/components/app-shell/unread-provider"
+import { STUDENT_MOBILE_NAV } from "@/components/student/student-nav"
 
 export default async function StudentLayout({ children }) {
   const supabase = await createClient()
@@ -54,12 +56,18 @@ export default async function StudentLayout({ children }) {
           school={studentProfile?.school}
           userId={user.id}
         />
-        <main className="flex-1 pb-20 lg:pb-0 overflow-auto">
+        <main className="flex-1 overflow-auto">
           <PwaInstallBannerLoader space="student" />
           {children}
+          <UnreadProvider userId={user.id} initialCount={unreadCount ?? 0}>
+            <BottomNav
+              items={STUDENT_MOBILE_NAV.mobile}
+              hideBelow={STUDENT_MOBILE_NAV.mobileHideBelow}
+              reserveSpace
+            />
+          </UnreadProvider>
         </main>
       </div>
-      <BottomNav role="student" userId={user.id} unreadCount={unreadCount ?? 0} />
     </div>
   )
 }
