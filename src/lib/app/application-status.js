@@ -11,5 +11,5 @@ const VIEWS = {
  * @returns {{ key: "pending" | "accepted" | "rejected", label: string, tone: string }}
  */
 export function applicationStatusView(status) {
-  return { ...(VIEWS[status] ?? VIEWS.pending) }
+  return { ...(Object.hasOwn(VIEWS, status) ? VIEWS[status] : VIEWS.pending) }
 }

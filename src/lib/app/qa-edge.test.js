@@ -34,11 +34,15 @@ describe("QA formatAmount", () => {
     expect(formatAmount(12.4)).toBe(`12${NB}FCFA`)
     expect(formatAmount(1234.5)).not.toMatch(/ /)
   })
-  it.fails("BUG mineur: débit de 0 : pas de signe moins devant zéro", () => {
+  it("débit de 0 : pas de signe moins devant zéro", () => {
     expect(formatAmount(0, { sign: "debit" })).toBe(`0${NB}FCFA`)
+    expect(formatAmount(0.4, { sign: "credit" })).toBe(`0${NB}FCFA`)
   })
-  it.fails("BUG mineur: Infinity ne produit pas le symbole infini", () => {
-    expect(formatAmount(Infinity)).not.toContain("∞")
+  it("Infinity, -Infinity et NaN : traités comme une valeur absente (0 FCFA), jamais le symbole infini", () => {
+    for (const v of [Infinity, -Infinity, NaN]) {
+      expect(formatAmount(v)).toBe(`0${NB}FCFA`)
+      expect(formatAmount(v, { sign: "debit" })).toBe(`0${NB}FCFA`)
+    }
   })
 })
 
@@ -97,6 +101,15 @@ describe("QA dates", () => {
   })
 })
 
+describe("dates absentes ou invalides", () => {
+  it("formatShortDate et formatRelative renvoient une chaîne vide, sans exception", () => {
+    for (const v of [null, undefined, "", "pas une date", "2026-13-45", new Date("x"), NaN]) {
+      expect(formatShortDate(v)).toBe("")
+      expect(formatRelative(v, new Date("2026-10-10T12:00:00Z"))).toBe("")
+    }
+  })
+})
+
 describe("QA escrowSplit", () => {
   it("invariant total = commission + student et pas de dérive flottante, de 0 à 300000", () => {
     for (let t = 0; t <= 300000; t++) {
@@ -145,9 +158,9 @@ describe("QA wallet-tx", () => {
     expect(parseWalletFilter(["retraits", "x"])).toBe("retraits")
     expect(parseWalletFilter("retraits")).toBe("retraits")
   })
-  it.fails("BUG mineur: walletTxView clé de prototype", () => {
+  it("walletTxView : clé de prototype et type inconnu retombent sur Mouvement", () => {
     expect(walletTxView("zzz").label).toBe("Mouvement")
-    expect(walletTxView("toString").label).toBe("Mouvement")
+    for (const k of ["toString", "constructor", "__proto__", "hasOwnProperty"]) expect(walletTxView(k).label).toBe("Mouvement")
     expect(walletTxView("reserve").sign).toBe("−")
   })
   it("applicationStatusView : inconnu -> en attente", () => {
@@ -182,6 +195,12 @@ describe("QA client-routes", () => {
     expect(clientWalletHref({ recharger: false })).toBe("/client/wallet")
     expect(clientConversationHref("m")).toBe("/client/messages/m")
   })
+  it("clientMissionHref sans identifiant renvoie la liste ; montant non fini omis", () => {
+    for (const v of [undefined, null, ""]) expect(clientMissionHref(v)).toBe("/client/missions")
+    expect(clientMissionHref(undefined, { confirmer: true })).toBe("/client/missions")
+    for (const m of [NaN, Infinity, -Infinity]) expect(clientWalletHref({ recharger: true, montant: m })).toBe("/client/wallet?recharger=1")
+    expect(clientWalletHref({ montant: 5000 })).toBe("/client/wallet?montant=5000")
+  })
   it("clientPublishHref : duplicate seul, avec préremplissage, injection", () => {
     expect(clientPublishHref()).toBe("/client/missions/new")
     expect(clientPublishHref({ duplicate: "abc" })).toBe("/client/missions/new?duplicate=abc")
@@ -199,7 +218,7 @@ describe("QA client-routes", () => {
 })
 
 describe("QA applicationStatusView clé de prototype", () => {
-  it.fails("BUG mineur: 'toString' devrait retomber sur en attente", () => {
-    expect(applicationStatusView("toString").key).toBe("pending")
+  it("'toString' et autres clés de prototype retombent sur en attente", () => {
+    for (const k of ["toString", "constructor", "__proto__"]) expect(applicationStatusView(k).key).toBe("pending")
   })
 })

@@ -65,7 +65,7 @@ describe("missionStatusView", () => {
     expect(missionStatusView({ status: "open", deadline: null }, today)).toEqual({
       key: "open",
       label: "Ouverte",
-      tone: "bleu",
+      tone: "neutre",
     })
     expect(missionStatusView({ status: "open", deadline: "2026-10-13" }, today).key).toBe("open")
     expect(missionStatusView({ status: "open", deadline: "2026-11-01" }, today).key).toBe("open")
@@ -77,12 +77,17 @@ describe("missionStatusView", () => {
       tone: "erreur",
     })
   })
+  it("aucun statut n'utilise le ton citron (accent unique de l'écran)", () => {
+    for (const status of ["open", "in_progress", "done", "cancelled"]) {
+      expect(missionStatusView({ status }, today).tone).not.toBe("citron")
+    }
+  })
   it("in_progress, done et cancelled ignorent l'échéance", () => {
     const past = "2020-01-01"
     expect(missionStatusView({ status: "in_progress", deadline: past }, today)).toEqual({
       key: "in_progress",
       label: "En cours",
-      tone: "citron",
+      tone: "bleu",
     })
     expect(missionStatusView({ status: "done", deadline: past }, today)).toEqual({
       key: "done",

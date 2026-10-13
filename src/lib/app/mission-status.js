@@ -4,13 +4,14 @@ import { isPastDeadline } from "../vitrine/dates.js"
 
 /**
  * @typedef {{ key: "open" | "overdue" | "in_progress" | "done" | "cancelled", label: string, tone: string }} MissionStatusView
- * `tone` est le modificateur du badge du système (`badge--<tone>`).
+ * `tone` est le modificateur du badge du système (`badge--<tone>`). Les planches v2.1 font foi :
+ * jamais `citron` pour un statut (le citron est l'accent unique de l'écran).
  */
 
 const VIEWS = {
-  open: { key: "open", label: "Ouverte", tone: "bleu" },
+  open: { key: "open", label: "Ouverte", tone: "neutre" },
   overdue: { key: "overdue", label: "Échéance dépassée", tone: "erreur" },
-  in_progress: { key: "in_progress", label: "En cours", tone: "citron" },
+  in_progress: { key: "in_progress", label: "En cours", tone: "bleu" },
   done: { key: "done", label: "Terminée", tone: "succes" },
   cancelled: { key: "cancelled", label: "Annulée", tone: "neutre" },
 }

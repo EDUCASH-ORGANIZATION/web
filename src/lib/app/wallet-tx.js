@@ -1,4 +1,7 @@
 // Filtres et présentation des mouvements du portefeuille client. Pur.
+// Lecture seule des constantes de base : `database.constants.js` est un module pur sans accès Supabase.
+import { WALLET_TRANSACTION_TYPES } from "../supabase/database.constants.js"
+
 const MINUS = "−"
 
 /**
@@ -52,5 +55,6 @@ export function filterWalletTransactions(transactions, filterId) {
  * @returns {{ label: string, sign: string, direction: "credit" | "debit" | "none" }}
  */
 export function walletTxView(type) {
-  return WALLET_TX_VIEW[type] ?? { label: "Mouvement", sign: "", direction: "none" }
+  const known = WALLET_TRANSACTION_TYPES.includes(type) && Object.hasOwn(WALLET_TX_VIEW, type)
+  return known ? WALLET_TX_VIEW[type] : { label: "Mouvement", sign: "", direction: "none" }
 }

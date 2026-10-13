@@ -18,6 +18,7 @@ export function clientMissionsHref({ onglet, q } = {}) {
 
 /** @param {string} id @param {{ candidat?: string, confirmer?: boolean, publiee?: boolean }} [params] */
 export function clientMissionHref(id, { candidat, confirmer, publiee } = {}) {
+  if (id === undefined || id === null || id === "") return "/client/missions"
   return withQuery(`/client/missions/${encodeURIComponent(id)}`, [
     ["candidat", candidat],
     ["confirmer", confirmer],
@@ -34,7 +35,7 @@ export function clientConversationHref(missionId, studentId) {
 export function clientWalletHref({ recharger, montant, filtre } = {}) {
   return withQuery("/client/wallet", [
     ["recharger", recharger],
-    ["montant", montant],
+    ["montant", typeof montant === "number" && !Number.isFinite(montant) ? undefined : montant],
     ["filtre", filtre && filtre !== "tout" ? filtre : undefined],
   ])
 }
