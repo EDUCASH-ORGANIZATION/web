@@ -488,6 +488,11 @@ describe("getClientProfileSummary : total dépensé (grand livre, règle de la P
     expect(t).toBe(1500.75)
   })
 
+  it("compte une libération journalisée en négatif en valeur absolue", async () => {
+    const { total: t } = await total([release(-5000), release("-2500"), release(1000)])
+    expect(t).toBe(8500)
+  })
+
   it("gère de très grands montants sans NaN", async () => {
     const { total: t } = await total([release("999999999999"), release(1)])
     expect(t).toBe(1000000000000)

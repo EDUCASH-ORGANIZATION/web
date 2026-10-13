@@ -84,7 +84,8 @@ async function readTotalSpent(supabase, userId) {
       return null
     }
     const rows = data ?? []
-    for (const row of rows) total += Number(row.amount ?? 0)
+    // Valeur absolue : une libération peut être journalisée en négatif (comme receiptFromLedger).
+    for (const row of rows) total += Math.abs(Number(row.amount ?? 0))
     if (!Number.isFinite(total)) return null
     if (rows.length < LEDGER_PAGE_SIZE) return total
   }
