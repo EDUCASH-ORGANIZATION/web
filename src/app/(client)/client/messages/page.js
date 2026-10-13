@@ -1,85 +1,37 @@
-import { redirect } from "next/navigation"
-import { getCurrentUser } from "@/lib/actions/auth.actions"
-import { createClient } from "@/lib/supabase/server"
-import { RealtimeConversationsList } from "@/components/messages/realtime-conversations-list"
+// @ds-screen RD-CLIENT-01
+import { Suspense } from "react"
+import { getClientConversations } from "@/lib/actions/message.actions"
+import { InboxView, InboxSkeleton } from "@/components/client-space/messages/inbox-view"
+import { SEARCH_MAX_LENGTH } from "@/lib/constants/missions"
 
 export const metadata = { title: "Messages - EduCash" }
 
-export default async function ClientMessagesPage() {
-  const user = await getCurrentUser()
-  if (!user) redirect("/auth/login")
+const UNREAD_FILTER = "non-lues"
 
-  const supabase = await createClient()
+function firstText(value) {
+  const first = Array.isArray(value) ? value[0] : value
+  return typeof first === "string" ? first : ""
+}
 
-  const { data: rawMessages } = await supabase
-    .from("messages")
-    .select("*, missions(title, status)")
-    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-    .order("created_at", { ascending: false })
+// Recherche : texte seul, sans caractère de contrôle, bornée (découpe par point de code).
+function normalizeSearch(raw) {
+  return Array.from(raw.replace(/[\u0000-\u001f\u007f]/g, " ").trim()).slice(0, SEARCH_MAX_LENGTH).join("")
+}
 
-  // Déduplique par mission_id - garde le message le plus récent par conversation
-  const seen = new Set()
-  const conversations = []
-  const otherUserIds = []
+// Pas de loading.js ici : ce segment est le parent de [missionId], qui appelle notFound() (le 404 deviendrait un 200).
+// L'attente est portée par ce <Suspense>.
+async function InboxContent({ q, unreadOnly }) {
+  const result = await getClientConversations()
+  return <InboxView result={result} q={q} unreadOnly={unreadOnly} now={new Date().toISOString()} />
+}
 
-  for (const msg of rawMessages ?? []) {
-    if (seen.has(msg.mission_id)) continue
-    seen.add(msg.mission_id)
-
-    const unreadCount = (rawMessages ?? []).filter(
-      (m) => m.mission_id === msg.mission_id && m.read === false && m.receiver_id === user.id
-    ).length
-
-    const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id
-    otherUserIds.push(otherId)
-
-    conversations.push({
-      missionId:     msg.mission_id,
-      missionTitle:  msg.missions?.title ?? "Mission",
-      lastMessage:   msg.content,
-      lastMessageAt: msg.created_at,
-      unreadCount,
-      _otherId:      otherId,
-      senderName:    "",
-      senderAvatar:  null,
-    })
-  }
-
-  // Récupère les profils des interlocuteurs en une seule requête
-  if (otherUserIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, avatar_url")
-      .in("user_id", otherUserIds)
-
-    const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p]))
-    for (const conv of conversations) {
-      const p = profileMap[conv._otherId]
-      if (p) { conv.senderName = p.full_name ?? ""; conv.senderAvatar = p.avatar_url ?? null }
-      delete conv._otherId
-    }
-  }
-
+export default async function ClientMessagesPage({ searchParams }) {
+  const sp = (await searchParams) ?? {}
+  const q = normalizeSearch(firstText(sp.q))
+  const unreadOnly = firstText(sp.filtre) === UNREAD_FILTER
   return (
-    <div className="px-4 py-6 max-w-2xl mx-auto flex flex-col gap-5">
-      <div>
-        <h1 className="text-2xl font-black text-gray-900">Messages</h1>
-        {conversations.length > 0 && (
-          <p className="text-sm text-gray-500 mt-1">
-            {conversations.length} conversation{conversations.length > 1 ? "s" : ""}
-          </p>
-        )}
-      </div>
-
-      <RealtimeConversationsList
-        initialConversations={conversations}
-        currentUserId={user.id}
-        role="client"
-        emptyTitle="Aucune conversation"
-        emptyMessage="Vos échanges avec les étudiants apparaîtront ici une fois qu'une candidature sera acceptée."
-        emptyCtaLabel="Voir mes missions"
-        emptyCtaHref="/client/missions"
-      />
-    </div>
+    <Suspense key={`${q}|${unreadOnly}`} fallback={<InboxSkeleton />}>
+      <InboxContent q={q} unreadOnly={unreadOnly} />
+    </Suspense>
   )
 }
