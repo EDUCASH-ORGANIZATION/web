@@ -7,7 +7,7 @@
 // Les dialogues empilés (Drawer puis ConfirmDialog) partagent une pile au niveau du module : seul celui
 // du dessus traite Échap et le piège de focus.
 
-import { useEffect, useId, useRef, useSyncExternalStore } from "react"
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 import { Icon } from "@/components/design/icon"
 import { trapFocus } from "@/hooks/use-modal-focus"
 import { COMPACT_MEDIA_QUERY, createDialogStack, createScrimGuard, gateDocument } from "./interactive-logic"
@@ -61,13 +61,13 @@ export function useDialogBehavior({ onClose, initialFocusRef }) {
 
 // Poignées du voile : ferme seulement si l'appui et le clic sont tous deux sur le voile (pas dans la boîte).
 export function useScrimClose(onClose) {
-  const onCloseRef = useRef(onClose)
-  useEffect(() => {
-    onCloseRef.current = onClose
-  })
-  const guardRef = useRef(null)
-  if (guardRef.current === null) guardRef.current = createScrimGuard(() => onCloseRef.current?.())
-  return guardRef.current
+  const [guard] = useState(createScrimGuard)
+  return {
+    onPointerDown: guard.onPointerDown,
+    onClick: (e) => {
+      if (guard.shouldClose(e)) onClose()
+    },
+  }
 }
 
 export function CloseButton({ onClose }) {

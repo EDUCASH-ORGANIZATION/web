@@ -40,16 +40,17 @@ export function chipKeyAction({ key, linked, count, at }) {
 
 // Voile d'une boîte : ne ferme que si l'appui ET le clic ont eu lieu sur le voile lui-même
 // (un glisser de sélection de texte parti de la boîte et relâché sur le voile ne ferme pas).
-export function createScrimGuard(onClose) {
+export function createScrimGuard() {
   let pressedOnScrim = false
   return {
     onPointerDown(e) {
       pressedOnScrim = e.target === e.currentTarget
     },
-    onClick(e) {
+    // Vrai quand ce clic doit fermer ; l'origine de l'appui est oubliée dans tous les cas.
+    shouldClose(e) {
       const valid = pressedOnScrim && e.target === e.currentTarget
       pressedOnScrim = false
-      if (valid) onClose()
+      return valid
     },
   }
 }
