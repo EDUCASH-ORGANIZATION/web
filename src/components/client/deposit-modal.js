@@ -74,7 +74,7 @@ export function DepositModal({ isOpen, onClose, currentBalance = 0 }) {
             <div className="w-8 h-8 rounded-lg bg-[#f0faf5] flex items-center justify-center">
               <Plus size={16} className="text-[#1A6B4A]" />
             </div>
-            <h2 className="text-base font-black text-gray-900">Recharger mon wallet</h2>
+            <h2 className="text-base font-black text-gray-900">Recharger mon portefeuille</h2>
           </div>
           <button
             type="button"

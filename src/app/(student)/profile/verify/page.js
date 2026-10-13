@@ -3,9 +3,10 @@ import Link from "next/link"
 import { ChevronLeft, ShieldCheck } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
+import { getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { CardUploadForm } from "@/components/profile/card-upload-form"
 
-export const metadata = { title: "Vérification du compte — EduCash" }
+export const metadata = { title: "Vérification du compte - EduCash" }
 
 export default async function ProfileVerifyPage() {
   const user = await getCurrentUser()
@@ -13,9 +14,9 @@ export default async function ProfileVerifyPage() {
 
   const supabase = await createClient()
 
-  const [{ data: profile }, { data: studentProfile }] = await Promise.all([
+  const [{ data: profile }, { studentProfile }] = await Promise.all([
     supabase.from("profiles").select("is_verified").eq("user_id", user.id).single(),
-    supabase.from("student_profiles").select("card_url").eq("user_id", user.id).single(),
+    getMyStudentProfile(),
   ])
 
   // Déjà vérifié → retour au profil

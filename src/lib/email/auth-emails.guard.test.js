@@ -36,7 +36,7 @@ describe("emails d'auth", () => {
   })
 
   it("aucun tiret cadratin", () => {
-    const hits = [...ALL_RESEND, ...SUPABASE, INDEX].filter((f) => read(f).includes("—"))
+    const hits = [...ALL_RESEND, ...SUPABASE, INDEX].filter((f) => read(f).includes("\u2014"))
     expect(hits).toEqual([])
   })
 

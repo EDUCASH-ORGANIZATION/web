@@ -18,6 +18,8 @@ import {
   MISSION_TYPE_PHRASES,
   missionTypeLabel,
 } from "@/lib/constants/missions"
+import { paymentsEnabled } from "@/lib/constants/payments"
+import { PUBLISH_PAUSED_PATH } from "@/lib/utils/publish-prefill"
 
 export const metadata = {
   title: "Missions",
@@ -62,7 +64,7 @@ function PublishPromo() {
       <p className="body-s v02-promo__text">
         Publiez une mission, le budget reste bloqué jusqu&rsquo;à votre validation. Étudiants vérifiés par l&rsquo;équipe.
       </p>
-      <Link className="btn btn--primary v02-promo__cta" href="/auth/register?role=client">
+      <Link className="btn btn--primary v02-promo__cta" href={paymentsEnabled() ? "/auth/register?role=client" : PUBLISH_PAUSED_PATH}>
         Publier une mission
         <span className="btn__dot"><Icon name="i-arrow-right" className="ic" /></span>
       </Link>

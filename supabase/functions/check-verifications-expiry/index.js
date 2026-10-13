@@ -1,7 +1,18 @@
+// ATTENTION avant planification : cette fonction appelle encore la Edge Function `send-email`,
+// qui n'existe pas. Elle doit passer par /api/email avant d'être planifiée.
+// Déploiement : utiliser `--no-verify-jwt` (le secret CRON_SECRET protège l'appel) ou envoyer
+// un en-tête Authorization valide.
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-serve(async (_req) => {
+import { cronAuthGuard } from "../_shared/cron-auth.js"
+
+serve(async (req) => {
+  // Fermee par defaut : secret partage obligatoire (CRON_SECRET), avant tout acces aux donnees
+  const denied = cronAuthGuard(req.headers, Deno.env.get("CRON_SECRET"))
+  if (denied) return denied
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL"),
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -21,7 +32,7 @@ serve(async (_req) => {
   if (fetchError) {
     console.error("[check-verifications-expiry] fetch error:", fetchError.message)
     return new Response(
-      JSON.stringify({ error: fetchError.message }),
+      JSON.stringify({ error: "Erreur interne" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     )
   }

@@ -49,7 +49,7 @@ export function ConfirmMissionModal({
 
     const paid = fmt(result.amountStudent ?? amountNet)
     toast({
-      message: `${firstName} a été payé(e) ! ${paid} FCFA versés sur son wallet.`,
+      message: `${firstName} a été payé(e) ! ${paid} FCFA versés sur son portefeuille.`,
       type: "success",
     })
     onClose()
@@ -117,7 +117,7 @@ export function ConfirmMissionModal({
           <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
             <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
             <p className="text-xs text-amber-700 leading-relaxed">
-              Ces fonds seront prélevés de votre wallet{" "}
+              Ces fonds seront prélevés de votre portefeuille{" "}
               <strong>instantanément</strong>. Cette action est <strong>irréversible</strong>.
             </p>
           </div>
@@ -151,7 +151,7 @@ export function ConfirmMissionModal({
           {/* Badge sécurité */}
           <div className="flex items-center justify-center gap-1.5">
             <ShieldCheck size={13} className="text-[#1A6B4A]" />
-            <p className="text-xs text-gray-400">Paiement sécurisé via wallet EduCash</p>
+            <p className="text-xs text-gray-400">Paiement sécurisé via le portefeuille EduCash</p>
           </div>
         </div>
       </div>

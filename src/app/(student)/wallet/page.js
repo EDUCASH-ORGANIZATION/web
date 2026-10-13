@@ -8,8 +8,9 @@ import {
   getWalletStats,
 } from "@/lib/actions/wallet.actions"
 import { StudentWalletShell } from "@/components/student/wallet-shell"
+import { paymentsEnabled } from "@/lib/constants/payments"
 
-export const metadata = { title: "Mes gains — EduCash" }
+export const metadata = { title: "Mes gains - EduCash" }
 
 export default async function StudentWalletPage() {
   const user = await getCurrentUser()
@@ -73,6 +74,7 @@ export default async function StudentWalletPage() {
         transactions={transactions}
         stats={stats}
         completedMissions={missionsWithAmount}
+        paymentsEnabled={paymentsEnabled()}
       />
     </div>
   )

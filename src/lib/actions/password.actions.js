@@ -4,6 +4,7 @@ import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { mapAuthError, authErrorCode, authErrorMessage } from "@/lib/auth/errors"
 import { makeForgotSchema, makeResetSchema, parseFormData } from "@/lib/auth/schemas"
+import { revokeSession } from "@/lib/auth/revoke-session"
 import { formAudience } from "@/lib/auth/form-audience"
 import { authRedirectUrl } from "@/lib/auth/destinations"
 import { RECOVERY_COOKIE, recoveryCookieOptions } from "@/lib/auth/cookies"
@@ -66,7 +67,8 @@ export async function updatePassword(_prevState, formData) {
     return { code, formError: message }
   }
 
-  await supabase.auth.signOut()
+  // Toutes les sessions de l'utilisateur sont fermées après un changement de mot de passe.
+  await revokeSession(supabase, { scope: "global" })
   cookieStore.set(RECOVERY_COOKIE, "", { ...recoveryCookieOptions(), maxAge: 0 })
   return { status: "updated" }
 }

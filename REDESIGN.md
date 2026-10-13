@@ -224,7 +224,7 @@ authentification A01 à A08 faite (RD-02) ; tout le reste à faire.
 | C12 | Messages | à faire |
 | C13 | Conversation | à faire |
 | C14 | Portefeuille client | à faire |
-| C15 | Recharge et retour FedaPay | à faire |
+| C15 | Recharge et retour de paiement | à faire |
 | C16 | Retrait client | à faire |
 | C17 | Profil client | à faire |
 
@@ -268,8 +268,17 @@ authentification A01 à A08 faite (RD-02) ; tout le reste à faire.
   étudiant ne peut pas s'auto-vérifier, identité de l'appelant dans les
   retraits/dépôts, solde atomique sans double exécution) - failles critiques
   relevées à l'exploration initiale.
-- Séquestre / FedaPay conformes aux décisions produit (recharger/retirer via
-  FedaPay ; fin de mission en deux temps ; achats hors plateforme).
+- Séquestre conforme aux décisions produit (recharger/retirer via
+  la passerelle de paiement à définir ; fin de mission en deux temps ; achats hors plateforme).
+
+### Durcissement sécurité (RD-SEC-01)
+
+- Rôle : lu uniquement depuis `profiles.role`, fail-closed (`getServerRole`, `requireRole`, `requireUser` dans `src/lib/auth/require-role.js`). Le middleware, les layouts et les server actions ne lisent plus `user_metadata` pour autoriser.
+- Client service role (`src/lib/supabase/service.js`) réservé au serveur, après contrôle d'identité et de propriété. Les colonnes privées de profils sont lues par ce biais.
+- Portefeuille : `callWalletRpc` ne déclare un succès que si `error == null` et `data.success === true`.
+- Paiements en pause derrière `PAYMENTS_ENABLED` (faux par défaut) : `paymentsEnabled()`, `PAYMENTS_PENDING_COPY`, Edge Functions en 503, auto-release inerte, aucun paiement automatique. Aucune passerelle ni prestataire nommé : à définir.
+- Missions : seul l'admin annule une mission `in_progress`, un client n'annule qu'une mission `open`. `discardMission` rembourse puis annule.
+- Garde-fous : `vitrine-content`, `vocabulary.render`, `client-boundary`, `mission-type-display`, `role-authority`, `service-client`, `no-em-dash` (sans exception), `auth-emails`, `payments-disabled`, colonnes privées de `profile.actions.test.js`.
 
 ## Select maison (RD-FIX-07)
 
@@ -322,7 +331,7 @@ authentification A01 à A08 faite (RD-02) ; tout le reste à faire.
 - Routes : `/auth/login`, `/auth/register` (`?role=student|client`, `next`), `/auth/verify-email`, `/auth/link-expired?cause=expire|utilise|autre-appareil|invalide`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/confirm` (code PKCE ou `token_hash`), `/auth/callback` (liens déjà envoyés, délègue au même gestionnaire), `/auth/register/student` et `/auth/register/client` (onboardings, session requise).
 - Formulaires à action serveur (`useActionState`, POST) avec `HydratedSubmit` : bouton inactif tant que la page n'est pas hydratée, jamais d'identifiants dans l'URL. Validation zod côté client et côté serveur (`src/lib/auth/schemas.js`). Téléphone béninois : 10 chiffres commençant par 01, stocké en `+22901XXXXXXXX`.
 - Cookies httpOnly : `ec_pending_email` (adresse rappelée sur A03, jamais dans l'URL) et `ec_recovery` (autorise A06, 15 min).
-- Rôle : seuls `student` et `client` à l'inscription ; l'autorité se lit sur `profiles.role` par `getServerRole` (`src/lib/auth/server-role.js`). Garde admin (layout et `assertAdmin`) sur `profiles.role = 'admin'`. Les onboardings écrivent une liste blanche de colonnes, jamais `role`, `is_verified`, `is_suspended` ni `verified_until`. Reste au lot RD-SEC-01 : autorité serveur dans le middleware, les layouts étudiant et client et toutes les server actions.
+- Rôle : seuls `student` et `client` à l'inscription ; l'autorité se lit sur `profiles.role` par `getServerRole` (`src/lib/auth/server-role.js`). Garde admin (layout et `assertAdmin`) sur `profiles.role = 'admin'`. Les onboardings écrivent une liste blanche de colonnes, jamais `role`, `is_verified`, `is_suspended` ni `verified_until`. L'autorité serveur dans le middleware, les layouts et les server actions est soldée par RD-SEC-01.
 - `next` : `safeNextPath` et `isNextAllowedForRole` à chaque étape ; le pré-remplissage de publication (`besoin`, `ville`, `type`) survit à la connexion, l'inscription, la confirmation, l'onboarding client et l'écran « portefeuille insuffisant » (`ResumePublishLink`).
 - Emails : gabarits Supabase de confirmation et de réinitialisation dans `supabase/templates/` (à coller dans le tableau de bord, Redirect URLs `https://www.educash.bj/auth/**` et `https://educash.bj/auth/**`), gabarits Resend sans tiret cadratin. Aucune durée de validité affichée.
 - Garde-fous : `vitrine-content.guard.test.js` scanne `src/app/auth` et `src/components/auth` (formulaires, délais, couleurs, accès aux tables), `auth-emails.guard.test.js` scanne tous les gabarits Resend.

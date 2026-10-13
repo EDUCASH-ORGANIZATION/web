@@ -1,5 +1,6 @@
-import { createClient } from "@supabase/supabase-js"
-import { createHmac } from "crypto"
+import { createHmac, timingSafeEqual } from "crypto"
+import { paymentsEnabled } from "@/lib/constants/payments"
+import { createServiceClient } from "@/lib/supabase/service"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -7,9 +8,41 @@ function fmt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
 }
 
+// Comparaison de signatures en temps constant ; longueur différente = refus.
+function signatureMatches(received, expected) {
+  if (typeof received !== "string") return false
+  const a = Buffer.from(received)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Devise de l'événement : code ISO en chaîne ou objet { iso }.
+function currencyOf(entity) {
+  const c = entity?.currency
+  return typeof c === "string" ? c : c?.iso
+}
+
+// Un dépôt n'est crédité que si montant (entier > 0), devise (XOF) et utilisateur (UUID) sont valides.
+function isValidDeposit(entity, userId) {
+  return (
+    Number.isInteger(entity?.amount) &&
+    entity.amount > 0 &&
+    currencyOf(entity) === "XOF" &&
+    typeof userId === "string" &&
+    UUID_RE.test(userId)
+  )
+}
+
 // ─── POST /api/webhooks/fedapay ───────────────────────────────────────────────
 
 export async function POST(request) {
+  // Paiements fermes par defaut : avant toute lecture du corps
+  if (!paymentsEnabled()) {
+    return Response.json({ error: "Paiements désactivés" }, { status: 503 })
+  }
+
   const webhookSecret = process.env.FEDAPAY_WEBHOOK_SECRET
   if (!webhookSecret) {
     console.error("[webhook/fedapay] FEDAPAY_WEBHOOK_SECRET non configuré - webhook désactivé")
@@ -24,7 +57,7 @@ export async function POST(request) {
     .update(payload)
     .digest("hex")
 
-  if (signature !== expectedSig) {
+  if (!signatureMatches(signature, expectedSig)) {
     console.warn("[webhook/fedapay] Signature invalide")
     return new Response("Unauthorized", { status: 401 })
   }
@@ -36,139 +69,91 @@ export async function POST(request) {
     return new Response("Bad Request", { status: 400 })
   }
 
-  // Client Supabase avec service role pour bypasser RLS
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  )
+  // Un corps signé doit être un objet JSON (pas null, tableau ni valeur simple)
+  if (event === null || typeof event !== "object" || Array.isArray(event)) {
+    return new Response("Bad Request", { status: 400 })
+  }
 
   // ── transaction.approved ────────────────────────────────────────────────────
 
   if (event.name === "transaction.approved") {
     const metadata  = event.entity?.custom_metadata ?? event.entity?.metadata ?? {}
+
+    // Seul le dépôt de portefeuille déclenche une écriture
+    if (metadata.type !== "wallet_deposit" || event.entity?.id == null) {
+      console.warn("[webhook/fedapay] metadata.type ignoré:", metadata.type)
+      return new Response("OK", { status: 200 })
+    }
+
+    if (!isValidDeposit(event.entity, metadata.userId)) {
+      console.warn("[webhook/fedapay] dépôt refusé : données invalides")
+      return new Response("Bad Request", { status: 400 })
+    }
+
+    // Client service role (contourne la RLS) : ouvert seulement après vérification de signature
+    const supabase = createServiceClient()
     const fedapayId = String(event.entity.id)
     const amount    = event.entity.amount
 
-    // ── Cas 1 : dépôt wallet ──────────────────────────────────────────────────
-    if (metadata.type === "wallet_deposit") {
-      const { data: result, error: rpcError } = await supabase.rpc("wallet_deposit", {
-        p_user_id:    metadata.userId,
-        p_amount:     amount,
-        p_fedapay_id: fedapayId,
-      })
+    // ── Dépôt wallet ──────────────────────────────────────────────────────────
+    const { data: result, error: rpcError } = await supabase.rpc("wallet_deposit", {
+      p_user_id:    metadata.userId,
+      p_amount:     amount,
+      p_fedapay_id: fedapayId,
+    })
 
-      if (rpcError) {
-        console.error("[webhook/fedapay] wallet_deposit RPC error:", rpcError)
-        // On retourne 200 pour éviter les retries FedaPay
-        return new Response("OK", { status: 200 })
-      }
+    // Erreur d'appel (transitoire) : 500 pour provoquer un rejeu ; l'idempotence SQL sur
+    // l'identifiant de paiement empêche tout double crédit.
+    if (rpcError) {
+      console.error("[webhook/fedapay] wallet_deposit en échec:", rpcError)
+      return new Response("Internal Server Error", { status: 500 })
+    }
 
-      if (result?.success) {
-        try {
-          const { data: userData } = await supabase.auth.admin.getUserById(metadata.userId)
-          const clientEmail = userData?.user?.email
-
-          if (clientEmail) {
-            const { data: clientProfile } = await supabase
-              .from("profiles")
-              .select("full_name")
-              .eq("user_id", metadata.userId)
-              .single()
-
-            const firstName = clientProfile?.full_name?.split(" ")[0] ?? "Client"
-
-            const { sendEmail } = await import("@/lib/email/index")
-            await sendEmail("wallet-deposited", clientEmail, {
-              firstName,
-              amount:     fmt(amount),
-              newBalance: fmt(result.new_balance ?? 0),
-            })
-          }
-        } catch (emailErr) {
-          console.error("[webhook/fedapay] Erreur envoi email wallet-deposited:", emailErr)
-        }
-      }
-
+    // Refus métier définitif (payment_id_conflict, wallet_not_found, invalid_amount,
+    // missing_payment_id) : un rejeu donnerait le même refus. 200 neutre, alerte sans donnée
+    // sensible, aucun crédit.
+    if (result?.success !== true) {
+      console.error("[webhook/fedapay] ALERTE dépôt refusé définitivement, code:", String(result?.code ?? "inconnu"))
       return new Response("OK", { status: 200 })
     }
 
-    // ── Cas 2 : paiement direct de mission (ancien flux) ──────────────────────
-    if (!metadata.type || metadata.type === "mission_payment") {
-      const { data: transaction, error: txError } = await supabase
-        .from("transactions")
-        .update({ status: "paid", paid_at: new Date().toISOString() })
-        .eq("fedapay_id", fedapayId)
-        .select()
-        .single()
+    // Rejeu d'un dépôt déjà crédité : aucun second email
+    if (!result.already_processed) {
+      try {
+        const { data: userData } = await supabase.auth.admin.getUserById(metadata.userId)
+        const clientEmail = userData?.user?.email
 
-      if (txError || !transaction) {
-        console.error("[webhook/fedapay] Transaction mission introuvable pour fedapay_id:", fedapayId, txError)
-        return new Response("OK", { status: 200 })
-      }
+        if (clientEmail) {
+          const { data: clientProfile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("user_id", metadata.userId)
+            .single()
 
-      const { data: mission } = await supabase
-        .from("missions")
-        .update({ status: "done" })
-        .eq("id", transaction.mission_id)
-        .select("title, selected_student_id")
-        .single()
+          const firstName = clientProfile?.full_name?.split(" ")[0] ?? "Client"
 
-      if (mission?.selected_student_id) {
-        try {
-          const { data: userData } = await supabase.auth.admin.getUserById(
-            mission.selected_student_id
-          )
-          const studentEmail = userData?.user?.email
-
-          if (studentEmail) {
-            const { data: studentProfile } = await supabase
-              .from("profiles")
-              .select("full_name")
-              .eq("user_id", mission.selected_student_id)
-              .single()
-
-            const { sendEmail } = await import("@/lib/email/index")
-            await sendEmail("payment-received", studentEmail, {
-              studentName:  studentProfile?.full_name ?? "Étudiant",
-              amount:       fmt(transaction.amount_student),
-              missionTitle: mission.title,
-              paidAt:       transaction.paid_at,
-            })
-          }
-        } catch (emailErr) {
-          console.error("[webhook/fedapay] Erreur envoi email payment-received:", emailErr)
+          const { sendEmail } = await import("@/lib/email/index")
+          await sendEmail("wallet-deposited", clientEmail, {
+            firstName,
+            amount:     fmt(amount),
+            newBalance: fmt(result.new_balance ?? 0),
+          })
         }
+      } catch (emailErr) {
+        console.error("[webhook/fedapay] Erreur envoi email wallet-deposited:", emailErr)
       }
-
-      return new Response("OK", { status: 200 })
     }
 
-    // Type inconnu — on log et on acquitte
-    console.warn("[webhook/fedapay] metadata.type inconnu:", metadata.type)
+    return new Response("OK", { status: 200 })
   }
 
   // ── transaction.declined ────────────────────────────────────────────────────
 
   if (event.name === "transaction.declined") {
-    const metadata  = event.entity?.custom_metadata ?? event.entity?.metadata ?? {}
-    const fedapayId = String(event.entity.id)
-
-    if (metadata.type === "wallet_deposit") {
-      // Aucune modification wallet — on log seulement
-      console.warn("[webhook/fedapay] Dépôt wallet échoué, fedapayId:", fedapayId)
-    } else {
-      // Ancien flux : marque la transaction mission comme échouée
-      const { error } = await supabase
-        .from("transactions")
-        .update({ status: "failed" })
-        .eq("fedapay_id", fedapayId)
-
-      if (error) {
-        console.error("[webhook/fedapay] Impossible de marquer transaction échouée:", error)
-      }
-    }
+    // Aucune modification : on journalise seulement
+    console.warn("[webhook/fedapay] Transaction refusée, id:", String(event.entity?.id))
   }
 
-  // Toujours 200 — FedaPay ne doit pas retenter
+  // Toujours 200 - FedaPay ne doit pas retenter
   return new Response("OK", { status: 200 })
 }

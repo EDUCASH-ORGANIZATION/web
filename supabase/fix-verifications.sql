@@ -1,3 +1,7 @@
+/*
+ * OBSOLETE, NE PAS EXECUTER : ce fichier crée des politiques basées sur user_metadata (modifiable par l'utilisateur), ce qui donne un accès admin à tout compte qui s'attribue ce rôle.
+ * La production est alignée sur RD-02/02-correctif.sql. Ne jamais rejouer ce fichier.
+ */
 -- ─────────────────────────────────────────────────────────────────────────────
 -- FIX : Système de vérification des dossiers étudiants
 -- À exécuter dans : Supabase Dashboard → SQL Editor → New query

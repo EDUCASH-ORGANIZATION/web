@@ -11,6 +11,9 @@ const ledgerFilters = []
 
 vi.mock("next/navigation", () => ({ redirect }))
 vi.mock("@/lib/actions/auth.actions", () => ({ getCurrentUser, logout: vi.fn() }))
+vi.mock("@/lib/actions/profile.actions", () => ({
+  getMyProfile: async () => ({ profile: { phone: null }, error: null }),
+}))
 
 function query(table) {
   const filters = []

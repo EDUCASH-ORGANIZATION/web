@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { logout } from "@/lib/actions/auth.actions"
 
 const SPACE_BY_ROLE = {
   student: "/dashboard",
@@ -51,12 +52,15 @@ export function useVitrineSession() {
   }, [])
 
   async function signOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    // Révocation côté serveur (action logout, qui redirige vers l'accueil).
+    setUser(null)
+    setProfile(null)
+    await logout()
     router.refresh()
   }
 
-  const role = profile?.role ?? user?.user_metadata?.role ?? null
+  // Rôle d'affichage : profiles seulement (jamais user_metadata).
+  const role = profile?.role ?? null
   const fullName = profile?.full_name ?? user?.user_metadata?.full_name ?? null
 
   return {

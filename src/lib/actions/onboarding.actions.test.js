@@ -168,7 +168,7 @@ describe("completeStudentOnboarding", () => {
     expect(cols.verification_submitted_at).toEqual(expect.any(String))
     expect(cols).not.toHaveProperty("is_verified")
     expect(cols).not.toHaveProperty("role")
-    expect(calls.upsert[0].row.card_url).toBe(cardUrl)
+    expect(calls.upsert[0].row.card_url).toBe(`${UID}/card.jpg`)
   })
 
   it("sans carte : pas de verification_submitted_at ni de card_url", async () => {
@@ -196,6 +196,40 @@ describe("completeStudentOnboarding", () => {
     const result = await completeStudentOnboarding({ ...studentPayload, avatarUrl })
     expect(result).toMatchObject({ ok: false, code: "invalid" })
     expect(result.fieldErrors.avatarUrl).toBeDefined()
+    expect(calls.update).toHaveLength(0)
+    expect(calls.upsert).toHaveLength(0)
+  })
+
+  it("carte donnée en chemin brut : stockée telle quelle", async () => {
+    const { calls } = use({ profile: studentProfile })
+    const result = await completeStudentOnboarding({ ...studentPayload, cardUrl: `${UID}/card.jpg` })
+    expect(result.ok).toBe(true)
+    expect(calls.upsert[0].row.card_url).toBe(`${UID}/card.jpg`)
+  })
+
+  it("URL signée de carte : le chemin est stocké, sans requête", async () => {
+    const { calls } = use({ profile: studentProfile })
+    const cardUrl = `${SUPABASE_URL}/storage/v1/object/sign/student-cards/${UID}/card.pdf?token=t`
+    await completeStudentOnboarding({ ...studentPayload, cardUrl })
+    expect(calls.upsert[0].row.card_url).toBe(`${UID}/card.pdf`)
+  })
+
+  it("avatar avec paramètres de requête : stocké sans paramètres", async () => {
+    const { calls } = use({ profile: studentProfile })
+    const avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${UID}/avatar.png`
+    await completeStudentOnboarding({ ...studentPayload, avatarUrl: `${avatarUrl}?t=1` })
+    expect(calls.update[0].cols.avatar_url).toBe(avatarUrl)
+  })
+
+  it.each([
+    ["traversée encodée", `${UID}/%2e%2e/autre/card.jpg`],
+    ["double encodage", `${SUPABASE_URL}/storage/v1/object/public/student-cards/${UID}/%252e%252e/c.jpg`],
+    ["segment point", `${UID}/./card.jpg`],
+    ["segment vide", `${UID}//card.jpg`],
+  ])("carte refusée (%s) : aucune écriture", async (_label, cardUrl) => {
+    const { calls } = use({ profile: studentProfile })
+    const result = await completeStudentOnboarding({ ...studentPayload, cardUrl })
+    expect(result.fieldErrors.cardUrl).toBeDefined()
     expect(calls.update).toHaveLength(0)
     expect(calls.upsert).toHaveLength(0)
   })
@@ -269,13 +303,12 @@ describe("completeStudentOnboarding", () => {
     expect(calls.update).toHaveLength(0)
   })
 
-  it("profil absent : insertion avec le rôle serveur (metadata student), pas celui du payload", async () => {
+  it("profil absent : refus wrong_role, ni insertion ni mise à jour, la métadonnée ne donne aucun rôle", async () => {
     const { calls } = use({ user: { id: UID, user_metadata: { role: "student" } }, profile: null })
     const result = await completeStudentOnboarding({ ...studentPayload, role: "admin" })
-    expect(result.ok).toBe(true)
+    expect(result).toMatchObject({ ok: false, code: "wrong_role" })
     expect(calls.update).toHaveLength(0)
-    expect(calls.insert[0].row).toMatchObject({ user_id: UID, role: "student", full_name: "Sèna Agossou" })
-    expect(calls.insert[0].row).not.toHaveProperty("is_verified")
+    expect(calls.insert).toHaveLength(0)
   })
 
   it("mise à jour qui ne touche aucune ligne : save_failed", async () => {
@@ -376,10 +409,11 @@ describe("completeClientOnboarding", () => {
     expect(calls.update).toHaveLength(0)
   })
 
-  it("profil absent : insertion avec le rôle client", async () => {
+  it("profil absent : refus wrong_role, ni insertion ni mise à jour", async () => {
     const { calls } = use({ user: { id: UID, user_metadata: { role: "client" } }, profile: null })
     const result = await completeClientOnboarding(clientPayload)
-    expect(result.ok).toBe(true)
-    expect(calls.insert[0].row).toMatchObject({ user_id: UID, role: "client" })
+    expect(result).toMatchObject({ ok: false, code: "wrong_role" })
+    expect(calls.update).toHaveLength(0)
+    expect(calls.insert).toHaveLength(0)
   })
 })

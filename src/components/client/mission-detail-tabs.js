@@ -12,7 +12,6 @@ import {
 } from "lucide-react"
 import clsx from "clsx"
 import { acceptApplication, rejectApplication } from "@/lib/actions/application.actions"
-import { updateMissionStatus } from "@/lib/actions/mission.actions"
 import { useToast } from "@/components/shared/toaster"
 import { ConfirmMissionModal } from "@/components/client/confirm-mission-modal"
 import { missionTypeLabel } from "@/lib/constants/missions"
@@ -348,7 +347,7 @@ function TabPayment({ mission, selectedStudentName }) {
         <div>
           <p className="text-lg font-black text-gray-900">Mission terminée</p>
           <p className="text-sm text-gray-500 mt-1.5">
-            Le paiement a été libéré depuis votre wallet.
+            Le paiement a été libéré depuis votre portefeuille.
           </p>
         </div>
         <div className="bg-green-50 border border-green-200 rounded-2xl px-6 py-4 text-center">
@@ -374,7 +373,7 @@ function TabPayment({ mission, selectedStudentName }) {
               <div>
                 <p className="text-sm font-black text-amber-900">Mission en cours</p>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  Confirmez la fin de mission pour libérer le paiement depuis votre wallet.
+                  Confirmez la fin de mission pour libérer le paiement depuis votre portefeuille.
                 </p>
               </div>
             </div>
@@ -418,7 +417,7 @@ function TabPayment({ mission, selectedStudentName }) {
           <div className="flex items-center gap-2 justify-center">
             <ShieldCheck size={14} className="text-[#1A6B4A]" />
             <p className="text-xs text-gray-400 text-center">
-              Paiement instantané depuis votre wallet · Sécurisé par EduCash
+              Paiement instantané depuis votre portefeuille · Sécurisé par EduCash
             </p>
           </div>
         </div>

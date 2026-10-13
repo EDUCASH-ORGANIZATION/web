@@ -30,6 +30,9 @@ export const CITIES = /** @type {const} */ ([
 // ─── Commission ───────────────────────────────────────────────────────────────
 export const COMMISSION_RATE = 0.12
 
+// Budget minimal d'une mission (XOF), aligné sur le minimum de dépôt
+export const MIN_MISSION_BUDGET = 2000
+
 // ─── Wallet ───────────────────────────────────────────────────────────────────
 export const WALLET_TRANSACTION_TYPES = [
   "deposit",    // recharge client
@@ -72,12 +75,12 @@ export const CARD_UPLOAD_INSTRUCTIONS = [
   "Tous les coins de la carte doivent être visibles",
   "Ton nom et ton établissement doivent être lisibles",
   "Fond uni de préférence (table, bureau)",
-  "Formats acceptés : JPG, PNG, PDF — max 10 MB",
+  "Formats acceptés : JPG, PNG, PDF - max 10 MB",
 ]
 
 // Motifs de rejet prédéfinis
 export const REJECTION_REASONS = [
-  "Carte illisible ou floue — veuillez retirer une photo plus nette",
+  "Carte illisible ou floue - veuillez retirer une photo plus nette",
   "Tous les coins de la carte ne sont pas visibles",
   "La carte est expirée",
   "Le nom sur la carte ne correspond pas au profil",
@@ -89,7 +92,7 @@ export const REJECTION_REASONS = [
 // ─── Structures de référence (documentation des objets Supabase) ─────────────
 // Ces objets ne sont pas utilisés à l'exécution.
 // Ils servent de référence visuelle pour savoir quels champs
-// existent sur chaque table — l'équivalent des interfaces TypeScript.
+// existent sur chaque table - l'équivalent des interfaces TypeScript.
 
 /**
  * @typedef {Object} Profile

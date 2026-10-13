@@ -6,7 +6,7 @@ import { DepositModal } from "@/components/client/deposit-modal"
 import { WithdrawModal } from "@/components/client/withdraw-modal"
 import { useToast } from "@/components/shared/toaster"
 
-export function DashboardWalletCard({ balance, reserved, available }) {
+export function DashboardWalletCard({ balance, reserved, available, paymentsEnabled = false }) {
   const [depositOpen,  setDepositOpen]  = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const { toast } = useToast()
@@ -19,20 +19,25 @@ export function DashboardWalletCard({ balance, reserved, available }) {
         available={available}
         role="client"
         showActions
+        paymentsEnabled={paymentsEnabled}
         onDeposit={() => setDepositOpen(true)}
         onWithdraw={() => setWithdrawOpen(true)}
       />
-      <DepositModal
-        isOpen={depositOpen}
-        onClose={() => setDepositOpen(false)}
-        currentBalance={available}
-      />
-      <WithdrawModal
-        isOpen={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
-        available={available}
-        onSuccess={(msg) => toast({ message: msg, type: "success" })}
-      />
+      {paymentsEnabled && (
+        <>
+          <DepositModal
+            isOpen={depositOpen}
+            onClose={() => setDepositOpen(false)}
+            currentBalance={available}
+          />
+          <WithdrawModal
+            isOpen={withdrawOpen}
+            onClose={() => setWithdrawOpen(false)}
+            available={available}
+            onSuccess={(msg) => toast({ message: msg, type: "success" })}
+          />
+        </>
+      )}
     </>
   )
 }

@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { createClient } from "@/lib/supabase/server"
 import { RealtimeConversationsList } from "@/components/messages/realtime-conversations-list"
 
-export const metadata = { title: "Messages — EduCash" }
+export const metadata = { title: "Messages - EduCash" }
 
 export default async function ClientMessagesPage() {
   const user = await getCurrentUser()
@@ -17,7 +17,7 @@ export default async function ClientMessagesPage() {
     .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
     .order("created_at", { ascending: false })
 
-  // Déduplique par mission_id — garde le message le plus récent par conversation
+  // Déduplique par mission_id - garde le message le plus récent par conversation
   const seen = new Set()
   const conversations = []
   const otherUserIds = []

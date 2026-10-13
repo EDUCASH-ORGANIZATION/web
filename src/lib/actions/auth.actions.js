@@ -97,7 +97,7 @@ export async function register(_prevState, formData) {
   const {
     data: { user: existingUser },
   } = await supabase.auth.getUser()
-  if (existingUser) await supabase.auth.signOut()
+  if (existingUser) await revokeSession(supabase)
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -133,9 +133,10 @@ export async function register(_prevState, formData) {
   redirect(resolvePostAuth({ role, profileComplete: false, next }))
 }
 
+/** Déconnexion : révocation de la session, cookies sb-* supprimés en cas d'échec. */
 export async function logout() {
   const supabase = await createClient()
-  await supabase.auth.signOut()
+  await revokeSession(supabase)
   redirect("/")
 }
 

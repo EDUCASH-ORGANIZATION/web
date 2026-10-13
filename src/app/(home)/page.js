@@ -13,7 +13,8 @@ import { HomeAchats } from "@/components/vitrine/home/home-achats"
 import { HomeSteps } from "@/components/vitrine/home/home-steps"
 import { HomeTrust } from "@/components/vitrine/home/home-trust"
 import { FAQ_ITEMS, MIN_BUDGET } from "@/components/vitrine/home/home-content"
-import { PUBLISH_PATH } from "@/lib/utils/publish-prefill"
+import { paymentsEnabled } from "@/lib/constants/payments"
+import { PUBLISH_PATH, PUBLISH_PAUSED_PATH } from "@/lib/utils/publish-prefill"
 
 export const metadata = {
   title: { absolute: "EduCash - Des étudiants vérifiés pour vos petites missions au Bénin" },
@@ -45,7 +46,8 @@ async function viewerRole(supabase) {
 export default async function HomePage() {
   const supabase = await createClient()
   const role = await viewerRole(supabase)
-  const publishLink = role === "client" ? PUBLISH_PATH : "/auth/register?role=client"
+  const open = paymentsEnabled()
+  const publishLink = !open ? PUBLISH_PAUSED_PATH : role === "client" ? PUBLISH_PATH : "/auth/register?role=client"
 
   return (
     <VitrinePage
@@ -84,8 +86,9 @@ export default async function HomePage() {
             Publiez votre<br /><span className="hl-citron">première mission.</span>
           </h2>
           <p className="body-l ds-measure-m">
-            Rédigez librement, le solde n&rsquo;est vérifié qu&rsquo;au moment de publier. Il manque de l&rsquo;argent&nbsp;?
-            Vous rechargez sur place, le brouillon est gardé.
+            {open
+              ? "Rédigez librement, le solde n'est vérifié qu'au moment de publier. Il manque de l'argent\u00a0? Vous rechargez sur place, le brouillon est gardé."
+              : "La publication est en cours d'activation\u00a0: laissez votre email, nous vous prévenons à l'ouverture. Votre argent restera bloqué jusqu'à ce que vous validiez le travail."}
           </p>
           <div className="v-cta__actions">
             <Link className="btn btn--accent btn--lg" href={publishLink}>

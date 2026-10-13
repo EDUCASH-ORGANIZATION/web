@@ -7,8 +7,9 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser, logout } from "@/lib/actions/auth.actions"
+import { getMyProfile } from "@/lib/actions/profile.actions"
 
-export const metadata = { title: "Mon profil — EduCash" }
+export const metadata = { title: "Mon profil - EduCash" }
 
 function fmt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
@@ -46,8 +47,13 @@ export default async function ClientProfilePage() {
     { data: profile },
     { data: missions },
     { data: releases, error: releasesError },
+    { profile: ownProfile },
   ] = await Promise.all([
-    supabase.from("profiles").select("*").eq("user_id", user.id).single(),
+    supabase
+      .from("profiles")
+      .select("user_id, full_name, city, avatar_url, bio, role, is_verified, created_at")
+      .eq("user_id", user.id)
+      .single(),
 
     supabase
       .from("missions")
@@ -63,6 +69,8 @@ export default async function ClientProfilePage() {
       .select("amount")
       .eq("user_id", user.id)
       .eq("type", "release"),
+
+    getMyProfile(),
   ])
 
   const totalSpent    = releasesError
@@ -198,14 +206,14 @@ export default async function ClientProfilePage() {
                 </div>
               )}
 
-              {profile?.phone && (
+              {ownProfile?.phone && (
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-xl bg-[#f0faf5] flex items-center justify-center shrink-0">
                     <Phone size={15} className="text-[#1A6B4A]" />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Téléphone</p>
-                    <p className="text-sm font-semibold text-gray-900 mt-0.5">{profile.phone}</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-0.5">{ownProfile.phone}</p>
                   </div>
                 </div>
               )}
@@ -223,7 +231,7 @@ export default async function ClientProfilePage() {
               )}
             </div>
 
-            {!companyName && !profile?.phone && (
+            {!companyName && !ownProfile?.phone && (
               <Link
                 href="/client/profile/edit"
                 className="text-sm font-semibold text-[#1A6B4A] hover:underline"

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { matchesRoutePrefix } from "@/lib/utils/route-match"
 import { safeNextPath, isNextAllowedForRole } from "@/lib/utils/safe-next"
 import { dashboardFor } from "@/lib/auth/destinations"
+import { getServerRole } from "@/lib/auth/server-role"
 
 // Pages /auth/* accessibles même si l'utilisateur est déjà connecté
 // (onboarding, retour des liens d'email, réinitialisation, lien expiré)
@@ -15,7 +16,13 @@ const AUTH_OPEN_WHEN_LOGGED_IN = [
   "/auth/link-expired",
 ]
 
-// Navigation seulement : user_metadata est modifiable par l'utilisateur, l'autorité reste profiles.role.
+// Stratégie du rôle (RD-SEC-01) : le rôle vient de profiles.role, lu avec la session de l'utilisateur
+// (client anon + RLS, jamais de service role dans le middleware) via getServerRole. La lecture n'a lieu
+// que lorsque le rôle sert : pages /auth hors liste ouverte quand on est connecté, et préfixes protégés.
+// Les pages publiques et les visiteurs ne coûtent aucune requête de plus. Le middleware ne sert qu'à la
+// navigation : chaque layout, page et server action revérifie le rôle côté serveur (fail-closed).
+// user_metadata n'est jamais lu ici. Rôle introuvable (lecture en erreur ou aucun profil) :
+// on laisse passer sur /auth (pas de boucle) et on renvoie vers l'accueil sur un préfixe protégé.
 function dashboardOf(role) {
   return dashboardFor(role) ?? "/dashboard"
 }
@@ -78,7 +85,8 @@ export async function middleware(request) {
 
     // Connecté → rediriger vers le dashboard selon le rôle
     if (user) {
-      const role = user.user_metadata?.role ?? "student"
+      const { role } = await getServerRole(supabase, user)
+      if (!role) return response
       // Connecté sur /auth/login?next= : retour vers le next autorisé pour son rôle.
       if (pathname === "/auth/login") {
         const next = safeNextPath(request.nextUrl.searchParams.get("next"))
@@ -94,13 +102,14 @@ export async function middleware(request) {
   }
 
   // ── Routes espace étudiant (groupe (student)) ──────────────────────────────
-  // /dashboard, /applications, /messages, /profile
-  const STUDENT_ONLY = ["/dashboard", "/applications", "/messages", "/profile", "/student"]
+  // /dashboard, /applications, /messages, /profile, /wallet
+  const STUDENT_ONLY = ["/dashboard", "/applications", "/messages", "/profile", "/wallet", "/student"]
   if (STUDENT_ONLY.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     if (!user) {
       return loginRedirect(request)
     }
-    const role = user.user_metadata?.role ?? "student"
+    const { role } = await getServerRole(supabase, user)
+    if (!role) return NextResponse.redirect(new URL("/", request.url))
     if (role !== "student") {
       return NextResponse.redirect(new URL(dashboardOf(role), request.url))
     }
@@ -112,7 +121,8 @@ export async function middleware(request) {
     if (!user) {
       return loginRedirect(request)
     }
-    const role = user.user_metadata?.role ?? "student"
+    const { role } = await getServerRole(supabase, user)
+    if (!role) return NextResponse.redirect(new URL("/", request.url))
     if (role !== "admin") {
       const dashboard = role === "client" ? "/client/dashboard" : "/dashboard"
       return NextResponse.redirect(new URL(dashboard, request.url))
@@ -134,7 +144,8 @@ export async function middleware(request) {
       }
 
       // Mauvais rôle → son propre dashboard
-      const role = user.user_metadata?.role ?? "student"
+      const { role } = await getServerRole(supabase, user)
+      if (!role) return NextResponse.redirect(new URL("/", request.url))
       if (role !== requiredRole) {
         return NextResponse.redirect(new URL(dashboardOf(role), request.url))
       }

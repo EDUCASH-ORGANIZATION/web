@@ -11,7 +11,7 @@ import { useSupabase } from "@/components/shared/supabase-provider"
 import { VerifiedAvatar } from "@/components/shared/verified-avatar"
 import { CardUploadZone } from "@/components/auth/card-upload-zone"
 import { useToast } from "@/components/shared/toaster"
-import { updateStudentProfileWithCard } from "@/lib/actions/profile.actions"
+import { updateStudentProfileWithCard, getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { getUniversities } from "@/lib/actions/university.actions"
 import { CITIES, missionTypeLabel } from "@/lib/constants/missions"
 import { COUNTRY_CODES, parsePhone, formatPhone, normalizeBeninPhone, validatePhone } from "@/lib/utils/phone"
@@ -171,7 +171,7 @@ function VerificationBanner({ profile, studentProfile, cardFile, onCardFileChang
           <p className="text-sm font-black text-amber-900">Vérification en cours</p>
           <p className="text-xs text-amber-700 mt-0.5">
             Ton dossier a été soumis le{" "}
-            <span className="font-semibold">{fmtDate(submittedAt)}</span> — notre équipe l&apos;examine.
+            <span className="font-semibold">{fmtDate(submittedAt)}</span> - notre équipe l&apos;examine.
           </p>
           <p className="text-xs text-amber-600 mt-1">
             Délai habituel : 24 à 48 heures.
@@ -243,15 +243,23 @@ export default function ProfileEditPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.replace("/auth/login"); return }
 
+      // Colonnes privées (téléphone, motif de refus, carte) : lues côté serveur
       const [
-        { data: p },
-        { data: sp },
+        { profile: p, error: profileErr },
+        { studentProfile: sp, error: studentErr },
         unis,
       ] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", user.id).single(),
-        supabase.from("student_profiles").select("*").eq("user_id", user.id).maybeSingle(),
+        getMyProfile(),
+        getMyStudentProfile(),
         getUniversities(),
       ])
+
+      // Sans lecture fiable, enregistrer le formulaire effacerait le téléphone
+      if (profileErr || studentErr) {
+        toast({ message: profileErr || studentErr, type: "error" })
+        router.replace("/profile")
+        return
+      }
 
       setProfile(p)
       setStudentProfile(sp)
@@ -285,7 +293,7 @@ export default function ProfileEditPage() {
       setLoading(false)
     }
     load()
-  }, [supabase, router])
+  }, [supabase, router, toast])
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -384,7 +392,7 @@ export default function ProfileEditPage() {
 
       toast({
         message: cardFile
-          ? "Profil sauvegardé — ta carte est en cours d'examen."
+          ? "Profil sauvegardé - ta carte est en cours d'examen."
           : "Profil mis à jour avec succès.",
         type: "success",
       })
@@ -474,7 +482,7 @@ export default function ProfileEditPage() {
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900">Photo de profil</p>
-              <p className="text-xs text-gray-400 mt-0.5">JPG, PNG ou WEBP — max 3 Mo</p>
+              <p className="text-xs text-gray-400 mt-0.5">JPG, PNG ou WEBP - max 3 Mo</p>
               <button
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
@@ -597,7 +605,7 @@ export default function ProfileEditPage() {
                 <option value="">Sélectionner un établissement</option>
                 {universities.map((u) => (
                   <option key={u.id} value={u.name}>
-                    {u.short_name ? `${u.short_name} — ${u.name}` : u.name}
+                    {u.short_name ? `${u.short_name} - ${u.name}` : u.name}
                   </option>
                 ))}
                 <option value="__other__">Autre établissement</option>

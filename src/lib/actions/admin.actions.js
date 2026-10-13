@@ -1,28 +1,47 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { createClient } from "@/lib/supabase/server"
-import { createClient as createAdminClient } from "@supabase/supabase-js"
-import { getServerRole } from "@/lib/auth/server-role"
-import { getCurrentUser } from "@/lib/actions/auth.actions"
+import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
 import { sendEmail } from "@/lib/email/index"
 
-function getAdminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  )
+const ERR_NOT_FOUND = "Dossier introuvable ou déjà traité."
+const ERR_VERIFY = "Impossible de valider ce dossier."
+const ERR_REJECT = "Impossible de rejeter ce dossier."
+const ERR_RESET = "Impossible de réinitialiser le dossier."
+const ERR_SUSPEND = "Impossible de suspendre l'utilisateur."
+
+// Contrôle admin (profiles.role, jamais user_metadata) puis client service role pour les écritures.
+// Le client service role n'est ouvert qu'après un contrôle de rôle réussi.
+async function adminService() {
+  const auth = await requireRole(["admin"])
+  if (auth.error) return { error: auth.error }
+  try {
+    return { service: createServiceClient() }
+  } catch (err) {
+    console.error("[admin.actions] client service indisponible:", err)
+    return { error: "Configuration serveur incomplète." }
+  }
 }
 
-async function assertAdmin() {
-  const user = await getCurrentUser()
-  if (!user) throw new Error("Accès refusé - rôle admin requis.")
-
-  // Autorité : profiles.role (user_metadata est modifiable par l'utilisateur)
-  const supabase = await createClient()
-  const { role } = await getServerRole(supabase, user)
-  if (role !== "admin") throw new Error("Accès refusé - rôle admin requis.")
-  return user
+// Écriture sur une ligne de profiles : exactement une ligne attendue.
+// Retourne null en cas de succès, sinon le message neutre à renvoyer.
+async function updateProfile(service, userId, values, tag, failMessage) {
+  if (typeof userId !== "string" || userId.trim() === "") return ERR_NOT_FOUND
+  const { data, error } = await service
+    .from("profiles")
+    .update(values)
+    .eq("user_id", userId)
+    .select("user_id")
+  if (error) {
+    console.error(`[${tag}]`, error)
+    return failMessage
+  }
+  if (!Array.isArray(data) || data.length !== 1) {
+    console.error(`[${tag}] lignes modifiées inattendues:`, data?.length ?? 0)
+    return ERR_NOT_FOUND
+  }
+  return null
 }
 
 /**
@@ -31,14 +50,9 @@ async function assertAdmin() {
  * @returns {Promise<{ success: true, verifiedUntil: string } | { error: string }>}
  */
 export async function verifyStudent(userId) {
-  try {
-    await assertAdmin()
-  } catch (e) {
-    return { error: e.message }
-  }
-
-  const supabase = await createClient()
-  const admin    = getAdminClient()
+  const ctx = await adminService()
+  if (ctx.error) return { error: ctx.error }
+  const { service } = ctx
 
   // Calcule la date d'expiration (1 an, format YYYY-MM-DD)
   const verifiedUntil = new Date()
@@ -46,19 +60,14 @@ export async function verifyStudent(userId) {
   const verifiedUntilISO = verifiedUntil.toISOString().split("T")[0]
 
   // Met à jour le profil
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      is_verified:      true,
-      verified_until:   verifiedUntilISO,
-      rejection_reason: null,
-    })
-    .eq("user_id", userId)
-
-  if (error) {
-    console.error("[verifyStudent]", error)
-    return { error: error.message }
-  }
+  const failure = await updateProfile(
+    service,
+    userId,
+    { is_verified: true, verified_until: verifiedUntilISO, rejection_reason: null },
+    "verifyStudent",
+    ERR_VERIFY
+  )
+  if (failure) return { error: failure }
 
   // Charge les infos nécessaires pour l'email
   const [
@@ -66,9 +75,9 @@ export async function verifyStudent(userId) {
     { data: studentProfile },
     { data: authData },
   ] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("user_id", userId).single(),
-    supabase.from("student_profiles").select("school").eq("user_id", userId).maybeSingle(),
-    admin.auth.admin.getUserById(userId),
+    service.from("profiles").select("full_name").eq("user_id", userId).single(),
+    service.from("student_profiles").select("school").eq("user_id", userId).maybeSingle(),
+    service.auth.admin.getUserById(userId),
   ])
 
   const email = authData?.user?.email
@@ -94,39 +103,29 @@ export async function verifyStudent(userId) {
  * @returns {Promise<{ success: true } | { error: string }>}
  */
 export async function rejectStudent(userId, reason, customMessage = "") {
-  try {
-    await assertAdmin()
-  } catch (e) {
-    return { error: e.message }
-  }
-
-  const supabase = await createClient()
-  const admin    = getAdminClient()
+  const ctx = await adminService()
+  if (ctx.error) return { error: ctx.error }
+  const { service } = ctx
 
   const finalReason = reason || "Informations insuffisantes."
 
   // Met à jour le profil
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      is_verified:      false,
-      verified_until:   null,
-      rejection_reason: finalReason,
-    })
-    .eq("user_id", userId)
-
-  if (error) {
-    console.error("[rejectStudent]", error)
-    return { error: error.message }
-  }
+  const failure = await updateProfile(
+    service,
+    userId,
+    { is_verified: false, verified_until: null, rejection_reason: finalReason },
+    "rejectStudent",
+    ERR_REJECT
+  )
+  if (failure) return { error: failure }
 
   // Charge les infos pour l'email
   const [
     { data: profile },
     { data: authData },
   ] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("user_id", userId).single(),
-    admin.auth.admin.getUserById(userId),
+    service.from("profiles").select("full_name").eq("user_id", userId).single(),
+    service.auth.admin.getUserById(userId),
   ])
 
   const email = authData?.user?.email
@@ -149,23 +148,11 @@ export async function rejectStudent(userId, reason, customMessage = "") {
  * @param {string} userId
  */
 export async function resetRejection(userId) {
-  try {
-    await assertAdmin()
-  } catch (e) {
-    return { error: e.message }
-  }
+  const ctx = await adminService()
+  if (ctx.error) return { error: ctx.error }
 
-  const supabase = await createClient()
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({ rejection_reason: null })
-    .eq("user_id", userId)
-
-  if (error) {
-    console.error("[resetRejection]", error)
-    return { error: "Impossible de réinitialiser le dossier." }
-  }
+  const failure = await updateProfile(ctx.service, userId, { rejection_reason: null }, "resetRejection", ERR_RESET)
+  if (failure) return { error: failure }
 
   revalidatePath("/admin/verifications")
   return { success: true }
@@ -177,23 +164,11 @@ export async function resetRejection(userId) {
  * @returns {Promise<{ success: true } | { error: string }>}
  */
 export async function suspendUser(userId) {
-  try {
-    await assertAdmin()
-  } catch (e) {
-    return { error: e.message }
-  }
+  const ctx = await adminService()
+  if (ctx.error) return { error: ctx.error }
 
-  const supabase = await createClient()
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({ is_suspended: true })
-    .eq("user_id", userId)
-
-  if (error) {
-    console.error("[suspendUser]", error)
-    return { error: "Impossible de suspendre l'utilisateur." }
-  }
+  const failure = await updateProfile(ctx.service, userId, { is_suspended: true }, "suspendUser", ERR_SUSPEND)
+  if (failure) return { error: failure }
 
   revalidatePath("/admin/users")
   return { success: true }

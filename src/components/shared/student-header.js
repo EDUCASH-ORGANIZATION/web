@@ -55,7 +55,7 @@ export function StudentHeader({ profile, school }) {
         </div>
       </form>
 
-      {/* Icônes actions — cachées sur mobile (accès via BottomNav) */}
+      {/* Icônes actions - cachées sur mobile (accès via BottomNav) */}
       <div className="hidden sm:flex items-center gap-1">
         <Link
           href="/notifications"

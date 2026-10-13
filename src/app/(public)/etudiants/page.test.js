@@ -160,7 +160,7 @@ describe("page /etudiants", () => {
     expect(text).toContain("Celtiis Cash")
     expect(text).toContain("MTN MoMo")
     expect(text).toContain("Moov Money")
-    expect(html).not.toContain("—")
+    expect(html).not.toContain("\u2014")
   })
 
   it("libellés issus du dictionnaire, filtres avec la valeur en base", async () => {

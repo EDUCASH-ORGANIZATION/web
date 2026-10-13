@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { DashboardWalletCard } from "@/components/client/dashboard-wallet-card"
 import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
+import { paymentsEnabled } from "@/lib/constants/payments"
 import { missionTypeLabel } from "@/lib/constants/missions"
 
-export const metadata = { title: "Espace client — EduCash" }
+export const metadata = { title: "Espace client - EduCash" }
 
 function formatMoney(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
@@ -98,6 +99,7 @@ export default async function ClientDashboardPage() {
   const walletBalance   = walletResult.error ? 0 : (walletResult.wallet?.balance ?? 0)
   const walletReserved  = walletResult.error ? 0 : (walletResult.wallet?.reserved ?? 0)
   const walletLow       = walletAvailable < MIN_DEPOSIT_AMOUNT
+  const paymentsOpen    = paymentsEnabled()
 
   // Candidatures pending sur toutes les missions récentes
   const totalPendingApplications = (recentMissions ?? []).reduce((sum, m) => {
@@ -176,17 +178,30 @@ export default async function ClientDashboardPage() {
             <Wallet size={20} className="text-amber-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-amber-900">Votre wallet est vide ou insuffisant</p>
+            <p className="text-sm font-bold text-amber-900">
+              {paymentsOpen ? "Votre portefeuille est vide ou insuffisant" : "Publication en cours d'activation"}
+            </p>
             <p className="text-xs text-amber-700 mt-0.5">
-              Rechargez pour publier de nouvelles missions.
+              {paymentsOpen
+                ? "Rechargez pour publier de nouvelles missions."
+                : "Recharge et retrait en cours d'activation. Laissez votre email pour être prévenu de l'ouverture."}
             </p>
           </div>
-          <Link
-            href="/client/wallet"
-            className="shrink-0 px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition-colors touch-manipulation whitespace-nowrap"
-          >
-            Recharger maintenant
-          </Link>
+          {paymentsOpen ? (
+            <Link
+              href="/client/wallet"
+              className="shrink-0 px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition-colors touch-manipulation whitespace-nowrap"
+            >
+              Recharger maintenant
+            </Link>
+          ) : (
+            <Link
+              href="/client/missions/new"
+              className="shrink-0 px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition-colors touch-manipulation whitespace-nowrap"
+            >
+              Me prévenir
+            </Link>
+          )}
         </div>
       )}
 
@@ -195,6 +210,7 @@ export default async function ClientDashboardPage() {
         balance={walletBalance}
         reserved={walletReserved}
         available={walletAvailable}
+        paymentsEnabled={paymentsOpen}
       />
 
       {/* ── Stats ──────────────────────────────────────────────────── */}

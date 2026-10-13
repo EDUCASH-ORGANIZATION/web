@@ -41,7 +41,7 @@ describe("rendu HTML des gabarits migres", () => {
         for (const x of fams) expect(x).toBe("Arial, sans-serif")
         expect(html).not.toMatch(LEGACY)
         expect(html).not.toMatch(/dejavu/i)
-        expect(html).not.toMatch(/—/)
+        expect(html).not.toMatch(/\u2014/)
       })
 
       it("aucun texte vert (#C1EE3E) et contrastes color/background >= 4,5 par element", async () => {

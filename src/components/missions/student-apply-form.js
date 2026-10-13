@@ -3,14 +3,14 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Send, CheckCircle, Loader2, ShieldAlert } from "lucide-react"
-import { useSupabase } from "@/components/shared/supabase-provider"
+import { apply } from "@/lib/actions/application.actions"
 
 function formatBudget(n) {
   return new Intl.NumberFormat("fr-FR").format(n)
 }
 
 /**
- * Formulaire de candidature — état calculé côté serveur, soumission côté client.
+ * Formulaire de candidature - état calculé côté serveur, soumission côté client.
  *
  * @param {{
  *   missionId: string,
@@ -19,7 +19,6 @@ function formatBudget(n) {
  *   estimatedDuration: string | null,
  *   alreadyApplied: boolean,
  *   isVerified: boolean,
- *   studentId: string,
  * }} props
  */
 export function StudentApplyForm({
@@ -29,9 +28,7 @@ export function StudentApplyForm({
   estimatedDuration,
   alreadyApplied: initialApplied,
   isVerified,
-  studentId,
 }) {
-  const { supabase } = useSupabase()
   const [message, setMessage] = useState("")
   const [applied, setApplied] = useState(initialApplied)
   const [submitting, setSubmitting] = useState(false)
@@ -44,17 +41,12 @@ export function StudentApplyForm({
     setError("")
     setSubmitting(true)
 
-    const { error: insertError } = await supabase.from("applications").insert({
-      mission_id: missionId,
-      student_id: studentId,
-      message: message.trim(),
-      status: "pending",
-    })
+    const result = await apply({ missionId, message })
 
     setSubmitting(false)
 
-    if (insertError) {
-      setError("Une erreur est survenue. Réessayez.")
+    if (result?.error) {
+      setError(result.error)
       return
     }
 

@@ -8,7 +8,7 @@ import { getWallet } from "@/lib/actions/wallet.actions"
 import { WalletCard } from "@/components/shared/wallet-card"
 import { missionTypeLabel } from "@/lib/constants/missions"
 
-export const metadata = { title: "Dashboard — EduCash" }
+export const metadata = { title: "Dashboard - EduCash" }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -253,13 +253,13 @@ export default async function StudentDashboardPage() {
           </div>
         </div>
 
-        {/* Solde wallet */}
+        {/* Solde du portefeuille */}
         <div className="bg-[#1A6B4A] rounded-2xl shadow-sm px-6 py-5 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
               <Wallet size={18} className="text-white" />
             </div>
-            <span className="text-[11px] font-bold text-white/60 uppercase tracking-widest">Solde wallet</span>
+            <span className="text-[11px] font-bold text-white/60 uppercase tracking-widest">Solde du portefeuille</span>
           </div>
           <div>
             <p className="text-3xl font-black text-white">

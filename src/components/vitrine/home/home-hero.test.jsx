@@ -11,6 +11,9 @@ vi.mock("@/components/design/select", () => ({
   Select: ({ id, name }) => <select id={id} name={name} />,
 }))
 
+// Comportement des paiements ouverts : l'état « en cours d'activation » a ses propres tests (*.paused.test.*).
+vi.stubEnv("PAYMENTS_ENABLED", "true")
+
 const { HomeHero } = await import("./home-hero")
 
 const html = renderToStaticMarkup(<HomeHero role={null} />)

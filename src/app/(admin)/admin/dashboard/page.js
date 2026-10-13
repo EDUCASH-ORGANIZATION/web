@@ -5,10 +5,10 @@ import {
   Users, Briefcase, CheckCircle, TrendingUp,
   ShieldAlert, ShieldCheck, ArrowRight, Clock,
 } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
-import { getServerRole } from "@/lib/auth/server-role"
+import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
 
-export const metadata = { title: "Dashboard — Admin EduCash" }
+export const metadata = { title: "Dashboard - Admin EduCash" }
 
 function fmt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
@@ -61,11 +61,10 @@ function BarChart({ rows }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AdminDashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
-  const { role } = await getServerRole(supabase, user)
-  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
+  const auth = await requireRole(["admin"])
+  if (auth.error) redirect("/auth/login")
+  // Lectures via le client service role, après le contrôle admin ci-dessus
+  const service = createServiceClient()
 
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -86,16 +85,16 @@ export default async function AdminDashboardPage() {
     { data: pendingProfiles },
     { data: recentUsers },
   ] = await Promise.all([
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student"),
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "client"),
-    supabase.from("missions").select("*", { count: "exact", head: true }),
-    supabase.from("missions").select("*", { count: "exact", head: true }).eq("status", "open"),
-    supabase.from("missions").select("*", { count: "exact", head: true }).eq("status", "done"),
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student").eq("is_verified", false),
-    supabase.from("transactions").select("commission").eq("status", "paid"),
-    supabase.from("missions").select("id, title, created_at, status").gte("created_at", sevenDaysAgoIso).order("created_at", { ascending: true }),
-    supabase.from("profiles").select("user_id, full_name, avatar_url, created_at").eq("role", "student").eq("is_verified", false).order("created_at", { ascending: false }).limit(5),
-    supabase.from("profiles").select("user_id, full_name, role, created_at").order("created_at", { ascending: false }).limit(8),
+    service.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "student"),
+    service.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "client"),
+    service.from("missions").select("*", { count: "exact", head: true }),
+    service.from("missions").select("*", { count: "exact", head: true }).eq("status", "open"),
+    service.from("missions").select("*", { count: "exact", head: true }).eq("status", "done"),
+    service.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "student").eq("is_verified", false),
+    service.from("transactions").select("commission").eq("status", "paid"),
+    service.from("missions").select("id, title, created_at, status").gte("created_at", sevenDaysAgoIso).order("created_at", { ascending: true }),
+    service.from("profiles").select("user_id, full_name, avatar_url, created_at").eq("role", "student").eq("is_verified", false).order("created_at", { ascending: false }).limit(5),
+    service.from("profiles").select("user_id, full_name, role, created_at").order("created_at", { ascending: false }).limit(8),
   ])
 
   const totalCommission = (commissionData ?? []).reduce((s, t) => s + (t.commission ?? 0), 0)
@@ -189,7 +188,7 @@ export default async function AdminDashboardPage() {
       {/* ── Graphique + colonnes latérales ────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-        {/* Missions 7 jours — bar chart */}
+        {/* Missions 7 jours - bar chart */}
         <div className="xl:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-start justify-between mb-2">
             <div>
@@ -287,7 +286,7 @@ export default async function AdminDashboardPage() {
                           <span className="text-white text-xs font-black">{initial}</span>
                         </div>
                         <span className="font-semibold text-gray-900 truncate max-w-[160px]">
-                          {u.full_name ?? "—"}
+                          {u.full_name ?? "-"}
                         </span>
                       </div>
                     </td>
