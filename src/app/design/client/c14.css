@@ -20,7 +20,7 @@
 .money2__foot { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--s-4); padding: 0 var(--s-6) var(--s-5); }
 .money2__foot .btn--blanc { flex: none; }
 .money2 .btn--ghost-blanc { background: transparent; color: var(--c-blanc); border: 1.5px solid color-mix(in srgb, var(--c-blanc) 45%, transparent); }
-.money2 .btn--ghost-blanc.is-disabled { color: var(--c-bleu-100); border-color: color-mix(in srgb, var(--c-blanc) 25%, transparent); }
+.money2 .btn--ghost-blanc.is-disabled { color: var(--c-bleu-100); border-color: color-mix(in srgb, var(--c-blanc) 25%, transparent); opacity: 1; }
 .money2__hint { font-size: var(--t-caption); color: var(--c-bleu-100); }
 .steps2 { display: flex; flex-direction: column; gap: 12px; counter-reset: s2; }
 .steps2 li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; font-size: var(--t-body-s); color: var(--c-ardoise); line-height: 1.45; counter-increment: s2; }
@@ -44,6 +44,11 @@ a.fund2__title:hover { text-decoration: underline; }
 .fund2--total .fund2__title, .fund2--total .fund2__amt { font-weight: var(--fw-xbold); }
 .filters2 .chips--scroll { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 
+/* Requêtes de conteneur (B2) : la lisibilité dépend de la largeur de la CARTE, pas de l'écran. À 1024-1149 px
+   le bureau a une sidebar et la carte d'historique ne fait que 332 px. */
+.txs2 { container: txs2 / inline-size; }
+.money2--split { container: money2 / inline-size; }
+
 @media (max-width: 1023.98px) {
   .filters2 { padding: var(--s-3) var(--s-4); }
   .tx2 { grid-template-columns: 60px minmax(0, 1fr) auto auto; gap: var(--s-3); padding: 12px var(--s-4); }
@@ -66,4 +71,33 @@ a.fund2__title:hover { text-decoration: underline; }
   .tx2__badge { grid-area: badge; justify-self: end; }
   .tx2__title { white-space: normal; overflow: visible; text-overflow: clip; }
   .tx2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+
+/* Historique (.txs2) selon la largeur de la carte, la grille complète exigeant 408 px hors colonne principale
+   (60 date + 132 badge + 120 montant + 3 gouttières de 16 + 48 de marges) :
+   - 300 px : deux lignes (libellé et montant, puis date et badge), libellés à la ligne, aucun texte coupé ;
+   - 332 px (bureau avec sidebar, 1024-1149 px) : idem ;
+   - 450 px : idem, le libellé dispose de plus de place ;
+   - 600 px et moins : même mise en page ;
+   - 700 px : grille complète sur une ligne, colonne principale de 292 px. */
+@container txs2 (max-width: 600px) {
+  .tx2 { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main amt" "date badge"; align-items: start; gap: var(--s-2) var(--s-3); padding: 12px var(--s-4); }
+  .tx2__main { grid-area: main; }
+  .tx2__amt { grid-area: amt; font-size: var(--t-body-s); }
+  .tx2__date { grid-area: date; align-self: center; }
+  .tx2__badge { grid-area: badge; justify-self: end; }
+  .tx2__title, .tx2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+
+/* Carte « Votre argent » selon sa largeur : deux colonnes de montants de 24 px exigent environ 440 px.
+   - 300 px et 332 px : marges réduites, montants de 17 px, unité sous le chiffre ; aucun montant coupé ;
+   - 450 px : même mise en page (7 chiffres sans coupure) ;
+   - 700 px : mise en page d'origine. */
+@container money2 (max-width: 480px) {
+  .money2--split .stat2 { padding: var(--s-3) var(--s-4) 14px; }
+  .money2--split .stat2__value { font-size: var(--t-amount-s); min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .money2--split .stat2__value small { display: block; margin-left: 0; }
+  .money2__head { padding: var(--s-3) var(--s-4) 0; }
+  .money2__foot { padding: 0 var(--s-4) var(--s-4); }
+  .money2__hint { flex-basis: 100%; }
 }

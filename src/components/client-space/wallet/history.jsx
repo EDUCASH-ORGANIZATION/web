@@ -90,7 +90,7 @@ export function HistoryView({ filter, rows, hasMore, loading, error, onMore }) {
           }
         />
       ) : (
-        <div role="list">
+        <div role="list" className="txs2">
           {rows.map((tx) => (
             <Row key={tx.id} tx={tx} />
           ))}

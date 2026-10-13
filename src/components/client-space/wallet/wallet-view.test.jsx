@@ -220,6 +220,10 @@ describe("historique", () => {
     expect(html).not.toMatch(/>-\d/)
   })
 
+  it("la liste porte la classe txs2 (conteneur de requête de la carte)", () => {
+    expect(html).toContain('role="list" class="txs2"')
+  })
+
   it("la libération se lit comme un prélèvement du séquestre, jamais comme un versé à l'étudiant", () => {
     expect(html).toContain("prélevé du séquestre (commission incluse)")
     expect(html).not.toMatch(/versé à l(?:'|&#x27;)étudiant/)

@@ -7,6 +7,8 @@ import path from "node:path"
 
 const dir = import.meta.dirname
 const read = (rel) => readFileSync(path.join(dir, rel), "utf8")
+// Bloc @media ou @container (un niveau de regles imbriquees) : retire du « premier niveau » des feuilles.
+const AT_BLOCK = /@(?:media|container)[^{]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g
 const stripComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "")
 
 const CLIENT_FILES = readdirSync(path.join(dir, "client")).filter((f) => f.endsWith(".css")).sort()
@@ -197,12 +199,22 @@ describe("feuilles app-shell.css et client/*.css", () => {
     for (const a of allowed) expect(conditions).toContain(a)
   })
 
+  // Les requetes de conteneur sont AUTORISEES, et seulement celles-ci : la lisibilite d'une carte depend de la
+  // largeur de la carte (ex. 332 px pour l'historique d'un bureau de 1024-1149 px avec sidebar), pas de celle de
+  // l'ecran, et le garde-fou des media queries interdit tout seuil de largeur d'ecran supplementaire. Le controle
+  // des media queries ci-dessus reste inchange.
+  it("n'utilise que les requetes de conteneur nommees txs2 (600 px) et money2 (480 px)", () => {
+    const conditions = [...ALL.matchAll(/@container\s*([^{]+)\{/g)].map((m) => m[1].trim())
+    expect(conditions.sort()).toEqual(["money2 (max-width: 480px)", "txs2 (max-width: 600px)"])
+    expect(ALL).not.toMatch(/@media[^{]*\bmin-width/)
+  })
+
   it("range les regles mobiles apres les regles de base de leur propre fichier", () => {
     for (const css of [SHELL, ...CLIENT_FILES.map((f) => stripComments(read(`client/${f}`)))]) {
       const firstMedia = css.indexOf("@media")
       if (firstMedia === -1) continue
       const rest = css.slice(firstMedia)
-      const outside = rest.replace(/@media[^{]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "")
+      const outside = rest.replace(AT_BLOCK, "")
       expect(outside.trim()).toBe("")
     }
   })
@@ -350,7 +362,7 @@ function parseCompound(c) {
 
 /** Regles de premier niveau (hors @media), dans l'ordre du texte : { selector, declarations, order }. */
 function topLevelRules(css, startOrder = 0) {
-  const flat = css.replace(/@media[^{]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "")
+  const flat = css.replace(AT_BLOCK, "")
   const rules = []
   let order = startOrder
   for (const m of flat.matchAll(/([^{}@]+)\{([^{}]*)\}/g)) {
@@ -452,6 +464,29 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     for (const line of block.split("\n").filter((l) => l.includes("{") && !l.startsWith("@") && l.trim().startsWith("."))) {
       expect(line.trim().startsWith(".c2 "), line).toBe(true)
     }
+  })
+
+  it("bouton « Retirer » inactif de la carte argent : l'opacite .45 de .c2 .btn.is-disabled ne s'applique pas", () => {
+    const el = { tag: "button", classes: ["btn", "btn--ghost-blanc", "btn--sm", "is-disabled"], ancestors: ANCESTORS }
+    expect(computedStyle(RULES, el).opacity).toBe("1")
+    // hors carte argent (.money2), le bouton inactif de .c2 garde son opacite reduite
+    const elsewhere = { tag: "button", classes: ["btn", "is-disabled"], ancestors: ["c2", "shell--v2"] }
+    expect(computedStyle(RULES, elsewhere).opacity).toBe(".45")
+  })
+
+  it("historique et carte argent : requetes de conteneur sur la carte (B2), jamais un seuil d'ecran", () => {
+    const c14 = stripComments(read("client/c14.css"))
+    expect(c14).toMatch(/\.txs2 \{ container: txs2 \/ inline-size; \}/)
+    expect(c14).toMatch(/\.money2--split \{ container: money2 \/ inline-size; \}/)
+    const tx = c14.match(/@container txs2 \(max-width: 600px\) \{([\s\S]*?)\n\}/)?.[1] ?? ""
+    expect(tx).toMatch(/\.tx2 \{ grid-template-columns: minmax\(0, 1fr\) auto; grid-template-areas: "main amt" "date badge";/)
+    expect(tx).toMatch(/\.tx2__title, \.tx2__sub \{ white-space: normal;/)
+    expect(tx).toContain(".tx2__badge { grid-area: badge;")
+    const money = c14.match(/@container money2 \(max-width: 480px\) \{([\s\S]*?)\n\}/)?.[1] ?? ""
+    expect(money).toMatch(/\.money2--split \.stat2__value \{ font-size: var\(--t-amount-s\);[^}]*white-space: normal;/)
+    expect(money).toContain(".money2--split .stat2__value small { display: block; margin-left: 0; }")
+    // la grille complete a 4 colonnes reste celle des cartes larges
+    expect(c14).toMatch(/\.tx2 \{ grid-template-columns: 60px minmax\(0, 1fr\) 132px 120px; \}/)
   })
 
   it("boutons secondaire et accent de .c2 : l'anneau de focus n'est pas annule par box-shadow: none", () => {
