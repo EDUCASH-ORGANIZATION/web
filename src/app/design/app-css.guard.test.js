@@ -951,3 +951,90 @@ describe("C03 : barre mobile de publication a 320 px", () => {
     expect(11 * 9.3).toBeLessThanOrEqual(primaryContent(320))
   })
 })
+
+// RD-FIX-01 : aucun trait au-dessus d'une rangée qui défile horizontalement (défaut mobile signalé sur C14).
+describe("rangees defilantes : pas de trait au-dessus", () => {
+  const c14 = stripComments(read("client/c14.css"))
+  // Bloc @media mobile uniquement : coupe à l'accolade fermante équivalente (les @container qui suivent en sont exclus).
+  const mediaBlock = (css, query) => {
+    const start = css.indexOf(query)
+    const open = css.indexOf("{", start)
+    let depth = 0
+    for (let i = open; i < css.length; i++) {
+      if (css[i] === "{") depth++
+      else if (css[i] === "}" && --depth === 0) return css.slice(start, i + 1)
+    }
+    return css.slice(start)
+  }
+  const phone = mediaBlock(c14, "@media (max-width: 767.98px)")
+  const base = stripComments(read("client/base.css"))
+  const components = stripComments(read("components.css"))
+  const componentsRoot = path.join(dir, "..", "..", "components")
+  const srcRoot = path.join(componentsRoot, "client-space")
+  // Ce qui peut suivre un .list2__head : une rangée div (filters2, tabs...) ou un composant qui pose lui-même la rangée.
+  const FOLLOWER = /className="list2__head"[\s\S]{0,400}?<\/div>\s*(?:<div className="([^"]*\b(?:filters2|tabs|chips--scroll|segmented)\b[^"]*)"|<(ChipFilter|TabsNav)\b)/g
+  const ROW = /^(filters2|tabs|chips--scroll|segmented)$/
+  const COMPONENT_ROW = { ChipFilter: "chips--scroll", TabsNav: "tabs" }
+  const followers = (text) =>
+    [...text.matchAll(FOLLOWER)].map(([, cls, comp]) => (comp ? COMPONENT_ROW[comp] : cls.split(" ").find((c) => ROW.test(c))))
+  const jsxFiles = (d) =>
+    readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? jsxFiles(path.join(d, e.name)) : /\.jsx$/.test(e.name) && !/\.test\./.test(e.name) ? [path.join(d, e.name)] : [],
+    )
+  const sources = [srcRoot, path.join(componentsRoot, "app-ui")].flatMap((root) =>
+    jsxFiles(root).map((f) => [path.relative(componentsRoot, f), readFileSync(f, "utf8")]),
+  )
+
+  it("C14 : l'en-tete de l'historique perd son trait sur mobile quand les filtres defilent juste apres", () => {
+    expect(phone).toMatch(/\.list2__head:has\(\+ \.filters2\) \{ border-bottom: 0; \}/)
+    // la rangée défilante n'a elle-même aucune bordure haute ni basse sur mobile
+    expect(phone).toMatch(/\.filters2 \{[^}]*overflow-x: auto;[^}]*border: 0;/)
+    // .filters2 est le vrai conteneur défilant (.filters2 .chips--scroll est en overflow visible) : barre masquée comme .tabs / .chips--scroll
+    expect(phone).toMatch(/\.filters2 \{[^}]*scrollbar-width: none;/)
+  })
+
+  it("le trait de l'en-tete n'est retire qu'en mobile : bureau et tablette gardent leur separateur", () => {
+    const outsidePhone = c14.replace(phone, "")
+    expect(outsidePhone).not.toMatch(/list2__head:has/)
+    expect(SHELL).toMatch(/\n\.list2__head \{[^}]*border-bottom: 1px solid var\(--c-ligne\);/)
+    expect(c14).toMatch(/\n\.filters2 \{[^}]*border-bottom: 1px solid var\(--c-ligne\);/)
+  })
+
+  it("chaque .list2__head suivi d'une rangee de filtres defilante dans le JSX client est neutralise en CSS", () => {
+    const pairs = sources.flatMap(([file, text]) => followers(text).map((row) => [file, row]))
+    expect(pairs.length).toBeGreaterThan(0)
+    for (const [, row] of pairs) expect(phone).toContain(`.list2__head:has(+ .${row}) { border-bottom: 0; }`)
+  })
+
+  it("detection des rangees qui suivent un .list2__head (cas temoins)", () => {
+    const head = '<div className="list2__head"><h2>Titre</h2></div>\n'
+    expect(followers(`${head}<TabsNav label="x" items={t} />`)).toEqual(["tabs"])
+    expect(followers(`${head}<div className="tabs">`)).toEqual(["tabs"])
+    expect(followers(`${head}<div className="filters2 other">`)).toEqual(["filters2"])
+    expect(followers(`${head}<ChipFilter options={o} />`)).toEqual(["chips--scroll"])
+    expect(followers(`${head}<div className="stack">`)).toEqual([])
+    expect(followers(`${head}<div className="tabsy">`)).toEqual([])
+    expect(followers(`${head}<p>texte</p>`)).toEqual([])
+  })
+
+  it("la tranche mobile s'arrete au bloc media (les @container suivants en sont exclus)", () => {
+    const css = "a{x:1}\n@media (max-width: 767.98px) {\n  .a { b: 1; }\n}\n@container q (max-width: 1px) {\n  .moved { c: 2; }\n}"
+    const block = mediaBlock(css, "@media (max-width: 767.98px)")
+    expect(block).toContain(".a { b: 1; }")
+    expect(block).not.toContain("@container")
+    expect(block).not.toContain(".moved")
+    expect(phone).not.toContain("@container")
+  })
+
+  it("les onglets .tabs (C02 missions, C04 detail) et la rangee .chips--scroll ne suivent jamais un .list2__head", () => {
+    for (const [file, text] of sources) {
+      expect(followers(text), file).not.toContain("tabs")
+    }
+    // le trait des onglets est leur ligne de base, sous la rangée (jamais au-dessus)
+    expect(components).toMatch(/\n\.tabs \{[^}]*border-bottom: var\(--b-ligne\);/)
+    expect(components).not.toMatch(/\n\.tabs \{[^}]*border-top/)
+    expect(base).toMatch(/\.c2 \.tabs \{ border-bottom: 1px solid var\(--c-ligne\); \}/)
+    expect(base).not.toMatch(/\.c2 \.tabs \{[^}]*border-top/)
+    expect(components).not.toMatch(/\n\.chips--scroll \{[^}]*border/)
+  })
+})
