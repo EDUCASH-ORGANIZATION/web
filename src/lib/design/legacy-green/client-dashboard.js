@@ -1,5 +1,3 @@
 // Exemptions de la famille verte historique : Tableau de bord client (C01).
-// Vider cette liste quand le fichier est migré (le garde-fou refuse une entrée inutile).
-export const CLIENT_DASHBOARD_GREEN = [
-  "src/app/(client)/client/dashboard/page.js",
-]
+// Vidée : la page est portée sur le système de design.
+export const CLIENT_DASHBOARD_GREEN = []
