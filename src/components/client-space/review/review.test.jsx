@@ -64,7 +64,8 @@ describe("formulaire d'avis", () => {
     expect(t).toContain("Étudiant Afiavi D.")
     expect(html).toContain(formatAmount(10000))
     expect(html).toContain(formatAmount(1200, { sign: "debit" }))
-    expect(t).toContain("Versé à Afiavi")
+    expect(t).toContain("Part de l'étudiant")
+    expect(t).not.toContain("Versé à")
     expect(html).toContain(formatAmount(8800))
     expect(t).toContain("Commission 12 %")
   })
@@ -103,7 +104,7 @@ describe("formulaire d'avis", () => {
   it("garde un prénom neutre quand le nom de l'étudiant est vide", () => {
     const out = text(view({ student: { ...STUDENT, fullName: "" } }))
     expect(out).toContain("Noter l'étudiant")
-    expect(out).toContain("Versé à l'étudiant")
+    expect(out).toContain("Part de l'étudiant")
   })
 })
 
