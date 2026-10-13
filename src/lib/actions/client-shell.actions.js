@@ -1,5 +1,6 @@
 "use server"
 
+import { unstable_rethrow } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { requireRole } from "@/lib/auth/require-role"
 import { getServerRole } from "@/lib/auth/server-role"
@@ -22,6 +23,7 @@ async function refusalDestination() {
     if (role !== "client") return dashboardFor(role) ?? "/"
     return "/"
   } catch (err) {
+    unstable_rethrow(err)
     console.error("[getClientShellData] destination", err)
     return "/"
   }
@@ -60,6 +62,7 @@ export async function getClientShellData() {
       },
     }
   } catch (err) {
+    unstable_rethrow(err)
     console.error("[getClientShellData]", err)
     return { error: "Impossible de charger votre espace.", redirectTo: "/" }
   }

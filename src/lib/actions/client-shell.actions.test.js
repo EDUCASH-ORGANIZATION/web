@@ -30,7 +30,10 @@ const { getClientShellData } = await import("./client-shell.actions")
 
 const CLIENT_PROFILE = { role: "client", full_name: "Rosine Houngbédji", city: "Cotonou", is_suspended: false }
 
+const defaultGetUser = supabase.auth.getUser
+
 beforeEach(() => {
+  supabase.auth.getUser = defaultGetUser
   user = { id: "client-1", user_metadata: { role: "client" } }
   profileResult = { data: { ...CLIENT_PROFILE }, error: null }
   messagesResult = { count: 3, error: null }
@@ -95,5 +98,21 @@ describe("getClientShellData", () => {
     profileResult = { data: { ...CLIENT_PROFILE, full_name: null }, error: null }
     const { shell } = await getClientShellData()
     expect(shell.fullName).toBe("")
+  })
+
+  it("laisse se propager une exception interne de Next (redirect)", async () => {
+    const redirectError = Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT;replace;/auth/login;307;" })
+    supabase.auth.getUser = async () => {
+      throw redirectError
+    }
+    await expect(getClientShellData()).rejects.toBe(redirectError)
+  })
+
+  it("transforme une erreur ordinaire en refus fermé", async () => {
+    supabase.auth.getUser = async () => {
+      throw new Error("boom")
+    }
+    const res = await getClientShellData()
+    expect(res).toEqual({ error: "Impossible de charger votre espace.", redirectTo: "/" })
   })
 })
