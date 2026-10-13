@@ -28,11 +28,8 @@ afterEach(() => {
 const TEMPLATES_DIR = "src/lib/email/templates"
 const SUPABASE_DIR = "supabase/templates"
 
-// Gabarits propres a RD-SEC-01, migres au lot B (ST-11) : retirer cette liste alors.
-const EXEMPT = ["payment-received-wallet.jsx", "wallet-deposited.jsx"]
-
 const MIGRATED = readdirSync(TEMPLATES_DIR)
-  .filter((f) => f.endsWith(".jsx") && !EXEMPT.includes(f))
+  .filter((f) => f.endsWith(".jsx"))
   .map((f) => join(TEMPLATES_DIR, f))
 const SUPABASE = readdirSync(SUPABASE_DIR)
   .filter((f) => f.endsWith(".html"))
@@ -84,8 +81,8 @@ describe("brand.js", () => {
 })
 
 describe("gabarits Resend migres", () => {
-  it("la liste couvre les 10 gabarits migres", () => {
-    expect(MIGRATED).toHaveLength(10)
+  it("la liste couvre les 12 gabarits migres", () => {
+    expect(MIGRATED).toHaveLength(12)
   })
 
   it("aucune couleur en dur ni ancienne palette : tout passe par brand.js", () => {

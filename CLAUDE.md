@@ -55,7 +55,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 
 ## Rôles
 - `student`, `client` et `admin`.
-- `user_metadata` est modifiable par l'utilisateur : ne s'en servir que pour l'affichage ou la navigation, jamais pour une autorisation. Toute autorisation lit `profiles.role` côté serveur via `getServerRole(supabase, user)` (`src/lib/auth/server-role.js`) : le repli sur `user_metadata` est limité à student et client, jamais admin. La garde admin (layout et `assertAdmin`) exige `profiles.role = 'admin'`.
+- `user_metadata` est modifiable par l'utilisateur : ne s'en servir que pour l'affichage ou la navigation, jamais pour une autorisation. Toute autorisation lit `profiles.role` côté serveur via `getServerRole(supabase, user)` (`src/lib/auth/server-role.js`). La garde admin (layout et `assertAdmin`) exige `profiles.role = 'admin'`.
 - Le rôle est lu uniquement depuis `profiles.role`, fail-closed (rôle introuvable ou compte suspendu : refus) : middleware, layouts et server actions passent par `getServerRole`, `requireRole(roles)` ou `requireUser()` (`src/lib/auth/require-role.js`). Plus aucune autorisation ne lit `user_metadata` (garde-fou `role-authority.guard.test.js`).
 - Seul l'admin annule une mission `in_progress` (médiation). Un client n'annule qu'une mission `open`.
 - L'admin ne peut jamais être auto-attribué (ni à l'inscription ni par mise à jour de profil). Un étudiant ne peut pas s'auto-vérifier. Les onboardings écrivent une liste blanche de colonnes (jamais `role`, `is_verified`, `is_suspended`, `verified_until`).
