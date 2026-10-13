@@ -6,7 +6,8 @@ import { SEARCH_MAX_LENGTH } from "@/lib/constants/missions"
 import { isPastDeadline, todayInBenin } from "@/lib/vitrine/dates"
 
 const TABS = ["open", "in_progress", "done", "cancelled"]
-// Plafond de lecture : un client n'a jamais autant de missions, la borne évite une lecture sans limite.
+// Plafond de la liste de l'onglet courant : un client n'a jamais autant de missions, la borne évite une
+// lecture sans limite. Les compteurs d'onglets, eux, sont exacts (requêtes `count` séparées, sans plafond).
 const MISSIONS_LIMIT = 500
 const MISSION_COLUMNS = "id, title, type, city, budget, deadline, status, created_at, applications(id, student_id, status)"
 const ERR_LOAD = "Impossible de charger vos missions."
@@ -28,19 +29,20 @@ function resolveTab({ onglet, tab, status }) {
 function normalizeSearch(raw) {
   const value = firstValue(raw)
   if (typeof value !== "string") return ""
-  return value.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, SEARCH_MAX_LENGTH)
+  // Array.from découpe par point de code : une paire de substitution (emoji) n'est jamais coupée en deux.
+  return Array.from(value.replace(/[\u0000-\u001f\u007f]/g, " ").trim()).slice(0, SEARCH_MAX_LENGTH).join("")
 }
 
 /**
- * Motif ILIKE littéral. \, %, _ et * (alias de % pour PostgREST) sont échappés par un antislash.
- * La virgule, les parenthèses et les guillemets, qui structurent une condition PostgREST, sont remplacés
- * par le joker d'un seul caractère : le motif ne contient plus aucun caractère de syntaxe et reste valable
- * même si la condition était un jour placée dans un `.or()`.
+ * Motif ILIKE littéral. \, % et _ sont échappés par un antislash.
+ * L'étoile (PostgREST la transforme en %), la virgule, les parenthèses et les guillemets, qui structurent
+ * une condition PostgREST, sont remplacés par le joker d'un seul caractère : le motif ne contient plus
+ * aucun caractère de syntaxe et reste valable même si la condition était un jour placée dans un `.or()`.
  */
 function likePattern(text) {
   const escaped = text
-    .replace(/[\\%_*]/g, (c) => `\\${c}`)
-    .replace(/[,()"'`]/g, "_")
+    .replace(/[\\%_]/g, (c) => `\\${c}`)
+    .replace(/[*,()"'`]/g, "_")
   return `%${escaped}%`
 }
 
@@ -93,18 +95,24 @@ export async function getClientMissions(params = {}) {
     const q = normalizeSearch(params?.q)
     const today = todayInBenin()
 
-    let query = supabase.from("missions").select(MISSION_COLUMNS).eq("client_id", user.id)
-    if (q) query = query.ilike("title", likePattern(q))
-    const { data, error } = await query.order("created_at", { ascending: false }).limit(MISSIONS_LIMIT)
-    if (error) {
-      console.error("[getClientMissions]", error.message)
+    const pattern = q ? likePattern(q) : null
+    const filtered = (builder) => (pattern ? builder.ilike("title", pattern) : builder)
+    const countOf = (status) =>
+      filtered(supabase.from("missions").select("id", { count: "exact", head: true }).eq("client_id", user.id).eq("status", status))
+    const [listRes, ...countRes] = await Promise.all([
+      filtered(supabase.from("missions").select(MISSION_COLUMNS).eq("client_id", user.id).eq("status", onglet))
+        .order("created_at", { ascending: false })
+        .limit(MISSIONS_LIMIT),
+      ...TABS.map(countOf),
+    ])
+    const failed = [listRes, ...countRes].find((res) => res.error)
+    if (failed) {
+      console.error("[getClientMissions]", failed.error.message)
       return { error: ERR_LOAD }
     }
 
-    const rows = Array.isArray(data) ? data : []
-    const counts = { open: 0, in_progress: 0, done: 0, cancelled: 0 }
-    for (const row of rows) if (row.status in counts) counts[row.status] += 1
-    const current = rows.filter((row) => row.status === onglet)
+    const current = Array.isArray(listRes.data) ? listRes.data : []
+    const counts = Object.fromEntries(TABS.map((tab, i) => [tab, Number(countRes[i].count) || 0]))
 
     // Avis déjà donné : lu seulement pour l'onglet Terminées, borné aux missions affichées.
     let reviewedIds = new Set()

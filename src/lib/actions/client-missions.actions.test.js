@@ -3,14 +3,31 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 let user
 let profileResult
 let missionsResult
+let countOverride
 let reviewsResult
 let calls
 
+// Chaque requête garde sa propre chaîne : une lecture `head: true` est un comptage (un statut), les autres des listes.
 function table(name) {
-  const result = () => (name === "profiles" ? profileResult : name === "missions" ? missionsResult : reviewsResult)
+  const chain = []
   const record = (method) => (...args) => {
-    calls.push({ table: name, method, args })
+    const call = { table: name, method, args }
+    calls.push(call)
+    chain.push(call)
     return b
+  }
+  const result = () => {
+    if (name === "profiles") return profileResult
+    if (name === "reviews") return reviewsResult
+    const status = chain.find((c) => c.method === "eq" && c.args[0] === "status")?.args[1]
+    const isCount = chain.some((c) => c.method === "select" && c.args[1]?.head === true)
+    if (isCount) {
+      const override = countOverride?.[status]
+      if (override) return override
+      return { count: (missionsResult.data ?? []).filter((r) => r.status === status).length, error: missionsResult.error }
+    }
+    if (missionsResult.error) return missionsResult
+    return { data: (missionsResult.data ?? []).filter((r) => !status || r.status === status), error: null }
   }
   const b = {
     select: record("select"),
@@ -63,6 +80,7 @@ beforeEach(() => {
   profileResult = { data: { role: "client", is_suspended: false }, error: null }
   missionsResult = { data: ROWS, error: null }
   reviewsResult = { data: [{ mission_id: "d" }], error: null }
+  countOverride = undefined
   calls = []
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
@@ -152,6 +170,44 @@ describe("getClientMissions : onglets", () => {
   })
 })
 
+describe("getClientMissions : compteurs exacts", () => {
+  const countCalls = () => calls.filter((c) => c.method === "select" && c.args[1]?.head === true)
+
+  it("quatre requêtes de comptage exact, une par statut, plus la liste de l'onglet courant", async () => {
+    await getClientMissions({ onglet: "done" })
+    expect(countCalls()).toHaveLength(4)
+    for (const c of countCalls()) expect(c.args[1]).toEqual({ count: "exact", head: true })
+    const statuses = calls.filter((c) => c.table === "missions" && c.method === "eq" && c.args[0] === "status").map((c) => c.args[1])
+    expect(statuses.sort()).toEqual(["cancelled", "done", "done", "in_progress", "open"])
+  })
+
+  it("chaque requête de missions filtre sur client_id", async () => {
+    await getClientMissions({ q: "garde" })
+    const missionSelects = calls.filter((c) => c.table === "missions" && c.method === "select")
+    expect(missionSelects).toHaveLength(5)
+    expect(calls.filter((c) => c.table === "missions" && c.method === "eq" && c.args[0] === "client_id" && c.args[1] === "client-1")).toHaveLength(5)
+    expect(calls.filter((c) => c.method === "ilike")).toHaveLength(5)
+  })
+
+  it("comptes exacts même au-delà du plafond de la liste", async () => {
+    countOverride = {
+      open: { count: 742, error: null }, in_progress: { count: 3, error: null },
+      done: { count: 1200, error: null }, cancelled: { count: 0, error: null },
+    }
+    const res = await getClientMissions({ onglet: "open" })
+    expect(res.counts).toEqual({ open: 742, in_progress: 3, done: 1200, cancelled: 0 })
+    expect(res.total).toBe(1945)
+    expect(calls).toContainEqual({ table: "missions", method: "limit", args: [500] })
+  })
+
+  it("erreur de comptage : erreur neutre sans détail", async () => {
+    countOverride = { done: { count: null, error: { message: "relation secrète" } } }
+    const res = await getClientMissions({ onglet: "open" })
+    expect(res).toEqual({ error: "Impossible de charger vos missions." })
+    expect(JSON.stringify(res)).not.toContain("secrète")
+  })
+})
+
 describe("getClientMissions : recherche", () => {
   it("n'applique aucun filtre sans recherche", async () => {
     await getClientMissions({})
@@ -164,9 +220,9 @@ describe("getClientMissions : recherche", () => {
     expect(calls).toContainEqual({ table: "missions", method: "ilike", args: ["title", "%garde%"] })
   })
 
-  it("échappe les jokers LIKE : %, _, antislash et *", async () => {
+  it("échappe les jokers LIKE : %, _ et antislash, et remplace * par _ (PostgREST le lirait comme %)", async () => {
     await getClientMissions({ q: "100%_a\\b*" })
-    expect(ilikeArg()).toBe("%100\\%\\_a\\\\b\\*%")
+    expect(ilikeArg()).toBe("%100\\%\\_a\\\\b_%")
   })
 
   it("une requête hostile ne laisse aucun caractère de syntaxe PostgREST ni joker non échappé", async () => {
@@ -180,7 +236,17 @@ describe("getClientMissions : recherche", () => {
     expect(inner).not.toMatch(/(?<!\\)%/)
     // Le filtre reste borné au client connecté et ne s'élargit pas.
     expect(calls).toContainEqual({ table: "missions", method: "eq", args: ["client_id", "client-1"] })
-    expect(calls.filter((c) => c.method === "ilike")).toHaveLength(1)
+    // Même motif sur la liste et sur les quatre comptages
+    const patterns = calls.filter((c) => c.method === "ilike").map((c) => c.args[1])
+    expect(patterns).toHaveLength(5)
+    expect(new Set(patterns).size).toBe(1)
+  })
+
+  it("borne la recherche sans couper une paire de substitution (emoji)", async () => {
+    const res = await getClientMissions({ q: "😀".repeat(150) })
+    expect(Array.from(res.q)).toHaveLength(100)
+    expect(res.q).toBe("😀".repeat(100))
+    expect(res.q).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/)
   })
 
   it("borne la recherche à SEARCH_MAX_LENGTH, retire les caractères de contrôle et ignore un non-texte", async () => {

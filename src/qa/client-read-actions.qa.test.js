@@ -91,12 +91,16 @@ describe("getClientMissions : recherche q hostile", () => {
     point: ".", accolade: "{}", backtick: "`",
   }
   for (const [name, q] of Object.entries(hostile)) {
-    it(`${name} : une seule requête ilike, client_id présent, motif sans syntaxe`, async () => {
+    it(`${name} : chaque requête (liste et 4 comptages) filtre client_id, motif ilike identique et sans syntaxe`, async () => {
       const out = await getClientMissions({ q })
       expect(out.error).toBeUndefined()
       const missionCalls = calls.filter((c) => c.table === "missions")
-      expect(missionCalls.filter((c) => c.method === "ilike").length).toBeLessThanOrEqual(1)
-      expect(missionCalls.some((c) => c.method === "eq" && c.args[0] === "client_id" && c.args[1] === UUID_A)).toBe(true)
+      const ilikes = missionCalls.filter((c) => c.method === "ilike")
+      const selectsCount = missionCalls.filter((c) => c.method === "select").length
+      expect(selectsCount).toBe(5)
+      expect(ilikes.length === 0 || ilikes.length === selectsCount).toBe(true)
+      expect(new Set(ilikes.map((c) => c.args[1])).size).toBeLessThanOrEqual(1)
+      expect(missionCalls.filter((c) => c.method === "eq" && c.args[0] === "client_id" && c.args[1] === UUID_A)).toHaveLength(selectsCount)
       expect(calls.filter((c) => c.method === "or" ).length).toBe(0)
       const il = missionCalls.find((c) => c.method === "ilike")
       if (il) {
@@ -128,11 +132,12 @@ describe("getClientMissions : recherche q hostile", () => {
     await expect(getClientMissions(null)).resolves.toBeTruthy()
     await expect(getClientMissions("x")).resolves.toBeTruthy()
   })
-  it("une ligne dont status = __proto__ ne casse pas les compteurs", async () => {
-    tables.missions = { data: [{ id: "a", title: "t", status: "constructor", applications: [] }, { id: "b", title: "t", status: "open", applications: null }], error: null }
+  it("une ligne dont status = constructor ne casse ni la liste ni les compteurs (comptes lus par count exact)", async () => {
+    tables.missions = { data: [{ id: "a", title: "t", status: "constructor", applications: [] }, { id: "b", title: "t", status: "open", applications: null }], count: 1, error: null }
     const out = await getClientMissions({})
-    expect(out.counts.open).toBe(1)
-    expect(out.total).toBe(1)
+    expect(out.error).toBeUndefined()
+    expect(out.counts).toEqual({ open: 1, in_progress: 1, done: 1, cancelled: 1 })
+    expect(out.total).toBe(4)
   })
 })
 
