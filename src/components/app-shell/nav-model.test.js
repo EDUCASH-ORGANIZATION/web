@@ -7,8 +7,13 @@ import {
   isHiddenBelow,
   isItemActive,
   isOutside,
+  closeMoreState,
+  initialMoreState,
   isSearchShortcut,
+  moreAccessibleName,
   resolveMobileActive,
+  syncMoreState,
+  toggleMoreState,
 } from "./nav-model"
 import { CLIENT_NAV } from "../client-space/shell/client-nav"
 
@@ -207,5 +212,43 @@ describe("aides du panneau Plus", () => {
     expect(isOutside(container, inside)).toBe(false)
     expect(isOutside(container, {})).toBe(true)
     expect(isOutside(null, inside)).toBe(true)
+  })
+})
+
+describe("état du panneau Plus", () => {
+  it("ouvert sur A, navigation vers B puis retour sur A : fermé", () => {
+    let state = initialMoreState("/admin/a")
+    state = toggleMoreState(syncMoreState(state, "/admin/a"))
+    expect(syncMoreState(state, "/admin/a").open).toBe(true)
+    state = syncMoreState(state, "/admin/b")
+    expect(state.open).toBe(false)
+    expect(syncMoreState(state, "/admin/a").open).toBe(false)
+  })
+
+  it("un clic sur le lien de la page courante ferme sans changer de chemin", () => {
+    const opened = toggleMoreState(initialMoreState("/admin/a"))
+    const closed = closeMoreState(opened)
+    expect(closed.open).toBe(false)
+    expect(syncMoreState(closed, "/admin/a").open).toBe(false)
+  })
+
+  it("mêmes objets quand rien ne change (pas de rendu en boucle)", () => {
+    const state = initialMoreState("/x")
+    expect(syncMoreState(state, "/x")).toBe(state)
+    expect(closeMoreState(state)).toBe(state)
+  })
+
+  it("nom accessible : « Plus » ou « Plus, page courante »", () => {
+    const more = { label: "Plus", items: [{ key: "wallets", label: "Portefeuilles" }] }
+    expect(moreAccessibleName(more, null)).toBe("Plus")
+    expect(moreAccessibleName(more, "wallets")).toBe("Plus, Portefeuilles")
+    expect(moreAccessibleName(more, "inconnu")).toBe("Plus")
+  })
+
+  it("resolveMobileActive : une clé commune à une entrée et à un lien du panneau ne les confond pas", () => {
+    const items = [{ key: "missions", href: "/a" }]
+    const more = { items: [{ key: "missions", href: "/b" }] }
+    expect(resolveMobileActive("/b", items, more)).toEqual({ activeKey: null, moreActive: true, moreActiveKey: "missions" })
+    expect(resolveMobileActive("/a", items, more)).toEqual({ activeKey: "missions", moreActive: false, moreActiveKey: null })
   })
 })

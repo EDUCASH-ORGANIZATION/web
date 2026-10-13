@@ -371,8 +371,12 @@ describe("feuilles app-shell.css et client/*.css", () => {
   })
 
   it("capsule : Plus (panneau encre, ombre dure, liens de 48 px, actif citron), espaceur masque hors media et dimensionne sous 1024", () => {
-    expect(SHELL).toMatch(/\.bnav2-more \{ position: relative; display: flex; flex: 1 1 0; min-width: 44px; \}/)
+    expect(SHELL).toMatch(/\.bnav2-more \{ display: flex; flex: 1 1 0; min-width: 44px; \}/)
     expect(SHELL).toMatch(/\.bnav2-more__panel \{[^}]*bottom: calc\(100% \+ var\(--s-2\)\)[^}]*background: var\(--c-encre\); box-shadow: var\(--sh-dur-s\); z-index: var\(--z-menu\);/)
+    // Le panneau flotte au-dessus de la CAPSULE (position: fixed, ancre) avec 8 px d'espace : le wrapper .bnav2-more ne doit pas etre ancre.
+    expect(SHELL).not.toMatch(/\.bnav2-more \{[^}]*position: relative/)
+    expect(SHELL).toMatch(/\.bnav2-more__panel \{ position: absolute; right: 0; bottom: calc\(100% \+ var\(--s-2\)\);/)
+    expect(SHELL).toMatch(/\.bottom-nav\.bottom-nav--v2 \{[^}]*position: fixed/)
     // L'attribut hidden doit gagner contre display: flex du panneau (le panneau est ferme au rendu initial).
     expect(SHELL).toContain(".bnav2-more__panel[hidden] { display: none; }")
     expect(SHELL).toMatch(/\.bnav2-more__link \{[^}]*min-height: 48px;[^}]*color: var\(--c-brume\); font-size: var\(--t-micro\);/)

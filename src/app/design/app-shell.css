@@ -168,7 +168,7 @@
 .bottom-nav--v2 .bnav-item.is-active .bnav-item__dot { top: 0; right: -4px; border-color: var(--c-citron); }
 .bottom-nav--v2 .bnav-item:focus-visible, .bnav2-more__link:focus-visible { outline: 2px solid transparent; box-shadow: var(--sh-focus); }
 /* Entree « Plus » (admin) : bouton de divulgation et panneau au-dessus de la barre */
-.bnav2-more { position: relative; display: flex; flex: 1 1 0; min-width: 44px; }
+.bnav2-more { display: flex; flex: 1 1 0; min-width: 44px; }
 .bnav2-more:has(> .bnav-item.is-active) { flex: 0 1 auto; }
 .bnav2-more__panel { position: absolute; right: 0; bottom: calc(100% + var(--s-2)); display: flex; flex-direction: column; gap: var(--s-1); width: max-content; max-width: calc(100vw - 20px); margin: 0; padding: var(--s-2); list-style: none; border-radius: var(--r-xl); background: var(--c-encre); box-shadow: var(--sh-dur-s); z-index: var(--z-menu); }
 .bnav2-more__panel[hidden] { display: none; }

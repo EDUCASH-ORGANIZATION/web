@@ -162,7 +162,7 @@ describe("BottomNav : admin", () => {
 
   it("Plus actif sur /admin/wallets : pastille « Plus » et lien du panneau en aria-current", () => {
     const html = render(props, "/admin/wallets")
-    expect(html).toMatch(/<button type="button" class="bnav-item is-active"[^>]*aria-label="Plus"><svg[^>]*>.*?<\/svg><span class="bnav-label">Plus<\/span>/)
+    expect(html).toMatch(/<button type="button" class="bnav-item is-active"[^>]*aria-label="Plus, Portefeuilles"><svg[^>]*>.*?<\/svg><span class="bnav-label">Plus<\/span>/)
     expect(html).toMatch(/class="bnav2-more__link" aria-current="page"[^>]*>.*?Portefeuilles/)
     expect(html.match(/aria-current="page"/g)).toHaveLength(1)
     expect(html.match(/class="bnav-label"/g)).toHaveLength(1)
