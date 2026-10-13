@@ -124,13 +124,30 @@ describe("C09 modale de confirmation", () => {
     expect(out).toMatch(/<button[^>]*disabled=""[^>]*aria-busy="true"/)
   })
 
-  it("en cas d'échec, la modale reste ouverte avec les fonds en séquestre et Réessayer", () => {
-    const out = view({ checked: true, error: "Impossible de libérer les fonds pour cette mission." })
+  it("échec générique : texte neutre sans jamais dire que rien n'a été versé, avec Réessayer", () => {
+    const out = view({ checked: true, error: "Impossible de libérer les fonds pour cette mission.", errorCode: "generic" })
     expect(out).toContain('role="dialog"')
-    expect(out).toContain("Les fonds restent en séquestre")
-    expect(out).toContain("Impossible de libérer les fonds")
+    expect(out).toContain("Le paiement n'a pas pu être confirmé. Vérifiez l'état de la mission avant de réessayer.")
+    expect(out).not.toMatch(/rien n'a été versé|restent en séquestre/)
     expect(out).toContain("Réessayer")
+    expect(out).not.toContain("Actualiser")
     expect(out).not.toContain("Libérer le paiement")
+  })
+
+  it("already_done et already_released : mission déjà payée, Actualiser et pas de Réessayer", () => {
+    for (const errorCode of ["already_done", "already_released"]) {
+      const out = view({ checked: true, error: "Cette mission est déjà terminée.", errorCode })
+      expect(out).toContain("Cette mission a déjà été payée. Actualisez la page pour voir le reçu.")
+      expect(out).toContain("Actualiser")
+      expect(out).not.toContain("Réessayer")
+      expect(out).not.toMatch(/rien n'a été versé|restent en séquestre/)
+    }
+  })
+
+  it("not_in_progress : texte neutre avec Réessayer", () => {
+    const out = view({ checked: true, error: "Cette mission n'est pas en cours.", errorCode: "not_in_progress" })
+    expect(out).toContain("Le paiement n'a pas pu être confirmé")
+    expect(out).toContain("Réessayer")
   })
 
   it("propose Signaler un problème vers /contact?sujet=question", () => {
@@ -156,9 +173,14 @@ describe("releaseOnce (double clic et erreurs)", () => {
     const confirm = vi.fn().mockResolvedValueOnce({ error: "Impossible de libérer les fonds pour cette mission." })
       .mockResolvedValueOnce({ success: true, amountStudent: 22000 })
     const lock = { busy: false }
-    expect(await releaseOnce(lock, confirm, "m1")).toEqual({ error: "Impossible de libérer les fonds pour cette mission." })
+    expect(await releaseOnce(lock, confirm, "m1")).toEqual({ error: "Impossible de libérer les fonds pour cette mission.", code: "generic" })
     expect(await releaseOnce(lock, confirm, "m1")).toEqual({ amount: 22000 })
     expect(confirm).toHaveBeenCalledTimes(2)
+  })
+
+  it("transmet le code de l'action", async () => {
+    const confirm = async () => ({ error: "Cette mission est déjà terminée.", code: "already_done" })
+    expect(await releaseOnce({ busy: false }, confirm, "m1")).toEqual({ error: "Cette mission est déjà terminée.", code: "already_done" })
   })
 
   it("traite une exception et une réponse vide comme une erreur neutre", async () => {

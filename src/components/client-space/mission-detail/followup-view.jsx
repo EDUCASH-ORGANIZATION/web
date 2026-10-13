@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Icon } from "@/components/design/icon"
 import { PageHead } from "@/components/app-ui/page-head"
 import { MissionHeader } from "./mission-header"
@@ -213,6 +214,7 @@ export function MissionFollowupView({ detail, flags }) {
     : STUDENT_FALLBACK
   const [dialogOpen, setDialogOpen] = useState(Boolean(flags?.confirmer) && view.actions.confirmEnd)
   const [paid, setPaid] = useState(null)
+  const router = useRouter()
 
   if (paid !== null) {
     return (
@@ -223,7 +225,10 @@ export function MissionFollowupView({ detail, flags }) {
           studentName={studentName}
           split={view.split}
           paid={paid}
-          onBack={() => setPaid(null)}
+          onBack={() => {
+            setPaid(null)
+            router.refresh()
+          }}
         />
       </div>
     )

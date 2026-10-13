@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Icon } from "@/components/design/icon"
 import { Modal } from "@/components/app-ui/modal"
 import { Lines } from "@/components/app-ui/lines"
@@ -12,13 +13,21 @@ import { commissionLabel } from "./escrow-card"
 
 const FALLBACK_ERROR = "Une erreur est survenue. Réessayez dans un instant."
 const REPORT_HREF = "/contact?sujet=question"
+const PAID_CODES = new Set(["already_done", "already_released"])
+const PAID_MESSAGE = "Cette mission a déjà été payée. Actualisez la page pour voir le reçu."
+const UNCONFIRMED_MESSAGE = "Le paiement n'a pas pu être confirmé. Vérifiez l'état de la mission avant de réessayer."
+
+/** Vrai quand le code d'erreur de l'action indique que l'argent est déjà parti (rien à réessayer). */
+export function isAlreadyPaid(code) {
+  return PAID_CODES.has(code)
+}
 
 /**
  * Libération du paiement, une seule à la fois : tant qu'un appel est en cours, un second clic est ignoré.
  * `lock` est un objet `{ busy }` conservé entre les rendus (useRef). Renvoie
- * `{ skipped: true }`, `{ error }` ou `{ amount }` (montant versé renvoyé par l'action).
+ * `{ skipped: true }`, `{ error, code }` ou `{ amount }` (montant versé renvoyé par l'action).
  * @param {{ busy: boolean }} lock
- * @param {(missionId: string) => Promise<{ success?: boolean, amountStudent?: number, error?: string }>} confirm
+ * @param {(missionId: string) => Promise<{ success?: boolean, amountStudent?: number, error?: string, code?: string }>} confirm
  * @param {string} missionId
  */
 export async function releaseOnce(lock, confirm, missionId) {
@@ -26,11 +35,11 @@ export async function releaseOnce(lock, confirm, missionId) {
   lock.busy = true
   try {
     const result = await confirm(missionId)
-    if (result?.error) return { error: result.error }
-    if (!result?.success) return { error: FALLBACK_ERROR }
+    if (result?.error) return { error: result.error, code: result.code ?? "generic" }
+    if (!result?.success) return { error: FALLBACK_ERROR, code: "generic" }
     return { amount: Number(result.amountStudent) || 0 }
   } catch {
-    return { error: FALLBACK_ERROR }
+    return { error: FALLBACK_ERROR, code: "generic" }
   } finally {
     lock.busy = false
   }
@@ -38,7 +47,8 @@ export async function releaseOnce(lock, confirm, missionId) {
 
 /**
  * Vue pure de la modale C09. Le bouton de libération est inactif tant que la case n'est pas cochée
- * et pendant l'envoi. En cas d'échec, les fonds restent en séquestre et le bouton devient « Réessayer ».
+ * et pendant l'envoi. En cas d'échec, la modale n'affirme jamais qu'aucun argent n'a été versé : si le
+ * code indique que la mission est déjà payée, « Actualiser » remplace « Réessayer » ; sinon texte neutre.
  */
 export function ConfirmEndDialogView({
   title,
@@ -48,11 +58,14 @@ export function ConfirmEndDialogView({
   checked,
   pending,
   error,
+  errorCode,
   onCheck,
+  onRefresh,
   onSubmit,
   onCancel,
   checkRef,
 }) {
+  const alreadyPaid = Boolean(error) && isAlreadyPaid(errorCode)
   return (
     <Modal
       open
@@ -65,27 +78,34 @@ export function ConfirmEndDialogView({
           <button type="button" className="btn btn--soft" onClick={onCancel} disabled={pending}>
             Annuler
           </button>
-          <button
-            type="button"
-            className="btn btn--dark"
-            onClick={onSubmit}
-            disabled={!checked || pending}
-            aria-busy={pending ? "true" : undefined}
-          >
-            {pending ? (
-              "Libération en cours"
-            ) : error ? (
-              <>
-                <Icon name="i-refresh" />
-                Réessayer
-              </>
-            ) : (
-              <>
-                <Icon name="i-coins" />
-                Libérer le paiement
-              </>
-            )}
-          </button>
+          {alreadyPaid ? (
+            <button type="button" className="btn btn--dark" onClick={onRefresh}>
+              <Icon name="i-refresh" />
+              Actualiser
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn--dark"
+              onClick={onSubmit}
+              disabled={!checked || pending}
+              aria-busy={pending ? "true" : undefined}
+            >
+              {pending ? (
+                "Libération en cours"
+              ) : error ? (
+                <>
+                  <Icon name="i-refresh" />
+                  Réessayer
+                </>
+              ) : (
+                <>
+                  <Icon name="i-coins" />
+                  Libérer le paiement
+                </>
+              )}
+            </button>
+          )}
         </>
       }
     >
@@ -93,8 +113,8 @@ export function ConfirmEndDialogView({
         <div className="banner banner--erreur" role="alert">
           <Icon name="i-alert-triangle" />
           <div className="banner__body">
-            <div className="banner__title">La libération n&apos;a pas abouti</div>
-            Les fonds restent en séquestre, rien n&apos;a été versé. {error}
+            <div className="banner__title">{alreadyPaid ? "Paiement déjà effectué" : "La libération n'a pas pu être confirmée"}</div>
+            {alreadyPaid ? PAID_MESSAGE : UNCONFIRMED_MESSAGE}
           </div>
         </div>
       ) : null}
@@ -129,6 +149,8 @@ function ConfirmEndDialogOpen({ missionId, title, studentName, split, since, onC
   const [checked, setChecked] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState(null)
+  const [errorCode, setErrorCode] = useState(null)
+  const router = useRouter()
   const lock = useRef({ busy: false })
   const checkRef = useRef(null)
 
@@ -136,11 +158,14 @@ function ConfirmEndDialogOpen({ missionId, title, studentName, split, since, onC
     if (!checked) return
     setPending(true)
     setError(null)
+    setErrorCode(null)
     const result = await releaseOnce(lock.current, confirmMission, missionId)
     if (result.skipped) return
     if (result.error) {
       setError(result.error)
+      setErrorCode(result.code ?? "generic")
       setPending(false)
+      router.refresh()
       return
     }
     onPaid(result.amount)
@@ -155,6 +180,8 @@ function ConfirmEndDialogOpen({ missionId, title, studentName, split, since, onC
       checked={checked}
       pending={pending}
       error={error}
+      errorCode={errorCode}
+      onRefresh={() => router.refresh()}
       checkRef={checkRef}
       onCheck={setChecked}
       onSubmit={submit}
