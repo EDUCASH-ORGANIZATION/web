@@ -435,6 +435,24 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     expect(SHELL.indexOf(".shell--v2 .search2:focus-within")).toBeGreaterThan(SHELL.indexOf(".shell--v2 .search2 {"))
   })
 
+  it("mobile : cibles tactiles de 44 px et sous-textes a la ligne, uniquement sous 1024 px et dans .c2", () => {
+    const m = SHELL.match(/@media \(max-width: 1023\.98px\) \{\s*\.c2 \.item2__action[\s\S]*?\n\}/)
+    expect(m, "bloc mobile dedie").not.toBeNull()
+    const block = m[0]
+    expect(block).toMatch(/\.c2 \.item2__action, \.c2 \.hero2__link \{ display: inline-flex; align-items: center; min-height: 44px; \}/)
+    expect(block).toMatch(/\.c2 \.btn--sm \{ min-height: 44px; \}/)
+    expect(block).toMatch(/\.c2 \.mtop2 > a \{ position: relative; \}/)
+    expect(block).toMatch(/\.c2 \.mtop2 > a::after \{ content: ""; position: absolute; inset: -6px; \}/)
+    expect(block).toMatch(/\.c2 \.stat2__sub, \.c2 \.money2 \.stat2__sub \{ white-space: normal; overflow: visible; text-overflow: clip; \}/)
+    // aucune de ces regles n'existe hors media : la version bureau reste inchangee
+    const outside = SHELL.replace(block, "")
+    expect(outside).not.toMatch(/min-height: 44px/)
+    expect(outside).not.toContain(".mtop2 > a::after")
+    for (const line of block.split("\n").filter((l) => l.includes("{") && !l.startsWith("@") && l.trim().startsWith("."))) {
+      expect(line.trim().startsWith(".c2 "), line).toBe(true)
+    }
+  })
+
   it("boutons secondaire et accent de .c2 : l'anneau de focus n'est pas annule par box-shadow: none", () => {
     for (const tone of ["btn--secondary", "btn--accent"]) {
       const focus = computedStyle(RULES, { tag: "button", classes: ["btn", tone], ancestors: ANCESTORS, states: ["focus-visible"] })

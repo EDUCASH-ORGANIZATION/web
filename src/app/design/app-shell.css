@@ -325,6 +325,20 @@
   .search2 { width: auto; flex: 1; }
 }
 
+/* ---------- Mobile : cibles tactiles de 44 px et sous-textes complets (sous 1024, portee .c2) ---------- */
+@media (max-width: 1023.98px) {
+  /* Liens-texte des rangees et des cartes : zone de 44 px de haut, texte inchange (>= 13 px) */
+  .c2 .item2__action, .c2 .hero2__link { display: inline-flex; align-items: center; min-height: 44px; }
+  .c2 .btn--sm { min-height: 44px; }
+  /* Symbole (34 x 32) et avatar (32 x 32) de l'en-tete, seuls liens directs de .mtop2 : zone de 44 px de haut
+     (46 x 44 et 44 x 44) par pseudo-element, apparence inchangee. Les 6 px de debord restent sous l'ecart
+     de 12 px entre cibles voisines : aucun chevauchement. */
+  .c2 .mtop2 > a { position: relative; }
+  .c2 .mtop2 > a::after { content: ""; position: absolute; inset: -6px; }
+  /* Sous-textes des cartes de chiffres et de la carte argent : retour a la ligne au lieu de l'ellipse */
+  .c2 .stat2__sub, .c2 .money2 .stat2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+
 /* ---------- Responsive : 768 ---------- */
 @media (max-width: 767.98px) {
   .head2 { flex-direction: column; align-items: flex-start; gap: var(--s-3); }
