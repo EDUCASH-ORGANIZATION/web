@@ -131,14 +131,28 @@ describe("AppShell (rendu statique)", () => {
     expect(html).toMatch(/class="av2 av2--sm" aria-label="Mon profil" href="\/client\/profile"/)
   })
 
-  it("mobile : barre du bas de 5 onglets, actif marqué, Publier actif sur /client/missions/new", () => {
-    const html = render({}, "/client/missions/new")
-    const bar = navHtml(html, "bottom-nav")
-    expect(bar.match(/class="bnav-item(?: is-active)?"/g)).toHaveLength(5)
+  it("mobile : 4 onglets et le CTA central, Accueil actif, Publier entre Missions et Messages", () => {
+    const bar = navHtml(render(), "bottom-nav")
+    expect(bar.match(/class="bnav-item(?: is-active)?"/g)).toHaveLength(4)
+    expect(bar.match(/<a /g)).toHaveLength(5)
     expect(bar.match(/aria-current="page"/g)).toHaveLength(1)
-    expect(bar).toMatch(/bnav-item is-active" aria-current="page" href="\/client\/missions\/new"/)
-    expect(bar).toContain('class="bnav-label">Publier</span>')
+    expect(bar).toMatch(/bnav-item is-active" aria-current="page" href="\/client\/dashboard"/)
+    expect(bar).toContain('class="bnav-label">Accueil</span>')
+    expect(bar.match(/class="bnav-label"/g)).toHaveLength(1)
+    for (const label of ["Missions", "Messages, 2 non lus", "Portefeuille"]) expect(bar).toContain(`aria-label="${label}"`)
+    expect(bar).toMatch(/<a class="bottom-nav__cta" aria-label="Publier une mission" href="\/client\/missions\/new"><svg/)
+    expect(bar.indexOf('href="/client/missions"')).toBeLessThan(bar.indexOf("bottom-nav__cta"))
+    expect(bar.indexOf("bottom-nav__cta")).toBeLessThan(bar.indexOf('href="/client/messages"'))
+    expect(bar).not.toMatch(/bottom-nav__cta[^>]*>.*?bnav-label[^<]*>Publier/)
     expect(bar).toContain('aria-label="Navigation mobile"')
+  })
+
+  it("mobile : sur /client/missions/new le CTA porte aria-current et aucun onglet n'est actif", () => {
+    const bar = navHtml(render({}, "/client/missions/new"), "bottom-nav")
+    expect(bar.match(/aria-current="page"/g)).toHaveLength(1)
+    expect(bar).toMatch(/class="bottom-nav__cta" aria-current="page" aria-label="Publier une mission" href="\/client\/missions\/new"/)
+    expect(bar).not.toContain("is-active")
+    expect(bar).not.toContain("bnav-label")
   })
 
   it("les deux navigations portent un nom accessible distinct", () => {
