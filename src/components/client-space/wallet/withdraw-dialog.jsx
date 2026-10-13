@@ -22,17 +22,19 @@ import {
 } from "@/lib/client-space/withdraw-schema"
 
 const ERR_UNEXPECTED = "Le retrait n'a pas pu être lancé."
+const DEBIT_UNCERTAIN = "debit_uncertain"
+const HELP_HREF = "/contact?sujet=question"
 
 /**
  * Revalide le retrait puis l'envoie au serveur. Fonction pure à dépendance injectée (`initiate`).
- * @returns {Promise<{ kind: "invalid", errors: object } | { kind: "error", error: string } | { kind: "done", value: object }>}
+ * @returns {Promise<{ kind: "invalid", errors: object } | { kind: "error", error: string, code?: string } | { kind: "done", value: object }>}
  */
 export async function submitWithdrawal(input, available, initiate) {
   const checked = validateWithdraw(input, available)
   if (!checked.ok) return { kind: "invalid", errors: checked.errors }
   try {
     const result = await initiate(checked.value)
-    return result?.error ? { kind: "error", error: result.error } : { kind: "done", value: checked.value }
+    return result?.error ? { kind: "error", error: result.error, code: result.code } : { kind: "done", value: checked.value }
   } catch {
     return { kind: "error", error: ERR_UNEXPECTED }
   }
@@ -150,18 +152,31 @@ function FormStep({ available, escrow, amount, phone, operator, prefilled, error
   )
 }
 
-function ReviewStep({ available, escrow, amount, phone, operator, error }) {
+function ReviewStep({ available, escrow, amount, phone, operator, error, errorCode }) {
   return (
     <>
       <Stepper step="review" />
-      {error ? (
+      {error && errorCode === DEBIT_UNCERTAIN ? (
+        <div className="banner banner--erreur" role="alert">
+          <Icon name="i-alert-circle" />
+          <div className="banner__body">
+            <div className="banner__title">Le retrait n&apos;a pas pu être lancé</div>
+            {error}
+            <div className="banner__actions">
+              <Link className="link2" href={HELP_HREF}>
+                Contacter l&apos;aide
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : error ? (
         <div className="banner banner--erreur" role="alert">
           <Icon name="i-alert-circle" />
           <div className="banner__body">
             <div className="banner__title">Le retrait n&apos;a pas pu être lancé</div>
             {error} Votre disponible a été actualisé : vérifiez-le sur la page avant de réessayer.
             <div className="banner__actions">
-              <Link className="link2" href="/contact?sujet=question">
+              <Link className="link2" href={HELP_HREF}>
                 Contacter l&apos;aide
               </Link>
             </div>
@@ -211,7 +226,7 @@ function DoneStep({ snapshot }) {
  * erreurs viennent de l'extérieur.
  */
 export function WithdrawDialogView({
-  step, formId, contentRef, available, escrow, amount, phone, operator, prefilled, errors = {}, error, pending, snapshot,
+  step, formId, contentRef, available, escrow, amount, phone, operator, prefilled, errors = {}, error, errorCode, pending, snapshot,
   onAmount, onPhone, onOperator, onContinue, onBack, onSubmit, onClose,
 }) {
   const head = TITLES[step]
@@ -227,6 +242,13 @@ export function WithdrawDialogView({
           <Icon name="i-arrow-right" />
         </button>
       </>
+    )
+  } else if (step === "review" && error && errorCode === DEBIT_UNCERTAIN) {
+    // Le portefeuille a peut-être été débité : ni « Réessayer » ni « Modifier », un nouvel envoi débiterait deux fois.
+    footer = (
+      <button type="button" className="btn btn--dark" onClick={onClose}>
+        Fermer
+      </button>
     )
   } else if (step === "review") {
     footer = (
@@ -261,7 +283,7 @@ export function WithdrawDialogView({
   } else if (step === "review") {
     body = (
       <form id={formId} className="form2" onSubmit={onSubmit} noValidate>
-        <ReviewStep available={available} escrow={escrow} amount={amount} phone={phone} operator={operator} error={error} />
+        <ReviewStep available={available} escrow={escrow} amount={amount} phone={phone} operator={operator} error={error} errorCode={errorCode} />
       </form>
     )
   } else {
@@ -292,6 +314,7 @@ function WithdrawDialogOpen({ available, escrow, phone: prefill, onClose }) {
   const [showErrors, setShowErrors] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState(null)
+  const [errorCode, setErrorCode] = useState(null)
   const [snapshot, setSnapshot] = useState(null)
   const inFlight = useRef(false)
 
@@ -312,6 +335,7 @@ function WithdrawDialogOpen({ available, escrow, phone: prefill, onClose }) {
     return (value) => {
       update(value)
       setError(null)
+      setErrorCode(null)
     }
   }
 
@@ -320,6 +344,7 @@ function WithdrawDialogOpen({ available, escrow, phone: prefill, onClose }) {
     setShowErrors(true)
     if (!checked.ok) return
     setError(null)
+    setErrorCode(null)
     setStep("review")
   }
 
@@ -329,6 +354,7 @@ function WithdrawDialogOpen({ available, escrow, phone: prefill, onClose }) {
     inFlight.current = true
     setPending(true)
     setError(null)
+    setErrorCode(null)
     const outcome = await submitWithdrawal({ amount, phone, operator }, available, initiateWithdrawal)
     inFlight.current = false
     setPending(false)
@@ -342,6 +368,7 @@ function WithdrawDialogOpen({ available, escrow, phone: prefill, onClose }) {
     router.refresh()
     if (outcome.kind === "error") {
       setError(outcome.error)
+      setErrorCode(outcome.code ?? null)
       return
     }
     setSnapshot({
@@ -367,6 +394,7 @@ function WithdrawDialogOpen({ available, escrow, phone: prefill, onClose }) {
       prefilled={Boolean(prefill)}
       errors={errors}
       error={error}
+      errorCode={errorCode}
       pending={pending}
       snapshot={snapshot}
       onAmount={reset(setAmount)}

@@ -511,6 +511,22 @@ describe("modale de retrait (C16)", () => {
     expect(h).not.toMatch(/n&#x27;a pas été débité|aucun débit/i)
   })
 
+  it("étape 2, débit incertain : ni Réessayer ni Modifier, Contacter l'aide et Fermer", () => {
+    const h = render({
+      step: "review",
+      error: "Votre demande a peut-être été débitée. Contactez l'aide avant toute nouvelle demande.",
+      errorCode: "debit_uncertain",
+    })
+    expect(h).toContain("Votre demande a peut-être été débitée")
+    expect(h).toContain("/contact?sujet=question")
+    expect(h).toContain("Contacter l&#x27;aide")
+    expect(h).not.toContain("Réessayer")
+    expect(h).not.toContain("Modifier")
+    expect(h).not.toContain("Retirer ")
+    expect(h).not.toContain("Votre disponible a été actualisé")
+    expect(h).toContain("Fermer")
+  })
+
   it("succès : récapitulatif du virement, nouveau disponible, séquestre, sans promesse de délai", () => {
     const h = render({ step: "done", snapshot: { amount: 10000, phone: "0197452108", operator: "moov", availableAfter: 2500, escrow: 54000 } })
     expect(h).toContain("Demande de retrait envoyée")
@@ -541,6 +557,11 @@ describe("submitWithdrawal", () => {
     const out = await submitWithdrawal(input, 12500, initiate)
     expect(out).toEqual({ kind: "done", value: { amount: 10000, phone: "0197452108", operator: "mtn" } })
     expect(initiate).toHaveBeenCalledWith({ amount: 10000, phone: "0197452108", operator: "mtn" })
+  })
+
+  it("transmet le code debit_uncertain du serveur", async () => {
+    const out = await submitWithdrawal(input, 12500, vi.fn().mockResolvedValue({ error: "peut-être débitée", code: "debit_uncertain" }))
+    expect(out).toEqual({ kind: "error", error: "peut-être débitée", code: "debit_uncertain" })
   })
 
   it("échec : renvoie l'erreur du serveur, jamais un succès", async () => {

@@ -21,12 +21,14 @@ const MESSAGES = {
     forbidden: "Tu n'as pas accès à ce portefeuille.",
     deposit: "Le dépôt n'a pas pu être initié. Réessaie dans un instant.",
     withdrawal: "Le retrait n'a pas pu être initié. Réessaie dans un instant.",
+    debitUncertain: "Ta demande a peut-être été débitée. Contacte l'aide avant toute nouvelle demande.",
   },
   client: {
     read: "Impossible de charger votre portefeuille.",
     forbidden: "Vous n'avez pas accès à ce portefeuille.",
     deposit: "Le dépôt n'a pas pu être initié. Réessayez dans un instant.",
     withdrawal: "Le retrait n'a pas pu être initié. Réessayez dans un instant.",
+    debitUncertain: "Votre demande a peut-être été débitée. Contactez l'aide avant toute nouvelle demande.",
   },
 }
 
@@ -187,7 +189,7 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
 
   const supabase = await createClient()
   const { available, error: walletError } = await getWallet(user.id)
-  if (walletError) return { error: (await messagesFor(supabase, user)).read }
+  if (walletError) return { error: walletError }
   if (available < amount) return { error: "Solde insuffisant" }
 
   const accessToken = await getAccessToken(supabase)
@@ -204,7 +206,14 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
 
   if (error) {
     if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
-    const { message, detail } = await readFnError(error, (await messagesFor(supabase, user)).withdrawal)
+    const messages = await messagesFor(supabase, user)
+    // 502 : la fonction a déjà débité le portefeuille mais le virement n'a pas démarré (sans recréditer).
+    // Aucun nouvel essai n'est proposé : un second clic débiterait une seconde fois.
+    if (error?.context?.status === 502) {
+      console.error("[initiateWithdrawal] débit possible sans virement (502), réconciliation manuelle")
+      return { error: messages.debitUncertain, code: "debit_uncertain" }
+    }
+    const { message, detail } = await readFnError(error, messages.withdrawal)
     console.error("[initiateWithdrawal]", detail)
     return { error: message }
   }

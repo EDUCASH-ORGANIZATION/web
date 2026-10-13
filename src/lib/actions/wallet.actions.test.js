@@ -248,6 +248,36 @@ describe("messages d'erreur selon le rôle", () => {
     )
   })
 
+  it("502 après débit : le client est vouvoyé avec le code debit_uncertain", async () => {
+    getServerRole.mockResolvedValue({ role: "client" })
+    invoke.mockResolvedValue({ data: null, error: { message: "x", context: { status: 502, text: async () => '{"error":"Le retrait n\'a pas pu être lancé, contactez-nous"}' } } })
+    expect(await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })).toEqual({
+      error: "Votre demande a peut-être été débitée. Contactez l'aide avant toute nouvelle demande.",
+      code: "debit_uncertain",
+    })
+  })
+
+  it("502 après débit : l'étudiant est tutoyé avec le code debit_uncertain", async () => {
+    invoke.mockResolvedValue({ data: null, error: { message: "x", context: { status: 502, text: async () => "{}" } } })
+    expect(await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })).toEqual({
+      error: "Ta demande a peut-être été débitée. Contacte l'aide avant toute nouvelle demande.",
+      code: "debit_uncertain",
+    })
+  })
+
+  it("les autres statuts d'erreur du retrait n'ont pas de code et restent inchangés", async () => {
+    for (const status of [400, 403, 500, 503]) {
+      invoke.mockResolvedValue({ data: null, error: { message: "x", context: { status, text: async () => "{}" } } })
+      const res = await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })
+      expect(res).toEqual({ error: "Le retrait n'a pas pu être initié. Réessaie dans un instant." })
+    }
+  })
+
+  it("un 502 du dépôt reste un échec ordinaire sans code", async () => {
+    invoke.mockResolvedValue({ data: null, error: { message: "x", context: { status: 502, text: async () => "{}" } } })
+    expect(await initiateDeposit({ amount: 5000 })).toEqual({ error: "Le dépôt n'a pas pu être initié. Réessaie dans un instant." })
+  })
+
   it("le portefeuille illisible lors d'un retrait suit le rôle", async () => {
     getServerRole.mockResolvedValue({ role: "client" })
     single.mockResolvedValue({ data: null, error: { message: "boom" } })
