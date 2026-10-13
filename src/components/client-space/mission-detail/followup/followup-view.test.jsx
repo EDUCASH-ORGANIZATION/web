@@ -5,7 +5,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }), us
 vi.mock("@/lib/actions/mission.actions", () => ({ confirmMission: vi.fn() }))
 
 const { MissionFollowupView } = await import("../followup-view")
-const { ConfirmEndDialogView, ConfirmEndSuccess, releaseOnce } = await import("./confirm-end-dialog")
+const { ConfirmEndDialogView, ConfirmEndSuccess, releaseOnce, refreshAndClose } = await import("./confirm-end-dialog")
 const { buildTimeline } = await import("./timeline")
 const { missionView } = await import("@/lib/client-space/mission-view")
 const { escrowSplit } = await import("@/lib/app/money")
@@ -134,14 +134,28 @@ describe("C09 modale de confirmation", () => {
     expect(out).not.toContain("Libérer le paiement")
   })
 
-  it("already_done et already_released : mission déjà payée, Actualiser et pas de Réessayer", () => {
-    for (const errorCode of ["already_done", "already_released"]) {
-      const out = view({ checked: true, error: "Cette mission est déjà terminée.", errorCode })
-      expect(out).toContain("Cette mission a déjà été payée. Actualisez la page pour voir le reçu.")
-      expect(out).toContain("Actualiser")
-      expect(out).not.toContain("Réessayer")
-      expect(out).not.toMatch(/rien n'a été versé|restent en séquestre/)
-    }
+  it("already_done : mission déjà payée, Actualiser et pas de Réessayer", () => {
+    const out = view({ checked: true, error: "Cette mission est déjà terminée.", errorCode: "already_done" })
+    expect(out).toContain("Cette mission a déjà été payée. Actualisez la page pour voir le reçu.")
+    expect(out).toContain("Actualiser")
+    expect(out).not.toContain("Réessayer")
+    expect(out).not.toMatch(/rien n'a été versé|restent en séquestre/)
+  })
+
+  it("already_released : paiement libéré, lien d'aide, Actualiser et pas de Réessayer", () => {
+    const out = view({ checked: true, error: "Libération faite.", errorCode: "already_released" })
+    const plain = out.replace(/<!-- -->/g, "").replace(/<[^>]+>/g, "")
+    expect(plain).toContain("Le paiement a déjà été libéré. Si la mission n'apparaît pas terminée après actualisation, contactez l'aide.")
+    expect(out).toMatch(/<a [^>]*href="\/contact\?sujet=question"[^>]*>contactez l'aide<\/a>/)
+    expect(out).not.toContain("a déjà été payée")
+    expect(out).toContain("Actualiser")
+    expect(out).not.toContain("Réessayer")
+  })
+
+  it("Actualiser recharge puis ferme la modale", () => {
+    const calls = []
+    refreshAndClose(() => calls.push("refresh"), () => calls.push("close"))
+    expect(calls).toEqual(["refresh", "close"])
   })
 
   it("not_in_progress : texte neutre avec Réessayer", () => {

@@ -14,12 +14,37 @@ import { commissionLabel } from "./escrow-card"
 const FALLBACK_ERROR = "Une erreur est survenue. Réessayez dans un instant."
 const REPORT_HREF = "/contact?sujet=question"
 const PAID_CODES = new Set(["already_done", "already_released"])
-const PAID_MESSAGE = "Cette mission a déjà été payée. Actualisez la page pour voir le reçu."
+const DONE_MESSAGE = "Cette mission a déjà été payée. Actualisez la page pour voir le reçu."
 const UNCONFIRMED_MESSAGE = "Le paiement n'a pas pu être confirmé. Vérifiez l'état de la mission avant de réessayer."
 
 /** Vrai quand le code d'erreur de l'action indique que l'argent est déjà parti (rien à réessayer). */
 export function isAlreadyPaid(code) {
   return PAID_CODES.has(code)
+}
+
+/** « Actualiser » recharge les données de la page puis ferme la modale (la mission affichée est celle à jour). */
+export function refreshAndClose(refresh, close) {
+  refresh()
+  close()
+}
+
+/** Bloc d'erreur d'un paiement déjà parti : `already_done` renvoie au reçu, `already_released` (statut non enregistré) à l'aide. */
+function PaidNotice({ code }) {
+  if (code === "already_released") {
+    return (
+      <>
+        <div className="banner__title">Paiement déjà libéré</div>
+        Le paiement a déjà été libéré. Si la mission n&apos;apparaît pas terminée après actualisation,{" "}
+        <Link className="link2" href={REPORT_HREF}>contactez l&apos;aide</Link>.
+      </>
+    )
+  }
+  return (
+    <>
+      <div className="banner__title">Paiement déjà effectué</div>
+      {DONE_MESSAGE}
+    </>
+  )
 }
 
 /**
@@ -113,8 +138,14 @@ export function ConfirmEndDialogView({
         <div className="banner banner--erreur" role="alert">
           <Icon name="i-alert-triangle" />
           <div className="banner__body">
-            <div className="banner__title">{alreadyPaid ? "Paiement déjà effectué" : "La libération n'a pas pu être confirmée"}</div>
-            {alreadyPaid ? PAID_MESSAGE : UNCONFIRMED_MESSAGE}
+            {alreadyPaid ? (
+              <PaidNotice code={errorCode} />
+            ) : (
+              <>
+                <div className="banner__title">La libération n&apos;a pas pu être confirmée</div>
+                {UNCONFIRMED_MESSAGE}
+              </>
+            )}
           </div>
         </div>
       ) : null}
@@ -181,7 +212,7 @@ function ConfirmEndDialogOpen({ missionId, title, studentName, split, since, onC
       pending={pending}
       error={error}
       errorCode={errorCode}
-      onRefresh={() => router.refresh()}
+      onRefresh={() => refreshAndClose(router.refresh, onClose)}
       checkRef={checkRef}
       onCheck={setChecked}
       onSubmit={submit}
