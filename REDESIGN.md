@@ -73,7 +73,10 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
 ## Cohabitation pendant la transition
 
 - Les espaces connectés restent en Tailwind avec parité stricte avec `main`
-  (Inter, fond blanc, mode sombre) tant qu'un écran n'est pas porté.
+  (Inter, fond blanc, mode sombre) tant qu'un écran n'est pas porté. Les
+  écrans connectés déjà portés utilisent Anton et Figtree sous `.ds` ; Inter ne
+  reste que pour les écrans pas encore portés, et la charte ne change pas les
+  polices du site.
 - Plus aucune page MUI : MUI et Emotion sont retirés du projet (RD-02).
 - Nouvel écran : uniquement les classes du système sous `.ds`, d'après la
   maquette de `design-rebrand/maquettes/`.

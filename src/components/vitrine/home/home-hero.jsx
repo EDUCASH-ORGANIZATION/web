@@ -135,7 +135,7 @@ export function HomeHero({ role }) {
         <div className="v-hero__visual v-hero__visual--client" aria-hidden="true">
           <HeroPhoto photo={HERO_PHOTOS.client} priority />
           <div className="push v-hero__push">
-            <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={40} height={40} />
+            <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={42} height={40} />
             <div>
               <div className="push__app">EduCash · maintenant</div>
               <div className="push__title">Afiavi a terminé votre marché</div>
