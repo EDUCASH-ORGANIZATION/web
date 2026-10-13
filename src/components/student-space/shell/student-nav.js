@@ -12,6 +12,7 @@ export const STUDENT_NAV = {
   search: {
     action: "/student/missions",
     param: "q",
+    echo: true,
     label: "Rechercher une mission",
     placeholder: "Rechercher une mission",
   },

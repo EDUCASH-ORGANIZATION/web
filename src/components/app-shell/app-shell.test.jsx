@@ -5,15 +5,17 @@ import { readdirSync, statSync } from "node:fs"
 import path from "node:path"
 
 let pathname = "/client/dashboard"
+let search = ""
 let unread = 2
 const unreadHook = vi.fn((_id, initial) => (unread ?? initial))
 
-vi.mock("next/navigation", () => ({ usePathname: () => pathname }))
+vi.mock("next/navigation", () => ({ usePathname: () => pathname, useSearchParams: () => new URLSearchParams(search) }))
 vi.mock("@/hooks/use-unread-count", () => ({ useUnreadCount: (...args) => unreadHook(...args) }))
 vi.mock("@/lib/actions/auth.actions", () => ({ logout: vi.fn() }))
 
 const { AppShell } = await import("./app-shell")
 const { CLIENT_NAV } = await import("../client-space/shell/client-nav")
+const { STUDENT_NAV } = await import("../student-space/shell/student-nav")
 
 const USER = { id: "client-1", fullName: "Rosine Houngbédji" }
 
@@ -167,6 +169,42 @@ describe("AppShell (rendu statique)", () => {
     expect(html).not.toMatch(/class="[^"]*\b(?:flex|grid|bg-|text-|p-\d|gap-)/)
     expect(html).not.toContain("style=")
     expect(html).not.toContain("/client/notifications")
+  })
+})
+
+describe("AppShell : champ de recherche de la barre du haut (echo de q, espace étudiant seulement)", () => {
+  const inputOf = (html) => html.match(/<input[^>]*type="search"[^>]*>/)[0]
+  const renderStudent = (at, q) => {
+    search = q === undefined ? "" : `q=${encodeURIComponent(q)}`
+    try {
+      return render({ nav: STUDENT_NAV }, at)
+    } finally {
+      search = ""
+    }
+  }
+
+  it("affiche q dans le champ sur la page de l'action, échappé par React", () => {
+    expect(inputOf(renderStudent("/student/missions", "design"))).toContain('value="design"')
+    const hostile = inputOf(renderStudent("/student/missions", '"><script>alert(1)</script>'))
+    expect(hostile).not.toContain("<script>")
+    expect(hostile).toContain("&quot;&gt;&lt;script&gt;")
+  })
+
+  it("borne la valeur à 100 caractères", () => {
+    const value = inputOf(renderStudent("/student/missions", "a".repeat(250))).match(/value="([^"]*)"/)[1]
+    expect(value).toHaveLength(100)
+  })
+
+  it("n'affiche rien hors de la page de l'action ou sans q", () => {
+    expect(inputOf(renderStudent("/student/dashboard", "design"))).not.toContain("value=")
+    expect(inputOf(renderStudent("/student/missions"))).not.toContain("value=")
+  })
+
+  it("le client n'affiche jamais q, même sur sa page d'action", () => {
+    search = "q=design"
+    const html = render({}, "/client/missions")
+    search = ""
+    expect(inputOf(html)).not.toContain("value=")
   })
 })
 
