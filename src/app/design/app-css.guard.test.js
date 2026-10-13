@@ -383,6 +383,18 @@ describe("feuilles app-shell.css et client/*.css", () => {
     expect(SHELL.indexOf(".bnav2-spacer { display: none; }")).toBeLessThan(SHELL.indexOf("@media (max-width: 1023.98px)"))
   })
 
+  it("capsule plafonnee et centree entre 481 et 1023 px, sans nouveau seuil ; toasts mobiles au-dessus du bouton Publier", () => {
+    const tablet = SHELL.slice(SHELL.indexOf("@media (max-width: 1023.98px)"))
+    expect(tablet).toMatch(/\.bottom-nav\.bottom-nav--v2 \{[^}]*left: 10px; right: 10px;[^}]*max-width: 520px; margin: 0 auto;/)
+    // Le plafond ne doit pas passer sous la largeur utile a 320 px (300 px) ni depasser une capsule lisible.
+    const cap = Number(tablet.match(/\.bottom-nav\.bottom-nav--v2 \{[^}]*max-width: (\d+)px/)[1])
+    expect(cap).toBeGreaterThanOrEqual(480)
+    expect(cap).toBeLessThanOrEqual(560)
+    // Toasts : plus d'air que l'ancien 86 + s-3 (12 px), qui touchait l'anneau du bouton central (~14 px de depassement).
+    expect(SHELL).toMatch(/\.toasts--mobile\.ds-toasts-fixed \{ bottom: calc\(86px \+ env\(safe-area-inset-bottom, 0px\) \+ var\(--s-6\)\); \}/)
+    expect(SHELL).not.toMatch(/\.toasts--mobile\.ds-toasts-fixed \{ bottom: calc\(86px \+ env\(safe-area-inset-bottom, 0px\) \+ var\(--s-3\)\)/)
+  })
+
   it("capsule : bouton Publier central (52 px, bleu, icone blanche >= 4,5:1, souleve, sans libelle) avec anneau citron actif et focus visible", () => {
     const colors = parseColorTokens(read("tokens.css"))
     expect(contrastRatio(colors["--c-blanc"], colors["--c-bleu"])).toBeGreaterThanOrEqual(4.5)

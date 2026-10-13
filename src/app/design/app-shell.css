@@ -289,7 +289,8 @@
 .ds-toasts-fixed { gap: 0; }
 .ds-toasts__zone { display: flex; flex-direction: column; gap: 10px; }
 .ds-toasts__zone:not(:empty) + .ds-toasts__zone:not(:empty) { margin-top: 10px; }
-.toasts--mobile.ds-toasts-fixed { bottom: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
+/* Au-dessus de la barre (86) ET du bouton Publier, qui depasse de la capsule d'environ 14 px (decalage 8 + anneau 6) : 24 px d'air, soit 10 px sous les toasts */
+.toasts--mobile.ds-toasts-fixed { bottom: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
 /* Ecrans de detail : les toasts passent au-dessus de .mbar2 (repli :has en regle separee) */
 .shell--detail .toasts--mobile.ds-toasts-fixed { bottom: calc(140px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
 .shell--v2:has(.mbar2) .toasts--mobile.ds-toasts-fixed { bottom: calc(140px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
@@ -309,7 +310,7 @@
   .shell--v2 .shell__main { padding: 0 var(--s-4) calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
   .mtop2 { display: flex; }
   .bnav2 { display: grid; }
-  .bottom-nav.bottom-nav--v2 { display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); height: var(--h-bottomnav); padding: 0 var(--s-2); gap: var(--s-1); align-items: center; justify-content: space-between; border-radius: var(--r-pill); background: var(--c-encre); box-shadow: var(--sh-dur-s); z-index: var(--z-nav); }
+  .bottom-nav.bottom-nav--v2 { display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); height: var(--h-bottomnav); max-width: 520px; margin: 0 auto; padding: 0 var(--s-2); gap: var(--s-1); align-items: center; justify-content: space-between; border-radius: var(--r-pill); background: var(--c-encre); box-shadow: var(--sh-dur-s); z-index: var(--z-nav); }
   .bnav2-spacer { display: block; height: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
   .main2 { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
   /* Ecrans de detail : pas de barre du bas, la barre d'action .mbar2 prend la place.
