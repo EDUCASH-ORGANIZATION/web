@@ -545,6 +545,13 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     expect(c14).toMatch(/\.tx2 \{ grid-template-columns: 60px minmax\(0, 1fr\) 132px 120px; \}/)
   })
 
+  it("avatar de l'en-tete mobile : zone tactile de 44 x 44 (inset -7px, bordure de 1 px comprise)", () => {
+    const tablet = SHELL.match(/@media \(max-width: 1023\.98px\) \{([\s\S]*?)\n\}/g)?.join("\n") ?? ""
+    expect(tablet).toContain('.c2 .mtop2 > a::after { content: ""; position: absolute; inset: -6px; }')
+    expect(tablet).toContain(".c2 .mtop2 > a.av2::after { inset: -7px; }")
+    expect(tablet).toContain(".c2 .mtop2 > a.av2 { overflow: visible; }")
+  })
+
   it("boutons secondaire et accent de .c2 : l'anneau de focus n'est pas annule par box-shadow: none", () => {
     for (const tone of ["btn--secondary", "btn--accent"]) {
       const focus = computedStyle(RULES, { tag: "button", classes: ["btn", tone], ancestors: ANCESTORS, states: ["focus-visible"] })

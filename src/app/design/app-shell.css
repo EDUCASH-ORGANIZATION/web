@@ -339,6 +339,8 @@
   .c2 .mtop2 > a::after { content: ""; position: absolute; inset: -6px; }
   /* .c2 .av2 { overflow: hidden } (0,2,0) rognait ce pseudo-element sur l'avatar : la zone de 44 px n'existait pas */
   .c2 .mtop2 > a.av2 { overflow: visible; }
+  /* inset se calcule depuis la boite de remplissage : avec la bordure de 1 px, -6px donnait 42 x 42 ; -7px donne 44 x 44 */
+  .c2 .mtop2 > a.av2::after { inset: -7px; }
   /* Sous-textes des cartes de chiffres et de la carte argent : retour a la ligne au lieu de l'ellipse */
   .c2 .stat2__sub, .c2 .money2 .stat2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
 }
