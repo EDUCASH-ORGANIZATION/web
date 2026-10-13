@@ -425,6 +425,16 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     expect(read("client/c02.css")).not.toContain(".search:focus-within")
   })
 
+  it("recherche de la barre du haut : le focus bleu l'emporte sur la bordure givre de .shell--v2 .search2", () => {
+    expect(specificity(".shell--v2 .search2:focus-within")).toEqual([0, 3, 0])
+    expect(specificity(".shell--v2 .search2")).toEqual([0, 2, 0])
+    const el = { tag: "div", classes: ["search2"], ancestors: ANCESTORS }
+    expect(computedStyle(RULES, el)["border-color"]).toBe("var(--c-givre)")
+    expect(computedStyle(RULES, { ...el, states: ["focus-within"] })["border-color"]).toBe("var(--c-bleu)")
+    expect(SHELL).toMatch(/\.shell--v2 \.search2:focus-within, \.shell--v2 \.search2\.is-focus \{ border-color: var\(--c-bleu\); \}/)
+    expect(SHELL.indexOf(".shell--v2 .search2:focus-within")).toBeGreaterThan(SHELL.indexOf(".shell--v2 .search2 {"))
+  })
+
   it("boutons secondaire et accent de .c2 : l'anneau de focus n'est pas annule par box-shadow: none", () => {
     for (const tone of ["btn--secondary", "btn--accent"]) {
       const focus = computedStyle(RULES, { tag: "button", classes: ["btn", tone], ancestors: ANCESTORS, states: ["focus-visible"] })

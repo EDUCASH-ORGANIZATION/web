@@ -1,6 +1,6 @@
 // @ds-screen RD-CLIENT-01
 import { cache } from "react"
-import { notFound } from "next/navigation"
+import { notFound, unstable_rethrow } from "next/navigation"
 import { getClientMissionDetail, getCandidateProfile } from "@/lib/actions/client-mission-detail.actions"
 import { paymentsEnabled } from "@/lib/constants/payments"
 import { MissionOpenView } from "@/components/client-space/mission-detail/open-view"
@@ -39,8 +39,19 @@ export default async function ClientMissionDetailPage({ params, searchParams }) 
 
   if (detail.mission.status === "open") {
     const candidatId = paramText(query.candidat)
-    const candidate = candidatId ? await getCandidateProfile(detail.mission.id, candidatId) : null
-    return <MissionOpenView detail={detail} candidate={candidate} flags={flags} />
+    let candidate = null
+    let openFlags = flags
+    if (candidatId) {
+      try {
+        candidate = await getCandidateProfile(detail.mission.id, candidatId)
+      } catch (err) {
+        unstable_rethrow(err)
+        // Le tiroir candidat est secondaire : la page reste affichée, la vue signale l'indisponibilité.
+        candidate = null
+        openFlags = { ...flags, candidateError: true }
+      }
+    }
+    return <MissionOpenView detail={detail} candidate={candidate} flags={openFlags} />
   }
   return <MissionFollowupView detail={detail} flags={flags} />
 }

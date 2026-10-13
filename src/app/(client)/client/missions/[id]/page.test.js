@@ -6,7 +6,8 @@ const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND")
 })
 
-vi.mock("next/navigation", () => ({ notFound }))
+const unstable_rethrow = vi.fn()
+vi.mock("next/navigation", () => ({ notFound, unstable_rethrow }))
 vi.mock("@/lib/actions/client-mission-detail.actions", () => ({ getClientMissionDetail, getCandidateProfile }))
 vi.mock("@/components/client-space/mission-detail/open-view", () => ({ MissionOpenView: () => null }))
 vi.mock("@/components/client-space/mission-detail/followup-view", () => ({ MissionFollowupView: () => null }))
@@ -46,6 +47,23 @@ describe("page détail de mission client", () => {
     const tree = await Page(props({ candidat: ["a", "b"] }))
     expect(getCandidateProfile).not.toHaveBeenCalled()
     expect(tree.props.candidate).toBeNull()
+  })
+
+  it("une erreur de lecture du candidat n'empêche pas le rendu : candidate null et candidateError", async () => {
+    getClientMissionDetail.mockResolvedValue(detailOf("open"))
+    getCandidateProfile.mockRejectedValue(new Error("boom"))
+    const tree = await Page(props({ candidat: STUDENT }))
+    expect(tree.type.name).toBe("MissionOpenView")
+    expect(tree.props.candidate).toBeNull()
+    expect(tree.props.flags).toEqual({ confirmer: false, publiee: false, paymentsEnabled: false, candidateError: true })
+    expect(unstable_rethrow).toHaveBeenCalledTimes(1)
+  })
+
+  it("laisse passer les erreurs de contrôle de Next (unstable_rethrow relance)", async () => {
+    getClientMissionDetail.mockResolvedValue(detailOf("open"))
+    getCandidateProfile.mockRejectedValue(new Error("NEXT_REDIRECT"))
+    unstable_rethrow.mockImplementationOnce((e) => { throw e })
+    await expect(Page(props({ candidat: STUDENT }))).rejects.toThrow("NEXT_REDIRECT")
   })
 
   it.each(["in_progress", "done", "cancelled"])("aiguille le statut %s vers MissionFollowupView", async (status) => {

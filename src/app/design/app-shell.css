@@ -208,6 +208,7 @@
 .shell--v2 .top2 { height: 56px; padding: 0; }
 .shell--v2 .top2 .iconbtn2:hover { background: var(--c-givre); }
 .shell--v2 .search2 { background: var(--c-givre); border-color: var(--c-givre); }
+.shell--v2 .search2:focus-within, .shell--v2 .search2.is-focus { border-color: var(--c-bleu); }
 .shell--v2 .page2 { padding: 0 0 var(--s-4); gap: var(--s-5); }
 .shell--v2 .head2__title { font-size: 38px; }
 

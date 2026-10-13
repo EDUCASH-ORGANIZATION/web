@@ -90,7 +90,7 @@ describe("buildDecisions : priorités", () => {
 
   it("une échéance dépassée formule la décision de façon neutre, avec le remboursement du séquestre", () => {
     const [d] = buildDecisions(data({ active: [mission({ id: "late", title: "Garde", budget: 6000, deadline: "2026-10-03" })] }), TODAY)
-    expect(d.subtitle).toContain("prolongez ou annulez la mission")
+    expect(d.subtitle).toContain("examinez-la ou annulez-la")
     expect(d.meta.badge).toEqual({ label: "Échéance dépassée", tone: "erreur" })
     expect(d.hero.text).toContain("6 000 FCFA bloqués reviennent sur votre portefeuille")
   })

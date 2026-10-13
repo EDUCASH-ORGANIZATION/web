@@ -111,9 +111,10 @@ function MissionRow({ mission, today }) {
   )
 }
 
+// Mobile seulement : à partir de 1024 px la recherche de la barre du haut suffit (planche C02).
 function SearchForm({ onglet, q }) {
   return (
-    <form role="search" method="get" action={clientMissionsHref()} className="tools2">
+    <form role="search" method="get" action={clientMissionsHref()} className="tools2 ds-mob-only">
       {onglet !== "open" ? <input type="hidden" name="onglet" value={onglet} /> : null}
       <label className="search">
         <Icon name="i-search" />

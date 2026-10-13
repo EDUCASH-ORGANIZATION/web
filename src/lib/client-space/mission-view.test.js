@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest"
+import { escrowSplit } from "../app/money.js"
 import {
   applicationCounts,
   missionActions,
@@ -55,14 +56,28 @@ describe("missionActions", () => {
 describe("grand livre", () => {
   const ledger = [
     { type: "reserve", amount: 10000, createdAt: "2026-10-01T09:00:00Z" },
+    { type: "release", amount: 10000, createdAt: "2026-10-05T09:00:00Z" },
     { type: "commission", amount: 1200, createdAt: "2026-10-05T09:00:00Z" },
-    { type: "release", amount: -8800, createdAt: "2026-10-05T09:00:00Z" },
   ]
-  it("reçu : somme par type en valeur absolue, sans constante de commission", () => {
-    expect(receiptFromLedger(ledger)).toEqual({ hasLedger: true, reserved: 10000, commission: 1200, released: 8800 })
+  it("reçu : release brut du client moins commission = versé à l'étudiant (escrowSplit)", () => {
+    const r = receiptFromLedger(ledger)
+    expect(r).toEqual({ hasLedger: true, reserved: 10000, commission: 1200, releasedGross: 10000, student: 8800 })
+    expect(r.student).toBe(escrowSplit(10000).student)
   })
-  it("reçu : mission héritée sans mouvement", () => {
-    expect(receiptFromLedger([])).toEqual({ hasLedger: false, reserved: 0, commission: 0, released: 0 })
+  it("reçu : mission héritée sans mouvement, grand livre vide", () => {
+    expect(receiptFromLedger([])).toEqual({ hasLedger: false, reserved: 0, commission: 0, releasedGross: 0, student: null })
+    expect(receiptFromLedger(undefined).hasLedger).toBe(false)
+  })
+  it("reçu : grand livre incomplet sans commission, aucun versé inventé", () => {
+    const r = receiptFromLedger(ledger.filter((m) => m.type !== "commission"))
+    expect(r).toMatchObject({ reserved: 10000, commission: 0, releasedGross: 10000, student: null })
+    expect(receiptFromLedger(ledger.filter((m) => m.type === "reserve")).student).toBeNull()
+  })
+  it("reçu : montants en chaîne (numeric PostgREST)", () => {
+    const r = receiptFromLedger([
+      { type: "reserve", amount: "10000.00" }, { type: "release", amount: "10000.00" }, { type: "commission", amount: "1200.00" },
+    ])
+    expect(r).toMatchObject({ reserved: 10000, releasedGross: 10000, commission: 1200, student: 8800 })
   })
   it("remboursement : montant et date du dernier mouvement refund, null sans remboursement", () => {
     expect(refundFromLedger([

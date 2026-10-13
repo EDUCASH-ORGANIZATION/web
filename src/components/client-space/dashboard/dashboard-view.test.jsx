@@ -138,7 +138,7 @@ describe("ClientDashboardView : états", () => {
   it("échéance dépassée en tête : message neutre sans annulation automatique annoncée", () => {
     const html = render({ data: data({ active: [mission({ title: "Garde", budget: 6000, deadline: "2026-10-03" })] }) })
     expect(html).toContain("« Garde » a dépassé son échéance")
-    expect(html).toContain("prolongez ou annulez la mission")
+    expect(html).toContain("examinez-la ou annulez-la")
     expect(html).not.toMatch(/annulée automatiquement|automatiquement/)
   })
 

@@ -162,6 +162,11 @@ describe("ClientMissionsView : recherche, erreur, chargement", () => {
     expect(html).toContain("1 résultat")
   })
 
+  it("champ de recherche de la page : mobile seulement (ds-mob-only), la barre du haut sert au bureau", () => {
+    const html = render({})
+    expect(html).toMatch(/<form[^>]*role="search"[^>]*class="tools2 ds-mob-only"|<form[^>]*class="tools2 ds-mob-only"[^>]*role="search"/)
+  })
+
   it("recherche sans résultat : texte dédié, lien pour effacer, mention des autres onglets", () => {
     const none = render({ q: "peinture" })
     expect(none).toContain("Aucune mission pour « peinture »")

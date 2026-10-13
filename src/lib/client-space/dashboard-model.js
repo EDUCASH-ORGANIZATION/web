@@ -52,14 +52,14 @@ function overdueDecision(m, today) {
     missionId: m.id,
     title: m.title,
     icon: "i-clock",
-    subtitle: `Échéance du ${formatShortDate(m.deadline)} dépassée : prolongez ou annulez la mission`,
+    subtitle: `Échéance du ${formatShortDate(m.deadline)} dépassée : examinez-la ou annulez-la`,
     meta: { badge: { label: view.label, tone: view.tone } },
     action: { label: "Voir", href: clientMissionHref(m.id) },
     count: 1,
     sortKey: m.deadline ?? "",
     hero: {
       title: `« ${m.title} » a dépassé son échéance`,
-      text: `Échéance dépassée le ${formatDateFr(m.deadline)} : prolongez ou annulez la mission. Si vous l'annulez, les ${formatAmount(m.budget)} bloqués reviennent sur votre portefeuille.`,
+      text: `Échéance dépassée le ${formatDateFr(m.deadline)} : examinez-la ou annulez-la ; l'annulation rembourse le séquestre, donc les ${formatAmount(m.budget)} bloqués reviennent sur votre portefeuille.`,
       action: { label: "Voir la mission", href: clientMissionHref(m.id), icon: "i-clock" },
     },
   }

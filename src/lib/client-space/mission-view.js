@@ -39,17 +39,28 @@ const sumOf = (ledger, type) =>
     .reduce((acc, m) => acc + Math.abs(Number(m.amount) || 0), 0)
 
 /**
- * Reçu d'une mission terminée, lu au grand livre : réservé, commission, versé à l'étudiant.
- * `hasLedger` est faux si aucun mouvement n'existe (mission héritée) : la vue n'invente alors rien.
- * @param {Array<{ type: string, amount: number }>} ledger
+ * Reçu d'une mission terminée, lu au grand livre visible du client (RLS : ses propres lignes seulement).
+ * `wallet_release` écrit pour le client une ligne `release` au montant BRUT (commission incluse) et une
+ * ligne `commission` distincte ; la ligne nette de l'étudiant est sous son user_id, donc invisible ici.
+ * - `reserved` : somme des `reserve` ; `commission` : somme des `commission` ;
+ * - `releasedGross` : somme des `release` du client (brut, commission incluse) ;
+ * - `student` : versé à l'étudiant = `releasedGross - commission`, ou null si le grand livre est
+ *   incomplet (aucune ligne `release` ou `commission`) : aucun montant n'est inventé.
+ * `hasLedger` est faux si aucun mouvement n'existe (mission héritée).
+ * @param {Array<{ type: string, amount: number|string }>} ledger
+ * @returns {{ hasLedger: boolean, reserved: number, commission: number, releasedGross: number, student: number|null }}
  */
 export function receiptFromLedger(ledger) {
   const list = Array.isArray(ledger) ? ledger : []
+  const has = (type) => list.some((m) => m?.type === type)
+  const commission = sumOf(list, "commission")
+  const releasedGross = sumOf(list, "release")
   return {
     hasLedger: list.length > 0,
     reserved: sumOf(list, "reserve"),
-    commission: sumOf(list, "commission"),
-    released: sumOf(list, "release"),
+    commission,
+    releasedGross,
+    student: has("release") && has("commission") ? Math.max(0, releasedGross - commission) : null,
   }
 }
 
