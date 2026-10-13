@@ -18,6 +18,22 @@ function MoneyAction({ action, secondary = false, small = true }) {
   )
 }
 
+// Garde le separateur " · " collé au mot qui le suit : sur 320 px il ne reste jamais seul en fin de ligne.
+function TitleText({ text }) {
+  const at = text.indexOf(" · ")
+  if (at < 0) return text
+  const rest = text.slice(at + 3)
+  const cut = rest.search(/\s/)
+  const glued = cut < 0 ? rest : rest.slice(0, cut)
+  return (
+    <>
+      {text.slice(0, at)}{" "}
+      <span className="money2__glue">{"· " + glued}</span>
+      {cut < 0 ? "" : rest.slice(cut)}
+    </>
+  )
+}
+
 /**
  * Carte argent : la seule carte colorée de l'écran (bleu plein, texte blanc).
  * - Variante partagée : `available` et `escrow` (nombres) côte à côte.
@@ -46,7 +62,7 @@ export function MoneyCard({
     return (
       <section className="money2 money2--split" aria-label={title ?? label}>
         <div className="money2__head">
-          <span>{title ?? label}</span>
+          <span><TitleText text={title ?? label} /></span>
           <MoneyAction action={headAction} />
         </div>
         <Stat label="Disponible" amount={available ?? 0} sub={availableNote} />

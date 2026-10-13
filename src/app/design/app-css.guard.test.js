@@ -441,6 +441,7 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     const block = m[0]
     expect(block).toMatch(/\.c2 \.item2__action, \.c2 \.hero2__link \{ display: inline-flex; align-items: center; min-height: 44px; \}/)
     expect(block).toMatch(/\.c2 \.btn--sm \{ min-height: 44px; \}/)
+    expect(block).toMatch(/\.c2 \.list2__more \{ display: inline-flex; align-items: center; min-height: 44px; \}/)
     expect(block).toMatch(/\.c2 \.mtop2 > a \{ position: relative; \}/)
     expect(block).toMatch(/\.c2 \.mtop2 > a::after \{ content: ""; position: absolute; inset: -6px; \}/)
     expect(block).toMatch(/\.c2 \.stat2__sub, \.c2 \.money2 \.stat2__sub \{ white-space: normal; overflow: visible; text-overflow: clip; \}/)
