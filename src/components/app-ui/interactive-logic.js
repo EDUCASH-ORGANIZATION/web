@@ -56,19 +56,32 @@ export function createScrimGuard() {
 }
 
 // Pile des dialogues ouverts : seul celui du dessus réagit à Échap et au piège de focus.
-export function createDialogStack() {
-  let ids = []
+// Le dessus se décide par l'imbrication dans le DOM : si le conteneur d'un dialogue en contient un autre
+// déjà empilé (ou inversement), le plus imbriqué est au dessus, quel que soit l'ordre des effets React
+// (les effets d'un enfant s'exécutent avant ceux de son parent). Sinon c'est l'ordre d'ouverture.
+// `lock` est appelé quand la pile passe de 0 à 1 dialogue et `unlock` quand elle revient à 0 : le blocage
+// du défilement de la page est ainsi mémorisé et restauré une seule fois, quel que soit l'ordre de fermeture.
+export function createDialogStack({ lock, unlock } = {}) {
+  let entries = []
+  const nests = (outer, inner) => Boolean(outer && inner && outer !== inner && outer.contains?.(inner))
   return {
-    push(id) {
-      ids = [...ids.filter((x) => x !== id), id]
+    push(id, container = null) {
+      const wasEmpty = entries.length === 0
+      const rest = entries.filter((entry) => entry.id !== id)
+      const nested = rest.findIndex((entry) => nests(container, entry.container))
+      const entry = { id, container }
+      entries = nested === -1 ? [...rest, entry] : [...rest.slice(0, nested), entry, ...rest.slice(nested)]
+      if (wasEmpty) lock?.()
     },
     remove(id) {
-      ids = ids.filter((x) => x !== id)
+      const had = entries.length > 0
+      entries = entries.filter((entry) => entry.id !== id)
+      if (had && entries.length === 0) unlock?.()
     },
     isTop(id) {
-      return ids.length > 0 && ids[ids.length - 1] === id
+      return entries.length > 0 && entries[entries.length - 1].id === id
     },
-    size: () => ids.length,
+    size: () => entries.length,
   }
 }
 

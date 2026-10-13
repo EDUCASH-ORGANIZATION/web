@@ -152,6 +152,15 @@ describe("trapFocus", () => {
     expect(trigger.focus).toHaveBeenCalled()
   })
 
+  it("lockScroll: false laisse le défilement à l'appelant", () => {
+    const { container, doc } = fakeDialog(1)
+    doc.body.style.overflow = "auto"
+    const cleanup = trapFocus({ doc, getContainer: () => container, onClose: vi.fn(), lockScroll: false })
+    expect(doc.body.style.overflow).toBe("auto")
+    cleanup()
+    expect(doc.body.style.overflow).toBe("auto")
+  })
+
   it("boucle avec Tab et Maj+Tab", () => {
     const { items, container, doc, press } = fakeDialog(3)
     trapFocus({ doc, getContainer: () => container, onClose: vi.fn() })
@@ -243,20 +252,31 @@ function stackedDialogs() {
       getClientRects: () => [1],
       closest: () => null,
     }))
-  const dialogs = createDialogStack()
-  const open = (id, count) => {
+  // Même câblage que modal.jsx : la pile mémorise et restaure `overflow`, trapFocus ne le touche pas.
+  let saved = ""
+  const dialogs = createDialogStack({
+    lock() { saved = doc.body.style.overflow; doc.body.style.overflow = "hidden" },
+    unlock() { doc.body.style.overflow = saved },
+  })
+  // Boîte DOM simulée : `contains` vrai pour elle-même et ses descendants (conteneurs imbriqués).
+  const box = (...nested) => {
+    const el = { children: nested }
+    el.contains = (node) => node === el || el.children.some((c) => c.contains(node))
+    return el
+  }
+  const open = (id, count, { container = box() } = {}) => {
     const items = makeItems(count)
-    const container = { querySelectorAll: () => items }
+    container.querySelectorAll = () => items
     const onClose = vi.fn()
-    dialogs.push(id)
-    const cleanup = trapFocus({ doc: gateDocument(doc, () => dialogs.isTop(id)), getContainer: () => container, onClose })
-    return { items, onClose, close: () => { cleanup(); dialogs.remove(id) } }
+    dialogs.push(id, container)
+    const cleanup = trapFocus({ doc: gateDocument(doc, () => dialogs.isTop(id)), getContainer: () => container, onClose, lockScroll: false })
+    return { items, onClose, container, close: () => { cleanup(); dialogs.remove(id) } }
   }
   const press = (key, shiftKey = false) => {
     const event = { key, shiftKey, preventDefault: vi.fn() }
     for (const fn of [...listeners]) fn(event)
   }
-  return { open, press, dialogs, listeners }
+  return { open, press, dialogs, listeners, doc, box }
 }
 
 describe("pile de dialogues", () => {
@@ -299,6 +319,76 @@ describe("pile de dialogues", () => {
     press("Tab")
     // Le focus n'étant dans aucun élément du Drawer, Tab le place sur le premier : le dessous a repris la main.
     expect(drawer.items.map((el) => el.focus.mock.calls.length)).toEqual([2, 0, 0])
+  })
+
+  it("createDialogStack : le conteneur le plus imbriqué est au dessus, dans les deux ordres d'empilement", () => {
+    const drawer = { contains: (n) => n === inner || n === drawer }
+    const inner = { contains: (n) => n === inner }
+    const other = { contains: (n) => n === other }
+    const nestedFirst = createDialogStack()
+    nestedFirst.push("confirm", inner)
+    nestedFirst.push("drawer", drawer)
+    expect(nestedFirst.isTop("confirm")).toBe(true)
+    expect(nestedFirst.isTop("drawer")).toBe(false)
+    const parentFirst = createDialogStack()
+    parentFirst.push("drawer", drawer)
+    parentFirst.push("confirm", inner)
+    expect(parentFirst.isTop("confirm")).toBe(true)
+    // Sans imbrication : ordre d'ouverture.
+    const siblings = createDialogStack()
+    siblings.push("a", other)
+    siblings.push("b", inner)
+    expect(siblings.isTop("b")).toBe(true)
+  })
+
+  it("ouverture simultanée, ConfirmDialog imbriquée dans le Drawer : Échap ferme la ConfirmDialog, dans les deux ordres d'effets", () => {
+    for (const childFirst of [true, false]) {
+      const { open, press, box } = stackedDialogs()
+      const confirmBox = box()
+      const drawerBox = box(confirmBox)
+      const mount = {
+        confirm: () => open("confirm", 2, { container: confirmBox }),
+        drawer: () => open("drawer", 2, { container: drawerBox }),
+      }
+      // Effets React : l'enfant s'exécute avant son parent à l'ouverture simultanée.
+      const first = childFirst ? mount.confirm() : mount.drawer()
+      const second = childFirst ? mount.drawer() : mount.confirm()
+      const confirm = childFirst ? first : second
+      const drawer = childFirst ? second : first
+      press("Escape")
+      expect(confirm.onClose).toHaveBeenCalledTimes(1)
+      expect(drawer.onClose).not.toHaveBeenCalled()
+    }
+  })
+
+  it("défilement : mémorisé au premier dialogue, restauré à la fermeture du dernier, quel que soit l'ordre de fermeture", () => {
+    for (const closeOrder of [["drawer", "confirm"], ["confirm", "drawer"]]) {
+      const { open, doc } = stackedDialogs()
+      doc.body.style.overflow = "auto"
+      const drawer = open("drawer", 1)
+      const confirm = open("confirm", 1)
+      expect(doc.body.style.overflow).toBe("hidden")
+      const byId = { drawer, confirm }
+      byId[closeOrder[0]].close()
+      expect(doc.body.style.overflow).toBe("hidden")
+      byId[closeOrder[1]].close()
+      expect(doc.body.style.overflow).toBe("auto")
+    }
+  })
+
+  it("Strict Mode : monter, nettoyer, remonter ne perd ni la pile ni le défilement", () => {
+    const { open, doc, dialogs, listeners } = stackedDialogs()
+    doc.body.style.overflow = "scroll"
+    let dialog = open("m", 1)
+    dialog.close()
+    expect(doc.body.style.overflow).toBe("scroll")
+    expect(listeners).toHaveLength(0)
+    dialog = open("m", 1)
+    expect(dialogs.size()).toBe(1)
+    expect(dialogs.isTop("m")).toBe(true)
+    expect(doc.body.style.overflow).toBe("hidden")
+    dialog.close()
+    expect(doc.body.style.overflow).toBe("scroll")
   })
 
   it("le filtre retire ses écouteurs au nettoyage", () => {

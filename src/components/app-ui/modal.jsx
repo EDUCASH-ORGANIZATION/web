@@ -29,8 +29,18 @@ export function useIsCompact() {
   )
 }
 
-// Pile des dialogues ouverts, au niveau du module (un seul document).
-const dialogs = createDialogStack()
+// Pile des dialogues ouverts, au niveau du module (un seul document). Elle porte aussi le blocage du
+// défilement : `overflow` est mémorisé au premier dialogue ouvert et restauré à la fermeture du dernier.
+let savedOverflow = ""
+const dialogs = createDialogStack({
+  lock() {
+    savedOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+  },
+  unlock() {
+    document.body.style.overflow = savedOverflow
+  },
+})
 
 // Piège de focus, Échap et retour du focus communs à Modal et Drawer. Seul le dialogue du dessus
 // de la pile traite Échap et Tab ; à la fermeture, celui du dessous reprend la main.
@@ -43,8 +53,9 @@ export function useDialogBehavior({ onClose, initialFocusRef }) {
   })
   useEffect(() => {
     const returnTarget = document.activeElement
-    dialogs.push(token)
+    dialogs.push(token, containerRef.current)
     const cleanup = trapFocus({
+      lockScroll: false,
       doc: gateDocument(document, () => dialogs.isTop(token)),
       getContainer: () => containerRef.current,
       initialFocus: initialFocusRef?.current,
