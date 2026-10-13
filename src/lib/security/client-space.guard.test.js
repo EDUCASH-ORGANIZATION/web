@@ -107,20 +107,29 @@ function classTokens(code) {
 
 const BANNED_WORDS = /\b(?:livraisons?|courses?|coursiers?|saisie|bientôt|fedapay)\b/i
 // Bornes unicode : \b traite "ê" comme non-mot et ferait matcher "tes" dans "êtes".
-// Le trait d'union fait partie des bornes : "data-ta" n'est pas un possessif.
-const WORD_START = "(?<![\\p{L}\\p{N}_-])"
+// Le trait d'union n'est PAS une borne pour les pronoms : "Connecte-toi", "As-tu vu", "peux-tu".
+const WORD_START = "(?<![\\p{L}\\p{N}_])"
+// Variante qui exclut aussi le trait d'union : "data-ta" n'est pas un possessif.
+const WORD_START_NO_HYPHEN = "(?<![\\p{L}\\p{N}_-])"
 const WORD_END = "(?![\\p{L}\\p{N}_])"
-// Pronoms, possessifs et élisions (insensible à la casse) : tu, ton, tes, toi, te, t'as, t’inquiète.
-const TUTOIEMENT_PRONOUNS = new RegExp(`${WORD_START}(?:tu|ton|tes|toi|te)${WORD_END}|${WORD_START}t['’](?=\\p{L})`, "iu")
+// Pronoms et possessifs : tu, toi (toute casse), ton, tes, te (minuscule ou capitalisé seulement : les sigles
+// TE, TON, TES ne sont pas détectés, comme TA) ; élisions : t'as, t’inquiète (insensible à la casse).
+// Faux positifs acceptés et non traités : le nom propre « Tu Anh Nguyen » et « te.st ».
+const TUTOIEMENT_PRONOUNS = new RegExp(`${WORD_START}(?:[Tt][Uu]|[Tt][Oo][Ii]|[Tt](?:on|es|e))${WORD_END}`, "u")
+const TUTOIEMENT_ELISION = new RegExp(`${WORD_START}t['’](?=\\p{L})`, "iu")
 // "ta" sans le sigle TA : seule la forme minuscule ou capitalisée est un possessif.
-const TUTOIEMENT_TA = new RegExp(`${WORD_START}[Tt]a${WORD_END}`, "u")
+const TUTOIEMENT_TA = new RegExp(`${WORD_START_NO_HYPHEN}[Tt]a${WORD_END}`, "u")
 // Impératifs courants du tutoiement, en début de phrase (majuscule) : "Il publie" reste permis.
 const TUTOIEMENT_IMPERATIVES = new RegExp(
-  `${WORD_START}(?:Vérifie|Publie|Rafraîchis|Réessaie|Envoie|Clique|Choisis|Ajoute|Retourne)${WORD_END}`,
+  `${WORD_START_NO_HYPHEN}(?:Vérifie|Publie|Rafraîchis|Réessaie|Envoie|Clique|Choisis|Ajoute|Retourne|Recharge|Confirme|Renseigne|Contacte|Annule|Sélectionne|Saisis|Indique|Valide)${WORD_END}`,
   "u",
 )
+// « Recharge » seul est le libellé nominal d'un type d'opération (portefeuille), pas un impératif.
+const NOMINAL_LABELS = new Set(["Recharge"])
 const TUTOIEMENT = {
-  test: (text) => [TUTOIEMENT_PRONOUNS, TUTOIEMENT_TA, TUTOIEMENT_IMPERATIVES].some((re) => re.test(text)),
+  test: (text) =>
+    !NOMINAL_LABELS.has(text.trim()) &&
+    [TUTOIEMENT_PRONOUNS, TUTOIEMENT_ELISION, TUTOIEMENT_TA, TUTOIEMENT_IMPERATIVES].some((re) => re.test(text)),
 }
 
 /** Texte JSX : ce qui se trouve entre une balise et la suivante (hors `=>` et expressions). */
@@ -132,9 +141,9 @@ function jsxText(code) {
   return out
 }
 
-const SUPABASE_SPECIFIER = /["'](?:@\/lib\/supabase|(?:\.{1,2}\/)+(?:lib\/)?supabase)\/[^"'\s]*/g
-// database.constants est un module pur de constantes : sa lecture seule est autorisée.
-const PURE_SUPABASE_CONSTANTS = /\/database\.constants(?:\.js)?$/
+const SUPABASE_SPECIFIER = /["'`](?:@\/lib\/supabase|(?:\.{1,2}\/)+(?:lib\/)?supabase)\/[^"'`\s]*/g
+// database.constants est un module pur de constantes : sa lecture seule est autorisée, chemin complet exact.
+const PURE_SUPABASE_CONSTANTS = /^["'`](?:@\/lib\/supabase|(?:\.{1,2}\/)+(?:lib\/)?supabase)\/database\.constants(?:\.js)?$/
 
 const RULES = [
   { id: "hex", run: ({ code }) => code.match(/#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})\b/gi) ?? [] },
@@ -241,6 +250,8 @@ describe("détecteurs (fixtures en mémoire)", () => {
     ["supabase-import", 'import { x } from "../supabase/server.js"', 'import { f } from "../vitrine/format.js"'],
     ["supabase-import", 'import { x } from "../supabase/database.constants.js/../server.js"', 'import { T } from "@/lib/supabase/database.constants"'],
     ["supabase-import", 'import { x } from "@/lib/supabase/database.constants-client"', 'import { T } from "../supabase/database.constants.js"'],
+    ["supabase-import", "const m = await import(`@/lib/supabase/server`)", "const m = await import(`@/lib/supabase/database.constants`)"],
+    ["supabase-import", 'import { T } from "@/lib/supabase/sub/database.constants"', 'import { T } from "../../lib/supabase/database.constants.js"'],
     ["commission-literal", "const fee = budget * 0.12", "const n = 10.125 + 0.5"],
     ["banned-words", 'const t = "Votre livraison"', "// livraison en commentaire\nconst t = 1"],
     ["banned-words", "<p>Paiement via FedaPay</p>", "<p>Paiement sécurisé</p>"],
@@ -263,6 +274,22 @@ describe("détecteurs (fixtures en mémoire)", () => {
     ["tutoiement", 'const t = "Choisis un montant"', 'const t = "Choisissez un montant"'],
     ["tutoiement", 'const t = "Ajoute un moyen de paiement"', 'const t = "Ajoutez un moyen de paiement"'],
     ["tutoiement", 'const t = "Retourne à la liste"', 'const t = "Retournez à la liste"'],
+    ["tutoiement", 'const t = "Connecte-toi à ton compte"', 'const t = "Connectez-vous"'],
+    ["tutoiement", 'const t = "Inscris-toi"', 'const t = "Inscrivez-vous. Rendez-vous demain"'],
+    ["tutoiement", 'const t = "Peux-tu confirmer ?"', 'const t = "Pouvez-vous confirmer ?"'],
+    ["tutoiement", 'const t = "As-tu vu le message ?"', 'const t = "Avez-vous vu le message ?"'],
+    ["tutoiement", 'const t = "Dis-tu la vérité ?"', 'const t = "Dites-vous la vérité ?"'],
+    ["tutoiement", 'const t = "Recharge ton solde"', 'const t = "TE et TON et TES restent des sigles, êtes, tête, Table, tableau, tâche"'],
+    ["tutoiement", 'const t = "Recharge la page"', 'const t = "Il recharge la page"'],
+    ["tutoiement", 'const t = "Recharge ton solde"', 'const t = "Recharge"'],
+    ["tutoiement", 'const t = "Confirme la mission"', 'const t = "Il confirme la mission"'],
+    ["tutoiement", 'const t = "Renseigne le montant"', 'const t = "Il renseigne le montant"'],
+    ["tutoiement", 'const t = "Contacte le support"', 'const t = "Il contacte le support"'],
+    ["tutoiement", 'const t = "Annule la mission"', 'const t = "Il annule la mission"'],
+    ["tutoiement", 'const t = "Sélectionne un profil"', 'const t = "Il sélectionne un profil"'],
+    ["tutoiement", 'const t = "Saisis un montant"', 'const t = "Il saisit un montant"'],
+    ["tutoiement", 'const t = "Indique un budget"', 'const t = "Il indique un budget"'],
+    ["tutoiement", 'const t = "Valide la mission"', 'const t = "Il valide la mission"'],
     ["raw-type", "<span>{mission.type}</span>", "<span>{missionTypeLabel(mission.type)}</span>"],
   ]
 
