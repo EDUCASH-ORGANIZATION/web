@@ -6,7 +6,8 @@ import { escrowSplit } from "@/lib/app/money"
 import { formatAmount, formatShortDate } from "@/lib/app/format"
 import { STEPS, typeIcon, urgencyLabel } from "@/lib/client-space/publish-schema"
 
-const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100)
+// Espace insécable avant « % » : le libellé ne se coupe jamais entre le nombre et le signe.
+const COMMISSION_PERCENT = `${Math.round(COMMISSION_RATE * 100)}\u00A0%`
 
 // Un budget n'a de répartition que s'il est un nombre entier positif : sinon aucune ligne n'est inventée.
 const hasBudget = (budget) => Number.isInteger(budget) && budget > 0
@@ -27,7 +28,7 @@ export function LiveSummary({ budget }) {
           <Lines
             rows={[
               { label: "Budget bloqué en séquestre", value: split.total },
-              { label: `Commission EduCash ${COMMISSION_PERCENT} %`, value: split.commission, sign: "debit" },
+              { label: `Commission EduCash ${COMMISSION_PERCENT}`, value: split.commission, sign: "debit" },
             ]}
             total={{ label: "L'étudiant recevra", value: split.student }}
           />
@@ -177,7 +178,7 @@ export function RecapBody({ values, onEdit, disabled = false }) {
       <Lines
         rows={[
           { label: "Bloqué aujourd'hui sur votre portefeuille", value: split.total },
-          { label: `Commission EduCash ${COMMISSION_PERCENT} %, prélevée à la fin`, value: split.commission, sign: "debit" },
+          { label: `Commission EduCash ${COMMISSION_PERCENT}, prélevée à la fin`, value: split.commission, sign: "debit" },
         ]}
         total={{ label: "Versé à l'étudiant quand vous confirmez la fin", value: split.student }}
       />

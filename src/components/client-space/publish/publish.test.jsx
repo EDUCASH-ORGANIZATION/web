@@ -274,6 +274,14 @@ describe("étape 4 : récapitulatif", () => {
     expect(html).not.toMatch(/0[.,]88|0[.,]12/)
   })
 
+  it("garde « 12 % » et « FCFA » insécables : aucune coupure possible entre le nombre et son unité", () => {
+    const raw = recap()
+    expect(raw).toContain("Commission EduCash 12\u00A0%, prélevée à la fin")
+    expect(raw).not.toMatch(/12 %/)
+    expect(raw).not.toMatch(/\d FCFA/)
+    expect(raw).toMatch(/\d\u00A0FCFA/)
+  })
+
   it("n'affirme que ce que le service tient (un seul paiement, annulation avant sélection)", () => {
     const html = text(recap())
     expect(html).toContain("Un seul paiement")

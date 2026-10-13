@@ -14,9 +14,9 @@
 .preview2__price b { font-size: var(--t-amount-s); font-weight: var(--fw-xbold); font-variant-numeric: tabular-nums; }
 .preview2__price span { font-size: var(--t-caption); color: var(--c-ardoise); }
 .eyebrow2 { font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-ardoise); }
-.review2 { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 8px var(--s-4); font-size: var(--t-body-s); }
+.review2 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px var(--s-4); font-size: var(--t-body-s); }
 .review2 dt { color: var(--c-ardoise); }
-.review2 dd { font-weight: var(--fw-semibold); min-width: 0; overflow-wrap: anywhere; }
+.review2 dd { font-weight: var(--fw-semibold); min-width: 0; overflow-wrap: anywhere; margin-bottom: var(--s-2); }
 .review2__text { white-space: pre-line; }
 .mstep2 { font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-ardoise); display: none; align-items: center; justify-content: space-between; gap: var(--s-3); }
 .mstep2 .progress { width: 120px; height: 6px; }
@@ -43,6 +43,19 @@
   .wizard2__choices2 > .ds-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
+/* Carte du formulaire : conteneur nommé. Récapitulatif : libellés au-dessus des valeurs tant que la carte est étroite
+   (entre 1024 et 1150 px d'écran le contenu de la carte mesure 267 à 336 px), deux colonnes dès 400 px de contenu. */
+.wizard2 .form2 { container: wizard2card / inline-size; }
+@container wizard2card (min-width: 400px) {
+  .review2 { grid-template-columns: 160px minmax(0, 1fr); gap: 8px var(--s-4); }
+  .review2 dd { margin-bottom: 0; }
+}
+
+/* Pied de formulaire : les boutons passent à la ligne au lieu de déborder de la carte. */
+.wizard2 .form2__foot--split { flex-wrap: wrap; }
+.wizard2 .form2__foot--split > .btn { min-width: 0; max-width: 100%; }
+.wizard2 .form2__foot--split > .btn--dark { margin-left: auto; }
+
 @media (max-width: 1023.98px) {
   .wizard2__stepper { display: none; }
   .mstep2 { display: flex; }
@@ -52,6 +65,5 @@
 }
 
 @media (max-width: 480px) {
-  .review2 { grid-template-columns: minmax(0, 1fr); gap: 2px; }
-  .review2 dd { margin-bottom: var(--s-2); }
+  .wizard2 .form2__foot--split > .btn--dark { margin-left: 0; }
 }

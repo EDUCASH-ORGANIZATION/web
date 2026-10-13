@@ -30,8 +30,8 @@ describe("récapitulatif de la mission : taux de commission", () => {
   const t = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")
 
   it("affiche le taux de la constante et non un 12 % figé", () => {
-    expect(t).toContain("Commission 20 %")
-    expect(t).not.toContain("Commission 12 %")
+    expect(html).toContain("Commission 20\u00A0%")
+    expect(html).not.toContain("Commission 12\u00A0%")
   })
 
   it("calcule la commission et la part de l'étudiant avec le même taux", () => {

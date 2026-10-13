@@ -16,7 +16,8 @@ import { clientMissionHref, clientMissionsHref } from "@/lib/app/client-routes"
 import { firstName, publicDisplayName } from "@/lib/vitrine/public-name"
 
 export const COMMENT_MAX = 300
-const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100)
+// Espace insécable avant « % » : le libellé ne se coupe jamais entre le nombre et le signe.
+const COMMISSION_PERCENT = `${Math.round(COMMISSION_RATE * 100)}\u00A0%`
 const ERR_RATING = "Choisissez une note de 1 à 5 étoiles."
 const ERR_UNEXPECTED = "Votre avis n'a pas pu être enregistré. Réessayez dans un instant."
 
@@ -98,7 +99,7 @@ function MissionRecap({ mission, student }) {
           <b>{formatAmount(split.total)}</b>
         </div>
         <div className="lines2__row">
-          <span>Commission {COMMISSION_PERCENT} %</span>
+          <span>Commission {COMMISSION_PERCENT}</span>
           <b>{formatAmount(split.commission, { sign: "debit" })}</b>
         </div>
         <div className="lines2__row lines2__row--total">

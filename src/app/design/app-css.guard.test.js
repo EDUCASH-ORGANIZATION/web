@@ -206,12 +206,16 @@ describe("feuilles app-shell.css et client/*.css", () => {
   // des media queries ci-dessus reste inchange.
   // C03 (publication) ajoute une requete de conteneur anonyme (520 px) sur .wizard2__choices2 : les cartes d'urgence
   // passent a trois colonnes selon la largeur du champ, pas celle de l'ecran.
+  // C03 (publication) ajoute une requete de conteneur nommee wizard2card (400 px) sur la carte du formulaire
+  // (.wizard2 .form2) : le <dl class="review2"> du recapitulatif passe de une colonne (libelles au-dessus des valeurs)
+  // a deux colonnes 160 px + 1fr quand le contenu de la carte atteint 400 px.
   // C17 (profil) : la colonne principale (.profile2 .col2, conteneur profile2col) mesure environ 330 px entre 1024 et
   // 1150 px d'ecran (colonne = ecran - 693 px) : deux requetes, 480 px (identite empilee) et 720 px (chiffres sur 2 colonnes).
-  it("n'utilise que les requetes de conteneur txs2 (600 px), money2 (480 px), profile2col (480 et 720 px) et celle des cartes d'urgence C03 (520 px)", () => {
+  it("n'utilise que les requetes de conteneur txs2 (600 px), money2 (480 px), profile2col (480 et 720 px) et celles de C03 : cartes d'urgence (520 px) et carte du formulaire wizard2card (400 px)", () => {
     const conditions = [...ALL.matchAll(/@container\s*([^{]+)\{/g)].map((m) => m[1].trim())
     expect(conditions.sort()).toEqual([
       "(min-width: 520px)", "money2 (max-width: 480px)", "profile2col (max-width: 480px)", "profile2col (max-width: 720px)", "txs2 (max-width: 600px)",
+      "wizard2card (min-width: 400px)",
     ])
     expect(ALL).not.toMatch(/@media[^{]*\bmin-width/)
   })
@@ -681,7 +685,8 @@ describe("cascade statique : specificite et ordre de chargement", () => {
   it("le recapitulatif de publication `.review2` (dl C03) reste une grille, la page C10 utilise `.rate-page2`", () => {
     const dl = computedStyle(RULES, { tag: "dl", classes: ["review2"], ancestors: [] })
     expect(dl.display).toBe("grid")
-    expect(dl["grid-template-columns"]).toBe("160px minmax(0, 1fr)")
+    // Une colonne par defaut (carte etroite) ; 160px + 1fr via la requete de conteneur wizard2card (voir plus bas).
+    expect(dl["grid-template-columns"]).toBe("minmax(0, 1fr)")
     const c10 = stripComments(read("client/c10.css"))
     expect(c10).not.toMatch(/\.review2(?![\w-])/)
     expect(c10).toMatch(/\.rate-page2 \{[^}]*flex-direction: column/)
@@ -720,5 +725,50 @@ describe("client.css et globals.css", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order)
     expect(globals).toContain('@import "./design/app-shell.css" layer(components);')
     expect(globals).toContain('@import "./design/client.css" layer(components);')
+  })
+})
+
+// Recapitulatif de publication C03 (RD-CLIENT-01 vague 4 bis) : le garde-fou ne voit pas le style calcule, ces tests
+// verifient la structure des regles et calculent la largeur disponible d'apres la formule mesuree : colonne
+// principale = largeur d'ecran - 693 px (sidebar + colonne laterale + marges), carte = colonne, contenu = carte - 64 px.
+describe("C03 : recapitulatif et pied de formulaire entre 1024 et 1150 px", () => {
+  const c03 = stripComments(read("client/c03.css"))
+  const CARD_PADDING = 64
+  const TWO_COLUMNS_FROM = 400
+  const LABEL_COLUMN = 160
+  const GAP = 16
+  const contentWidth = (screen) => screen - 693 - CARD_PADDING
+  const container = c03.match(/@container wizard2card \(min-width: (\d+)px\) \{([\s\S]*?)\n\}/)
+
+  it("la carte du formulaire est un conteneur nomme et le seuil de deux colonnes est celui du calcul", () => {
+    expect(c03).toMatch(/\.wizard2 \.form2 \{ container: wizard2card \/ inline-size; \}/)
+    expect(Number(container[1])).toBe(TWO_COLUMNS_FROM)
+    expect(container[2]).toMatch(/\.review2 \{ grid-template-columns: 160px minmax\(0, 1fr\);/)
+  })
+
+  it("une colonne par defaut, sans media query de largeur d'ecran supplementaire pour le recapitulatif", () => {
+    const base = computedStyle(RULES, { tag: "dl", classes: ["review2"], ancestors: [] })
+    expect(base["grid-template-columns"]).toBe("minmax(0, 1fr)")
+    expect(c03).not.toMatch(/@media[^{]*\{[^@]*\.review2/)
+  })
+
+  it.each([1024, 1060, 1100, 1149])("a %i px le contenu de la carte reste sous le seuil : libelles empiles, valeurs pleine largeur", (screen) => {
+    const w = contentWidth(screen)
+    expect(w).toBeGreaterThanOrEqual(267)
+    expect(w).toBeLessThan(TWO_COLUMNS_FROM)
+    // Empile : la valeur occupe tout le contenu (au moins 267 px) ; l'ancienne grille 160 px + 1fr ne lui laissait
+    // que 91 a 160 px, sous les 224 px obtenus au seuil de deux colonnes.
+    expect(w - LABEL_COLUMN - GAP).toBeLessThan(TWO_COLUMNS_FROM - LABEL_COLUMN - GAP)
+  })
+
+  it("au seuil la colonne des valeurs mesure au moins 224 px", () => {
+    expect(TWO_COLUMNS_FROM - LABEL_COLUMN - GAP).toBeGreaterThanOrEqual(224)
+    expect(contentWidth(1280)).toBeGreaterThanOrEqual(TWO_COLUMNS_FROM)
+  })
+
+  it("le pied de formulaire passe a la ligne et le bouton ne depasse jamais de la carte", () => {
+    expect(c03).toMatch(/\.wizard2 \.form2__foot--split \{ flex-wrap: wrap; \}/)
+    expect(c03).toMatch(/\.wizard2 \.form2__foot--split > \.btn \{ min-width: 0; max-width: 100%; \}/)
+    expect(c03).toMatch(/\.wizard2 \.btn--dark \{[^}]*height: auto; min-height: var\(--h-btn\);[^}]*white-space: normal;/)
   })
 })

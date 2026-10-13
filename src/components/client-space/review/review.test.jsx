@@ -67,7 +67,8 @@ describe("formulaire d'avis", () => {
     expect(t).toContain("Part de l'étudiant")
     expect(t).not.toContain("Versé à")
     expect(html).toContain(formatAmount(8800))
-    expect(t).toContain("Commission 12 %")
+    expect(html).toContain("Commission 12\u00A0%")
+    expect(html).not.toContain("Commission 12 %")
   })
 
   it("renvoie vers la mission (Plus tard et Voir la mission et le reçu)", () => {
