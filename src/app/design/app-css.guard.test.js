@@ -203,9 +203,11 @@ describe("feuilles app-shell.css et client/*.css", () => {
   // largeur de la carte (ex. 332 px pour l'historique d'un bureau de 1024-1149 px avec sidebar), pas de celle de
   // l'ecran, et le garde-fou des media queries interdit tout seuil de largeur d'ecran supplementaire. Le controle
   // des media queries ci-dessus reste inchange.
-  it("n'utilise que les requetes de conteneur nommees txs2 (600 px) et money2 (480 px)", () => {
+  // C03 (publication) ajoute une requete de conteneur anonyme (520 px) sur .wizard2__choices2 : les cartes d'urgence
+  // passent a trois colonnes selon la largeur du champ, pas celle de l'ecran.
+  it("n'utilise que les requetes de conteneur txs2 (600 px), money2 (480 px) et celle des cartes d'urgence C03 (520 px)", () => {
     const conditions = [...ALL.matchAll(/@container\s*([^{]+)\{/g)].map((m) => m[1].trim())
-    expect(conditions.sort()).toEqual(["money2 (max-width: 480px)", "txs2 (max-width: 600px)"])
+    expect(conditions.sort()).toEqual(["(min-width: 520px)", "money2 (max-width: 480px)", "txs2 (max-width: 600px)"])
     expect(ALL).not.toMatch(/@media[^{]*\bmin-width/)
   })
 
