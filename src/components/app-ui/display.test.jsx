@@ -205,7 +205,7 @@ describe("États vide, erreur, chargement", () => {
     expect(html(<SkeletonRows count={2} announce={false} />).match(/skel2-row/g)).toHaveLength(2)
   })
 
-  it("EmptyState est un composant serveur ré-exporté par state-block", () => {
+  it("EmptyState est ré-exporté par state-block, et empty-state.jsx ne porte pas \"use client\"", () => {
     expect(stateBlock.EmptyState).toBe(EmptyState)
     expect(readFileSync(path.join(process.cwd(), "src/components/app-ui/empty-state.jsx"), "utf8")).not.toMatch(/use client/)
   })

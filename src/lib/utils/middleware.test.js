@@ -302,7 +302,15 @@ describe("middleware - compte suspendu en cours de session", () => {
 
   it.each(["student", "client", "admin"])("ne renvoie pas un %s suspendu depuis /auth/login vers son espace", async (role) => {
     asSuspended(role)
-    for (const path of ["/auth/login", "/auth/login?suspended=1", `/auth/login?next=${encodeURIComponent("/client/dashboard")}`]) {
+    const paths = [
+      "/auth/login",
+      "/auth/login?suspended=1",
+      `/auth/login?next=${encodeURIComponent("/client/dashboard")}`,
+      "/auth/register",
+      "/auth/forgot-password",
+      "/auth/verify-email",
+    ]
+    for (const path of paths) {
       const res = await run(path)
       expect(res.location, `${role} ${path}`).toBeNull()
     }

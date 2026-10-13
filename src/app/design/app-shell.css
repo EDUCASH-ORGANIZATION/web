@@ -29,7 +29,6 @@
 /* Sidebar claire : logo, espace, navigation, identité en bas */
 .side2 { background: var(--c-blanc); border-right: 1px solid var(--c-ligne); display: flex; flex-direction: column; gap: 2px; padding: var(--s-6) var(--s-4) var(--s-4); min-height: 0; }
 .side2__brand { display: flex; flex-direction: column; gap: 6px; padding: 0 10px var(--s-6); }
-.side2__brand .logo { height: 37px; width: auto; align-self: flex-start; }
 .side2__space { font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
 .side2__cta { margin: 0 0 var(--s-4); }
 .side2__group { font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); padding: var(--s-5) 10px 6px; }
@@ -234,6 +233,10 @@
 .btn--blanc { background: var(--c-blanc); color: var(--c-encre); border-color: var(--c-blanc); }
 .btn--blanc:hover, .btn--blanc.is-hover { background: var(--c-bleu-50); }
 .money2 .stat2__value { color: var(--c-blanc); }
+/* Boutons-liens sur la carte argent : `.money2 a` (0,1,1) ne doit ni griser la couleur ni souligner le texte des boutons du systeme */
+.money2 a.btn--blanc, .money2 a.btn--blanc:visited { color: var(--c-encre); text-decoration: none; font-weight: var(--fw-xbold); }
+.money2 a.btn, .money2 a.btn:visited { text-decoration: none; font-weight: var(--fw-xbold); }
+.money2 a.btn--ghost-blanc, .money2 a.btn--ghost-blanc:visited { color: var(--c-blanc); }
 
 /* ---------- Focus clavier ---------- */
 .nav2:focus-visible, .iconbtn2:focus-visible, .item2__action:focus-visible, .bnav2__item:focus-visible, .shell--v2 .nav-item:focus-visible, .shell--v2 .item2:focus-visible { outline: 2px solid transparent; box-shadow: var(--sh-focus); }
@@ -242,6 +245,13 @@
 /* Fonds sombres (encre, bleu) : anneau bleu + citron */
 .money2 .btn:focus-visible, .money2 .btn-icon:focus-visible { box-shadow: var(--sh-focus-sombre); }
 .shell--v2 .btn--sidebar:focus-visible, .c2 .btn--blanc:focus-visible, .shell--v2 .btn--blanc:focus-visible, .c2 .money2 a:focus-visible, .shell--v2 .money2 a:focus-visible { outline: none; box-shadow: var(--sh-focus-sombre); }
+
+/* Lien d'evitement : `.c2 .btn--secondary` (0,2,0, charge apres) annule transform et ombre ; ces regles (0,2,1 et plus) gagnent quel que soit l'ordre */
+.c2 a.ds-skip-link { transform: translateY(-200%); box-shadow: none; }
+.c2 a.ds-skip-link:focus, .c2 a.ds-skip-link:focus-visible { transform: none; }
+.c2 a.ds-skip-link:focus-visible { position: fixed; left: var(--s-2); top: var(--s-2); z-index: var(--z-toast); outline: none; box-shadow: var(--sh-focus); }
+/* Anneau de focus des boutons secondaires et accent : `.c2 .btn--secondary` impose box-shadow: none */
+.c2 .btn--secondary:focus-visible, .c2 .btn--accent:focus-visible { outline: none; box-shadow: var(--sh-focus); }
 
 /* ---------- Primitives interactives (app-ui) ---------- */
 .ds-toasts-fixed { position: fixed; z-index: var(--z-toast); }
@@ -318,6 +328,9 @@
 @media (max-width: 767.98px) {
   .head2 { flex-direction: column; align-items: flex-start; gap: var(--s-3); }
   .hero2__figure { font-size: 36px; }
+  /* Montants a 7 chiffres et plus dans 3 colonnes : la taille suit la largeur (jamais sous 13 px), l'unite passe a la ligne */
+  .stats2 .stat2__value, .money2--split .stat2__value { font-size: max(var(--t-micro), clamp(13px, 3.8vw, var(--t-amount-s))); }
+  .stats2 .stat2__value small, .money2--split .stat2__value small { display: block; margin-left: 0; }
 }
 
 /* ---------- Responsive : 480 ---------- */

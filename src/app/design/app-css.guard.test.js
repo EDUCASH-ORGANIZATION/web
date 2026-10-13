@@ -24,7 +24,7 @@ cal2__legend cal2__month card2 card2--m count day2 day2--m day2__count day2__hea
 duo2 flag2 flag2--neutre has-due head2 head2__date head2__title hero2 hero2--m hero2__actions
 hero2__col hero2__figure hero2__label hero2__link hero2__meta hero2__text hero2__title ic
 iconbtn2 iconbtn2__dot is-active is-focus is-hover is-out is-today item2 item2__action item2__ic
-item2__meta item2__sub item2__title list2 list2--m list2__head list2__more list2__title logo
+item2__meta item2__sub item2__title list2 list2--m list2__head list2__more list2__title
 logo-sym main2 mapp2 money2 money2--m money2--split money2__head mpage2 mtop2 mtop2__space nav-item nav2 nav2__count page2 row2 search2 shell--v2 shell__main side2 side2__brand side2__cta
 side2__foot side2__group side2__me side2__space sidebar__brand sidebar__group sidebar__me
 sidebar__space skel2-hero skel2-row skel2-stats slot2 stat2 stat2__label stat2__sub stat2__value
@@ -243,9 +243,22 @@ describe("feuilles app-shell.css et client/*.css", () => {
     expect(SHELL).toMatch(/\.c2 \*::before, \.c2 \*::after[^}]*scroll-behavior: auto !important[^}]*animation-duration: \.01ms !important/)
   })
 
-  it("garde les logos aux minimums de la charte (symbole 32 px, logo complet 37 px)", () => {
+  it("garde les logos aux minimums de la charte, sur les VRAIES classes (sidebar__brand, mtop2)", () => {
     expect(SHELL).toMatch(/\.mtop2 \.logo-sym \{ height: 32px; width: auto; \}/)
-    expect(SHELL).toMatch(/\.side2__brand \.logo \{ height: 37px; width: auto; align-self: flex-start; \}/)
+    // La sidebar reelle est .sidebar__brand > img.logo (layouts.css : 40 px de haut, >= 37), largeur >= 150 px.
+    const logoRule = stripComments(read("layouts.css")).match(/\n\.logo \{([^}]*)\}/)?.[1] ?? ""
+    expect(Number(logoRule.match(/height:\s*(\d+)px/)?.[1])).toBeGreaterThanOrEqual(37)
+    expect(SHELL).not.toMatch(/\.sidebar__brand[^{]*\.logo[^{]*\{[^}]*height:\s*(?:[0-2]\d|3[0-6])px/)
+    const sidebar = readFileSync(path.join(dir, "..", "..", "components", "app-shell", "sidebar.jsx"), "utf8")
+    expect(sidebar).toContain('className="sidebar__brand"')
+    expect(Number(sidebar.match(/<img className="logo"[^>]*width=\{(\d+)\}/)?.[1])).toBeGreaterThanOrEqual(150)
+    expect(SHELL).not.toContain(".side2__brand .logo")
+  })
+
+  it("garde les montants a 7 chiffres dans 3 colonnes : taille fluide jamais sous 13 px, unite a la ligne", () => {
+    const phone = SHELL.slice(SHELL.indexOf("@media (max-width: 767.98px)"))
+    expect(phone).toMatch(/\.stats2 \.stat2__value, \.money2--split \.stat2__value \{ font-size: max\(var\(--t-micro\), clamp\(13px, [\d.]+vw, var\(--t-amount-s\)\)\); \}/)
+    expect(phone).toMatch(/\.stats2 \.stat2__value small, \.money2--split \.stat2__value small \{ display: block;/)
   })
 
   it("durcit la coquille : pastille 20 px, libelles tronques, avatar image rogne, formulaire de recherche et .search2 sans debordement", () => {
@@ -304,6 +317,134 @@ describe("feuilles app-shell.css et client/*.css", () => {
       expect(SHELL).toContain(`${c}:focus-visible`)
     }
     expect(SHELL).toContain("var(--sh-focus)")
+  })
+})
+
+// ---------- Mini-cascade statique : specificite et ordre (les garde-fous de presence ne voient pas ces conflits) ----------
+
+/** Specificite (ids, classes + pseudo-classes, balises) d'un selecteur sans combinateur autre que l'espace. */
+function specificity(selector) {
+  let classes = 0
+  let tags = 0
+  for (const c of selector.trim().split(/\s+/)) {
+    classes += (c.match(/\.[\w-]+/g) ?? []).length + (c.match(/:[\w-]+/g) ?? []).length
+    if (/^[a-z]/i.test(c)) tags += 1
+  }
+  return [0, classes, tags]
+}
+const compareSpec = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]
+
+function parseCompound(c) {
+  return {
+    tag: c.match(/^[a-z][\w-]*/i)?.[0] ?? null,
+    classes: (c.match(/\.[\w-]+/g) ?? []).map((x) => x.slice(1)),
+    states: (c.match(/:[\w-]+/g) ?? []).map((x) => x.slice(1)),
+  }
+}
+
+/** Regles de premier niveau (hors @media), dans l'ordre du texte : { selector, declarations, order }. */
+function topLevelRules(css, startOrder = 0) {
+  const flat = css.replace(/@media[^{]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "")
+  const rules = []
+  let order = startOrder
+  for (const m of flat.matchAll(/([^{}@]+)\{([^{}]*)\}/g)) {
+    const declarations = {}
+    for (const d of m[2].split(";")) {
+      const i = d.indexOf(":")
+      if (i > 0) declarations[d.slice(0, i).trim()] = d.slice(i + 1).trim()
+    }
+    for (const sel of m[1].split(",").map((x) => x.trim())) {
+      if (/[>+~*()[]|::/.test(sel)) continue
+      rules.push({ selector: sel, declarations, order: order++ })
+    }
+  }
+  return rules
+}
+
+/** Valeurs calculees (specificite puis ordre) d'un element : balise, classes, ancetres, pseudo-classes d'etat. */
+function computedStyle(rules, { tag, classes, ancestors, states = [] }) {
+  const won = {}
+  for (const rule of rules) {
+    const parts = rule.selector.split(/\s+/).map(parseCompound)
+    const subject = parts.pop()
+    if (subject.tag && subject.tag !== tag) continue
+    if (!subject.classes.every((c) => classes.includes(c)) || !subject.states.every((s) => states.includes(s))) continue
+    if (!parts.every((p) => p.classes.every((c) => ancestors.includes(c)))) continue
+    const spec = specificity(rule.selector)
+    for (const [prop, value] of Object.entries(rule.declarations)) {
+      const cur = won[prop]
+      const cmp = cur ? compareSpec(spec, cur.spec) : 1
+      if (cmp > 0 || (cmp === 0 && rule.order > cur.order)) won[prop] = { value, spec, order: rule.order }
+    }
+  }
+  return Object.fromEntries(Object.entries(won).map(([k, v]) => [k, v.value]))
+}
+
+// Ordre de chargement reel : components, layouts, app-shell, puis client.css (base en premier).
+const LOAD_ORDER = ["components.css", "layouts.css", "app-shell.css", ...[...read("client.css").matchAll(/@import "\.\/(client\/[\w-]+\.css)";/g)].map((m) => m[1])]
+const RULES = LOAD_ORDER.reduce((acc, f) => acc.concat(topLevelRules(stripComments(read(f)), acc.length)), [])
+const ANCESTORS = ["ds", "c2", "shell", "shell--v2", "shell__frame", "shell__main", "money2", "money2--split", "hero2__actions", "money2__foot"]
+
+describe("cascade statique : specificite et ordre de chargement", () => {
+  it("calcule la specificite", () => {
+    expect(specificity(".btn--blanc")).toEqual([0, 1, 0])
+    expect(specificity(".c2 .btn--secondary")).toEqual([0, 2, 0])
+    expect(specificity(".money2 a")).toEqual([0, 1, 1])
+    expect(specificity(".c2 a.ds-skip-link:focus-visible")).toEqual([0, 3, 1])
+  })
+
+  it("lien d'evitement : hors ecran au repos, visible avec anneau de focus au focus clavier dans .c2", () => {
+    const el = { tag: "a", classes: ["ds-skip-link", "btn", "btn--secondary"], ancestors: ANCESTORS }
+    const rest = computedStyle(RULES, el)
+    expect(rest.transform).toBe("translateY(-200%)")
+    expect(rest["box-shadow"]).toBe("none")
+    const focus = computedStyle(RULES, { ...el, states: ["focus-visible"] })
+    expect(focus.transform).toBe("none")
+    expect(focus["box-shadow"]).toBe("var(--sh-focus)")
+    expect(focus.position).toBe("fixed")
+    expect(focus["z-index"]).toBe("var(--z-toast)")
+  })
+
+  it("detecte le conflit d'origine : sans les regles de la coquille, .c2 .btn--secondary annule le transform", () => {
+    const without = RULES.filter((r) => !r.selector.startsWith(".c2 a.ds-skip-link") && !r.selector.startsWith(".c2 .btn--secondary:focus-visible"))
+    const rest = computedStyle(without, { tag: "a", classes: ["ds-skip-link", "btn", "btn--secondary"], ancestors: ANCESTORS })
+    expect(rest.transform).toBe("none")
+  })
+
+  it("boutons secondaire et accent de .c2 : l'anneau de focus n'est pas annule par box-shadow: none", () => {
+    for (const tone of ["btn--secondary", "btn--accent"]) {
+      const focus = computedStyle(RULES, { tag: "button", classes: ["btn", tone], ancestors: ANCESTORS, states: ["focus-visible"] })
+      expect(focus["box-shadow"], tone).toBe("var(--sh-focus)")
+    }
+  })
+
+  it("carte argent : bouton blanc en encre sans soulignement, bouton contour en blanc sans soulignement", () => {
+    for (const small of [[], ["btn--sm"]]) {
+      for (const states of [[], ["visited"]]) {
+        const blanc = computedStyle(RULES, { tag: "a", classes: ["btn", "btn--blanc", ...small], ancestors: ANCESTORS, states })
+        expect(blanc.color).toBe("var(--c-encre)")
+        expect(blanc.background).toBe("var(--c-blanc)")
+        expect(blanc["text-decoration"]).toBe("none")
+        const ghost = computedStyle(RULES, { tag: "a", classes: ["btn", "btn--ghost-blanc", ...small], ancestors: ANCESTORS, states })
+        expect(ghost.color).toBe("var(--c-blanc)")
+        expect(ghost.background).toBe("transparent")
+        expect(ghost["text-decoration"]).toBe("none")
+      }
+    }
+  })
+
+  it("carte argent : le lien simple reste blanc souligne, jamais bleu sur bleu", () => {
+    const link = computedStyle(RULES, { tag: "a", classes: ["hero2__link"], ancestors: ANCESTORS })
+    expect(link.color).toBe("var(--c-blanc)")
+    expect(link["text-decoration"]).toBe("underline")
+    const sub = computedStyle(RULES, { tag: "a", classes: [], ancestors: [...ANCESTORS, "stat2__sub"] })
+    expect(sub.color).toBe("var(--c-blanc)")
+  })
+
+  it("detecte le conflit d'origine : sans la correction, `.money2 a` rend le bouton blanc sur blanc", () => {
+    const without = RULES.filter((r) => !/^\.money2 a\.btn/.test(r.selector))
+    const blanc = computedStyle(without, { tag: "a", classes: ["btn", "btn--blanc"], ancestors: ANCESTORS })
+    expect(blanc.color).toBe("var(--c-blanc)")
   })
 })
 

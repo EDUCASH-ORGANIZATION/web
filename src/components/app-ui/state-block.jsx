@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation"
 import { Icon } from "@/components/design/icon"
 
-// Composant serveur : EmptyState vit dans empty-state.jsx, ré-exporté ici pour la compatibilité.
+// EmptyState vit dans empty-state.jsx (sans "use client"). Ce module est un module client : l'importer
+// depuis state-block en fait un composant client pour ses importeurs. Pour un rendu serveur, importer
+// directement depuis "./empty-state".
 export { EmptyState } from "./empty-state"
 
 /**

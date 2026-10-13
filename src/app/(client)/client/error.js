@@ -9,7 +9,7 @@ import { Icon } from "@/components/design/icon"
 export default function ClientError({ error, reset }) {
   // Seul le digest est journalisé (jamais le message ni la pile) : il suffit à retrouver l'erreur côté serveur.
   useEffect(() => {
-    console.error("[client error]", error?.digest)
+    if (error?.digest) console.error("[client error]", error.digest)
   }, [error])
 
   return (
