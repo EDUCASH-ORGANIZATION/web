@@ -1,0 +1,28 @@
+import { SkipLink } from "./skip-link"
+import { Sidebar } from "./sidebar"
+import { TopBar } from "./top-bar"
+import { MobileTop } from "./mobile-top"
+import { BottomNav } from "./bottom-nav"
+
+// Coquille connectée commune (client, puis étudiant et admin) : lien d'évitement, sidebar et barre du haut
+// au bureau, en-tête mobile et barre du bas sous 1024. `nav` est la configuration de l'espace
+// (voir client-space/shell/client-nav.js). `detail` masque la barre du bas (écrans de détail).
+// `main#contenu` est la cible du lien d'évitement et du focus après navigation (RouteScroll).
+export function AppShell({ nav, user, unreadCount = 0, detail = false, children }) {
+  return (
+    <div className={detail ? "shell shell--v2 shell--detail" : "shell shell--v2"}>
+      <SkipLink />
+      <div className="shell__frame">
+        <Sidebar nav={nav} fullName={user.fullName} userId={user.id} unreadCount={unreadCount} />
+        <div className="shell__main">
+          <TopBar search={nav.search} />
+          <MobileTop nav={nav} fullName={user.fullName} />
+          <main id="contenu" className="page2" tabIndex={-1}>
+            {children}
+          </main>
+        </div>
+      </div>
+      <BottomNav items={nav.mobile} userId={user.id} unreadCount={unreadCount} />
+    </div>
+  )
+}

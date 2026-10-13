@@ -1,0 +1,43 @@
+// @ds-screen RD-CLIENT-01
+// Configuration de la coquille de l'espace client. Agenda et Paramètres restent masqués (pas de page),
+// et il n'y a pas de cloche tant qu'aucune notification n'existe. Chaque lien vise une route existante.
+import { PUBLISH_PATH } from "../../../lib/utils/publish-prefill.js"
+
+export const CLIENT_NAV = {
+  space: "Espace client",
+  identityLabel: "Client",
+  homeHref: "/client/dashboard",
+  profileHref: "/client/profile",
+  cta: { label: "Publier une mission", href: PUBLISH_PATH, icon: "i-plus" },
+  search: {
+    action: "/client/missions",
+    param: "q",
+    label: "Rechercher une mission",
+    placeholder: "Rechercher une mission",
+  },
+  groups: [
+    {
+      title: null,
+      items: [
+        { key: "accueil", label: "Accueil", href: "/client/dashboard", icon: "i-home" },
+        { key: "missions", label: "Mes missions", href: "/client/missions", icon: "i-briefcase", exclude: [PUBLISH_PATH] },
+        { key: "messages", label: "Messages", href: "/client/messages", icon: "i-message", badge: "messages" },
+        { key: "portefeuille", label: "Portefeuille", href: "/client/wallet", icon: "i-wallet" },
+      ],
+    },
+    {
+      title: "Compte",
+      items: [
+        { key: "profil", label: "Mon profil", href: "/client/profile", icon: "i-user" },
+        { key: "aide", label: "Aide", href: "/aide", icon: "i-help" },
+      ],
+    },
+  ],
+  mobile: [
+    { key: "accueil", label: "Accueil", href: "/client/dashboard", icon: "i-home" },
+    { key: "missions", label: "Missions", href: "/client/missions", icon: "i-briefcase", exclude: [PUBLISH_PATH] },
+    { key: "publier", label: "Publier", href: PUBLISH_PATH, icon: "i-plus", exact: true },
+    { key: "messages", label: "Messages", href: "/client/messages", icon: "i-message", badge: "messages" },
+    { key: "portefeuille", label: "Portefeuille", href: "/client/wallet", icon: "i-wallet" },
+  ],
+}
