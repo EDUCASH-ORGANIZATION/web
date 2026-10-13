@@ -127,7 +127,7 @@ describe("ClientMissionsView : rangées", () => {
   it("terminée : Noter vers l'avis tant qu'il manque, Republier toujours", () => {
     const todo = render({ onglet: "done", counts: { ...counts, done: 1 }, total: 1, missions: [mission({ status: "done" })] })
     expect(todo).toContain("Noter")
-    expect(todo).toContain('href="/review/m1"')
+    expect(todo).toContain('href="/client/review/m1"')
     expect(todo).toContain("Republier")
     expect(todo).toContain("duplicate=m1")
     const rated = render({ onglet: "done", counts: { ...counts, done: 1 }, total: 1, missions: [mission({ status: "done", reviewed: true })] })

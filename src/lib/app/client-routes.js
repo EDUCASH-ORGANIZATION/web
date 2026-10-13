@@ -56,8 +56,8 @@ export function clientPublishHref({ duplicate, ...prefill } = {}) {
   return `${base}${joiner}${new URLSearchParams({ duplicate }).toString()}`
 }
 
-/** Renvoie l'écran d'avis existant tant que C10 n'existe pas. */
+/** Écran « Noter l'étudiant » (C10) d'une mission terminée. */
 export function clientReviewHref(missionId) {
   if (missionId === undefined || missionId === null || missionId === "") return "/client/missions"
-  return `/review/${encodeURIComponent(missionId)}`
+  return `/client/review/${encodeURIComponent(missionId)}`
 }
