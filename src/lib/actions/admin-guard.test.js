@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 const redirect = vi.fn((to) => {
   throw new Error(`REDIRECT:${to}`)
 })
-const state = { user: null, profile: null, updates: 0, rows: [{ user_id: "target" }], error: null, lastValues: null }
+const state = { user: null, profile: null, updates: 0, rows: [{ user_id: "target" }], error: null, lastValues: null, count: 0 }
 
 function makeSupabase() {
   return {
@@ -40,7 +40,7 @@ vi.mock("@/lib/supabase/service", () => ({
         },
         single: async () => ({ data: { full_name: "Awa K" } }),
         maybeSingle: async () => ({ data: { school: "UAC" } }),
-        then: (resolve) => resolve({ data: state.rows, error: state.error, count: 0 }),
+        then: (resolve) => resolve({ data: state.rows, error: state.error, count: state.count }),
       }
       return chain
     },
@@ -48,6 +48,9 @@ vi.mock("@/lib/supabase/service", () => ({
   }),
 }))
 vi.mock("@/components/admin/admin-sidebar", () => ({ AdminSidebar: () => null }))
+vi.mock("@/components/app-shell/bottom-nav", () => ({
+  BottomNav: (props) => ({ type: "bottom-nav-stub", props }),
+}))
 vi.mock("@/lib/email/index", () => ({ sendEmail: vi.fn(async () => ({})) }))
 
 const forged = { id: "u1", user_metadata: { role: "admin" } }
@@ -60,6 +63,7 @@ beforeEach(() => {
   state.rows = [{ user_id: "target" }]
   state.error = null
   state.lastValues = null
+  state.count = 0
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
 
@@ -80,6 +84,26 @@ describe("AdminLayout", () => {
     const { default: AdminLayout } = await import("@/app/(admin)/admin/layout")
     await expect(AdminLayout({ children: null })).resolves.toBeTruthy()
     expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it("rend la barre mobile avec les vérifications en attente (compte du layout) et l'espaceur", async () => {
+    state.profile = { role: "admin", full_name: "Admin", city: "Cotonou", is_suspended: false }
+    state.count = 7
+    const { default: AdminLayout } = await import("@/app/(admin)/admin/layout")
+    const tree = await AdminLayout({ children: null })
+    const found = []
+    const walk = (node) => {
+      if (!node || typeof node !== "object") return
+      if (Array.isArray(node)) return node.forEach(walk)
+      if (node.type?.name === "BottomNav") found.push(node.props)
+      walk(node.props?.children)
+    }
+    walk(tree)
+    expect(found).toHaveLength(1)
+    expect(found[0].counts).toEqual({ verifications: 7 })
+    expect(found[0].reserveSpace).toBe(true)
+    expect(found[0].items.map((i) => i.key)).toEqual(["accueil", "verifications", "utilisateurs"])
+    expect(found[0].more.items.map((i) => i.key)).toEqual(["missions", "portefeuilles"])
   })
 })
 
