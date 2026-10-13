@@ -300,6 +300,8 @@ async function loadAuthorNames(supabase, ids) {
   const { data, error } = await supabase.from("profiles").select("user_id, full_name").in("user_id", unique)
   if (error) {
     console.error("[getCandidateProfile] auteurs d'avis", error.message)
+    // Choix assumé : les noms sont décoratifs. Une erreur ici renvoie une Map vide (prénom par défaut) au lieu
+    // de faire échouer tout le profil candidat, dont les avis eux-mêmes ont bien été lus.
     return new Map()
   }
   return new Map((data ?? []).map((p) => [p.user_id, p.full_name]))

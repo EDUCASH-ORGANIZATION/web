@@ -1,5 +1,13 @@
 "use server"
 
+// Plafonds de lecture connus (documentés aussi dans .agents/tasks/RD-CLIENT-01/plan.md, « Limites connues ») :
+// - 100 missions actives au plus (ACTIVE_LIMIT), les plus récentes d'abord ;
+// - 20 missions terminées récentes au plus (DONE_LIMIT) pour « avis à laisser » : une mission plus ancienne
+//   sans avis n'y figure pas ;
+// - les candidatures en attente sont lues en une requête, soumise au plafond PostgREST de 1000 lignes
+//   (max-rows) : au-delà, les compteurs par mission peuvent être sous-estimés. Un comptage exact ne
+//   conviendrait pas : il faut le nombre ET la plus ancienne date par mission, d'où la lecture des lignes.
+
 import { unstable_rethrow } from "next/navigation"
 import { requireRole } from "@/lib/auth/require-role"
 import { getWallet } from "@/lib/actions/wallet.actions"
