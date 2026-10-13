@@ -15,8 +15,9 @@ const CLIENT = CLIENT_FILES.map((f) => stripComments(read(`client/${f}`))).join(
 const ALL = `${SHELL}\n${CLIENT}`
 const DESIGN_CSS = ["tokens.css", "components.css", "layouts.css", "app-shell.css", "client.css", ...CLIENT_FILES.map((f) => `client/${f}`)]
 
-// Classes des sources (shell-v2.css et fragments v2-client), au renommage ds- pres.
-const SHELL_CLASSES = `
+// Classes des sources (shell-v2.css et fragments v2-client), au renommage ds- pres,
+// moins les classes volontairement non portees (REMOVED, avec la raison).
+const SHELL_SOURCE_CLASSES = `
 agenda2 app2 av2 av2--sm bnav-item bnav-item__dot bnav2 bnav2__count bnav2__item bottom-nav--v2
 btn--blanc btn--block btn--sidebar btn--soft cal2 cal2__day cal2__dow cal2__grid cal2__head
 cal2__legend cal2__month card2 card2--m count day2 day2--m day2__count day2__head day2__name
@@ -30,7 +31,7 @@ sidebar__space skel2-hero skel2-row skel2-stats slot2 stat2 stat2__label stat2__
 stats2 stats2--m step2 step2--done top2 top2__actions top2__stamp v2-tag week2 week2__d
 `.trim().split(/\s+/)
 
-const CLIENT_CLASSES = `
+const CLIENT_SOURCE_CLASSES = `
 actions2 actions2--end amount amount-chips2 applicant applicant--accepted applicant__band av2
 avatar avatar--ring badge balance__scribble banner banner--alerte banner--citron banner--encre
 banner--erreur banner__actions banner__body bento-card__shape btn btn--accent btn--blanc btn--danger-outline btn--dark btn--ghost btn--ghost-blanc btn--primary btn--secondary btn--soft btn-icon btn-icon--sm btn-icon__dot bubble bubble--me bubble--them bubble__meta buy2 buy2__sub
@@ -64,6 +65,25 @@ tx2__sub tx2__title underline-scribble upload v-achats v-achats__est v-achats__h
 v-achats__step v-achats__step--citron v-achats__sub wizard2
 `.trim().split(/\s+/)
 
+const WHY_MEDIA = "variante --m des planches (DOM mobile separe), remplacee par les media queries sur les classes de base"
+const WHY_AGENDA = "agenda et calendrier C18, hors perimetre de RD-CLIENT-01"
+const REMOVED = {
+  "v2-tag": "legende de planche, jamais rendue dans l'app",
+  mapp2: "gabarit mobile des planches : la coquille reelle est .shell--v2 / .app2 avec media queries",
+  "bottom-nav--v2": "barre encre flottante des planches, ecart assume : la coquille garde .bnav2",
+  "bnav-item": "enfant de .bottom-nav--v2, retire avec lui",
+  "bnav-item__dot": "enfant de .bottom-nav--v2, retire avec lui",
+  "hero2--m": WHY_MEDIA, "stats2--m": WHY_MEDIA, "list2--m": WHY_MEDIA, "money2--m": WHY_MEDIA,
+  "card2--m": WHY_MEDIA, "cand2--m": WHY_MEDIA, "col2--m": WHY_MEDIA, "tx2--m": WHY_MEDIA, "filters2--m": WHY_MEDIA,
+  "day2--m": WHY_MEDIA,
+  agenda2: WHY_AGENDA, cal2: WHY_AGENDA, cal2__day: WHY_AGENDA, cal2__dow: WHY_AGENDA, cal2__grid: WHY_AGENDA,
+  cal2__head: WHY_AGENDA, cal2__legend: WHY_AGENDA, cal2__month: WHY_AGENDA, day2: WHY_AGENDA, day2__count: WHY_AGENDA,
+  day2__head: WHY_AGENDA, day2__name: WHY_AGENDA, week2: WHY_AGENDA, week2__d: WHY_AGENDA, slot2: WHY_AGENDA,
+  "has-due": WHY_AGENDA, "is-today": WHY_AGENDA, "is-out": WHY_AGENDA,
+}
+const SHELL_CLASSES = SHELL_SOURCE_CLASSES.filter((c) => !(c in REMOVED))
+const CLIENT_CLASSES = CLIENT_SOURCE_CLASSES.filter((c) => !(c in REMOVED))
+
 const hasClass = (css, name) => new RegExp(`\\.${name.replace(/[-_]/g, "[-_]")}(?![\\w-])`).test(css)
 
 // Noms d'utilitaires Tailwind : jamais utilisables comme classe nue du systeme.
@@ -93,12 +113,18 @@ function classNamesOf(css) {
 // Classe propre aux nouvelles feuilles : suffixe 2 ou --v2, ou extension nommee du systeme.
 const NEW_CLASS = /(?:2(?:x|-[a-z]+)?(?:__[\w-]+|--[\w-]+)?|--v2)$/
 const NEW_SYSTEM = new Set([
-  "btn--soft", "btn--sidebar", "btn--blanc", "btn--ghost-blanc", "sidebar__me", "v2-tag", "has-due",
+  "btn--soft", "btn--sidebar", "btn--blanc", "btn--ghost-blanc", "sidebar__me",
   "ds-toasts-fixed", "ds-drawer--full", "ds-stars__btn",
 ])
 const isNew = (c) => NEW_CLASS.test(c) || NEW_SYSTEM.has(c)
 
 describe("feuilles app-shell.css et client/*.css", () => {
+  it("ne contiennent plus les classes retirees (planches, --m, agenda C18), chacune documentee dans REMOVED", () => {
+    const leftovers = Object.keys(REMOVED).filter((c) => hasClass(ALL, c))
+    expect(leftovers).toEqual([])
+    for (const reason of Object.values(REMOVED)) expect(reason.length).toBeGreaterThan(10)
+  })
+
   it("contiennent chaque classe de shell-v2.css et des fragments v2-client", () => {
     const missingShell = SHELL_CLASSES.filter((c) => !hasClass(ALL, c))
     const missingClient = CLIENT_CLASSES.filter((c) => !hasClass(ALL, c))
@@ -170,6 +196,36 @@ describe("feuilles app-shell.css et client/*.css", () => {
       const outside = rest.replace(/@media[^{]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "")
       expect(outside.trim()).toBe("")
     }
+  })
+
+  it("n'utilise aucune font-size en px inferieure a 13 (minimum absolu --t-micro) dans app-shell et client", () => {
+    const sizes = [...ALL.matchAll(/font-size:\s*([\d.]+)px/g)].map((m) => Number(m[1]))
+    expect(sizes.length).toBeGreaterThan(0)
+    expect(sizes.filter((px) => px < 13)).toEqual([])
+  })
+
+  it("garde les logos aux minimums de la charte (symbole 32 px, logo complet 37 px)", () => {
+    expect(SHELL).toMatch(/\.mtop2 \.logo-sym \{ height: 32px; width: auto; \}/)
+    expect(SHELL).toMatch(/\.side2__brand \.logo \{ height: 37px; width: auto; \}/)
+  })
+
+  it("donne a .head2__title l'interligne des titres Anton", () => {
+    expect(SHELL).toMatch(/\.head2__title \{[^}]*line-height: var\(--lh-display\)/)
+  })
+
+  it("ecran de detail mobile : .shell--detail masque .bnav2 et reserve la hauteur de .mbar2, jamais les deux barres ensemble", () => {
+    const tablet = SHELL.slice(SHELL.indexOf("@media (max-width: 1023.98px)"))
+    expect(tablet).toMatch(/\.shell--v2\.shell--detail \.bnav2[^{]*\{ display: none; \}/)
+    expect(tablet).toContain(".shell--v2:has(.mbar2) .bnav2")
+    expect(tablet).toMatch(/\.shell--v2\.shell--detail \.shell__main, \.shell--v2\.shell--detail \.main2 \{ padding-bottom: calc\(150px \+ env\(safe-area-inset-bottom/)
+    expect(CLIENT).toMatch(/\.mbar2 \{ display: flex; \}/)
+    expect(SHELL).toContain("shell--detail")
+  })
+
+  it("applique l'anneau de focus sombre aux boutons et liens poses sur fonds sombres, et le mouvement reduit a .c2", () => {
+    for (const sel of [".btn--sidebar", ".btn--blanc", ".money2 a"]) expect(SHELL).toContain(`${sel}:focus-visible`)
+    expect(SHELL).toMatch(/\.money2 a:focus-visible \{[^}]*var\(--sh-focus-sombre\)/)
+    expect(SHELL).toMatch(/prefers-reduced-motion: reduce\) \{\s*\.app2 \*, \.c2 \*/)
   })
 
   it("fournit la coquille responsive : en-tete mobile et barre du bas sous 1024, focus visible, mouvement reduit", () => {

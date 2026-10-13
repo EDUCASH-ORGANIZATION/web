@@ -4,12 +4,13 @@
 .lead2 { font-size: var(--t-body); line-height: 1.5; }
 .lead2 b { font-weight: var(--fw-xbold); }
 .amount-chips2 .chip { height: 34px; font-size: var(--t-caption); }
-.mapp2 .banner { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; }
-.mapp2 .banner__actions { grid-column: 2; margin: 6px 0 0; display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
-.mapp2 .banner__actions .btn-icon { position: absolute; top: 8px; right: 8px; }
-.mapp2 .banner { position: relative; }
-.mapp2 .banner:has(.btn-icon) .banner__body { padding-right: 28px; }
 
+@media (max-width: 1023.98px) {
+  .c2 .banner { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; position: relative; }
+  .c2 .banner__actions { grid-column: 2; margin: 6px 0 0; display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
+  .c2 .banner__actions .btn-icon { position: absolute; top: 8px; right: 8px; }
+  .c2 .banner:has(.btn-icon) .banner__body { padding-right: 28px; }
+}
 @media (max-width: 480px) {
   .amount-chips2 { flex-wrap: wrap; }
 }

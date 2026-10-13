@@ -7,8 +7,6 @@
 .me2 .av2 { width: 80px; height: 80px; font-size: 24px; }
 .me2__name { font-size: 24px; font-weight: var(--fw-xbold); letter-spacing: -.01em; }
 .me2__sub { font-size: var(--t-body); color: var(--c-ardoise); }
-.card2--m .me2 .av2 { width: 64px; height: 64px; font-size: 20px; }
-.card2--m .me2__name { font-size: 20px; }
 .c2 .choice .ic-sq { width: 36px; height: 36px; }
 .progress2 { height: 6px; border-radius: 6px; background: var(--c-givre); overflow: hidden; }
 .progress2 i { display: block; height: 100%; background: var(--c-encre); border-radius: 6px; }

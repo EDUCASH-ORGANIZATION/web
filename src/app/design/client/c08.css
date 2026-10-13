@@ -7,7 +7,6 @@
 .status2__text { font-size: var(--t-body-s); color: var(--c-ardoise); line-height: 1.5; }
 .status2__text b { color: var(--c-encre); }
 .status2 .actions2 { margin-top: 10px; }
-.card2--m .status2__title { font-size: 17px; }
 .person2__acts { display: flex; align-items: center; gap: var(--s-4); margin-top: 6px; flex-wrap: wrap; }
 .c2 .btn.is-disabled, .c2 .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
 .disabled2 { font-size: var(--t-caption); color: var(--c-ardoise); text-align: center; }

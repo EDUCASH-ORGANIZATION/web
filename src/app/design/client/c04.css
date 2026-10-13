@@ -8,14 +8,13 @@
 .cand2__acts { display: flex; align-items: center; gap: var(--s-5); flex-wrap: wrap; }
 .cand2__acts .btn { margin-left: auto; }
 .cand2--muted .person2__name, .cand2--muted .cand2__msg { color: var(--c-ardoise); }
-.cand2--m { padding: var(--s-4); }
-.cand2--m .cand2__acts { gap: var(--s-4); }
 .list2__head .flag2 { margin-left: 10px; vertical-align: middle; }
 .list2__head .select { width: auto; height: 36px; }
 .radios2 { display: flex; flex-direction: column; gap: 10px; }
 
 @media (max-width: 1023.98px) {
   .cand2 { padding: var(--s-4); }
+  .cand2__acts { gap: var(--s-4); }
 }
 @media (max-width: 480px) {
   .cand2__top { flex-direction: column; gap: var(--s-2); }

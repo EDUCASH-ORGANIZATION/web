@@ -18,10 +18,9 @@
 .review2x__stars { display: inline-flex; gap: 2px; }
 .review2x__stars .ic { width: 14px; height: 14px; fill: var(--c-encre); stroke: var(--c-encre); }
 .stats2--3s { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.mapp2 .stats2--3s .stat2 { padding: 10px 12px; } .mapp2 .stats2--3s .stat2__value { font-size: var(--t-body); white-space: normal; }
 
 @media (max-width: 1023.98px) {
-  .mapp2 .stats2--3s .stat2, .c2 .drawer .stats2--3s .stat2 { padding: 10px 12px; }
+  .stats2--3s .stat2, .c2 .drawer .stats2--3s .stat2 { padding: 10px 12px; }
   .stats2--3s .stat2__value { font-size: var(--t-body); white-space: normal; }
 }
 @media (max-width: 767.98px) {

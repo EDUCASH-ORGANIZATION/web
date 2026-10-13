@@ -11,9 +11,9 @@
 .inbox2 { grid-template-rows: minmax(0, 1fr); }
 .c2 .c-inbox__thread { min-height: 0; overflow: hidden; }
 .c2 .c-inbox__thread .chat { min-height: 0; }
-.mapp2 > main:has(> .mchat2) { flex: 1; min-height: 0; overflow: hidden; padding: 0 !important; gap: 0; }
 .c2 .c-payreq__head b { white-space: nowrap; }
 
 @media (max-width: 1023.98px) {
   .inbox2--tall { height: auto; }
+  .c2 main:has(> .mchat2) { flex: 1; min-height: 0; overflow: hidden; padding: 0 !important; gap: 0; }
 }

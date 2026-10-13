@@ -82,7 +82,6 @@
 .c2 .chip { border: 1.5px solid var(--c-ligne); }
 .c2 .chip.is-selected .count { background: transparent; color: var(--c-blanc); }
 .c2 .search { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: 12px; height: 44px; }
-.c2 .mapp2 .search { background: var(--c-blanc); }
 .c2 .stars--input .is-on { fill: var(--c-encre); stroke: var(--c-encre); }
 .c2 .stars--input .is-hover { fill: var(--c-ligne); }
 .c2 .progress > i { background: var(--c-encre); }
@@ -188,7 +187,6 @@
 .split2 { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--s-5); align-items: start; }
 .split2--wide { grid-template-columns: minmax(0, 1fr) 420px; }
 .col2 { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
-.col2--m { gap: var(--s-4); }
 
 /* Titre de bloc à l'intérieur d'une carte */
 .sec2 { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
@@ -230,7 +228,6 @@
 
 /* Onglets posés sur le fond givre */
 .tabs2 { --tabs-fade: var(--c-givre); }
-.mapp2 .tabs { gap: var(--s-5); }
 
 /* Vide calme dans une carte */
 .empty2 { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: var(--s-10) var(--s-6); }
@@ -292,7 +289,6 @@
   .tools2__count { margin-left: 0; }
   .empty2 { padding: var(--s-8) var(--s-4); }
   .mbar2 { display: flex; }
-  .c2 .mapp2 .tabs { gap: var(--s-5); }
 }
 
 /* ---------- Responsive : 768 ---------- */

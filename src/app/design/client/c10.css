@@ -3,7 +3,6 @@
 .rate2__label { font-size: var(--t-h4); font-weight: var(--fw-xbold); }
 .rate2__label--muted { color: var(--c-ardoise); font-weight: var(--fw-semibold); font-size: var(--t-body-s); }
 .c2 .stars--input .ic { width: 40px; height: 40px; }
-.card2--m .stars--input .ic { width: 36px; height: 36px; }
 .quote2 { border: 1px solid var(--c-ligne); border-radius: var(--r-m); padding: var(--s-4) var(--s-5); display: flex; flex-direction: column; gap: 6px; text-align: left; width: 100%; }
 .quote2__top { display: flex; justify-content: space-between; align-items: center; font-weight: var(--fw-bold); font-size: var(--t-body-s); }
 
