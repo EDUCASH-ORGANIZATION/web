@@ -21,6 +21,11 @@
 /* .list2__title span (0,1,1) colorait le drapeau en ardoise : on rétablit l'encre du .flag2 (0,2,0) */
 .list2__title .flag2 { color: var(--c-encre); font-weight: var(--fw-xbold); }
 .open2__desc { white-space: pre-line; margin-top: 4px; }
+/* 1024 px et plus avec sidebar : la pastille « à examiner » reste sur une ligne, le bloc titre et tri passe à
+   la ligne plutôt que de déborder, et le badge de la candidature passe sous le nom plutôt que de le couper */
+.c2 .cand2__list .flag2 { white-space: nowrap; }
+.c2 .cand2__list .list2__head { flex-wrap: wrap; row-gap: var(--s-2); }
+.c2 .cand2 .cand2__top { flex-wrap: wrap; row-gap: var(--s-2); }
 
 @media (max-width: 1023.98px) {
   .cand2 { padding: var(--s-4); }

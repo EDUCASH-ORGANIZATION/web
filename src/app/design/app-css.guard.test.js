@@ -466,6 +466,23 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     }
   })
 
+  it("unites de montant : jamais sous 13 px (.amount--s small, .fund2__amt small), dans .c2", () => {
+    const amountS = { tag: "small", classes: [], ancestors: [...ANCESTORS, "amount", "amount--s"] }
+    expect(computedStyle(RULES, amountS)["font-size"]).toBe("max(var(--t-micro), .42em)")
+    const fund = { tag: "small", classes: [], ancestors: [...ANCESTORS, "fund2__amt"] }
+    expect(computedStyle(RULES, fund)["font-size"]).toBe("max(var(--t-micro), .8em)")
+    const c14 = stripComments(read("client/c14.css"))
+    expect(relativeSizeOffenders(c14)).toEqual([])
+    expect(relativeSizeOffenders(stripComments(read("client/c08.css")))).toEqual([])
+  })
+
+  it("C04 : pastille « a examiner » sur une ligne, titre et tri a la ligne, badge sous le nom, sous .c2", () => {
+    const c04 = stripComments(read("client/c04.css"))
+    expect(c04).toContain(".c2 .cand2__list .flag2 { white-space: nowrap; }")
+    expect(c04).toMatch(/\.c2 \.cand2__list \.list2__head \{ flex-wrap: wrap;/)
+    expect(c04).toMatch(/\.c2 \.cand2 \.cand2__top \{ flex-wrap: wrap;/)
+  })
+
   it("bouton « Retirer » inactif de la carte argent : l'opacite .45 de .c2 .btn.is-disabled ne s'applique pas", () => {
     const el = { tag: "button", classes: ["btn", "btn--ghost-blanc", "btn--sm", "is-disabled"], ancestors: ANCESTORS }
     expect(computedStyle(RULES, el).opacity).toBe("1")

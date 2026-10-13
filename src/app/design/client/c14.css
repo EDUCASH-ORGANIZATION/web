@@ -27,6 +27,8 @@
 .steps2 li::before { content: counter(s2); width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--c-brume); display: grid; place-items: center; font-size: var(--t-micro); font-weight: var(--fw-xbold); color: var(--c-encre); }
 .steps2 b { display: block; color: var(--c-encre); font-weight: var(--fw-bold); }
 .fund2__amt small, .tx2__amt small { margin-left: 3px; }
+/* L'unité du montant d'une mission financée ne descend jamais sous 13 px (le <small> du navigateur donnait 11,2 px) */
+.fund2__amt small { font-size: max(var(--t-micro), .8em); font-weight: var(--fw-bold); }
 .filters2 { padding: 12px var(--s-6); }
 .filters2 { gap: 6px; }
 .filters2 .chip { padding: 0 11px; }
