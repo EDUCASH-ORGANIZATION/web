@@ -99,7 +99,8 @@ function selectorsOf(css) {
   const out = []
   for (const m of css.matchAll(/([^{}]+)\{/g)) {
     const sel = m[1].trim()
-    if (!sel.startsWith("@")) out.push(sel)
+    // Les etapes d'un @keyframes (from, to, 40 %) ne sont pas des selecteurs de regle.
+    if (!sel.startsWith("@") && !/^(?:from|to|\d+%)$/.test(sel)) out.push(sel)
   }
   return out
 }
@@ -291,9 +292,11 @@ describe("feuilles app-shell.css et client/*.css", () => {
   })
 
   it("durcit la coquille : pastille 20 px, libelles tronques, avatar image rogne, formulaire de recherche et .search2 sans debordement", () => {
-    expect(SHELL).toContain(".bottom-nav--v2 .bnav-item__dot { min-width: 20px; height: 20px; }")
-    expect(SHELL).toContain(".bottom-nav--v2 .bnav-item { min-width: 0; }")
-    expect(SHELL).toContain(".bottom-nav--v2 .bnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }")
+    // Capsule RD-NAV-02 : pastille 20 px (au moins), items de 44 px minimum (cible tactile), libelle tronque par ellipse
+    // dans un flex qui peut se contracter (min-width: 0), jamais de debordement de la capsule.
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-item__dot \{[^}]*min-width: 20px; height: 20px;/)
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-item \{[^}]*min-width: 44px; height: 48px;/)
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-label \{ min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;/)
     expect(SHELL).toContain(".c2 .av2 { overflow: hidden; }")
     expect(SHELL).toContain(".c2 .av2 img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }")
     expect(SHELL).toContain(".shell--v2 .top2 form { flex: 0 1 auto; min-width: 0; }")
@@ -304,15 +307,125 @@ describe("feuilles app-shell.css et client/*.css", () => {
     expect(SHELL).toMatch(/\.head2__title \{[^}]*line-height: var\(--lh-display\)/)
   })
 
-  it("barre du bas .bottom-nav--v2 (planches validees) : masquee au bureau, fixe avec safe-area sous 1024, bnav2 conservee", () => {
+  it("barre du bas .bottom-nav--v2 (capsule RD-NAV-02) : masquee au bureau, capsule flex fixe avec safe-area sous 1024, bnav2 conservee", () => {
     expect(SHELL).toMatch(/\.bottom-nav--v2 \{ display: none; \}/)
-    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-item\.is-active \{ background: var\(--c-blanc\)/)
+    // Actif : pastille citron, texte encre (11,84:1). Remplace l'actif blanc de la barre precedente.
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-item\.is-active \{[^}]*background: var\(--c-citron\); color: var\(--c-encre\);/)
+    expect(SHELL).not.toMatch(/\.bottom-nav--v2 \.bnav-item\.is-active \{[^}]*background: var\(--c-blanc\)/)
     expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-item__dot \{/)
     const tablet = SHELL.slice(SHELL.indexOf("@media (max-width: 1023.98px)"))
-    expect(tablet).toMatch(/\.bottom-nav\.bottom-nav--v2 \{[^}]*display: grid[^}]*position: fixed[^}]*env\(safe-area-inset-bottom/)
+    // Remplace `display: grid` : la capsule est un flex (actif de largeur libre, inactifs en icones).
+    expect(tablet).toMatch(/\.bottom-nav\.bottom-nav--v2 \{[^}]*display: flex[^}]*position: fixed[^}]*left: 10px; right: 10px; bottom: calc\(14px \+ env\(safe-area-inset-bottom/)
+    expect(tablet).toMatch(/\.bottom-nav\.bottom-nav--v2 \{[^}]*height: var\(--h-bottomnav\)[^}]*border-radius: var\(--r-pill\); background: var\(--c-encre\); box-shadow: var\(--sh-dur-s\); z-index: var\(--z-nav\)/)
+    expect(tablet).not.toMatch(/\.bottom-nav\.bottom-nav--v2 \{[^}]*display: grid/)
     expect(tablet).toMatch(/\.shell--v2 \.shell__main \{ padding: 0 var\(--s-4\) calc\(86px \+ env\(safe-area-inset-bottom/)
     expect(tablet).toMatch(/\.main2 \{ padding-bottom: calc\(86px \+ env\(safe-area-inset-bottom/)
     expect(SHELL).toMatch(/\.bnav2 \{[^}]*position: fixed/)
+  })
+
+  it("capsule : couleurs par tokens seulement, aucun hex dans le bloc de la barre, anneau de focus --sh-focus", () => {
+    const bar = SHELL.slice(SHELL.indexOf(".bottom-nav--v2 { display: none; }"), SHELL.indexOf(".c2 .av2 { overflow: hidden; }"))
+    expect(bar.length).toBeGreaterThan(500)
+    expect(bar).not.toMatch(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/)
+    expect(bar).toMatch(/\.bottom-nav--v2 \.bnav-item:focus-visible, \.bnav2-more__link:focus-visible \{ outline: 2px solid transparent; box-shadow: var\(--sh-focus\); \}/)
+    expect(bar).toContain("color-mix(in srgb, var(--c-blanc) 8%, transparent)")
+    expect(bar).not.toMatch(/box-shadow:[^;]*blur|\d+px \d+px \d+px/)
+  })
+
+  it("capsule : l'onglet actif gagne la cascade (citron, encre, 13 px) contre .bnav-item de layouts.css, l'inactif reste brume", () => {
+    const ancestors = ["ds", "c2", "shell", "shell--v2", "shell__main", "bottom-nav", "bottom-nav--v2"]
+    const active = computedStyle(RULES, { tag: "a", classes: ["bnav-item", "is-active"], ancestors })
+    expect(active.background).toBe("var(--c-citron)")
+    expect(active.color).toBe("var(--c-encre)")
+    expect(active["font-size"]).toBe("var(--t-micro)")
+    expect(active["min-width"]).toBe("44px")
+    expect(active.flex).toBe("0 1 auto")
+    expect(active.margin).toBe("0")
+    const hover = computedStyle(RULES, { tag: "a", classes: ["bnav-item", "is-active"], ancestors, states: ["hover"] })
+    expect(hover.background).toBe("var(--c-citron-600)")
+    expect(hover.color).toBe("var(--c-encre)")
+    const idle = computedStyle(RULES, { tag: "a", classes: ["bnav-item"], ancestors })
+    expect(idle.color).toBe("var(--c-brume)")
+    expect(idle.background).toBe("transparent")
+    expect(idle["min-width"]).toBe("44px")
+    expect(idle.height).toBe("48px")
+    expect(idle["font-size"]).toBe("var(--t-micro)")
+    const idleHover = computedStyle(RULES, { tag: "button", classes: ["bnav-item"], ancestors, states: ["hover"] })
+    expect(idleHover.color).toBe("var(--c-blanc)")
+    expect(idleHover.background).toBe("color-mix(in srgb, var(--c-blanc) 8%, transparent)")
+    const press = computedStyle(RULES, { tag: "a", classes: ["bnav-item"], ancestors, states: ["active"] })
+    expect(press.transform).toBe("scale(.94)")
+    const focus = computedStyle(RULES, { tag: "a", classes: ["bnav-item"], ancestors, states: ["focus-visible"] })
+    expect(focus["box-shadow"]).toBe("var(--sh-focus)")
+  })
+
+  it("capsule : pastille de non lus corail (--c-erreur-sombre) a chiffre encre, 13 px, bordure de la couleur du fond", () => {
+    const ancestors = ["ds", "c2", "shell", "shell--v2", "shell__main", "bottom-nav", "bottom-nav--v2"]
+    const dot = computedStyle(RULES, { tag: "i", classes: ["bnav-item__dot"], ancestors })
+    expect(dot.background).toBe("var(--c-erreur-sombre)")
+    expect(dot.color).toBe("var(--c-encre)")
+    expect(dot["font-size"]).toBe("var(--t-micro)")
+    expect(dot.border).toBe("2px solid var(--c-encre)")
+    const onActive = computedStyle(RULES, { tag: "i", classes: ["bnav-item__dot"], ancestors: [...ancestors, "bnav-item", "is-active"] })
+    expect(onActive["border-color"]).toBe("var(--c-citron)")
+  })
+
+  it("capsule : Plus (panneau encre, ombre dure, liens de 48 px, actif citron), espaceur masque hors media et dimensionne sous 1024", () => {
+    expect(SHELL).toMatch(/\.bnav2-more \{ position: relative; display: flex; flex: 1 1 0; min-width: 44px; \}/)
+    expect(SHELL).toMatch(/\.bnav2-more__panel \{[^}]*bottom: calc\(100% \+ var\(--s-2\)\)[^}]*background: var\(--c-encre\); box-shadow: var\(--sh-dur-s\); z-index: var\(--z-menu\);/)
+    // L'attribut hidden doit gagner contre display: flex du panneau (le panneau est ferme au rendu initial).
+    expect(SHELL).toContain(".bnav2-more__panel[hidden] { display: none; }")
+    expect(SHELL).toMatch(/\.bnav2-more__link \{[^}]*min-height: 48px;[^}]*color: var\(--c-brume\); font-size: var\(--t-micro\);/)
+    expect(SHELL).toMatch(/\.bnav2-more__link\[aria-current="page"\] \{ background: var\(--c-citron\); color: var\(--c-encre\); \}/)
+    expect(SHELL).toContain(".bnav2-spacer { display: none; }")
+    const tablet = SHELL.slice(SHELL.indexOf("@media (max-width: 1023.98px)"))
+    expect(tablet).toContain(".bnav2-spacer { display: block; height: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }")
+    expect(SHELL.indexOf(".bnav2-spacer { display: none; }")).toBeLessThan(SHELL.indexOf("@media (max-width: 1023.98px)"))
+  })
+
+  it("capsule : bouton Publier central (52 px, bleu, icone blanche >= 4,5:1, souleve, sans libelle) avec anneau citron actif et focus visible", () => {
+    const colors = parseColorTokens(read("tokens.css"))
+    expect(contrastRatio(colors["--c-blanc"], colors["--c-bleu"])).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(colors["--c-blanc"], colors["--c-bleu-700"])).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(colors["--c-blanc"], colors["--c-bleu-800"])).toBeGreaterThanOrEqual(4.5)
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bottom-nav__cta \{[^}]*top: -18px; flex: none;[^}]*width: 52px; height: 52px;[^}]*border-radius: 50%; background: var\(--c-bleu\); color: var\(--c-blanc\);/)
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bottom-nav__cta \{[^}]*box-shadow: 0 0 0 4px var\(--c-encre\), var\(--sh-dur-s\);/)
+    expect(SHELL).toContain('.bottom-nav--v2 .bottom-nav__cta[aria-current="page"] { box-shadow: 0 0 0 3px var(--c-encre), 0 0 0 6px var(--c-citron); }')
+    expect(SHELL).toContain(".bottom-nav--v2 .bottom-nav__cta:active { background: var(--c-bleu-800); transform: scale(.94); }")
+    expect(SHELL).toContain(".bottom-nav--v2 .bottom-nav__cta:focus-visible { outline: 2px solid transparent; box-shadow: var(--sh-focus); }")
+    // Le soulevement ne passe pas par transform (reserve a l'echelle d'appui) et reste sous la reserve de contenu de 24 px.
+    expect(SHELL).not.toMatch(/\.bottom-nav__cta \{[^}]*translate/)
+    expect(18 - (72 - 52) / 2 + 4).toBeLessThan(24)
+    const ancestors = ["ds", "c2", "shell", "shell--v2", "shell__main", "bottom-nav", "bottom-nav--v2"]
+    const cta = computedStyle(RULES, { tag: "a", classes: ["bottom-nav__cta"], ancestors })
+    expect(cta.background).toBe("var(--c-bleu)")
+    expect(cta.width).toBe("52px")
+    expect(computedStyle(RULES, { tag: "a", classes: ["bottom-nav__cta"], ancestors, states: ["focus-visible"] })["box-shadow"]).toBe("var(--sh-focus)")
+    expect(computedStyle(RULES, { tag: "a", classes: ["bottom-nav__cta"], ancestors, states: ["hover"] }).background).toBe("var(--c-bleu-700)")
+  })
+
+  it("capsule : mouvement reduit coupe transitions et animations de la barre (et l'echelle a l'appui), libelle anime par keyframes", () => {
+    const reduced = SHELL.slice(SHELL.indexOf("@media (prefers-reduced-motion: reduce)"))
+    expect(reduced).toContain(".bottom-nav--v2, .bottom-nav--v2 * { transition: none !important; animation: none !important; }")
+    expect(reduced).toContain(".bottom-nav--v2 .bnav-item:active, .bottom-nav--v2 .bottom-nav__cta:active { transform: none !important; }")
+    expect(SHELL).toMatch(/@keyframes bnav2-label-in \{ from \{ opacity: 0; transform: translateX\(-4px\); \} to \{ opacity: 1; transform: none; \} \}/)
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-label \{[^}]*animation: bnav2-label-in var\(--dur-3\) var\(--ease\);/)
+  })
+
+  it("capsule a 320 px : 5 emplacements (4 cibles de 44 px + Publier de 52 px) dans 300 px, pastille resserree sous 480 avec ellipse de repli", () => {
+    const narrow = SHELL.slice(SHELL.indexOf("@media (max-width: 480px)"), SHELL.indexOf("/* ---------- Mouvement reduit"))
+    expect(narrow).toContain(".bottom-nav.bottom-nav--v2 { padding: 0 var(--s-1); gap: 0; }")
+    expect(narrow).toContain(".bottom-nav--v2 .bnav-item.is-active { gap: 6px; padding: 0 10px; }")
+    expect(narrow).toContain(".bottom-nav--v2 .bottom-nav__cta { margin: 0; }")
+    // Largeur laissee au libelle de l'actif : ecran - marges 2 x 10 - padding 2 x 4 - Publier 52 - 3 inactifs de 44 - (icone 24 + ecart 6 + padding 2 x 10).
+    const label = (screen) => screen - 20 - 8 - 52 - 3 * 44 - (24 + 6 + 20)
+    expect(label(360)).toBeGreaterThanOrEqual(88) // « Portefeuille » (~85 px) tient entier des 360 px
+    expect(label(320)).toBeGreaterThanOrEqual(40) // a 320 px, ellipse de repli (le DOM garde le libelle complet)
+    expect(label(320)).toBeLessThan(85)
+  })
+
+  it("detecteur de keyframes : les etapes from/to ne sont pas des selecteurs de regle", () => {
+    expect(selectorsOf("@keyframes k2 { from { opacity: 0; } 40% { opacity: .5; } to { opacity: 1; } } .a2 { color: red; }")).toEqual([".a2"])
   })
 
   it("ecran de detail mobile : .shell--detail masque la barre du bas et reserve la hauteur de .mbar2, jamais les deux barres ensemble", () => {
