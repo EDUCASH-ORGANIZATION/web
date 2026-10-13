@@ -42,7 +42,7 @@ describe("rendu : vouvoiement, mots bannis, tirets, emoji, un seul h1", () => {
     it(name, () => {
       const html = render()
       const t = text(html)
-      expect(t).not.toMatch(/[—–]/)
+      expect(t).not.toMatch(/[\u2014\u2013]/)
       expect(t).not.toMatch(/\p{Extended_Pictographic}/u)
       // les titres de missions des fixtures (données) sont exclus du contrôle de mots bannis et de tutoiement
       const ui = t.replace(/(Saisie de 200 fiches clients|Livraison de documents à Ganhi|Livrer 12 colis entre Ganhi et Cadjèhoun|Traduire un flyer en anglais|Cours de maths niveau 3e|Garde de deux enfants samedi soir|Garde d'enfants mercredi après-midi|Inventaire du stock de pagnes)/g, " ")
