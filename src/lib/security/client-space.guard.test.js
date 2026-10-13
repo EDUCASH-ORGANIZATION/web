@@ -106,7 +106,8 @@ function classTokens(code) {
 }
 
 const BANNED_WORDS = /\b(?:livraisons?|courses?|coursiers?|saisie|bientôt|fedapay)\b/i
-const TUTOIEMENT = /\b(?:tu|ton|ta|tes|toi)\b|Réessaie|Recharge ton/i
+// Bornes unicode : \b traite "ê" comme non-mot et ferait matcher "tes" dans "êtes".
+const TUTOIEMENT = /(?<![\p{L}\p{N}_])(?:tu|ton|ta|tes|toi)(?![\p{L}\p{N}_])|Réessaie|Recharge ton/iu
 
 /** Texte JSX : ce qui se trouve entre une balise et la suivante (hors `=>` et expressions). */
 function jsxText(code) {
