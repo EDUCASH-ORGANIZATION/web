@@ -69,6 +69,8 @@ a.fund2__title:hover { text-decoration: underline; }
   .filters2 .chip { flex: none; }
   .filters2 { padding-block: 5px; margin-block: -5px; }
   .filters2 .chips--scroll { flex-wrap: nowrap; }
+  /* Rangée de puces défilante : pas de trait entre le titre de la carte et elle (le séparateur de bureau reste ailleurs). */
+  .list2__head:has(+ .filters2) { border-bottom: 0; }
   .tx2 { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main amt" "date badge"; align-items: start; gap: var(--s-2) var(--s-3); }
   .tx2__main { grid-area: main; }
   .tx2__amt { grid-area: amt; font-size: var(--t-body-s); }

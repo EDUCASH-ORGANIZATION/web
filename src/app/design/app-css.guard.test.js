@@ -951,3 +951,53 @@ describe("C03 : barre mobile de publication a 320 px", () => {
     expect(11 * 9.3).toBeLessThanOrEqual(primaryContent(320))
   })
 })
+
+// RD-FIX-01 : aucun trait au-dessus d'une rangée qui défile horizontalement (défaut mobile signalé sur C14).
+describe("rangees defilantes : pas de trait au-dessus", () => {
+  const c14 = stripComments(read("client/c14.css"))
+  const phone = c14.slice(c14.indexOf("@media (max-width: 767.98px)"))
+  const base = stripComments(read("client/base.css"))
+  const components = stripComments(read("components.css"))
+  const srcRoot = path.join(dir, "..", "..", "components", "client-space")
+  const jsxFiles = (d) =>
+    readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? jsxFiles(path.join(d, e.name)) : /\.jsx$/.test(e.name) && !/\.test\./.test(e.name) ? [path.join(d, e.name)] : [],
+    )
+  const sources = jsxFiles(srcRoot).map((f) => [path.relative(srcRoot, f), readFileSync(f, "utf8")])
+
+  it("C14 : l'en-tete de l'historique perd son trait sur mobile quand les filtres defilent juste apres", () => {
+    expect(phone).toMatch(/\.list2__head:has\(\+ \.filters2\) \{ border-bottom: 0; \}/)
+    // la rangée défilante n'a elle-même aucune bordure haute ni basse sur mobile
+    expect(phone).toMatch(/\.filters2 \{[^}]*overflow-x: auto;[^}]*border: 0;/)
+  })
+
+  it("le trait de l'en-tete n'est retire qu'en mobile : bureau et tablette gardent leur separateur", () => {
+    const outsidePhone = c14.slice(0, c14.indexOf("@media (max-width: 767.98px)"))
+    expect(outsidePhone).not.toMatch(/list2__head:has/)
+    expect(SHELL).toMatch(/\n\.list2__head \{[^}]*border-bottom: 1px solid var\(--c-ligne\);/)
+    expect(c14).toMatch(/\n\.filters2 \{[^}]*border-bottom: 1px solid var\(--c-ligne\);/)
+  })
+
+  it("chaque .list2__head suivi d'une rangee de filtres defilante dans le JSX client est neutralise en CSS", () => {
+    const pairs = []
+    for (const [file, text] of sources) {
+      for (const m of text.matchAll(/className="list2__head"[\s\S]{0,400}?<\/div>\s*<div className="([^"]*(?:filters2|tabs|chips--scroll|segmented)[^"]*)"/g)) {
+        pairs.push([file, m[1].split(" ").find((c) => /^(filters2|tabs|chips--scroll|segmented)$/.test(c))])
+      }
+    }
+    expect(pairs.length).toBeGreaterThan(0)
+    for (const [, row] of pairs) expect(phone).toContain(`.list2__head:has(+ .${row}) { border-bottom: 0; }`)
+  })
+
+  it("les onglets .tabs (C02 missions, C04 detail) et la rangee .chips--scroll ne suivent jamais un .list2__head", () => {
+    for (const [file, text] of sources) {
+      expect(text, file).not.toMatch(/className="list2__head"[\s\S]{0,400}?<\/div>\s*<(?:div|TabsNav)[^>]*(?:className="tabs|<TabsNav)/)
+    }
+    // le trait des onglets est leur ligne de base, sous la rangée (jamais au-dessus)
+    expect(components).toMatch(/\n\.tabs \{[^}]*border-bottom: var\(--b-ligne\);/)
+    expect(components).not.toMatch(/\n\.tabs \{[^}]*border-top/)
+    expect(base).toMatch(/\.c2 \.tabs \{ border-bottom: 1px solid var\(--c-ligne\); \}/)
+    expect(base).not.toMatch(/\.c2 \.tabs \{[^}]*border-top/)
+    expect(components).not.toMatch(/\n\.chips--scroll \{[^}]*border/)
+  })
+})
