@@ -261,6 +261,12 @@ describe("feuilles app-shell.css et client/*.css", () => {
     expect(phone).toMatch(/\.stats2 \.stat2__value small, \.money2--split \.stat2__value small \{ display: block;/)
   })
 
+  it("laisse un montant de 10 chiffres passer a la ligne dans sa cellule au lieu de deborder, sans reduire la taille", () => {
+    const phone = SHELL.slice(SHELL.indexOf("@media (max-width: 767.98px)"))
+    expect(phone).toMatch(/\.stats2 \.stat2__value, \.money2--split \.stat2__value \{ min-width: 0; white-space: normal; overflow-wrap: anywhere; \}/)
+    expect(SHELL).toMatch(/\.stat2 \{[^}]*min-width: 0;/)
+  })
+
   it("durcit la coquille : pastille 20 px, libelles tronques, avatar image rogne, formulaire de recherche et .search2 sans debordement", () => {
     expect(SHELL).toContain(".bottom-nav--v2 .bnav-item__dot { min-width: 20px; height: 20px; }")
     expect(SHELL).toContain(".bottom-nav--v2 .bnav-item { min-width: 0; }")
@@ -409,6 +415,14 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     const without = RULES.filter((r) => !r.selector.startsWith(".c2 a.ds-skip-link") && !r.selector.startsWith(".c2 .btn--secondary:focus-visible"))
     const rest = computedStyle(without, { tag: "a", classes: ["ds-skip-link", "btn", "btn--secondary"], ancestors: ANCESTORS })
     expect(rest.transform).toBe("none")
+  })
+
+  it("recherche de .c2 : la bordure bleue de focus de .search:focus-within n'est pas annulee, et c02.css ne la double pas", () => {
+    expect(specificity(".c2 .search:focus-within")).toEqual([0, 3, 0])
+    const el = { tag: "div", classes: ["search"], ancestors: ANCESTORS }
+    expect(computedStyle(RULES, el).border).toBe("1px solid var(--c-ligne)")
+    expect(computedStyle(RULES, { ...el, states: ["focus-within"] })["border-color"]).toBe("var(--c-bleu)")
+    expect(read("client/c02.css")).not.toContain(".search:focus-within")
   })
 
   it("boutons secondaire et accent de .c2 : l'anneau de focus n'est pas annule par box-shadow: none", () => {

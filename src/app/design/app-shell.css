@@ -330,6 +330,8 @@
   .hero2__figure { font-size: 36px; }
   /* Montants a 7 chiffres et plus dans 3 colonnes : la taille suit la largeur (jamais sous 13 px), l'unite passe a la ligne */
   .stats2 .stat2__value, .money2--split .stat2__value { font-size: max(var(--t-micro), clamp(13px, 3.8vw, var(--t-amount-s))); }
+  /* Montants a 10 chiffres (plus d'un milliard) : la valeur peut passer a la ligne plutot que deborder de sa cellule a 320 px */
+  .stats2 .stat2__value, .money2--split .stat2__value { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .stats2 .stat2__value small, .money2--split .stat2__value small { display: block; margin-left: 0; }
 }
 

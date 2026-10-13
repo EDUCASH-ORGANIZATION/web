@@ -82,6 +82,8 @@
 .c2 .chip { border: 1.5px solid var(--c-ligne); }
 .c2 .chip.is-selected .count { background: transparent; color: var(--c-blanc); }
 .c2 .search { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: 12px; height: 44px; }
+/* Rétablit la bordure bleue de .search:focus-within (components.css, 0,2,0) que la ligne ci-dessus (0,2,0, chargée après) annule. */
+.c2 .search:focus-within, .c2 .search.is-focus { border-color: var(--c-bleu); }
 .c2 .stars--input .is-on { fill: var(--c-encre); stroke: var(--c-encre); }
 .c2 .stars--input .is-hover { fill: var(--c-ligne); }
 .c2 .progress > i { background: var(--c-encre); }
