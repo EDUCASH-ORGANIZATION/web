@@ -1,0 +1,29 @@
+/* ---------- C05 Profil du candidat (tiroir) ---------- */
+.c2 .drawer { width: 520px; border-radius: 24px 0 0 24px; }
+.c2 .drawer__head { border-bottom: 1px solid var(--c-ligne); }
+.c2 .drawer__foot { border-top: 1px solid var(--c-ligne); align-items: center; }
+.c2 .drawer__foot .btn--dark { margin-left: auto; }
+.c2 .drawer__body { gap: var(--s-5); }
+.c2 .drawer .stats2 { border-radius: 16px; }
+.c2 .drawer .stat2 { padding: 12px 16px; }
+.c2 .drawer .stat2__value { font-size: var(--t-amount-s); }
+.prof2__h { font-size: var(--t-body); font-weight: var(--fw-xbold); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: baseline; }
+.prof2__p { font-size: var(--t-body-s); color: var(--c-ardoise); line-height: 1.55; }
+.prof2__p--encre { color: var(--c-encre); }
+.tags2 { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags2 span { font-size: var(--t-caption); font-weight: var(--fw-bold); padding: 4px 10px; border-radius: var(--r-pill); background: var(--c-givre); }
+.review2x { padding: 10px 0; }
+.review2x + .review2x { border-top: 1px solid var(--c-ligne-2); }
+.review2x__top { display: flex; justify-content: space-between; align-items: center; font-size: var(--t-body-s); font-weight: var(--fw-bold); }
+.review2x__stars { display: inline-flex; gap: 2px; }
+.review2x__stars .ic { width: 14px; height: 14px; fill: var(--c-encre); stroke: var(--c-encre); }
+.stats2--3s { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mapp2 .stats2--3s .stat2 { padding: 10px 12px; } .mapp2 .stats2--3s .stat2__value { font-size: var(--t-body); white-space: normal; }
+
+@media (max-width: 1023.98px) {
+  .mapp2 .stats2--3s .stat2, .c2 .drawer .stats2--3s .stat2 { padding: 10px 12px; }
+  .stats2--3s .stat2__value { font-size: var(--t-body); white-space: normal; }
+}
+@media (max-width: 767.98px) {
+  .c2 .drawer { width: 100%; border-radius: 0; }
+}

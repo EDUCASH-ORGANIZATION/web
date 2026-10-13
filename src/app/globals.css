@@ -9,6 +9,8 @@
 @import "./design/tokens.css" layer(theme);
 @import "./design/components.css" layer(components);
 @import "./design/layouts.css" layer(components);
+@import "./design/app-shell.css" layer(components);
+@import "./design/client.css" layer(components);
 
 /* Docs projet hors scan : leurs mentions de classes (ex. `grow`) generaient des utilitaires. */
 @source not "../../CLAUDE.md";
