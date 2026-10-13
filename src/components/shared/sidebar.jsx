@@ -112,7 +112,7 @@ export function Sidebar({ role = "student", profile, userId, unreadCount: initia
           <Wallet size={14} className={walletColor} />
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-0.5">
-              Mon wallet
+              Mon portefeuille
             </p>
             <p className={`text-xs font-bold leading-none ${walletColor}`}>
               {fmt(walletAvailable)} FCFA

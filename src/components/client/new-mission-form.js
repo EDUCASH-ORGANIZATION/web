@@ -59,7 +59,7 @@ function WalletImpact({ available, budget }) {
       <div className="flex items-center gap-2">
         <Wallet size={14} className={insufficient ? "text-red-500" : "text-[#1A6B4A]"} />
         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-          Impact sur le wallet
+          Impact sur le portefeuille
         </p>
       </div>
       <div className="flex flex-col gap-1.5">
@@ -81,7 +81,7 @@ function WalletImpact({ available, budget }) {
       </div>
       {insufficient && (
         <p className="text-xs text-red-600 font-semibold">
-          Solde insuffisant — rechargez votre wallet avant de publier.
+          Solde insuffisant - rechargez votre portefeuille avant de publier.
         </p>
       )}
     </div>
@@ -439,7 +439,7 @@ export function NewMissionForm({ profile, walletAvailable = 0, initial }) {
                   className="inline-flex items-center gap-1.5 self-start text-sm font-bold text-[#1A6B4A] hover:underline"
                 >
                   <Wallet size={14} />
-                  Recharger mon wallet →
+                  Recharger mon portefeuille →
                 </Link>
               </div>
             )}

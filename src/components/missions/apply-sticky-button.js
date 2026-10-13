@@ -5,14 +5,13 @@ import Link from "next/link"
 import { Send, CheckCircle, Loader2 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { useSupabase } from "@/components/shared/supabase-provider"
+import { apply } from "@/lib/actions/application.actions"
 import { Modal } from "@/components/ui/modal"
 import { Button } from "@/components/ui/button"
 
 // ─── Modal de candidature ─────────────────────────────────────────────────────
 
 function ApplyModal({ isOpen, onClose, missionId, missionTitle, onSuccess }) {
-  const { supabase } = useSupabase()
-  const { user } = useAuth()
   const [message, setMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
@@ -23,15 +22,10 @@ function ApplyModal({ isOpen, onClose, missionId, missionTitle, onSuccess }) {
     setError("")
     setIsSubmitting(true)
 
-    const { error: insertError } = await supabase.from("applications").insert({
-      mission_id: missionId,
-      student_id: user.id,
-      message: message.trim(),
-      status: "pending",
-    })
+    const result = await apply({ missionId, message })
 
-    if (insertError) {
-      setError("Une erreur est survenue. Réessayez.")
+    if (result?.error) {
+      setError(result.error)
       setIsSubmitting(false)
       return
     }

@@ -56,8 +56,8 @@ export function CardUploadForm({ hasCard }) {
 
     try {
       // Validation côté client
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Le fichier ne doit pas dépasser 5 Mo.")
+      if (file.size > 10 * 1024 * 1024) {
+        setError("Le fichier ne doit pas dépasser 10 Mo.")
         return
       }
       const ext = file.name.split(".").pop().toLowerCase()
@@ -76,7 +76,8 @@ export function CardUploadForm({ hasCard }) {
         .upload(fileName, file, { upsert: true })
 
       if (uploadError) {
-        setError("Erreur upload : " + uploadError.message)
+        console.error("[card-upload-form] upload", uploadError)
+        setError("L'envoi de la carte a échoué. Réessaie.")
         return
       }
 
@@ -92,10 +93,8 @@ export function CardUploadForm({ hasCard }) {
         return
       }
 
-      const { data: urlData } = supabase.storage.from("student-cards").getPublicUrl(fileName)
-
-      // Sauvegarder l'URL via Server Action (uniquement une string — pas de fichier)
-      const result = await saveStudentCardUrl(urlData.publicUrl)
+      // Sauvegarder le chemin du fichier via Server Action (uniquement une string - pas de fichier)
+      const result = await saveStudentCardUrl(fileName)
 
       if (result?.error) {
         setError(result.error)
@@ -181,7 +180,7 @@ export function CardUploadForm({ hasCard }) {
               </p>
             </div>
             <p className="text-[11px] text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-              JPG, PNG, WEBP ou PDF — 5 Mo max
+              JPG, PNG, WEBP ou PDF - 10 Mo max
             </p>
           </>
         )}

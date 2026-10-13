@@ -20,6 +20,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }))
 vi.mock("@/components/client/new-mission-form", () => ({ NewMissionForm: () => null }))
 vi.mock("@/components/client/wallet-required-gate", () => ({ WalletRequiredGate: () => null }))
+vi.mock("@/components/client/publish-paused-gate", () => ({ PublishPausedGate: () => null }))
 
 const { default: NewMissionPage } = await import("./page")
 
@@ -36,6 +37,7 @@ function findElement(node, name) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.stubEnv("PAYMENTS_ENABLED", "true")
   getCurrentUser.mockResolvedValue({ id: "u1" })
   getWallet.mockResolvedValue({ available: 10000 })
 })
@@ -80,5 +82,33 @@ describe("NewMissionPage", () => {
   it("redirige vers la connexion sans utilisateur", async () => {
     getCurrentUser.mockResolvedValue(null)
     await expect(NewMissionPage({ searchParams: Promise.resolve({}) })).rejects.toThrow("redirect:/auth/login")
+  })
+})
+
+describe("NewMissionPage, paiements coupés", () => {
+  it("affiche la publication en pause sans lire le portefeuille ni montrer le formulaire", async () => {
+    vi.stubEnv("PAYMENTS_ENABLED", "false")
+    const tree = await NewMissionPage({ searchParams: Promise.resolve({}) })
+    expect(findElement(tree, "PublishPausedGate")).not.toBeNull()
+    expect(findElement(tree, "NewMissionForm")).toBeNull()
+    expect(findElement(tree, "WalletRequiredGate")).toBeNull()
+    expect(getWallet).not.toHaveBeenCalled()
+  })
+
+  it("garde le lien de reprise du pré-remplissage pour la réouverture", async () => {
+    vi.stubEnv("PAYMENTS_ENABLED", "false")
+    const tree = await NewMissionPage({
+      searchParams: Promise.resolve({ besoin: "Faire le marché", ville: "Cotonou", type: "Livraison" }),
+    })
+    expect(findElement(tree, "PublishPausedGate").props.resumeHref).toBe(
+      "/client/missions/new?besoin=Faire+le+march%C3%A9&ville=Cotonou&type=Livraison",
+    )
+  })
+
+  it("le drapeau est faux par défaut", async () => {
+    vi.unstubAllEnvs()
+    delete process.env.PAYMENTS_ENABLED
+    const tree = await NewMissionPage({ searchParams: Promise.resolve({}) })
+    expect(findElement(tree, "PublishPausedGate")).not.toBeNull()
   })
 })

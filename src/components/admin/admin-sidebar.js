@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { label: "Vérifications",   href: "/admin/verifications",  icon: ShieldCheck     },
   { label: "Utilisateurs",    href: "/admin/users",          icon: Users           },
   { label: "Missions",        href: "/admin/missions",       icon: Briefcase       },
-  { label: "Wallets",         href: "/admin/wallets",        icon: Wallet          },
+  { label: "Portefeuilles",        href: "/admin/wallets",        icon: Wallet          },
 ]
 
 export function AdminSidebar({ pendingCount = 0 }) {

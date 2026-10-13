@@ -1,15 +1,20 @@
 import Image from "next/image"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { getServerRole } from "@/lib/auth/server-role"
-import { createClient as createAdminClient } from "@supabase/supabase-js"
+import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
 import { ChevronLeft, ChevronRight, ShieldCheck, Users, UserX } from "lucide-react"
 import { SuspendButton } from "@/components/admin/suspend-button"
 
-export const metadata = { title: "Utilisateurs — Admin EduCash" }
+export const metadata = { title: "Utilisateurs - Admin EduCash" }
 
 const PAGE_SIZE = 20
+
+// Numéro de page robuste : toute valeur non numérique ou inférieure à 1 donne la page 1.
+function parsePage(value) {
+  const n = Number.parseInt(value ?? "1", 10)
+  return Number.isFinite(n) && n >= 1 ? n : 1
+}
 
 const ROLE_CONFIG = {
   admin:   { label: "Admin",    cls: "bg-purple-100 text-purple-700" },
@@ -18,24 +23,18 @@ const ROLE_CONFIG = {
 }
 
 export default async function AdminUsersPage({ searchParams }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
-  const { role } = await getServerRole(supabase, user)
-  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
-
+  const auth = await requireRole(["admin"])
+  if (auth.error) redirect("/auth/login")
   // ── Fix Next.js 16 : await searchParams ───────────────────────
   const { page: pageParam, role: roleFilter } = await searchParams
-  const page = Math.max(1, parseInt(pageParam ?? "1", 10))
+  const page = parsePage(pageParam)
   const from = (page - 1) * PAGE_SIZE
   const to   = from + PAGE_SIZE - 1
 
-  const admin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  )
+  // Lectures via le client service role, après le contrôle admin ci-dessus
+  const admin = createServiceClient()
 
-  let query = supabase
+  let query = admin
     .from("profiles")
     .select("user_id, full_name, avatar_url, role, is_verified, is_suspended, missions_done, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
@@ -60,9 +59,9 @@ export default async function AdminUsersPage({ searchParams }) {
 
   // Counts par rôle pour les filtres
   const [{ count: studentCount }, { count: clientCount }, { count: suspendedCount }] = await Promise.all([
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "student"),
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "client"),
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_suspended", true),
+    admin.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "student"),
+    admin.from("profiles").select("user_id", { count: "exact", head: true }).eq("role", "client"),
+    admin.from("profiles").select("user_id", { count: "exact", head: true }).eq("is_suspended", true),
   ])
 
   function buildHref(p, role) {
@@ -148,7 +147,7 @@ export default async function AdminUsersPage({ searchParams }) {
             <tbody className="divide-y divide-gray-50">
               {(profiles ?? []).map((profile) => {
                 const initial    = profile.full_name?.charAt(0)?.toUpperCase() ?? "?"
-                const email      = emailMap[profile.user_id] ?? "—"
+                const email      = emailMap[profile.user_id] ?? "-"
                 const roleCfg    = ROLE_CONFIG[profile.role] ?? ROLE_CONFIG.student
                 const date       = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "2-digit" }).format(new Date(profile.created_at))
 
@@ -169,7 +168,7 @@ export default async function AdminUsersPage({ searchParams }) {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-gray-900 truncate max-w-[140px]">
-                            {profile.full_name ?? "—"}
+                            {profile.full_name ?? "-"}
                           </p>
                           {profile.is_suspended && (
                             <p className="text-[10px] text-red-500 font-semibold">Suspendu</p>
@@ -202,7 +201,7 @@ export default async function AdminUsersPage({ searchParams }) {
                           </span>
                         )
                       ) : (
-                        <span className="text-[11px] text-gray-300">—</span>
+                        <span className="text-[11px] text-gray-300">-</span>
                       )}
                     </td>
 

@@ -23,26 +23,3 @@ export async function getUniversities() {
 
   return data ?? []
 }
-
-/**
- * Déclenche la vérification des badges expirés via une fonction SQL RPC.
- * À appeler depuis un cron ou depuis le dashboard admin.
- *
- * La fonction SQL `check_verification_expiry` doit être créée dans Supabase :
- *   - Repasse is_verified = false pour tout étudiant dont le badge a
- *     expiré (verified_at + VERIFICATION_VALIDITY_DAYS < now())
- *
- * @returns {Promise<{ success: true } | { error: string }>}
- */
-export async function checkExpiredVerifications() {
-  const supabase = await createClient()
-
-  const { error } = await supabase.rpc("check_verification_expiry")
-
-  if (error) {
-    console.error("[checkExpiredVerifications]", error.message)
-    return { error: error.message }
-  }
-
-  return { success: true }
-}

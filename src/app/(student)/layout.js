@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { getServerRole } from "@/lib/auth/server-role"
+import { dashboardFor } from "@/lib/auth/destinations"
 import { Sidebar } from "@/components/shared/sidebar"
 import { StudentHeader } from "@/components/shared/student-header"
 import { PwaInstallBannerLoader } from "@/components/shared/pwa-install-banner-loader"
@@ -11,8 +13,10 @@ export default async function StudentLayout({ children }) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/auth/login")
 
-  const role = user.user_metadata?.role ?? "student"
-  if (role !== "student") redirect("/client/dashboard")
+  // Autorité : profiles.role (jamais user_metadata). Rôle introuvable : retour à l'accueil (fail-closed).
+  const { role } = await getServerRole(supabase, user)
+  if (!role) redirect("/")
+  if (role !== "student") redirect(dashboardFor(role) ?? "/")
 
   const [{ data: profile }, { data: studentProfile }, { count: unreadCount }, { data: walletData }] = await Promise.all([
     supabase

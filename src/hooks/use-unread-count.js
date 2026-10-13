@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useId } from "react"
+import { useState, useEffect, useId } from "react"
 import { createClient } from "@/lib/supabase/client"
 
 /**
@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/client"
  */
 export function useUnreadCount(userId, initialCount = 0) {
   const [count, setCount] = useState(initialCount)
-  const supabase          = useRef(createClient()).current
+  const [supabase]         = useState(() => createClient())
   // useId() garantit un nom de channel unique par instance du hook,
   // évitant le conflit quand Sidebar + BottomNav utilisent le même userId.
   const instanceId        = useId().replace(/:/g, "")

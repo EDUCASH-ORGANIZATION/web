@@ -121,7 +121,7 @@ export function ClientEditForm({ profile }) {
         </div>
         <div>
           <p className="text-sm font-bold text-gray-900">Photo de profil</p>
-          <p className="text-xs text-gray-400 mt-0.5">JPG, PNG ou WEBP — max 3 Mo</p>
+          <p className="text-xs text-gray-400 mt-0.5">JPG, PNG ou WEBP - max 3 Mo</p>
           <button
             type="button"
             onClick={() => avatarInputRef.current?.click()}

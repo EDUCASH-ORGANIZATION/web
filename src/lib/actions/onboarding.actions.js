@@ -15,8 +15,7 @@ import {
   makeClientTypeSchema,
   makeClientIdentitySchema,
 } from "@/lib/auth/schemas"
-
-const STORAGE_MODES = ["public", "sign", "authenticated"]
+import { toOwnedAvatarUrl, toOwnedStoragePath } from "@/lib/storage/owned-paths"
 
 const MESSAGES = {
   student: {
@@ -71,22 +70,17 @@ export async function getOnboardingState(expectedRole) {
   return { status: "ok", ...base }
 }
 
-// Une URL d'objet Storage n'est acceptée que si elle vient du projet et du dossier de l'utilisateur.
-function storageUrl(value, bucket, userId) {
+// Référence Storage optionnelle : vide = rien à enregistrer, sinon `convert` doit l'accepter
+// (projet, bucket et dossier de l'utilisateur) et renvoie la valeur à stocker.
+function storageRef(value, convert) {
   if (value === undefined || value === null || value === "") return { ok: true, url: null }
-  if (typeof value !== "string") return { ok: false }
-  try {
-    const base = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "")
-    const url = new URL(value)
-    if (url.origin !== base.origin) return { ok: false }
-    const allowed = STORAGE_MODES.some((mode) =>
-      url.pathname.startsWith(`/storage/v1/object/${mode}/${bucket}/${userId}/`)
-    )
-    return allowed ? { ok: true, url: url.toString() } : { ok: false }
-  } catch {
-    return { ok: false }
-  }
+  const stored = convert(value)
+  return stored ? { ok: true, url: stored } : { ok: false }
 }
+
+const avatarRef = (value, userId) => storageRef(value, (v) => toOwnedAvatarUrl(v, userId))
+const cardRef = (value, userId) =>
+  storageRef(value, (v) => toOwnedStoragePath(v, "student-cards", userId))
 
 function collectErrors(results) {
   const fieldErrors = {}
@@ -132,18 +126,15 @@ async function loadContext(expectedRole, next) {
   return { supabase, user, profile }
 }
 
-// Écrit la liste blanche : update si le profil existe, sinon insertion avec le rôle serveur.
-async function writeProfile({ supabase, user, profile, role, columns }) {
-  if (profile) {
-    const { data, error } = await supabase
-      .from("profiles")
-      .update(columns)
-      .eq("user_id", user.id)
-      .select("user_id")
-    return !error && Array.isArray(data) && data.length > 0
-  }
-  const { error } = await supabase.from("profiles").insert({ user_id: user.id, role, ...columns })
-  return !error
+// Écrit la liste blanche sur le profil existant (créé à l'inscription par le déclencheur handle_new_user).
+// Sans profil, loadContext a déjà refusé : aucun rôle n'est déduit, aucune insertion.
+async function writeProfile({ supabase, user, columns }) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(columns)
+    .eq("user_id", user.id)
+    .select("user_id")
+  return !error && Array.isArray(data) && data.length > 0
 }
 
 /**
@@ -166,8 +157,8 @@ export async function completeStudentOnboarding(payload) {
     makeStudentIdentitySchema().safeParse(input),
     makeStudentStudiesSchema().safeParse(input),
   ])
-  const avatar = storageUrl(input.avatarUrl, "avatars", user.id)
-  const card = storageUrl(input.cardUrl, "student-cards", user.id)
+  const avatar = avatarRef(input.avatarUrl, user.id)
+  const card = cardRef(input.cardUrl, user.id)
   if (!avatar.ok) fieldErrors.avatarUrl = "Cette photo n'est pas valide. Envoie-la à nouveau."
   if (!card.ok) fieldErrors.cardUrl = "Cette carte n'est pas valide. Envoie-la à nouveau."
   if (Object.keys(fieldErrors).length > 0) return failure("student", "invalid", { fieldErrors })
@@ -181,7 +172,7 @@ export async function completeStudentOnboarding(payload) {
   if (avatar.url) columns.avatar_url = avatar.url
   if (card.url) columns.verification_submitted_at = new Date().toISOString()
 
-  const saved = await writeProfile({ supabase, user, profile, role: "student", columns })
+  const saved = await writeProfile({ supabase, user, columns })
   if (!saved) return failure("student", "save_failed")
 
   const studentColumns = {
@@ -222,14 +213,14 @@ export async function completeClientOnboarding(payload) {
     makeClientTypeSchema().safeParse(input),
     makeClientIdentitySchema().safeParse(input),
   ])
-  const avatar = storageUrl(input.avatarUrl, "avatars", user.id)
+  const avatar = avatarRef(input.avatarUrl, user.id)
   if (!avatar.ok) fieldErrors.avatarUrl = "Ce logo n'est pas valide. Envoyez-le à nouveau."
   if (Object.keys(fieldErrors).length > 0) return failure("client", "invalid", { fieldErrors })
 
   const columns = { full_name: data.name, city: data.city, phone: data.phone }
   if (avatar.url) columns.avatar_url = avatar.url
 
-  const saved = await writeProfile({ supabase, user, profile, role: "client", columns })
+  const saved = await writeProfile({ supabase, user, columns })
   if (!saved) return failure("client", "save_failed")
 
   // Échec toléré : le type n'est qu'un libellé d'affichage.

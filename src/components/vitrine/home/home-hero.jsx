@@ -4,7 +4,8 @@ import { Select } from "@/components/design/select"
 import { SPRITE_VERSION } from "@/components/design/sprite"
 import { HERO_PHOTOS, HeroPhoto } from "../shared/hero-photo"
 import { CITIES, MISSION_TYPES, missionTypeLabel } from "@/lib/constants/missions"
-import { PUBLISH_PATH, publishHref } from "@/lib/utils/publish-prefill"
+import { paymentsEnabled } from "@/lib/constants/payments"
+import { PUBLISH_PATH, PUBLISH_PAUSED_PATH, publishEntryHref } from "@/lib/utils/publish-prefill"
 import { formatFcfa } from "@/lib/vitrine/format"
 
 // Types proposés en idées : valeurs en base, libellés issus du dictionnaire.
@@ -33,16 +34,19 @@ function CitySelect({ id }) {
   )
 }
 
-function Chip({ type }) {
+function Chip({ type, open }) {
   return (
-    <Link className="chip chip--sm" href={publishHref({ type })}>
+    <Link className="chip chip--sm" href={publishEntryHref(open, { type })}>
       {missionTypeLabel(type)}
     </Link>
   )
 }
 
 // Hero de l'accueil (maquette V01 v3) : s'adresse aux clients, le formulaire ouvre la publication pré-remplie.
+// Paiements coupés : le champ et les boutons mènent à l'écran « Publication en cours d'activation ».
 export function HomeHero({ role }) {
+  const open = paymentsEnabled()
+  const publishAction = open ? PUBLISH_PATH : PUBLISH_PAUSED_PATH
   return (
     <div className="hero hero--under-header grid-bg">
       <div className="v-hero">
@@ -65,7 +69,7 @@ export function HomeHero({ role }) {
             missions à des étudiants vérifiés. Votre argent reste bloqué jusqu&rsquo;à ce que vous validiez le travail.
           </p>
 
-          <form className="search search--hero v01-hero-search ds-desk-only" role="search" action={PUBLISH_PATH} method="get">
+          <form className="search search--hero v01-hero-search ds-desk-only" role="search" action={publishAction} method="get">
             <Icon name="i-pencil" />
             <label className="sr-only" htmlFor="home-besoin">De quoi avez-vous besoin&nbsp;?</label>
             <input
@@ -82,7 +86,7 @@ export function HomeHero({ role }) {
             <button type="submit" className="btn btn--primary">Publier</button>
           </form>
 
-          <form className="v-msearch ds-mt-5 ds-mob-only" role="search" action={PUBLISH_PATH} method="get">
+          <form className="v-msearch ds-mt-5 ds-mob-only" role="search" action={publishAction} method="get">
             <div className="search">
               <Icon name="i-pencil" />
               <label className="sr-only" htmlFor="home-besoin-m">De quoi avez-vous besoin&nbsp;?</label>
@@ -105,10 +109,10 @@ export function HomeHero({ role }) {
 
           <div className="v-popular on-bleu ds-desk-only">
             <span>Idées :</span>
-            {IDEAS.map((t) => <Chip key={t} type={t} />)}
+            {IDEAS.map((t) => <Chip key={t} type={t} open={open} />)}
           </div>
           <div className="chips chips--scroll v-hero__chips on-bleu ds-mob-only">
-            {IDEAS.map((t) => <Chip key={t} type={t} />)}
+            {IDEAS.map((t) => <Chip key={t} type={t} open={open} />)}
           </div>
 
           {role === "student" ? (

@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { COMMISSION_RATE } from "@/lib/constants/missions"
-import { publishHref } from "@/lib/utils/publish-prefill"
+import { paymentsEnabled } from "@/lib/constants/payments"
+import { publishEntryHref } from "@/lib/utils/publish-prefill"
 import { FooterLink } from "./footer-link"
 import { PayerOperators } from "./shared/payers"
 
@@ -23,7 +24,7 @@ export function VitrineFooter({ audience = "clients" }) {
         </div>
         <div className="site-footer__col">
           <h2 className="site-footer__title">Familles et entreprises</h2>
-          <Link href={publishHref()}>Publier une mission</Link>
+          <Link href={publishEntryHref(paymentsEnabled())}>Publier une mission</Link>
           {forStudents ? null : <FooterLink href="/#etapes">Comment ça marche</FooterLink>}
           <FooterLink href="/#services">Services</FooterLink>
         </div>

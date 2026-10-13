@@ -1,15 +1,21 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
-import { getServerRole } from "@/lib/auth/server-role"
+import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
 import { missionTypeLabel } from "@/lib/constants/missions"
 import {
   Briefcase, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight,
 } from "lucide-react"
 
-export const metadata = { title: "Missions — Admin EduCash" }
+export const metadata = { title: "Missions - Admin EduCash" }
 
 const PAGE_SIZE = 25
+
+// Numéro de page robuste : toute valeur non numérique ou inférieure à 1 donne la page 1.
+function parsePage(value) {
+  const n = Number.parseInt(value ?? "1", 10)
+  return Number.isFinite(n) && n >= 1 ? n : 1
+}
 
 const STATUS_CONFIG = {
   open:        { label: "Ouverte",   cls: "bg-blue-100 text-blue-700",   dot: "bg-blue-400"  },
@@ -23,14 +29,13 @@ function fmt(n) {
 }
 
 export default async function AdminMissionsPage({ searchParams }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
-  const { role } = await getServerRole(supabase, user)
-  if (role !== "admin" || user.user_metadata?.role !== "admin") redirect("/auth/login")
+  const auth = await requireRole(["admin"])
+  if (auth.error) redirect("/auth/login")
+  // Lectures via le client service role, après le contrôle admin ci-dessus
+  const supabase = createServiceClient()
 
   const { page: pageParam, status: statusFilter } = await searchParams
-  const page = Math.max(1, parseInt(pageParam ?? "1", 10))
+  const page = parsePage(pageParam)
   const from = (page - 1) * PAGE_SIZE
   const to   = from + PAGE_SIZE - 1
 
@@ -144,7 +149,7 @@ export default async function AdminMissionsPage({ searchParams }) {
               {(missions ?? []).map((mission) => {
                 const status = STATUS_CONFIG[mission.status] ?? STATUS_CONFIG.open
                 const date = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "2-digit" }).format(new Date(mission.created_at))
-                const clientName = mission.profiles?.full_name ?? "—"
+                const clientName = mission.profiles?.full_name ?? "-"
 
                 return (
                   <tr key={mission.id} className="hover:bg-gray-50 transition-colors">

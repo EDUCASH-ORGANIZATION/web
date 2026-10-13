@@ -18,7 +18,7 @@ vi.mock("next/headers", () => ({ cookies: async () => ({ set: cookieSet, getAll:
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth }) }))
 vi.mock("@/lib/auth/server-role", () => ({ getServerRole: (...a) => getServerRole(...a) }))
 
-import { login, register } from "./auth.actions"
+import { login, register, logout } from "./auth.actions"
 
 function form(values) {
   const fd = new FormData()
@@ -220,5 +220,20 @@ describe("register", () => {
     auth.signUp.mockResolvedValue({ data: {}, error: { message: "Database error saving new user" } })
     const r = await register(null, form(registerValues))
     expect(r.formError).not.toMatch(/database/i)
+  })
+})
+
+describe("logout", () => {
+  it("révoque la session puis redirige vers l'accueil", async () => {
+    expect(await redirected(logout())).toBe("/")
+    expect(auth.signOut).toHaveBeenCalledTimes(1)
+  })
+
+  it("signOut en échec : cookies sb-* supprimés, redirection quand même", async () => {
+    auth.signOut.mockResolvedValue({ error: { message: "fail" } })
+    cookieStore.getAll.mockReturnValue([{ name: "sb-abc-auth-token" }, { name: "autre" }])
+    expect(await redirected(logout())).toBe("/")
+    expect(cookieStore.delete).toHaveBeenCalledWith("sb-abc-auth-token")
+    expect(cookieStore.delete).not.toHaveBeenCalledWith("autre")
   })
 })

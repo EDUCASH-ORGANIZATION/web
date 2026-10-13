@@ -91,7 +91,7 @@ describe("updatePassword", () => {
     const r = await updatePassword(null, form(valid))
     expect(r).toEqual({ status: "updated" })
     expect(auth.updateUser).toHaveBeenCalledWith({ password: PASSWORD })
-    expect(auth.signOut).toHaveBeenCalled()
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: "global" })
     expect(cookieSet).toHaveBeenCalledWith("ec_recovery", "", expect.objectContaining({ maxAge: 0 }))
   })
 

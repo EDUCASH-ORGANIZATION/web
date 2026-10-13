@@ -3,6 +3,8 @@ import { SPRITE_VERSION } from "@/components/design/sprite"
 import { VitrinePage } from "@/components/vitrine/shared/vitrine-page"
 import { Payers } from "@/components/vitrine/shared/payers"
 import { CtaDouble, exampleRecap } from "@/components/vitrine/shared/cta-double"
+import { paymentsEnabled } from "@/lib/constants/payments"
+import { PUBLISH_PAUSED_PATH } from "@/lib/utils/publish-prefill"
 
 const COMMISSION = Math.round(COMMISSION_RATE * 100)
 
@@ -173,7 +175,7 @@ export default function AboutPage() {
             </>
           ),
           text: "Publiez votre besoin en deux minutes. Le budget reste bloqué jusqu'à ce que vous validiez le travail.",
-          href: "/auth/register?role=client",
+          href: paymentsEnabled() ? "/auth/register?role=client" : PUBLISH_PAUSED_PATH,
           label: "Publier une mission",
           secondary: { href: "/", label: "Découvrir EduCash pour vous" },
           recap: exampleRecap(),

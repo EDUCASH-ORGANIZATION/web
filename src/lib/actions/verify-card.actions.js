@@ -24,6 +24,11 @@ export async function verifyStudentCardWithAI(storagePath) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return { valid: false, reason: "Non authentifié." }
 
+    // La carte doit se trouver dans le dossier de l'appelant : refuse tout autre chemin
+    if (typeof storagePath !== "string" || !storagePath.startsWith(`${user.id}/`) || storagePath.includes("..")) {
+      return { valid: false, reason: "Chemin de carte invalide." }
+    }
+
     // Génère une signed URL temporaire pour accéder à l'image privée
     const { data: signed, error: signErr } = await supabase.storage
       .from("student-cards")
@@ -88,15 +93,15 @@ ou
         return parsed
       }
     } catch {
-      // GPT n'a pas retourné du JSON valide — on laisse passer (fail-open)
+      // GPT n'a pas retourné du JSON valide - on laisse passer (fail-open)
       console.warn("[verifyStudentCardWithAI] Réponse GPT non-JSON :", raw)
-      return { valid: true, reason: "Vérification inconcluante — examen manuel requis." }
+      return { valid: true, reason: "Vérification inconcluante - examen manuel requis." }
     }
 
-    return { valid: true, reason: "Vérification inconcluante — examen manuel requis." }
+    return { valid: true, reason: "Vérification inconcluante - examen manuel requis." }
   } catch (err) {
     console.error("[verifyStudentCardWithAI]", err)
     // Fail-open : en cas d'erreur API, on laisse passer et l'admin vérifie
-    return { valid: true, reason: "Erreur IA — examen manuel requis." }
+    return { valid: true, reason: "Erreur IA - examen manuel requis." }
   }
 }

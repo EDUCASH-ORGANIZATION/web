@@ -67,7 +67,7 @@ function TransactionItem({ tx }) {
   )
 }
 
-export function StudentWalletShell({ wallet, available, transactions, stats, completedMissions }) {
+export function StudentWalletShell({ wallet, available, transactions, stats, completedMissions, paymentsEnabled = false }) {
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [filter,       setFilter]       = useState("all")
   const [visibleCount, setVisibleCount] = useState(20)
@@ -102,6 +102,7 @@ export function StudentWalletShell({ wallet, available, transactions, stats, com
         available={available}
         role="student"
         showActions
+        paymentsEnabled={paymentsEnabled}
         onWithdraw={() => setWithdrawOpen(true)}
       />
 
@@ -198,14 +199,16 @@ export function StudentWalletShell({ wallet, available, transactions, stats, com
         )}
       </div>
 
-      {/* Modal retrait */}
-      <StudentWithdrawModal
-        isOpen={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
-        available={available}
-        onSuccess={(msg) => showToast(msg, "success")}
-        onError={(msg)   => showToast(msg, "error")}
-      />
+      {/* Modal retrait : absente tant que les paiements sont coupés */}
+      {paymentsEnabled && (
+        <StudentWithdrawModal
+          isOpen={withdrawOpen}
+          onClose={() => setWithdrawOpen(false)}
+          available={available}
+          onSuccess={(msg) => showToast(msg, "success")}
+          onError={(msg)   => showToast(msg, "error")}
+        />
+      )}
     </>
   )
 }

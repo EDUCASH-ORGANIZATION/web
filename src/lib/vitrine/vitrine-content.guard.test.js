@@ -41,7 +41,7 @@ describe("garde-fous de contenu vitrine", () => {
     ["EduCash SAS", /EduCash SAS/],
     ["Haie Vive", /Haie Vive/],
     ["XX XX", /XX XX/],
-    ["tiret cadratin", /—/],
+    ["tiret cadratin", /\u2014/],
     ["style inline", /style=\{\{/],
     ["@mui", /@mui/],
     ["@emotion", /@emotion/],
@@ -184,6 +184,6 @@ describe("garde-fous de contenu vitrine", () => {
   })
 
   it("aucun tiret cadratin dans les gabarits d'email Resend", () => {
-    expect(emailFiles.filter((f) => read(f).includes("—"))).toEqual([])
+    expect(emailFiles.filter((f) => read(f).includes("\u2014"))).toEqual([])
   })
 })

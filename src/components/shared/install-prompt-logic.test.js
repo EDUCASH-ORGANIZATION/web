@@ -98,6 +98,6 @@ describe("helpers", () => {
     expect(installCopy("student").native).toContain("tes missions")
     expect(installCopy("client").native).toContain("vos missions")
     expect(installCopy("public")).toBeNull()
-    expect(JSON.stringify([installCopy("student"), installCopy("client")])).not.toMatch(/[—–]/)
+    expect(JSON.stringify([installCopy("student"), installCopy("client")])).not.toMatch(/[\u2014\u2013]/)
   })
 })
