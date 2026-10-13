@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
 import { Modal } from "./modal"
 import { Drawer } from "./drawer"
-import { ConfirmDialog, ConfirmDialogView } from "./confirm-dialog"
+import { ConfirmDialog, ConfirmDialogView, confirmOnce } from "./confirm-dialog"
 import { ToastProvider, ToastViewport } from "./toast"
 import { TabsNav } from "./tabs-nav"
 import { ChipFilter } from "./chip-filter"
@@ -92,6 +92,28 @@ describe("ConfirmDialog", () => {
     expect(html).toContain('role="alert"')
     expect(html).toContain("Solde insuffisant.")
     expect(html).toContain('role="dialog"')
+  })
+})
+
+describe("confirmOnce (double clic sur la dernière étape)", () => {
+  it("n'appelle onConfirm qu'une fois pour deux clics rapprochés", async () => {
+    let resolve
+    const onConfirm = vi.fn(() => new Promise((r) => { resolve = r }))
+    const guard = { current: false }
+    const first = confirmOnce(guard, onConfirm)
+    expect(await confirmOnce(guard, onConfirm)).toEqual({ skipped: true })
+    resolve({})
+    expect(await first).toEqual({ done: true })
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+  })
+
+  it("libère le verrou après une erreur ou une exception pour permettre un nouvel essai", async () => {
+    const guard = { current: false }
+    expect(await confirmOnce(guard, async () => ({ error: "refus" }))).toEqual({ error: "refus" })
+    expect(guard.current).toBe(false)
+    expect((await confirmOnce(guard, async () => { throw new Error("x") })).error).toMatch(/réessayer/)
+    expect(guard.current).toBe(false)
+    expect(await confirmOnce(guard, async () => ({}))).toEqual({ done: true })
   })
 })
 

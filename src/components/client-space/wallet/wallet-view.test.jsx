@@ -220,6 +220,11 @@ describe("historique", () => {
     expect(html).not.toMatch(/>-\d/)
   })
 
+  it("la libération se lit comme un prélèvement du séquestre, jamais comme un versé à l'étudiant", () => {
+    expect(html).toContain("prélevé du séquestre (commission incluse)")
+    expect(html).not.toMatch(/versé à l(?:'|&#x27;)étudiant/)
+  })
+
   it("lie la mission et marque seulement la réservation « En séquestre »", () => {
     expect(html).toContain('href="/client/missions/m4"')
     expect(html.match(/badge badge--neutre badge--sm/g)).toHaveLength(2)
@@ -331,6 +336,19 @@ describe("modale de recharge (C15)", () => {
     renderToStaticMarkup(
       <DepositDialogView formId="f" amount={10000} available={12500} suggestion={null} pending={false} error={null} amountError={null} onAmount={noop} onSubmit={noop} onClose={noop} {...props} />,
     )
+
+  it("le focus initial va sur le champ montant et non sur Fermer", () => {
+    const ref = { current: null }
+    const tree = DepositDialogView({ formId: "f", amount: 10000, available: 12500, suggestion: null, pending: false, error: null, amountError: null, onAmount: noop, onSubmit: noop, onClose: noop, amountRef: ref })
+    expect(tree.props.initialFocusRef).toBe(ref)
+    const findAmount = (node) => {
+      if (!node || typeof node !== "object") return null
+      if (Array.isArray(node)) return node.map(findAmount).find(Boolean) ?? null
+      if (node.props?.label === "Montant à recharger") return node
+      return findAmount(node.props?.children)
+    }
+    expect(findAmount(tree.props.children).props.ref).toBe(ref)
+  })
 
   it("propose 5 000, 10 000 et 25 000, le montant choisi, un minimum et le récapitulatif", () => {
     const h = render()

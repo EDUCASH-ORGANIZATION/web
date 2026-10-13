@@ -7,6 +7,28 @@ import { confirmStepView } from "./interactive-logic"
 
 const FALLBACK_ERROR = "Une erreur est survenue. Veuillez réessayer."
 
+/**
+ * Dernière étape, une seule fois à la fois : le verrou `guard` (`{ current }`, un useRef) est posé de façon
+ * synchrone, donc un second clic avant le rendu suivant est ignoré. Libéré après une erreur (nouvelle tentative).
+ * Renvoie { skipped } | { error } | { done }.
+ */
+export async function confirmOnce(guard, onConfirm) {
+  if (guard.current) return { skipped: true }
+  guard.current = true
+  try {
+    // onConfirm renvoie { error } pour un refus métier ; une exception est traitée comme une erreur.
+    const result = await onConfirm()
+    if (result?.error) {
+      guard.current = false
+      return { error: result.error }
+    }
+    return { done: true }
+  } catch {
+    guard.current = false
+    return { error: FALLBACK_ERROR }
+  }
+}
+
 // Vue pure : l'étape, l'envoi et l'erreur viennent de l'extérieur.
 export function ConfirmDialogView({ steps, step, pending, error, tone, cancelLabel, onCancel, onConfirm, cancelRef }) {
   const current = steps[step]
@@ -53,6 +75,7 @@ function ConfirmDialogOpen({ onClose, onConfirm, steps, tone, cancelLabel }) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState(null)
   const cancelRef = useRef(null)
+  const sending = useRef(false)
   const { isLast } = confirmStepView({ step, totalSteps: steps.length, tone })
 
   // Au passage à l'étape 2, le bouton de confirmation a le focus : on le ramène sur « Annuler » (choix sûr).
@@ -65,22 +88,17 @@ function ConfirmDialogOpen({ onClose, onConfirm, steps, tone, cancelLabel }) {
       setStep(step + 1)
       return
     }
+    if (sending.current) return
     setPending(true)
     setError(null)
-    try {
-      // onConfirm renvoie { error } pour un refus métier ; une exception est traitée comme une erreur.
-      const result = await onConfirm()
-      if (result?.error) {
-        setError(result.error)
-        setPending(false)
-        return
-      }
-      setPending(false)
-      onClose()
-    } catch {
-      setError(FALLBACK_ERROR)
-      setPending(false)
+    const outcome = await confirmOnce(sending, onConfirm)
+    if (outcome.skipped) return
+    setPending(false)
+    if (outcome.error) {
+      setError(outcome.error)
+      return
     }
+    onClose()
   }
 
   return (

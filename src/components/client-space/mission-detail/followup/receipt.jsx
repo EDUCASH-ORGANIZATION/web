@@ -4,9 +4,9 @@ import { commissionLabel } from "./escrow-card"
 import { formatMoment, movementDate } from "./timeline"
 
 /**
- * Reçu d'une mission terminée, lu au grand livre du client (réservé, commission). Le versé à l'étudiant
- * est celui de escrowSplit(budget) : la ligne `release` du grand livre est au brut, la ligne nette est
- * invisible du client. Sans libération au grand livre (mission héritée), seul le budget est rappelé.
+ * Reçu d'une mission terminée, lu au grand livre du client. « Prélevé » est la ligne `release` (brute,
+ * commission incluse) et « Versé » est `release - commission` quand les deux lignes existent ; à défaut,
+ * repli sur escrowSplit(budget). Sans libération au grand livre (mission héritée), seul le budget est rappelé.
  */
 export function Receipt({ view, ledger, studentName }) {
   const { receipt, split } = view
@@ -31,10 +31,10 @@ export function Receipt({ view, ledger, studentName }) {
       </div>
       <Lines
         rows={[
-          { label: "Prélevé du séquestre", value: receipt.reserved || split.total },
+          { label: "Prélevé du séquestre", value: receipt.releasedGross },
           { label: commissionLabel(), value: receipt.commission || split.commission, sign: "debit" },
         ]}
-        total={{ label: `Versé à ${studentName}`, value: split.student }}
+        total={{ label: `Versé à ${studentName}`, value: receipt.student ?? split.student }}
       />
       <dl className="fup2__facts">
         {releasedAt ? (

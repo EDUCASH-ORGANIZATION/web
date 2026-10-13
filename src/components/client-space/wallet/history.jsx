@@ -18,7 +18,7 @@ const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100)
 const HINTS = {
   deposit: "Mobile Money",
   reserve: "bloqué à la publication",
-  release: "versé à l'étudiant",
+  release: "prélevé du séquestre (commission incluse)",
   commission: `${COMMISSION_PERCENT} % du budget`,
   refund: "mission annulée",
   withdrawal: "vers Mobile Money",

@@ -1,6 +1,8 @@
 // Retrait du portefeuille client (C16) : schéma de validation. Pur.
 // Le montant ne peut jamais dépasser le DISPONIBLE : les fonds en séquestre ne se retirent pas.
-// Le serveur revalide tout (`initiateWithdrawal`, puis la fonction de paiement).
+// Ce schéma n'est qu'un confort de saisie : `initiateWithdrawal` ne contrôle que le minimum et le disponible ;
+// la fonction Edge `process-withdrawal` (validate.js) et le SQL valident le reste (entier, minimum, numéro
+// béninois, opérateur mtn ou moov).
 import { z } from "zod"
 import { MIN_WITHDRAWAL_AMOUNT } from "../supabase/database.constants.js"
 import { formatAmount } from "../app/format.js"

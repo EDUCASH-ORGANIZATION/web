@@ -48,7 +48,7 @@ function quickOptions(suggestion) {
  * Vue pure de la modale de recharge (C15). L'état, l'envoi et l'erreur viennent de l'extérieur.
  * `error` est le message d'un refus du serveur ; `amountError` celui du champ montant.
  */
-export function DepositDialogView({ amount, available, suggestion, pending, error, amountError, onAmount, onSubmit, onClose, formId }) {
+export function DepositDialogView({ amount, available, suggestion, pending, error, amountError, onAmount, onSubmit, onClose, formId, amountRef }) {
   const value = amount ?? 0
   const options = quickOptions(suggestion)
   const selected = options.some((o) => o.value === String(amount)) ? String(amount) : ""
@@ -58,6 +58,7 @@ export function DepositDialogView({ amount, available, suggestion, pending, erro
       onClose={onClose}
       title="Recharger mon portefeuille"
       description="Paiement sécurisé par Mobile Money"
+      initialFocusRef={amountRef}
       footer={
         <>
           <button type="button" className="btn btn--soft" onClick={onClose} disabled={pending}>
@@ -83,6 +84,7 @@ export function DepositDialogView({ amount, available, suggestion, pending, erro
           <ChipFilter label="Montants rapides" options={options} value={selected} onChange={(v) => onAmount(Number(v))} />
         </div>
         <AmountField
+          ref={amountRef}
           label="Montant à recharger"
           required
           value={amount}
@@ -118,6 +120,7 @@ function DepositDialogOpen({ available, suggestion, onClose }) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState(null)
   const inFlight = useRef(false)
+  const amountRef = useRef(null)
 
   const amountError = touched ? depositAmountError(amount) : null
 
@@ -142,6 +145,7 @@ function DepositDialogOpen({ available, suggestion, onClose }) {
   return (
     <DepositDialogView
       formId={formId}
+      amountRef={amountRef}
       amount={amount}
       available={available}
       suggestion={suggestion}

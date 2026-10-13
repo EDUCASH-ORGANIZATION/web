@@ -412,7 +412,8 @@ function WithdrawDialogOpen({ available, escrow, phone: prefill, onClose }) {
 
 /**
  * Modale de retrait (C16), en deux étapes puis un résultat. À ne rendre que si les paiements sont ouverts.
- * Le montant ne peut jamais dépasser le DISPONIBLE (séquestre exclu) ; le serveur revalide tout.
+ * Le montant ne peut jamais dépasser le DISPONIBLE (séquestre exclu) ; la validation d'ici est un confort de saisie,
+ * le serveur (minimum et disponible) puis la fonction de paiement et le SQL font foi.
  * @param {{ open: boolean, onClose: () => void, available: number, escrow: number, phone?: string }} props
  */
 export function WithdrawDialog({ open, onClose, available, escrow, phone = "" }) {

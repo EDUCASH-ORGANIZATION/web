@@ -235,11 +235,20 @@ describe("C11 mission terminée", () => {
     expect(out).not.toContain("Noter Sèna")
   })
 
-  it("le versé vient d'escrowSplit, pas d'une ligne du grand livre", () => {
-    const odd = DONE_LEDGER.map((m) => (m.type === "release" ? { ...m, amount: 99999 } : m))
+  it("le reçu lit le prélevé (release brut) et le versé (release moins commission) au grand livre", () => {
+    const odd = DONE_LEDGER.map((m) => (m.type === "release" ? { ...m, amount: 30000 } : m))
     const out = render(detailOf("done", { ledger: odd }))
+    const receipt = out.slice(out.indexOf('aria-label="Reçu"'))
+    expect(receipt).toMatch(/30\s000/)
+    expect(receipt).toMatch(/27\s000/)
+    expect(receipt).not.toMatch(/22\s000/)
+  })
+
+  it("sans ligne de commission au grand livre, le versé se replie sur escrowSplit", () => {
+    const noCommission = DONE_LEDGER.filter((m) => m.type !== "commission")
+    const out = render(detailOf("done", { ledger: noCommission }))
+    expect(out).toMatch(/25\s000/)
     expect(out).toMatch(/22\s000/)
-    expect(out).not.toMatch(/99\s999/)
   })
 
   it("sans grand livre (mission héritée), le reçu ne montre que le budget", () => {

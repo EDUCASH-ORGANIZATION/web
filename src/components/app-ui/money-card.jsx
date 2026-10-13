@@ -20,6 +20,7 @@ function MoneyAction({ action, secondary = false, small = true }) {
 
 // Garde le separateur " · " collé au mot qui le suit : sur 320 px il ne reste jamais seul en fin de ligne.
 function TitleText({ text }) {
+  if (typeof text !== "string") return text ?? null
   const at = text.indexOf(" · ")
   if (at < 0) return text
   const rest = text.slice(at + 3)

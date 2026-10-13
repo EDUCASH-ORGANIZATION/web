@@ -15,4 +15,11 @@ describe("MoneyCard titre", () => {
     expect(out).not.toContain("money2__glue")
     expect(out).toContain("Votre argent")
   })
+
+  it("accepte un titre qui n'est pas une chaîne sans lever d'erreur", () => {
+    const out = renderToStaticMarkup(<MoneyCard title={<b>Total</b>} available={1} escrow={2} />)
+    expect(out).toContain("<b>Total</b>")
+    expect(out).not.toContain("money2__glue")
+    expect(renderToStaticMarkup(<MoneyCard title={12} available={1} escrow={2} />)).toContain(">12<")
+  })
 })
