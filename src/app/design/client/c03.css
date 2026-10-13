@@ -66,4 +66,8 @@
 
 @media (max-width: 480px) {
   .wizard2 .form2__foot--split > .btn--dark { margin-left: 0; }
+  /* Barre mobile : « Retour » compact (largeur de son contenu), le bouton principal prend le reste et coupe en dernier recours. */
+  .wizard2 .mbar2__row .btn--soft { flex: none; padding-left: 14px; padding-right: 14px; }
+  .wizard2 .mbar2__row .btn--dark { flex: 1 1 0; min-width: 0; padding-left: 14px; padding-right: 14px; overflow-wrap: anywhere; }
+  .wizard2 .mbar2__row .btn--dark .ic { display: none; }
 }

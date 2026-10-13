@@ -772,3 +772,34 @@ describe("C03 : recapitulatif et pied de formulaire entre 1024 et 1150 px", () =
     expect(c03).toMatch(/\.wizard2 \.btn--dark \{[^}]*height: auto; min-height: var\(--h-btn\);[^}]*white-space: normal;/)
   })
 })
+
+// Barre mobile de l'assistant (.mbar2) a 320 px avec un budget de 9 chiffres : « Retour » compact, le bouton principal
+// prend le reste. Largeurs d'apres les mesures : bouton plein 139 px (22 px de padding), fleche decorative du bouton principal masquee (20 px + gap 8 px gagnes).
+describe("C03 : barre mobile de publication a 320 px", () => {
+  const c03 = stripComments(read("client/c03.css"))
+  const narrow = c03.match(/@media \(max-width: 480px\) \{([\s\S]*?)\n\}/)?.[1] ?? ""
+  const PADDING = 14
+  const BAR_PADDING = 32
+  const ROW_GAP = 12
+  const BORDER = 3
+  const RETOUR = 139 - 2 * (22 - PADDING)
+  const primaryContent = (screen) => screen - BAR_PADDING - ROW_GAP - RETOUR - BORDER - 2 * PADDING
+
+  it("Retour est compact et le bouton principal prend le reste sans deborder, dans le media 480 px existant", () => {
+    expect(narrow).toMatch(/\.wizard2 \.mbar2__row \.btn--soft \{ flex: none; padding-left: 14px; padding-right: 14px; \}/)
+    expect(narrow).toMatch(/\.wizard2 \.mbar2__row \.btn--dark \{ flex: 1 1 0; min-width: 0; [^}]*overflow-wrap: anywhere; \}/)
+    expect(narrow).toMatch(/\.wizard2 \.mbar2__row \.btn--dark \.ic \{ display: none; \}/)
+    expect(narrow).not.toMatch(/(?:background|color|box-shadow|transform)\s*:/)
+    expect(c03.match(/@media/g)).toHaveLength(2)
+  })
+
+  it("le bouton garde une hauteur d'au moins 44 px", () => {
+    expect(c03).toMatch(/\.wizard2 \.btn--dark \{[^}]*min-height: var\(--h-btn\);/)
+    expect(48).toBeGreaterThanOrEqual(44)
+  })
+
+  it("a 320 px le montant de 9 chiffres (11 caracteres insecables, ~9.3 px chacun) tient sur une ligne", () => {
+    expect(primaryContent(320)).toBeGreaterThanOrEqual(104)
+    expect(11 * 9.3).toBeLessThanOrEqual(primaryContent(320))
+  })
+})
