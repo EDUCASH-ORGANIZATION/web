@@ -1142,8 +1142,27 @@ describe("feuilles student.css et student/*.css", () => {
     expect(Object.entries(owners).filter(([, files]) => files.size > 1).map(([k]) => k)).toEqual([])
   })
 
-  it("E01 n'a aucune regle propre : la planche n'utilise que la coquille et le systeme", () => {
-    expect(read("student/e01.css").replace(/\/\*[\s\S]*?\*\//g, "").trim()).toBe("")
+  // Exception explicite et limitee : E01 n'a aucune regle propre, sauf le bouton pleine largeur
+  // de la carte « A faire maintenant » sur mobile (planche : classe btn--block). Rien d'autre.
+  const E01_ALLOWED = "@media (max-width: 767.98px) {\n  .e2 .dash2 .card2 .hero2__actions > .btn { width: 100%; }\n}"
+  const E01_RULE = ".e2 .dash2 .card2 .hero2__actions > .btn"
+
+  it("E01 n'a aucune regle propre hors l'exception unique du bouton pleine largeur mobile", () => {
+    expect(read("student/e01.css").replace(/\/\*[\s\S]*?\*\//g, "").trim()).toBe(E01_ALLOWED)
+  })
+
+  it("E01 : la regle autorisee est dans le media 767.98 et ne pose que width: 100%, sans ecraser couleur, ombre ni transform", () => {
+    const css = stripComments(read("student/e01.css"))
+    expect(css.match(/\{/g)).toHaveLength(2)
+    expect(css).toContain(`@media (max-width: 767.98px) {\n  ${E01_RULE} { width: 100%; }`)
+    const body = css.slice(css.indexOf(E01_RULE) + E01_RULE.length).match(/\{([^}]*)\}/)[1]
+    expect(body.split(";").map((d) => d.trim()).filter(Boolean)).toEqual(["width: 100%"])
+    expect(body).not.toMatch(/color|background|shadow|transform|border/)
+  })
+
+  it("E01 : la regle cible un bouton present dans la vue du tableau de bord", () => {
+    const view = readFileSync(path.join(dir, "..", "..", "components/student-space/dashboard/student-dashboard-view.jsx"), "utf8")
+    for (const c of ["dash2", "card2", "hero2__actions", "btn"]) expect(view).toMatch(new RegExp(`className="[^"]*\\b${c}\\b`))
   })
 })
 
