@@ -396,3 +396,41 @@ describe("lectures de candidatures : erreurs neutres", () => {
     expect(console.error).toHaveBeenCalledWith("[getMissionApplications]", SECRET)
   })
 })
+
+describe("registre des messages : vouvoiement client, tutoiement étudiant", () => {
+  const TUTOIEMENT = /\b(tu|ton|ta|tes)\b|Réessaie\b/i
+
+  it("rejectApplication vouvoie le client quand l'écriture échoue", async () => {
+    requireRole.mockResolvedValue({ supabase, user: { id: "cli-1" }, role: "client" })
+    respond = (q) => {
+      if (q.table === "applications" && q.action === "select") return { data: { id: "a1", mission_id: "m1", status: "pending" } }
+      if (q.table === "applications") return { data: null, error: { message: "db" } }
+      return { data: { id: "m1" } }
+    }
+    const res = await rejectApplication("a1")
+    expect(res).toEqual({ error: "Une erreur est survenue. Réessayez dans un instant." })
+    expect(res.error).not.toMatch(TUTOIEMENT)
+  })
+
+  it("getMissionApplications vouvoie le client sur une mission qui n'est pas la sienne", async () => {
+    requireRole.mockResolvedValue({ supabase, user: { id: "cli-1" }, role: "client" })
+    respond = () => ({ data: null, error: null })
+    await expect(getMissionApplications("m1")).rejects.toThrow("Vous n'avez pas les droits pour effectuer cette action.")
+  })
+
+  it("apply tutoie l'étudiant quand l'insertion échoue", async () => {
+    requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
+    respond = (q) => {
+      if (q.table === "missions") return { data: { id: "m1", title: "Courses", client_id: "cli-1", status: "open" } }
+      if (q.action === "select") return { data: null }
+      return { data: null, error: { message: "db" } }
+    }
+    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    expect(res).toEqual({ error: "Une erreur est survenue. Réessaie dans un instant." })
+  })
+
+  it("getStudentApplications tutoie l'étudiant qui lit l'identifiant d'un autre", async () => {
+    requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
+    await expect(getStudentApplications("stu-2")).rejects.toThrow("Tu n'as pas les droits pour effectuer cette action.")
+  })
+})

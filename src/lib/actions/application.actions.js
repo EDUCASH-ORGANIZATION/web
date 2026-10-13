@@ -8,6 +8,9 @@ import { sendEmail } from "@/lib/email/index"
 
 const ERR_GENERIC = "Une erreur est survenue. Réessaie dans un instant."
 const ERR_FORBIDDEN = "Tu n'as pas les droits pour effectuer cette action."
+// Espace client : vouvoiement
+const ERR_GENERIC_CLIENT = "Une erreur est survenue. Réessayez dans un instant."
+const ERR_FORBIDDEN_CLIENT = "Vous n'avez pas les droits pour effectuer cette action."
 const ERR_LOAD = "Impossible de charger les candidatures."
 const MESSAGE_MAX = 500
 
@@ -177,7 +180,7 @@ export async function getMissionApplications(missionId, { limit } = {}) {
     .eq("id", missionId)
     .eq("client_id", user.id)
     .maybeSingle()
-  if (!mission) throw new Error(ERR_FORBIDDEN)
+  if (!mission) throw new Error(ERR_FORBIDDEN_CLIENT)
 
   const { data, error } = await supabase
     .from("applications")
@@ -231,7 +234,7 @@ export async function acceptApplication({ applicationId, studentId, missionId })
 
   if (acceptError) {
     console.error("[acceptApplication] Acceptation refusée:", acceptError.message)
-    return { error: ERR_GENERIC }
+    return { error: ERR_GENERIC_CLIENT }
   }
   if (!accepted?.length) return { error: "Cette candidature n'est plus disponible." }
 
@@ -357,7 +360,7 @@ export async function rejectApplication(applicationId) {
 
   if (error) {
     console.error("[rejectApplication] Rejet refusé:", error.message)
-    return { error: ERR_GENERIC }
+    return { error: ERR_GENERIC_CLIENT }
   }
   if (!rejected?.length) return { error: "Cette candidature n'est plus en attente." }
 
