@@ -424,16 +424,22 @@ describe("feuilles app-shell.css et client/*.css", () => {
     expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-label \{[^}]*animation: bnav2-label-in var\(--dur-3\) var\(--ease\);/)
   })
 
-  it("capsule a 320 px : 5 emplacements (4 cibles de 44 px + Publier de 52 px) dans 300 px, pastille resserree sous 480 avec ellipse de repli", () => {
+  it("capsule etroite (maquette validee) : marges 8 px, padding 4 px, ecart 0, inactifs de 40 px, « Portefeuille » entier a 320 px", () => {
     const narrow = SHELL.slice(SHELL.indexOf("@media (max-width: 480px)"), SHELL.indexOf("/* ---------- Mouvement reduit"))
-    expect(narrow).toContain(".bottom-nav.bottom-nav--v2 { padding: 0 var(--s-1); gap: 0; }")
+    expect(narrow).toContain(".bottom-nav.bottom-nav--v2 { left: 8px; right: 8px; padding: 0 var(--s-1); gap: 0; }")
+    expect(narrow).toContain(".bottom-nav--v2 .bnav-item, .bnav2-more { min-width: 40px; }")
     expect(narrow).toContain(".bottom-nav--v2 .bnav-item.is-active { gap: 6px; padding: 0 10px; }")
     expect(narrow).toContain(".bottom-nav--v2 .bottom-nav__cta { margin: 0; }")
-    // Largeur laissee au libelle de l'actif : ecran - marges 2 x 10 - padding 2 x 4 - Publier 52 - 3 inactifs de 44 - (icone 24 + ecart 6 + padding 2 x 10).
-    const label = (screen) => screen - 20 - 8 - 52 - 3 * 44 - (24 + 6 + 20)
-    expect(label(360)).toBeGreaterThanOrEqual(88) // « Portefeuille » (~85 px) tient entier des 360 px
-    expect(label(320)).toBeGreaterThanOrEqual(40) // a 320 px, ellipse de repli (le DOM garde le libelle complet)
-    expect(label(320)).toBeLessThan(85)
+    // L'exception 40 px n'existe que dans la plage etroite : la regle de base reste a 44 px (hauteur 48 partout).
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-item \{[^}]*min-width: 44px; height: 48px;/)
+    expect(narrow).not.toMatch(/\.bnav-item[^{]*\{[^}]*height:/)
+    // Largeur laissee au libelle de l'actif : ecran - marges 2 x 8 - padding 2 x 4 - Publier 52 - 3 inactifs de 40 - (icone 24 + ecart 6 + padding 2 x 10).
+    const label = (screen) => screen - 16 - 8 - 52 - 3 * 40 - (24 + 6 + 20)
+    const PORTEFEUILLE = 70.45 // largeur mesuree du texte « Portefeuille » a 13 px, 800
+    expect(label(320)).toBe(74)
+    expect(label(320)).toBeGreaterThanOrEqual(71) // aucune ellipse a 320 px (l'ellipse reste en repli)
+    expect(label(320)).toBeGreaterThanOrEqual(PORTEFEUILLE)
+    expect(label(360)).toBeGreaterThanOrEqual(88)
   })
 
   it("detecteur de keyframes : les etapes from/to ne sont pas des selecteurs de regle", () => {

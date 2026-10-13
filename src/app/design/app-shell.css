@@ -396,9 +396,12 @@
   .item2 { padding: var(--s-3); }
   .mtop2 { padding: 0 var(--s-3) 0 var(--s-4); }
   .mpage2 { padding-left: var(--s-3); padding-right: var(--s-3); }
-  /* 320 px : 4 cibles de 44 px + bouton Publier de 52 px dans 300 px. Padding de capsule et ecarts resserres,
-     pastille active compacte : « Portefeuille » (~85 px) est tronque par l'ellipse du libelle (nom accessible complet). */
-  .bottom-nav.bottom-nav--v2 { padding: 0 var(--s-1); gap: 0; }
+  /* Etroit (480 et moins, valide a 320 px par la maquette) : marges de 8 px, padding de capsule 4 px, ecart 0, pastille active a 10 px.
+     Exception assumee a 44 px de large : les onglets inactifs passent a 40 px (hauteur 48 inchangee). WCAG 2.2 (2.5.8) exige 24 px
+     et l'espacement est suffisant. Budget a 320 px : 320 - 16 (marges) - 8 (padding) - 52 (Publier) - 3 x 40 (inactifs) = 124 px,
+     dont 50 px pour l'icone, l'ecart et le padding de l'actif : 74 px de libelle pour « Portefeuille » (~71 px) sans ellipse (repli conserve). */
+  .bottom-nav.bottom-nav--v2 { left: 8px; right: 8px; padding: 0 var(--s-1); gap: 0; }
+  .bottom-nav--v2 .bnav-item, .bnav2-more { min-width: 40px; }
   .bottom-nav--v2 .bnav-item.is-active { gap: 6px; padding: 0 10px; }
   .bottom-nav--v2 .bottom-nav__cta { margin: 0; }
 }
