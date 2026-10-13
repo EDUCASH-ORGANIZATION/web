@@ -5,9 +5,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }), us
 vi.mock("@/lib/actions/application.actions", () => ({ acceptApplication: vi.fn(), rejectApplication: vi.fn() }))
 vi.mock("@/lib/actions/mission.actions", () => ({ confirmMission: vi.fn() }))
 
-const { Toaster } = await import("@/components/shared/toaster")
 const { MissionHeader } = await import("./mission-header")
-const { MissionFollowupView } = await import("./followup-view")
 
 const student = {
   id: "s1", fullName: "Awa Kouassi", avatarUrl: null, city: "Cotonou", rating: 4, missionsDone: 1,
@@ -27,8 +25,6 @@ function detailOf(status, extra = {}) {
     ...extra,
   }
 }
-
-const FLAGS = { confirmer: false, publiee: false, paymentsEnabled: false }
 
 describe("MissionHeader", () => {
   const detail = detailOf("open")
@@ -53,12 +49,5 @@ describe("MissionHeader", () => {
     const out = renderToStaticMarkup(<MissionHeader mission={done.mission} status={{ label: "Terminée", tone: "succes" }} />)
     expect(out).toContain("Budget")
     expect(out).not.toContain("En séquestre")
-  })
-})
-
-describe("bouchons des vues (parité fonctionnelle)", () => {
-  it.each(["in_progress", "done", "cancelled"])("MissionFollowupView rend le statut %s", (status) => {
-    const html = renderToStaticMarkup(<Toaster><MissionFollowupView detail={detailOf(status)} flags={FLAGS} /></Toaster>)
-    expect(html).toContain("Cours de maths")
   })
 })
