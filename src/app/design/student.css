@@ -1,0 +1,18 @@
+/* Espace etudiant v2.1 : feuilles reunies (ordre = ordre de la cascade).
+   Importe par globals.css dans la couche components, apres client.css.
+   Toutes les regles qui ciblent une classe existante sont sous .e2 (racine
+   de l'espace etudiant) ; les autres portent des classes .e2-* propres. */
+@import "./student/base.css";
+@import "./student/e01.css";
+@import "./student/e02.css";
+@import "./student/e03.css";
+@import "./student/e04.css";
+@import "./student/e05.css";
+@import "./student/e06.css";
+@import "./student/e07.css";
+@import "./student/e08.css";
+@import "./student/e09.css";
+@import "./student/e10.css";
+@import "./student/e11.css";
+@import "./student/e12.css";
+@import "./student/e13.css";

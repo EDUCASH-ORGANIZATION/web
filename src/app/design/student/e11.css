@@ -1,0 +1,23 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E11 Modifier le profil : photo, jours, barre d'enregistrement collante. */
+.e2-11-sub { font-size: var(--t-caption); color: var(--c-ardoise); margin-top: 4px; }
+.e2-11-photo { display: flex; align-items: center; gap: var(--s-4); }
+.e2-11-photo__txt { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.e2-11-days { display: flex; flex-direction: column; gap: 10px; }
+.e2-11-day { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; }
+.e2-11-day > b { font-size: var(--t-body-s); font-weight: var(--fw-bold); }
+.e2-11-save { position: sticky; bottom: 0; display: flex; align-items: center; gap: var(--s-4); padding: var(--s-4) var(--s-6); }
+.e2-11-save__info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; font-size: var(--t-body-s); }
+.e2-11-save__info .ic { width: 18px; height: 18px; color: var(--c-ardoise); flex: none; }
+.e2-11-save__info small { display: block; font-size: var(--t-caption); color: var(--c-ardoise); }
+.e2-11-carte { padding-top: 12px; }
+
+@media (max-width: 1023.98px) {
+  .e2-11-save { padding: var(--s-3) var(--s-4); gap: var(--s-3); flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  /* Étroit : le message passe sur sa propre ligne, les deux boutons se partagent la largeur */
+  .e2-11-save__info { flex-basis: 100%; }
+  .e2-11-save .btn { flex: 1; }
+}

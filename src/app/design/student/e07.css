@@ -1,0 +1,53 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E07 Conversation : volet de discussion, bandeau de statut, fil, compositeur.
+   Les règles .e2-07-achat / .e2-07-shot / .e2-07-form / .e2-07-map habillent des cartes que le backend
+   ne fournit pas encore (achats) : conservées pour la parité de la planche, sans effet tant qu'aucun écran ne les rend. */
+.e2-07-pane { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.e2-07-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; border-bottom: 1px solid var(--c-ligne); }
+.e2-07-head .e2-who { flex: 1; }
+.e2-07-mhead { background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne-2); }
+.e2-07-mhead .e2-who { flex: 1; gap: 10px; }
+/* Bandeau de statut de mission : blanc, texte ardoise, le seul bouton encre de l'écran */
+.e2-07-status { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne); font-size: var(--t-caption); color: var(--c-ardoise); }
+.e2-07-status b { color: var(--c-encre); font-weight: var(--fw-bold); }
+.e2-07-status__text { min-width: 0; line-height: 1.35; }
+.e2-07-status .btn { margin-left: auto; flex: none; }
+/* Fil de messages calme : client blanc filet 1 px, toi en encre, système en ardoise */
+.e2-07-chat .bubble--them { border: 1px solid var(--c-ligne); }
+.e2-07-chat .bubble--me { background: var(--c-encre); color: var(--c-blanc); }
+.e2-07-chat .bubble--me .bubble__meta { color: var(--c-brume); }
+.e2-07-chat .chat__day { border: 1px solid var(--c-ligne); }
+.e2-07-chat .typing { border: 1px solid var(--c-ligne); }
+.e2-07-chat .msg-system { background: transparent; border: 0; color: var(--c-ardoise); font-weight: var(--fw-semibold); justify-content: center; text-align: center; padding: 4px 12px; }
+.e2-07-chat .bubble__play, .e2-07-chat .bubble--them .bubble__play { background: var(--c-encre); color: var(--c-blanc); }
+.e2-07-chat .bubble--media .bubble__img { background: var(--c-encre-700); color: var(--c-brume); }
+.e2-07-chat .bubble--location .bubble__map { background: var(--c-givre) repeating-linear-gradient(45deg, var(--c-ligne) 0 2px, transparent 2px 14px); color: var(--c-encre); }
+.e2-07-chat .bubble.is-sending { opacity: .6; }
+.e2-07-fail { align-self: flex-end; display: flex; align-items: center; gap: 10px; margin-top: -2px; }
+.e2-07-composer { border-top: 1px solid var(--c-ligne); align-items: center; }
+.e2-07-composer .composer__send { border-radius: 12px; background: var(--c-encre); }
+.e2-07-composer.is-recording .composer__field { background: var(--c-givre); color: var(--c-encre); }
+/* Carte « Demande de paiement » (décision 24) : blanche, filet 1 px, statut en petit badge, sans bande colorée */
+.e2-07-achat { border: 1px solid var(--c-ligne); box-shadow: none; }
+.e2-07-achat .e-achat__band { background: var(--c-blanc); color: var(--c-encre); border-bottom: 1px solid var(--c-ligne-2); padding: 10px 14px; }
+.e2-07-achat .e-thumb__img, .e2-07-shot .e-thumb__img { border: 1px solid var(--c-ligne); background: var(--c-givre); color: var(--c-ardoise); }
+.e2-07-achat .e-thumb__img--ticket, .e2-07-shot .e-thumb__img--ticket { background: repeating-linear-gradient(0deg, var(--c-blanc) 0 8px, var(--c-ligne-2) 8px 10px); }
+.e2-07-achat .e2-link { margin-left: auto; font-size: var(--t-caption); }
+.e2-07-ic { width: 28px; height: 28px; border-radius: var(--r-xs); display: inline-grid; place-items: center; flex: none; background: var(--c-givre); color: var(--c-ardoise); }
+.e2-07-ic .ic { width: 16px; height: 16px; stroke-width: 1.75; }
+/* Formulaire de la carte : zones photo et champs à filet fin, choix en encre */
+.e2-07-shot { border-width: 1.5px; }
+.e2-07-shot.e-shot--ok { border: 1px solid var(--c-ligne); }
+.e2-07-shot.e-shot--error { background: var(--c-blanc); border-color: var(--c-erreur); }
+.e2-07-form .control { border-width: 1.5px; }
+.e2-07-form .radio input:checked { background: radial-gradient(circle, var(--c-encre) 0 5px, var(--c-blanc) 6px); }
+.e2-07-map { height: 150px; border-radius: 16px; border: 1px solid var(--c-ligne); background: var(--c-givre) repeating-linear-gradient(45deg, var(--c-ligne) 0 2px, transparent 2px 14px); display: grid; place-items: center; color: var(--c-encre); }
+.e2-07-map .ic { width: 32px; height: 32px; }
+
+@media (max-width: 1023.98px) {
+  /* Conversation seule en mobile : son en-tête .e2-07-mhead remplace .mtop2, le volet occupe toute la hauteur
+     (bas de page : marge et safe-area seulement, la barre du bas est masquée sur /messages/<id>), le compositeur reste visible. */
+  .e2:has(.e2-07-mhead) .mtop2 { display: none; }
+  .shell--v2:has(.e2-07-pane) .shell__main { padding-bottom: calc(var(--s-2) + env(safe-area-inset-bottom, 0px)); }
+  .e2-07-pane { height: calc(100dvh - var(--s-2) - env(safe-area-inset-bottom, 0px)); }
+}
