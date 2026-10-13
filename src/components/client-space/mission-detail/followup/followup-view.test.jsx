@@ -258,11 +258,15 @@ describe("C11 mission terminée", () => {
     expect(receipt).not.toMatch(/22\s000/)
   })
 
-  it("sans ligne de commission au grand livre, le versé se replie sur escrowSplit", () => {
+  it("sans ligne de commission au grand livre, seul Prélevé s'affiche, sans commission ni versé", () => {
     const noCommission = DONE_LEDGER.filter((m) => m.type !== "commission")
     const out = render(detailOf("done", { ledger: noCommission }))
-    expect(out).toMatch(/25\s000/)
-    expect(out).toMatch(/22\s000/)
+    const receipt = out.slice(out.indexOf('aria-label="Reçu"'))
+    expect(receipt).toContain("Prélevé du séquestre")
+    expect(receipt).toMatch(/25\s000/)
+    expect(receipt).not.toContain("Commission")
+    expect(receipt).not.toContain("Versé à")
+    expect(receipt).not.toMatch(/22\s000|3\s000/)
   })
 
   it("sans grand livre (mission héritée), le reçu ne montre que le budget", () => {

@@ -6,7 +6,7 @@ import { formatMoment, movementDate } from "./timeline"
 /**
  * Reçu d'une mission terminée, lu au grand livre du client. « Prélevé » est la ligne `release` (brute,
  * commission incluse) et « Versé » est `release - commission` quand les deux lignes existent ; à défaut,
- * repli sur escrowSplit(budget). Sans libération au grand livre (mission héritée), seul le budget est rappelé.
+ * seul « Prélevé » est affiché (jamais de détail mêlant grand livre et calcul). Sans libération au grand livre (mission héritée), seul le budget est rappelé.
  */
 export function Receipt({ view, ledger, studentName }) {
   const { receipt, split } = view
@@ -22,6 +22,8 @@ export function Receipt({ view, ledger, studentName }) {
       </section>
     )
   }
+  // Sans ligne de commission au grand livre, commission et versé ne sont pas connus : aucun détail issu d'une autre source.
+  const detailed = receipt.student !== null
   const releasedAt = formatMoment(movementDate(ledger, "release"))
   return (
     <section className="card2" aria-label="Reçu">
@@ -29,13 +31,17 @@ export function Receipt({ view, ledger, studentName }) {
         <h2 className="sec2__title">Reçu</h2>
         <StatusBadge label="Payé" tone="succes" icon="i-check" />
       </div>
-      <Lines
-        rows={[
-          { label: "Prélevé du séquestre", value: receipt.releasedGross },
-          { label: commissionLabel(), value: receipt.commission || split.commission, sign: "debit" },
-        ]}
-        total={{ label: `Versé à ${studentName}`, value: receipt.student ?? split.student }}
-      />
+      {detailed ? (
+        <Lines
+          rows={[
+            { label: "Prélevé du séquestre", value: receipt.releasedGross },
+            { label: commissionLabel(), value: receipt.commission, sign: "debit" },
+          ]}
+          total={{ label: `Versé à ${studentName}`, value: receipt.student }}
+        />
+      ) : (
+        <Lines rows={[{ label: "Prélevé du séquestre", value: receipt.releasedGross }]} />
+      )}
       <dl className="fup2__facts">
         {releasedAt ? (
           <div>
