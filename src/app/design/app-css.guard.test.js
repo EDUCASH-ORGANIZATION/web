@@ -205,9 +205,13 @@ describe("feuilles app-shell.css et client/*.css", () => {
   // des media queries ci-dessus reste inchange.
   // C03 (publication) ajoute une requete de conteneur anonyme (520 px) sur .wizard2__choices2 : les cartes d'urgence
   // passent a trois colonnes selon la largeur du champ, pas celle de l'ecran.
-  it("n'utilise que les requetes de conteneur txs2 (600 px), money2 (480 px) et celle des cartes d'urgence C03 (520 px)", () => {
+  // C17 (profil) : la colonne principale (.profile2 .col2, conteneur profile2col) mesure environ 330 px entre 1024 et
+  // 1150 px d'ecran (colonne = ecran - 693 px) : deux requetes, 480 px (identite empilee) et 720 px (chiffres sur 2 colonnes).
+  it("n'utilise que les requetes de conteneur txs2 (600 px), money2 (480 px), profile2col (480 et 720 px) et celle des cartes d'urgence C03 (520 px)", () => {
     const conditions = [...ALL.matchAll(/@container\s*([^{]+)\{/g)].map((m) => m[1].trim())
-    expect(conditions.sort()).toEqual(["(min-width: 520px)", "money2 (max-width: 480px)", "txs2 (max-width: 600px)"])
+    expect(conditions.sort()).toEqual([
+      "(min-width: 520px)", "money2 (max-width: 480px)", "profile2col (max-width: 480px)", "profile2col (max-width: 720px)", "txs2 (max-width: 600px)",
+    ])
     expect(ALL).not.toMatch(/@media[^{]*\bmin-width/)
   })
 
@@ -337,6 +341,40 @@ describe("feuilles app-shell.css et client/*.css", () => {
       expect(SHELL).toContain(`${c}:focus-visible`)
     }
     expect(SHELL).toContain("var(--sh-focus)")
+  })
+})
+
+describe("C17 profil : requetes de conteneur de la colonne principale", () => {
+  const c17 = stripComments(read("client/c17.css"))
+  const container = (cond) => c17.match(new RegExp(`@container profile2col \\(${cond}\\) \\{((?:[^{}]*\\{[^{}]*\\})*)\\s*\\}`))?.[1] ?? ""
+
+  it("declare le conteneur sur la colonne, et empile le lien Modifier sous le nom en colonne etroite", () => {
+    expect(c17).toMatch(/\.profile2 \.col2 \{ container: profile2col \/ inline-size; \}/)
+    expect(container("max-width: 480px")).toMatch(/\.me2 \{ flex-wrap: wrap; \}/)
+    expect(container("max-width: 480px")).toMatch(/\.me2__edit \{ margin-left: 0; flex: 1 1 100%; \}/)
+  })
+
+  it("passe les 4 chiffres sur 2 colonnes, valeurs a la ligne et sous-textes sans ellipse", () => {
+    const narrow = container("max-width: 720px")
+    expect(narrow).toMatch(/\.stats2--4 \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/)
+    expect(narrow).toMatch(/\.stat2__value \{[^}]*white-space: normal; overflow-wrap: anywhere;/)
+    expect(c17).toMatch(/\.stat2__sub \{ white-space: normal; overflow: visible; text-overflow: clip; \}/)
+  })
+
+  it("le nom passe a la ligne par mots (jamais anywhere) et l'avatar ne se comprime pas", () => {
+    expect(c17).toMatch(/\.me2 \.me2__name \{[^}]*overflow-wrap: break-word;/)
+    expect(c17).not.toMatch(/\.me2 \.me2__name \{[^}]*anywhere/)
+    expect(c17).toMatch(/\.me2 \.av2 \{ flex: none; \}/)
+  })
+
+  it("la plage 1024-1150 px (colonne = ecran - 693 px, soit 331 a 457 px) tombe dans les deux requetes", () => {
+    for (const screen of [1024, 1100, 1150]) {
+      const col = screen - 693
+      expect(col).toBeLessThanOrEqual(480)
+      expect(col).toBeGreaterThanOrEqual(320)
+      // Avatar 80 + ecart 20 + carte 2 x 32 : le texte garde au moins 120 px, un mot comme « Houngbedji » (~110 px a 24 px) tient.
+      expect(col - 64 - 80 - 20).toBeGreaterThanOrEqual(120 - 1)
+    }
   })
 })
 
