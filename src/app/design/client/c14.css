@@ -50,6 +50,9 @@ a.fund2__title:hover { text-decoration: underline; }
    le bureau a une sidebar et la carte d'historique ne fait que 332 px. */
 .txs2 { container: txs2 / inline-size; }
 .money2--split { container: money2 / inline-size; }
+/* Sous-textes de la carte argent (« pour publier ou retirer », « bloqués pour N missions ») : retour à la ligne, jamais d'ellipse
+   (la colonne ne fait que ~165 px entre 1024 et 1060 px). */
+.money2--split .stat2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
 
 @media (max-width: 1023.98px) {
   .filters2 { padding: var(--s-3) var(--s-4); }
@@ -97,7 +100,7 @@ a.fund2__title:hover { text-decoration: underline; }
    - 700 px : mise en page d'origine. */
 @container money2 (max-width: 480px) {
   .money2--split .stat2 { padding: var(--s-3) var(--s-4) 14px; }
-  .money2--split .stat2__value { font-size: var(--t-amount-s); min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .money2--split .stat2__value { font-size: max(var(--t-micro), clamp(13px, 7.6cqi, var(--t-amount-s))); min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .money2--split .stat2__value small { display: block; margin-left: 0; }
   .money2__head { padding: var(--s-3) var(--s-4) 0; }
   .money2__foot { padding: 0 var(--s-4) var(--s-4); }

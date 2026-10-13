@@ -530,8 +530,15 @@ describe("cascade statique : specificite et ordre de chargement", () => {
     expect(tx).toMatch(/\.tx2__title, \.tx2__sub \{ white-space: normal;/)
     expect(tx).toContain(".tx2__badge { grid-area: badge;")
     const money = c14.match(/@container money2 \(max-width: 480px\) \{([\s\S]*?)\n\}/)?.[1] ?? ""
-    expect(money).toMatch(/\.money2--split \.stat2__value \{ font-size: var\(--t-amount-s\);[^}]*white-space: normal;/)
+    expect(money).toMatch(/\.money2--split \.stat2__value \{ font-size: max\(var\(--t-micro\), clamp\(13px, 7\.6cqi, var\(--t-amount-s\)\)\);[^}]*white-space: normal;/)
+    // taille fluide conservee dans le conteneur (jamais une taille fixe qui ecrase celle d'app-shell.css), plancher 13 px
+    expect(money).not.toMatch(/\.stat2__value \{ font-size: var\(--t-amount-s\)/)
+    // 10 chiffres a 320 px : la valeur peut passer a la ligne et l'unite descend sous le chiffre
+    expect(money).toMatch(/\.money2--split \.stat2__value \{[^}]*min-width: 0;[^}]*overflow-wrap: anywhere;/)
     expect(money).toContain(".money2--split .stat2__value small { display: block; margin-left: 0; }")
+    // sous-textes de la carte argent : retour a la ligne, pas d'ellipse, avant les requetes de conteneur
+    expect(c14).toMatch(/\.money2--split \.stat2__sub \{ white-space: normal; overflow: visible; text-overflow: clip; \}/)
+    expect(c14.indexOf(".money2--split .stat2__sub {")).toBeLessThan(c14.indexOf("@container money2"))
     // la grille complete a 4 colonnes reste celle des cartes larges
     expect(c14).toMatch(/\.tx2 \{ grid-template-columns: 60px minmax\(0, 1fr\) 132px 120px; \}/)
   })
