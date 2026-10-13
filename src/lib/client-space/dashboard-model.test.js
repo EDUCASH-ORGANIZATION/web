@@ -84,7 +84,7 @@ describe("buildDecisions : priorités", () => {
 
   it("un avis à laisser mène à l'écran d'avis", () => {
     const [d] = buildDecisions(data({ toReview: [{ id: "rev", title: "Garde", studentName: "Koffi" }] }), TODAY)
-    expect(d.action.href).toBe("/review/rev")
+    expect(d.action.href).toBe("/client/review/rev")
     expect(d.hero.title).toBe("Laissez un avis à Koffi")
   })
 

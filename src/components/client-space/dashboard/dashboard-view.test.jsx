@@ -68,7 +68,7 @@ describe("ClientDashboardView : avec décisions", () => {
     expect(html).toContain("Garde de deux enfants")
     expect(html).toContain("Échéance dépassée")
     expect(html).toContain('href="/client/missions/c?confirmer=1"')
-    expect(html).toContain('href="/review/d"')
+    expect(html).toContain('href="/client/review/d"')
     expect(html).not.toContain("Traduire un flyer</div>")
   })
 

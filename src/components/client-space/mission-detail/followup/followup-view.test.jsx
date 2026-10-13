@@ -197,7 +197,7 @@ describe("C09 succès", () => {
     expect(out).toContain("Paiement libéré")
     expect(out).toMatch(/Sèna reçoit <b>22\s000/)
     expect(out).toContain("Noter Sèna")
-    expect(out).toContain('href="/review/m1"')
+    expect(out).toContain('href="/client/review/m1"')
     expect(out).toContain("Retour à la mission")
   })
 
@@ -214,7 +214,7 @@ describe("C11 mission terminée", () => {
     const out = render(detailOf("done", { ledger: DONE_LEDGER }))
     expect(out.match(/<h1/g)).toHaveLength(1)
     expect(out).toContain("Noter Sèna")
-    expect(out).toContain('href="/review/m1"')
+    expect(out).toContain('href="/client/review/m1"')
     expect(out).toContain("Reçu")
     expect(out).toMatch(/Prélevé du séquestre/)
     expect(out).toMatch(/−\s?3\s000/)

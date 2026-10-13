@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { getCurrentUser } from "@/lib/actions/auth.actions"
+import { requireRole } from "@/lib/auth/require-role"
+import { clientReviewHref } from "@/lib/app/client-routes"
 import { ReviewForm } from "@/components/review/review-form"
 
 export const metadata = { title: "Laisser un avis - EduCash" }
@@ -10,10 +10,10 @@ export const metadata = { title: "Laisser un avis - EduCash" }
 async function createReview(reviewedId, missionId, role, formData) {
   "use server"
 
-  const user = await getCurrentUser()
-  if (!user) return { error: "Non authentifié" }
-
-  const supabase = await createClient()
+  // Rôle lu dans profiles.role, compte suspendu refusé : getCurrentUser ne contrôlait ni l'un ni l'autre.
+  const auth = await requireRole(["client", "student"])
+  if (auth.error) return { error: auth.error }
+  const { supabase, user } = auth
 
   // Vérifie qu'aucune review n'existe déjà
   const { data: existing } = await supabase
@@ -58,10 +58,12 @@ async function createReview(reviewedId, missionId, role, formData) {
 
 export default async function ReviewPage({ params }) {
   const { missionId } = await params
-  const user = await getCurrentUser()
-  if (!user) redirect("/auth/login")
+  const auth = await requireRole(["client", "student"])
+  if (auth.error) redirect("/auth/login")
+  const { supabase, user, role: userRole } = auth
 
-  const supabase = await createClient()
+  // Le client note depuis son espace (C10) ; ce formulaire reste celui de l'étudiant.
+  if (userRole === "client") redirect(clientReviewHref(missionId))
 
   // Charge la mission pour obtenir la personne à noter
   const { data: mission } = await supabase
