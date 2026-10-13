@@ -33,10 +33,11 @@ export const CLIENT_NAV = {
       ],
     },
   ],
+  // 4 onglets et, au centre, le bouton rond Publier (cta : jamais de pastille ni de libellé, route de publication).
   mobile: [
     { key: "accueil", label: "Accueil", href: "/client/dashboard", icon: "i-home" },
     { key: "missions", label: "Missions", href: "/client/missions", icon: "i-briefcase", exclude: [PUBLISH_PATH] },
-    { key: "publier", label: "Publier", href: PUBLISH_PATH, icon: "i-plus", exact: true },
+    { key: "publier", label: "Publier une mission", href: PUBLISH_PATH, icon: "i-plus", exact: true, cta: true },
     { key: "messages", label: "Messages", href: "/client/messages", icon: "i-message", badge: "messages" },
     { key: "portefeuille", label: "Portefeuille", href: "/client/wallet", icon: "i-wallet" },
   ],

@@ -40,6 +40,54 @@ export function activeKey(pathname, items) {
 }
 
 /**
+ * Vrai seulement pour un enfant STRICT d'une des bases : la base elle-même et un simple préfixe de texte
+ * (« /messagesx ») ne comptent pas. Sert à masquer la barre mobile sur les écrans de détail.
+ * @param {string} pathname
+ * @param {string[]} [bases]
+ */
+export function isHiddenBelow(pathname, bases) {
+  if (!pathname) return false
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname
+  return (bases ?? []).some((base) => base && path.startsWith(`${base}/`))
+}
+
+/**
+ * Élément actif de la barre mobile, entre les entrées visibles et les liens du panneau « Plus » :
+ * le chemin le plus spécifique l'emporte. Le bouton central (`cta`) n'entre jamais dans ce calcul : il n'a pas de pastille.
+ * Renvoie la clé active, si « Plus » est actif et la clé du lien concerné.
+ * @param {string} pathname
+ * @param {Array<{ key: string, href: string, exact?: boolean, exclude?: string[] }>} items
+ * @param {{ items?: Array<{ key: string, href: string, exact?: boolean, exclude?: string[] }> } | undefined} more
+ * @returns {{ activeKey: string | null, moreActive: boolean, moreActiveKey: string | null }}
+ */
+export function resolveMobileActive(pathname, items, more) {
+  const moreItems = more?.items ?? []
+  const all = [
+    ...(items ?? []).filter((item) => !item.cta).map((item) => ({ ...item, inMore: false })),
+    ...moreItems.map((item) => ({ ...item, inMore: true })),
+  ]
+  const key = activeKey(pathname, all)
+  const hit = key === null ? null : all.find((item) => item.key === key)
+  const moreActive = Boolean(hit?.inMore)
+  return {
+    activeKey: hit && !hit.inMore ? hit.key : null,
+    moreActive,
+    moreActiveKey: moreActive ? hit.key : null,
+  }
+}
+
+/** Échap ferme le panneau « Plus ». */
+export function isCloseKey(key) {
+  return key === "Escape" || key === "Esc"
+}
+
+/** Vrai si la cible d'un clic est hors du conteneur (ou si le conteneur est absent). */
+export function isOutside(container, target) {
+  if (!container || !target) return true
+  return !container.contains(target)
+}
+
+/**
  * Compteur affichable : entier positif, « 99+ » au-delà de la borne, null si rien à montrer.
  * @param {unknown} value
  * @returns {string | null}
