@@ -46,7 +46,7 @@ export default async function ClientProfilePage() {
   const [
     { data: profile },
     { data: missions },
-    { data: transactions },
+    { data: releases, error: releasesError },
     { profile: ownProfile },
   ] = await Promise.all([
     supabase
@@ -62,16 +62,20 @@ export default async function ClientProfilePage() {
       .order("created_at", { ascending: false })
       .limit(5),
 
+    // Grand livre : chaque libération de séquestre côté client (montant brut, commission incluse).
+    // La table legacy "transactions" n'est plus alimentée.
     supabase
-      .from("transactions")
+      .from("wallet_transactions")
       .select("amount")
-      .eq("client_id", user.id)
-      .eq("status", "paid"),
+      .eq("user_id", user.id)
+      .eq("type", "release"),
 
     getMyProfile(),
   ])
 
-  const totalSpent    = (transactions ?? []).reduce((s, t) => s + (t.amount ?? 0), 0)
+  const totalSpent    = releasesError
+    ? null
+    : (releases ?? []).reduce((s, t) => s + Number(t.amount ?? 0), 0)
   const activeMissions  = (missions ?? []).filter((m) => ["open", "in_progress"].includes(m.status)).length
   const doneMissions    = (missions ?? []).filter((m) => m.status === "done").length
   const initial         = profile?.full_name?.charAt(0)?.toUpperCase() ?? "?"
@@ -152,7 +156,13 @@ export default async function ClientProfilePage() {
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Wallet size={16} className="text-[#1A6B4A]" />
                   <p className="text-xl font-black text-gray-900">
-                    {fmt(totalSpent)} <span className="text-sm font-bold text-gray-400">FCFA</span>
+                    {totalSpent === null ? (
+                      <span className="text-sm font-bold text-gray-400">Indisponible</span>
+                    ) : (
+                      <>
+                        {fmt(totalSpent)} <span className="text-sm font-bold text-gray-400">FCFA</span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
