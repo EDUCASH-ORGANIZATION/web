@@ -116,7 +116,7 @@ describe("BottomNav : client", () => {
 })
 
 describe("BottomNav : étudiant", () => {
-  const props = { items: STUDENT, hideBelow: ["/messages", "/student/missions"], reserveSpace: true }
+  const props = { items: STUDENT, hideBelow: ["/messages"], reserveSpace: true }
 
   it("barre sur les écrans de liste, avec espaceur avant la nav", () => {
     for (const at of ["/dashboard", "/student/missions", "/applications", "/messages"]) {
@@ -126,9 +126,12 @@ describe("BottomNav : étudiant", () => {
     }
   })
 
-  it("masquée (ni barre ni espaceur) sur la conversation et le détail de mission", () => {
+  it("masquée (ni barre ni espaceur) sur la conversation ; visible sur le détail de mission (aucune barre de candidature fixe ne l'occupe)", () => {
     expect(render(props, "/messages/abc")).toBe("")
-    expect(render(props, "/student/missions/42")).toBe("")
+    const detail = render(props, "/student/missions/42")
+    expect(detail).toContain("<nav")
+    expect(detail).toContain('<div class="bnav2-spacer" aria-hidden="true"></div>')
+    expect(detail).toMatch(/is-active" aria-current="page" href="\/student\/missions"/)
   })
 
   it("rendue sur /messagesx (préfixe de texte)", () => {

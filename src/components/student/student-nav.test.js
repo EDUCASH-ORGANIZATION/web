@@ -52,8 +52,11 @@ describe("STUDENT_MOBILE_NAV", () => {
     expect(items.find((i) => i.key === "messages").badge).toBe("messages")
   })
 
-  it("masque la barre sur les enfants de /messages et /student/missions", () => {
-    expect(STUDENT_MOBILE_NAV.mobileHideBelow).toEqual(["/messages", "/student/missions"])
+  // Assertion inversée : /student/missions n'est plus masqué (ApplyStickyButton n'est importé par aucun écran,
+  // aucune barre fixe ne chevauche la capsule sur le détail de mission).
+  it("masque la barre sur les enfants de /messages seulement, pas sur le détail de mission", () => {
+    expect(STUDENT_MOBILE_NAV.mobileHideBelow).toEqual(["/messages"])
+    expect(STUDENT_MOBILE_NAV.mobileHideBelow).not.toContain("/student/missions")
     expect(STUDENT_MOBILE_NAV.mobileMore).toBeUndefined()
   })
 
