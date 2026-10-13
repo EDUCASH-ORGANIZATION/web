@@ -117,33 +117,3 @@ export function missionView(detail, today = todayInBenin()) {
     reservedAt: reservedAt(ledger),
   }
 }
-
-/**
- * Props de l'ancien composant MissionDetailTabs (forme `applications` d'avant la refonte), pour les
- * bouchons de ST-09. À retirer avec eux quand ST-10 et ST-11 ont remplacé les vues.
- * @param {import("@/lib/actions/client-mission-detail.actions").ClientMissionDetail} detail
- */
-export function toLegacyTabsProps(detail) {
-  const { mission, applications } = detail
-  return {
-    mission: { id: mission.id, title: mission.title, budget: mission.budget, status: mission.status },
-    applications: applications.map((a) => ({
-      id: a.id,
-      mission_id: mission.id,
-      student_id: a.studentId,
-      message: a.message,
-      status: a.status,
-      created_at: a.createdAt,
-      profiles: {
-        full_name: a.student.fullName,
-        avatar_url: a.student.avatarUrl,
-        city: a.student.city,
-        rating: a.student.rating,
-        missions_done: a.student.missionsDone,
-        is_verified: a.student.isVerified,
-        verified_until: a.student.verifiedUntil,
-      },
-      student_profiles: { school: a.student.school, level: a.student.level, skills: a.student.skills },
-    })),
-  }
-}

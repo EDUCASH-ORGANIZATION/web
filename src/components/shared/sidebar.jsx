@@ -9,7 +9,6 @@ import {
   FileText,
   MessageSquare,
   User,
-  Plus,
   LogOut,
   LifeBuoy,
   Wallet,
@@ -27,26 +26,13 @@ const STUDENT_ITEMS = [
   { label: "Mon profil",         href: "/profile",      icon: User },
 ]
 
-const CLIENT_ITEMS = [
-  { label: "Dashboard",          href: "/client/dashboard",  icon: LayoutDashboard },
-  { label: "Mes missions",       href: "/client/missions",   icon: Briefcase,     exact: false, excludes: ["/client/missions/new"] },
-  { label: "Nouvelle mission",   href: "/client/missions/new", icon: Plus,        exact: true },
-  { label: "Messages",           href: "/client/messages",   icon: MessageSquare },
-  { label: "Profil",             href: "/client/profile",    icon: User },
-]
-
 function fmt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
 }
 
-export function Sidebar({ role = "student", profile, userId, unreadCount: initialUnreadCount = 0, walletAvailable = 0 }) {
+export function Sidebar({ profile, userId, unreadCount: initialUnreadCount = 0, walletAvailable = 0 }) {
   const pathname    = usePathname()
-  const items       = role === "client" ? CLIENT_ITEMS : STUDENT_ITEMS
   const unreadCount = useUnreadCount(userId, initialUnreadCount)
-  const subtitle = role === "client" ? "Espace client" : "Espace étudiant"
-  const homeHref = role === "client" ? "/client/dashboard" : "/dashboard"
-  const messagesHref  = role === "client" ? "/client/messages" : "/messages"
-  const walletHref    = role === "client" ? "/client/wallet" : "/wallet"
 
   const walletColor = walletAvailable >= 5000
     ? "text-[#1A6B4A]"
@@ -59,22 +45,22 @@ export function Sidebar({ role = "student", profile, userId, unreadCount: initia
 
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-100">
-        <Link href={homeHref} className="flex items-center gap-2.5">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
           <Logo size="md" />
-          <p className="text-xs text-gray-400 font-medium">{subtitle}</p>
+          <p className="text-xs text-gray-400 font-medium">Espace étudiant</p>
         </Link>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
-        {items.map(({ label, href, icon: Icon, exact, excludes }) => {
+        {STUDENT_ITEMS.map(({ label, href, icon: Icon, exact, excludes }) => {
           const excluded = excludes?.some((ex) => pathname === ex || pathname.startsWith(ex + "/")) ?? false
           const isActive = !excluded && (
             exact
               ? pathname === href
               : pathname === href || pathname.startsWith(href + "/")
           )
-          const isMessages = href === messagesHref
+          const isMessages = href === "/messages"
 
           return (
             <Link
@@ -106,7 +92,7 @@ export function Sidebar({ role = "student", profile, userId, unreadCount: initia
       {/* Mini wallet */}
       <div className="border-t border-gray-100 px-4 py-3">
         <Link
-          href={walletHref}
+          href="/wallet"
           className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors group"
         >
           <Wallet size={14} className={walletColor} />
