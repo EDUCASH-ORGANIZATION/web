@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { readFileSync, readdirSync } from "node:fs"
 import path from "node:path"
+import { parseColorTokens, contrastRatio } from "@/lib/design/contrast"
 
 // Garde-fou des feuilles v2.1 (RD-CLIENT-01 ST-01) : coquille connectee
 // (app-shell.css) et espace client (client.css + client/*.css).
@@ -391,6 +392,23 @@ describe("cibles tactiles de 44 px sous 1024 px (liens isoles)", () => {
   ])("%s : %s a une hauteur minimale de 44 px dans le bloc mobile", (file, selector) => {
     const escaped = selector.replace(/\./g, "\\.")
     expect(phone(file)).toMatch(new RegExp(`${escaped} \\{[^}]*min-height: 44px`))
+  })
+})
+
+describe("indicateurs de focus des fonds clairs (>= 3:1)", () => {
+  const colors = parseColorTokens(read("tokens.css"))
+
+  // Carte d'urgence C03 selectionnee (fond blanc) : anneau --sh-focus (2 px blanc puis 3 px bleu), conserve par c03.css.
+  // Champ de saisie de la conversation : bordure bleue pleine au focus (le halo 18 % n'est qu'un renfort).
+  // Aucune de ces deux regles ne necessite de renfort : le bleu atteint 8,1:1 sur blanc et 7,4:1 sur givre.
+  it.each([["--c-blanc"], ["--c-givre"]])("le bleu de l'indicateur de focus contraste >= 3:1 avec %s", (bg) => {
+    expect(contrastRatio(colors["--c-bleu"], colors[bg])).toBeGreaterThanOrEqual(3)
+  })
+
+  it("garde l'anneau plein sur la carte d'urgence selectionnee et la bordure bleue du champ de conversation", () => {
+    expect(read("tokens.css")).toMatch(/--sh-focus: 0 0 0 2px var\(--c-blanc\), 0 0 0 5px var\(--c-bleu\)/)
+    expect(CLIENT).toContain(".c2 .choice.is-selected:focus-visible { box-shadow: var(--sh-focus); }")
+    expect(CLIENT).toMatch(/\.c2 \.composer__field:focus-within \{[^}]*border-color: var\(--c-bleu\)/)
   })
 })
 
