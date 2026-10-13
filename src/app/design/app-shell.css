@@ -8,12 +8,12 @@
    utilisee par le code ancien, donc aucun changement de rendu des pages
    existantes. Le systeme (components.css, layouts.css) est charge avant.
 
-   Ecart assume avec les planches : la barre du bas reelle est .bnav2 (claire,
-   fixe, safe-area), pas .bottom-nav--v2 (barre encre flottante) ; cette
-   derniere et les classes de planche (v2-tag, agenda C18, mapp2, variantes
+   La coquille utilise `.bottom-nav--v2` conformement aux planches validees
+   (barre encre flottante, fixe, safe-area) ; `bnav2` est conservee en
+   alternative. Les classes de planche (v2-tag, agenda C18, mapp2, variantes
    --m remplacees par media query) ne sont pas portees.
    Les ecrans de detail mobiles (C03, C04, C08) n'ont pas de barre du bas :
-   la coquille porte .shell--v2.shell--detail (masque .bnav2, reserve la
+   la coquille porte .shell--v2.shell--detail (masque la barre, reserve la
    hauteur de .mbar2).
 
    Adaptations : min-height en dvh, barre du bas en position fixed avec
@@ -29,7 +29,7 @@
 /* Sidebar claire : logo, espace, navigation, identité en bas */
 .side2 { background: var(--c-blanc); border-right: 1px solid var(--c-ligne); display: flex; flex-direction: column; gap: 2px; padding: var(--s-6) var(--s-4) var(--s-4); min-height: 0; }
 .side2__brand { display: flex; flex-direction: column; gap: 6px; padding: 0 10px var(--s-6); }
-.side2__brand .logo { height: 37px; width: auto; }
+.side2__brand .logo { height: 37px; width: auto; align-self: flex-start; }
 .side2__space { font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
 .side2__cta { margin: 0 0 var(--s-4); }
 .side2__group { font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); padding: var(--s-5) 10px 6px; }
@@ -85,7 +85,7 @@
 .hero2__col + .hero2__col { border-left: 1px solid var(--c-ligne); }
 .hero2__label { font-size: var(--t-body-s); font-weight: var(--fw-bold); color: var(--c-ardoise); }
 .hero2__figure { font-family: var(--f-text); font-weight: var(--fw-black); font-size: 56px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; white-space: nowrap; margin: 4px 0 2px; }
-.hero2__figure small { font-size: .36em; font-weight: var(--fw-bold); letter-spacing: 0; margin-left: .35em; }
+.hero2__figure small { font-size: max(var(--t-micro), .36em); font-weight: var(--fw-bold); letter-spacing: 0; margin-left: .35em; }
 .hero2__meta { font-size: var(--t-body-s); color: var(--c-ardoise); line-height: 1.5; }
 .hero2__meta b { color: var(--c-encre); font-weight: var(--fw-bold); }
 .hero2__title { font-size: 22px; font-weight: var(--fw-xbold); line-height: 1.25; letter-spacing: -.01em; margin-top: 6px; }
@@ -109,7 +109,7 @@
 .stat2 + .stat2 { border-left: 1px solid var(--c-ligne); }
 .stat2__label { font-size: var(--t-caption); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
 .stat2__value { font-size: var(--t-amount-m); font-weight: var(--fw-xbold); letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; white-space: nowrap; }
-.stat2__value small { font-size: .55em; font-weight: var(--fw-bold); letter-spacing: 0; margin-left: .3em; }
+.stat2__value small { font-size: max(var(--t-micro), .55em); font-weight: var(--fw-bold); letter-spacing: 0; margin-left: .3em; }
 .stat2__sub { font-size: var(--t-caption); color: var(--c-ardoise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat2__sub a { color: var(--c-bleu); font-weight: var(--fw-bold); }
 
@@ -149,6 +149,14 @@
 .bnav2__item.is-active { color: var(--c-bleu); font-weight: var(--fw-xbold); }
 .bnav2__item.is-active::before { content: ""; position: absolute; top: 0; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--c-bleu); }
 .bnav2__count { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: var(--r-pill); background: var(--c-encre); color: var(--c-blanc); font-size: var(--t-micro); font-weight: var(--fw-xbold); display: grid; place-items: center; }
+
+/* Bottom nav façon v1 (barre encre flottante), couleurs v2 : actif blanc.
+   Posee sur .bottom-nav du systeme (absolute) : masquee au bureau, fixe sous 1024. */
+.bottom-nav--v2 { display: none; }
+.bottom-nav--v2 .bnav-item { font-size: var(--t-micro); }
+.bottom-nav--v2 .bnav-item.is-active { background: var(--c-blanc); color: var(--c-encre); }
+.bottom-nav--v2 .bnav-item.is-active .ic { color: var(--c-bleu); }
+.bottom-nav--v2 .bnav-item__dot { background: var(--c-blanc); color: var(--c-encre); font-size: var(--t-micro); }
 
 /* ---------- Squelette fidèle de la v2 ---------- */
 .skel2-hero { height: 196px; border-radius: 16px; }
@@ -226,11 +234,15 @@
 .shell--v2 .nav-item:focus-visible, .sidebar__me .iconbtn2:focus-visible { box-shadow: var(--sh-focus-sombre); }
 .bnav2__item:focus-visible { box-shadow: inset 0 0 0 2px var(--c-bleu); }
 /* Fonds sombres (encre, bleu) : anneau bleu + citron */
+.money2 .btn:focus-visible, .money2 .btn-icon:focus-visible { box-shadow: var(--sh-focus-sombre); }
 .shell--v2 .btn--sidebar:focus-visible, .c2 .btn--blanc:focus-visible, .shell--v2 .btn--blanc:focus-visible, .c2 .money2 a:focus-visible, .shell--v2 .money2 a:focus-visible { outline: none; box-shadow: var(--sh-focus-sombre); }
 
 /* ---------- Primitives interactives (app-ui) ---------- */
 .ds-toasts-fixed { position: fixed; z-index: var(--z-toast); }
-.toasts--mobile.ds-toasts-fixed { bottom: calc(64px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
+.toasts--mobile.ds-toasts-fixed { bottom: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
+/* Ecrans de detail : les toasts passent au-dessus de .mbar2 (repli :has en regle separee) */
+.shell--detail .toasts--mobile.ds-toasts-fixed { bottom: calc(140px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
+.shell--v2:has(.mbar2) .toasts--mobile.ds-toasts-fixed { bottom: calc(140px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
 .ds-stars__btn { appearance: none; background: transparent; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; line-height: 0; cursor: pointer; border-radius: var(--r-s); }
 .ds-stars__btn:focus-visible { outline: none; box-shadow: var(--sh-focus); }
 .c2 .tab:focus-visible, .shell--v2 .tab:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
@@ -244,13 +256,18 @@
   .shell--v2 { padding: 0; }
   .shell--v2 .shell__frame { display: block; padding: 0; background: transparent; border: 0; border-radius: 0; overflow: visible; }
   .shell--v2 .sidebar, .shell--v2 .top2 { display: none; }
-  .shell--v2 .shell__main { padding: 0 var(--s-4) calc(64px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
+  .shell--v2 .shell__main { padding: 0 var(--s-4) calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
   .mtop2 { display: flex; }
   .bnav2 { display: grid; }
-  .main2 { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
-  /* Ecrans de detail : pas de barre du bas, la barre d'action .mbar2 prend la place */
-  .shell--v2.shell--detail .bnav2, .shell--v2:has(.mbar2) .bnav2 { display: none; }
+  .bottom-nav.bottom-nav--v2 { display: grid; position: fixed; left: 10px; right: 10px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .main2 { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px) + var(--s-6)); }
+  /* Ecrans de detail : pas de barre du bas, la barre d'action .mbar2 prend la place.
+     Les repli :has() sont des regles separees : un navigateur sans :has ignore sa seule regle. */
+  .shell--v2.shell--detail .bnav2, .shell--v2.shell--detail .bottom-nav--v2 { display: none; }
+  .shell--v2:has(.mbar2) .bnav2 { display: none; }
+  .shell--v2:has(.mbar2) .bottom-nav--v2 { display: none; }
   .shell--v2.shell--detail .shell__main, .shell--v2.shell--detail .main2 { padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+  .shell--v2:has(.mbar2) .shell__main { padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
   .page2 { padding: 0 var(--s-4) var(--s-4); gap: var(--s-4); }
   .shell--v2 .page2 { padding: 0 0 var(--s-4); gap: var(--s-4); }
   .head2 { padding: 0 4px; }
@@ -307,5 +324,5 @@
 
 /* ---------- Mouvement reduit ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .app2 *, .c2 *, .shell--v2 * { scroll-behavior: auto; transition-duration: .01ms; animation-duration: .01ms; }
+  .app2 *, .c2 *, .c2 *::before, .c2 *::after, .shell--v2 * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }

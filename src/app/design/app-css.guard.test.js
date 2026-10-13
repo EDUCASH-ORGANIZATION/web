@@ -70,9 +70,6 @@ const WHY_AGENDA = "agenda et calendrier C18, hors perimetre de RD-CLIENT-01"
 const REMOVED = {
   "v2-tag": "legende de planche, jamais rendue dans l'app",
   mapp2: "gabarit mobile des planches : la coquille reelle est .shell--v2 / .app2 avec media queries",
-  "bottom-nav--v2": "barre encre flottante des planches, ecart assume : la coquille garde .bnav2",
-  "bnav-item": "enfant de .bottom-nav--v2, retire avec lui",
-  "bnav-item__dot": "enfant de .bottom-nav--v2, retire avec lui",
   "hero2--m": WHY_MEDIA, "stats2--m": WHY_MEDIA, "list2--m": WHY_MEDIA, "money2--m": WHY_MEDIA,
   "card2--m": WHY_MEDIA, "cand2--m": WHY_MEDIA, "col2--m": WHY_MEDIA, "tx2--m": WHY_MEDIA, "filters2--m": WHY_MEDIA,
   "day2--m": WHY_MEDIA,
@@ -117,6 +114,18 @@ const NEW_SYSTEM = new Set([
   "ds-toasts-fixed", "ds-drawer--full", "ds-stars__btn",
 ])
 const isNew = (c) => NEW_CLASS.test(c) || NEW_SYSTEM.has(c)
+
+/** font-size en em, rem ou % inferieure a 1 qui n'est pas dans un max() avec var(--t-micro) en premier argument. */
+function relativeSizeOffenders(css) {
+  const out = []
+  for (const m of css.matchAll(/font-size:\s*([^;}]+)/g)) {
+    const value = m[1].trim()
+    if (/^max\(\s*var\(--t-micro\)\s*,[^)]*\)$/.test(value)) continue
+    const units = [...value.matchAll(/(-?[\d.]+)(em|rem|%)(?![\w-])/g)]
+    if (units.some(([, n, u]) => Number(n) < (u === "%" ? 100 : 1))) out.push(value)
+  }
+  return out
+}
 
 describe("feuilles app-shell.css et client/*.css", () => {
   it("ne contiennent plus les classes retirees (planches, --m, agenda C18), chacune documentee dans REMOVED", () => {
@@ -204,19 +213,65 @@ describe("feuilles app-shell.css et client/*.css", () => {
     expect(sizes.filter((px) => px < 13)).toEqual([])
   })
 
+  it("protege toute font-size relative (em, rem, %) inferieure a 1 par max(var(--t-micro), ...)", () => {
+    expect(relativeSizeOffenders(ALL)).toEqual([])
+    expect(SHELL).toContain("font-size: max(var(--t-micro), .36em)")
+    expect(SHELL).toContain("font-size: max(var(--t-micro), .55em)")
+  })
+
+  it("le detecteur de font-size relative refuse un em nu et accepte un max() protege", () => {
+    expect(relativeSizeOffenders(".a small { font-size: .36em; }")).toHaveLength(1)
+    expect(relativeSizeOffenders(".a { font-size: 80%; }")).toHaveLength(1)
+    expect(relativeSizeOffenders(".a { font-size: .9rem; }")).toHaveLength(1)
+    expect(relativeSizeOffenders(".a { font-size: max(.36em, 10px); }")).toHaveLength(1)
+    expect(relativeSizeOffenders(".a { font-size: max(var(--t-micro), .36em); }")).toEqual([])
+    expect(relativeSizeOffenders(".a { font-size: 1.2em; }")).toEqual([])
+  })
+
+  it("reporte les regles utiles des variantes --m (onglets C14 filtres, onglets .c2)", () => {
+    const base = stripComments(read("client/base.css"))
+    expect(base).toMatch(/\.c2 \.tabs \{ gap: var\(--s-5\); \}/)
+    const c14 = stripComments(read("client/c14.css"))
+    const phone = c14.slice(c14.indexOf("@media (max-width: 767.98px)"))
+    expect(phone).toMatch(/\.filters2 \{[^}]*padding: 0 0 2px; border: 0;[^}]*mask-image: linear-gradient/)
+  })
+
+  it("toasts mobiles au-dessus de .mbar2 sur les ecrans de detail, anneau sombre generique sur .money2", () => {
+    expect(SHELL).toMatch(/\.shell--detail \.toasts--mobile\.ds-toasts-fixed \{ bottom: calc\(140px/)
+    expect(SHELL).toMatch(/\n\.shell--v2:has\(\.mbar2\) \.toasts--mobile\.ds-toasts-fixed \{ bottom: calc\(140px/)
+    expect(SHELL).toMatch(/\.money2 \.btn:focus-visible, \.money2 \.btn-icon:focus-visible \{ box-shadow: var\(--sh-focus-sombre\)/)
+    expect(SHELL).toMatch(/\.c2 \*::before, \.c2 \*::after[^}]*scroll-behavior: auto !important[^}]*animation-duration: \.01ms !important/)
+  })
+
   it("garde les logos aux minimums de la charte (symbole 32 px, logo complet 37 px)", () => {
     expect(SHELL).toMatch(/\.mtop2 \.logo-sym \{ height: 32px; width: auto; \}/)
-    expect(SHELL).toMatch(/\.side2__brand \.logo \{ height: 37px; width: auto; \}/)
+    expect(SHELL).toMatch(/\.side2__brand \.logo \{ height: 37px; width: auto; align-self: flex-start; \}/)
   })
 
   it("donne a .head2__title l'interligne des titres Anton", () => {
     expect(SHELL).toMatch(/\.head2__title \{[^}]*line-height: var\(--lh-display\)/)
   })
 
-  it("ecran de detail mobile : .shell--detail masque .bnav2 et reserve la hauteur de .mbar2, jamais les deux barres ensemble", () => {
+  it("barre du bas .bottom-nav--v2 (planches validees) : masquee au bureau, fixe avec safe-area sous 1024, bnav2 conservee", () => {
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \{ display: none; \}/)
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-item\.is-active \{ background: var\(--c-blanc\)/)
+    expect(SHELL).toMatch(/\.bottom-nav--v2 \.bnav-item__dot \{/)
+    const tablet = SHELL.slice(SHELL.indexOf("@media (max-width: 1023.98px)"))
+    expect(tablet).toMatch(/\.bottom-nav\.bottom-nav--v2 \{[^}]*display: grid[^}]*position: fixed[^}]*env\(safe-area-inset-bottom/)
+    expect(tablet).toMatch(/\.shell--v2 \.shell__main \{ padding: 0 var\(--s-4\) calc\(86px \+ env\(safe-area-inset-bottom/)
+    expect(tablet).toMatch(/\.main2 \{ padding-bottom: calc\(86px \+ env\(safe-area-inset-bottom/)
+    expect(SHELL).toMatch(/\.bnav2 \{[^}]*position: fixed/)
+  })
+
+  it("ecran de detail mobile : .shell--detail masque la barre du bas et reserve la hauteur de .mbar2, jamais les deux barres ensemble", () => {
     const tablet = SHELL.slice(SHELL.indexOf("@media (max-width: 1023.98px)"))
     expect(tablet).toMatch(/\.shell--v2\.shell--detail \.bnav2[^{]*\{ display: none; \}/)
-    expect(tablet).toContain(".shell--v2:has(.mbar2) .bnav2")
+    expect(tablet).toMatch(/\.shell--v2\.shell--detail \.bottom-nav--v2[^{]*\{ display: none; \}/)
+    // Repli :has() : chaque regle est seule dans sa liste (un navigateur sans :has ignorerait toute la liste).
+    expect(tablet).toMatch(/\n\s*\.shell--v2:has\(\.mbar2\) \.bnav2 \{ display: none; \}/)
+    expect(tablet).toMatch(/\n\s*\.shell--v2:has\(\.mbar2\) \.bottom-nav--v2 \{ display: none; \}/)
+    expect(tablet).toMatch(/\n\s*\.shell--v2:has\(\.mbar2\) \.shell__main \{ padding-bottom: calc\(150px \+ env\(safe-area-inset-bottom, 0px\)\); \}/)
+    expect(selectorsOf(ALL).filter((sel) => sel.includes(":has(") && sel.includes(","))).toEqual([])
     expect(tablet).toMatch(/\.shell--v2\.shell--detail \.shell__main, \.shell--v2\.shell--detail \.main2 \{ padding-bottom: calc\(150px \+ env\(safe-area-inset-bottom/)
     expect(CLIENT).toMatch(/\.mbar2 \{ display: flex; \}/)
     expect(SHELL).toContain("shell--detail")
@@ -245,7 +300,7 @@ describe("feuilles app-shell.css et client/*.css", () => {
 describe("regles des primitives interactives (app-ui)", () => {
   it("fournit toasts fixes, tiroir plein ecran, bouton d'etoile et focus clavier tab/chip limite a .c2 et .shell--v2", () => {
     expect(SHELL).toMatch(/\.ds-toasts-fixed \{[^}]*position: fixed/)
-    expect(SHELL).toMatch(/\.toasts--mobile\.ds-toasts-fixed \{[^}]*bottom: calc\(64px \+ env\(safe-area-inset-bottom/)
+    expect(SHELL).toMatch(/\.toasts--mobile\.ds-toasts-fixed \{[^}]*bottom: calc\(86px \+ env\(safe-area-inset-bottom/)
     const tablet = SHELL.slice(SHELL.indexOf("@media (max-width: 1023.98px)"))
     expect(tablet).toMatch(/\.ds-drawer--full \{[^}]*width: 100%[^}]*box-shadow: none/)
     expect(SHELL).toMatch(/\.ds-stars__btn \{[^}]*cursor: pointer/)

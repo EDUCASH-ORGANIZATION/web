@@ -42,7 +42,7 @@
   .money2__hint { flex-basis: 100%; }
 }
 @media (max-width: 767.98px) {
-  .filters2 { flex-wrap: nowrap; overflow-x: auto; }
+  .filters2 { flex-wrap: nowrap; overflow-x: auto; padding: 0 0 2px; border: 0; -webkit-mask-image: linear-gradient(90deg, var(--c-encre) 85%, transparent); mask-image: linear-gradient(90deg, var(--c-encre) 85%, transparent); }
   .filters2 .chip { flex: none; }
   .tx2 { grid-template-columns: minmax(0, 1fr) auto; }
   .tx2__date { grid-column: 1 / -1; }

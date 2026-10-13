@@ -282,6 +282,7 @@
 @media (max-width: 1023.98px) {
   .split2, .split2--wide { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
   .col2 { gap: var(--s-4); }
+  .c2 .tabs { gap: var(--s-5); }
   .card2--flush > .sec2 { padding: var(--s-4); }
   .item2--mission { grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--s-3); padding: var(--s-4); }
   .item2--mission > .item2__cell, .item2--mission > .item2__amount { grid-column: 2 / -1; justify-content: flex-start; text-align: left; margin-top: 0; }
