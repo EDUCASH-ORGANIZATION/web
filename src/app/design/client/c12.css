@@ -1,0 +1,34 @@
+/* ---------- C12 Messages, C13 Conversation ---------- */
+.c2 .c-inbox { border-radius: var(--r-l); flex: 1; min-height: 0; }
+.inbox2 { display: grid; grid-template-columns: 360px minmax(0, 1fr); height: 640px; }
+.c2 .c-inbox__list { padding: 14px; gap: 2px; overflow: hidden; }
+.c2 .c-inbox__list .search { margin-bottom: 8px; }
+.c2 .c-inbox__list .segmented { margin-bottom: 8px; }
+.c2 .segmented { border: 1px solid var(--c-ligne); }
+.c2 .convo { padding: 12px; border-radius: 14px; }
+.c2 .convo .av2 { width: 44px; height: 44px; font-size: 14px; }
+.c2 .convo__name { font-size: var(--t-body-s); }
+.c2 .convo__mission { color: var(--c-ardoise); font-weight: var(--fw-semibold); }
+.c2 .convo .count { background: var(--c-encre); color: var(--c-blanc); }
+.c2 .chat-status { background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne); }
+.c2 .chat__day { background: var(--c-blanc); }
+.c2 .composer__field { background: var(--c-givre); }
+.c2 .c-inbox__head .av2 { width: 40px; height: 40px; }
+.inbox2__empty { display: grid; place-items: center; background: var(--c-givre); }
+.convos2 { display: flex; flex-direction: column; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); padding: 6px; }
+.mchat2 { display: flex; flex-direction: column; height: 100%; }
+.mchat2 .chat { flex: 1; }
+.mchat2 .composer { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+.mtop2--chat { background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne); }
+.mtop2__who { flex: 1; min-width: 0; line-height: 1.25; }
+.mtop2__who b { display: block; font-size: var(--t-body-s); font-weight: var(--fw-xbold); }
+.mtop2__who small { display: block; font-size: var(--t-micro); color: var(--c-ardoise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c2 .segmented { background: var(--c-givre); border-color: var(--c-givre); }
+.c2 .segmented__item { height: 36px; }
+.c2 .segmented__item.is-active { background: var(--c-blanc); color: var(--c-encre); box-shadow: 0 0 0 1px var(--c-ligne); }
+
+@media (max-width: 1023.98px) {
+  .inbox2 { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .c2 .inbox2 .c-inbox__list { border-right: 0; border-bottom: 1px solid var(--c-ligne); }
+  .c2 .c-inbox { flex: none; }
+}

@@ -1,0 +1,19 @@
+/* ---------- C13 Conversation ---------- */
+.c2 .c-payreq { border-radius: 20px; border-bottom-left-radius: 6px; }
+.c2 .c-payreq__head .ic-sq { background: var(--c-givre); color: var(--c-ardoise); }
+.c2 .c-payreq .kv { font-size: var(--t-caption); }
+.c2 .c-payreq__total .amount { font-family: var(--f-text); font-weight: var(--fw-xbold); }
+.payreq2__note { display: flex; gap: 8px; align-items: flex-start; font-size: var(--t-caption); color: var(--c-ardoise); line-height: 1.45; }
+.payreq2__note .ic { width: 16px; height: 16px; flex: none; margin-top: 1px; }
+.payreq2__note b { color: var(--c-encre); }
+.c2 .upload.is-error { border-color: var(--c-erreur); }
+.inbox2--tall { height: 700px; }
+.inbox2 { grid-template-rows: minmax(0, 1fr); }
+.c2 .c-inbox__thread { min-height: 0; overflow: hidden; }
+.c2 .c-inbox__thread .chat { min-height: 0; }
+.c2 .c-payreq__head b { white-space: nowrap; }
+
+@media (max-width: 1023.98px) {
+  .inbox2--tall { height: auto; }
+  .c2 main:has(> .mchat2) { flex: 1; min-height: 0; overflow: hidden; padding: 0 !important; gap: 0; }
+}

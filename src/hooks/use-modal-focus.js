@@ -23,9 +23,10 @@ export function nextFocusIndex(count, at, backward) {
 }
 
 // Installe le piège de focus sur `doc` et renvoie la fonction de nettoyage.
-export function trapFocus({ doc, getContainer, initialFocus, returnTarget, onClose }) {
+// `lockScroll: false` laisse le défilement de la page à l'appelant (pile de dialogues d'app-ui).
+export function trapFocus({ doc, getContainer, initialFocus, returnTarget, onClose, lockScroll = true }) {
   const previousOverflow = doc.body.style.overflow
-  doc.body.style.overflow = "hidden"
+  if (lockScroll) doc.body.style.overflow = "hidden"
   ;(initialFocus ?? focusableIn(getContainer())[0])?.focus()
 
   function onKeyDown(e) {
@@ -45,7 +46,7 @@ export function trapFocus({ doc, getContainer, initialFocus, returnTarget, onClo
 
   return () => {
     doc.removeEventListener("keydown", onKeyDown)
-    doc.body.style.overflow = previousOverflow
+    if (lockScroll) doc.body.style.overflow = previousOverflow
     returnTarget?.focus()
   }
 }

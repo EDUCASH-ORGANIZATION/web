@@ -1,0 +1,22 @@
+/* Espace client v2.1 : feuilles reunies (ordre = ordre de la cascade).
+   Importe par globals.css dans la couche components, apres app-shell.css.
+   Option a etudier a la ST-05 : importer client.css depuis la coquille client
+   (layout fige aujourd'hui, donc non modifie) pour ne charger ces regles que
+   sur l'espace client. */
+@import "./client/base.css";
+@import "./client/c01.css";
+@import "./client/c02.css";
+@import "./client/c03.css";
+@import "./client/c04.css";
+@import "./client/c05.css";
+@import "./client/c07.css";
+@import "./client/c08.css";
+@import "./client/c09.css";
+@import "./client/c10.css";
+@import "./client/c11.css";
+@import "./client/c12.css";
+@import "./client/c13.css";
+@import "./client/c14.css";
+@import "./client/c15.css";
+@import "./client/c16.css";
+@import "./client/c17.css";

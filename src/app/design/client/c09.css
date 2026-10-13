@@ -1,0 +1,21 @@
+/* ---------- C09 Confirmer la fin, et écrans de succès (C09, C10, C15, C16) ---------- */
+.done2 { max-width: 560px; margin: var(--s-6) auto 0; width: 100%; align-items: center; text-align: center; gap: 10px; }
+.done2 .lines2, .done2 .recap { width: 100%; text-align: left; }
+.done2__mark { width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; background: var(--c-succes-bg, var(--c-givre)); color: var(--c-succes); margin-bottom: 4px; }
+.done2__mark .ic { width: 30px; height: 30px; stroke-width: 2; }
+.done2__mark--erreur { background: var(--c-erreur-bg); color: var(--c-erreur); }
+.done2__mark--alerte { background: var(--c-alerte-bg); color: var(--c-alerte-txt); }
+.done2__title { font-size: 26px; font-weight: var(--fw-xbold); letter-spacing: -.015em; line-height: 1.2; }
+.done2__text { font-size: var(--t-body); color: var(--c-ardoise); line-height: 1.5; max-width: 440px; }
+.done2__text b { color: var(--c-encre); }
+.done2 .actions2 { justify-content: center; margin-top: 8px; }
+.sub2 { font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-ardoise); display: flex; justify-content: space-between; align-items: center; }
+.modal .buy2 { padding: 8px 0; }
+.modal .lines2 { font-size: var(--t-body-s); }
+.c2 .modal__body .check { align-items: flex-start; }
+
+@media (max-width: 1023.98px) {
+  .done2 { margin-top: 0; }
+  .done2__title { font-size: 21px; }
+  .done2__text { font-size: var(--t-body-s); }
+}

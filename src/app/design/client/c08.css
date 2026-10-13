@@ -1,0 +1,25 @@
+/* ---------- Pages de détail de mission (C08 et suivantes) ---------- */
+.mbar2__note { font-size: var(--t-caption); color: var(--c-ardoise); text-align: center; }
+.mbar2__row .btn { flex: 1; }
+.mbar2__row .btn--ghost, .mbar2__row .btn-icon { flex: none; }
+.status2 { display: flex; flex-direction: column; gap: 6px; }
+.status2__title { font-size: 20px; font-weight: var(--fw-xbold); line-height: 1.25; letter-spacing: -.01em; }
+.status2__text { font-size: var(--t-body-s); color: var(--c-ardoise); line-height: 1.5; }
+.status2__text b { color: var(--c-encre); }
+.status2 .actions2 { margin-top: 10px; }
+.person2__acts { display: flex; align-items: center; gap: var(--s-4); margin-top: 6px; flex-wrap: wrap; }
+.c2 .btn.is-disabled, .c2 .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.disabled2 { font-size: var(--t-caption); color: var(--c-ardoise); text-align: center; }
+.c2 .detail-head__actions { display: flex; align-items: center; gap: var(--s-5); padding-bottom: 6px; }
+.link2--muted { color: var(--c-ardoise); }
+.buy2 { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; }
+.buy2 + .buy2 { border-top: 1px solid var(--c-ligne-2); }
+.buy2 .item2__ic { width: 36px; height: 36px; }
+.buy2__title { font-size: var(--t-body-s); font-weight: var(--fw-bold); }
+.buy2__sub { font-size: var(--t-caption); color: var(--c-ardoise); }
+.mpage2--bar.mpage2 { padding-bottom: calc(170px + env(safe-area-inset-bottom, 0px)); }
+
+@media (max-width: 767.98px) {
+  .c2 .detail-head__actions { flex-wrap: wrap; gap: var(--s-4); }
+  .status2__title { font-size: 17px; }
+}
