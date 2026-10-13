@@ -52,7 +52,7 @@ describe("STUDENT_MOBILE_NAV", () => {
     expect(items.find((i) => i.key === "messages").badge).toBe("messages")
   })
 
-  // Assertion inversée : /student/missions n'est plus masqué (ApplyStickyButton n'est importé par aucun écran,
+  // Assertion inversée : /student/missions n'est plus masqué (l'ancien bouton fixe de candidature est supprimé,
   // aucune barre fixe ne chevauche la capsule sur le détail de mission).
   it("masque la barre sur les enfants de /messages seulement, pas sur le détail de mission", () => {
     expect(STUDENT_MOBILE_NAV.mobileHideBelow).toEqual(["/messages"])
