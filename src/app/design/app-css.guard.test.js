@@ -94,6 +94,7 @@ function classNamesOf(css) {
 const NEW_CLASS = /(?:2(?:x|-[a-z]+)?(?:__[\w-]+|--[\w-]+)?|--v2)$/
 const NEW_SYSTEM = new Set([
   "btn--soft", "btn--sidebar", "btn--blanc", "btn--ghost-blanc", "sidebar__me", "v2-tag", "has-due",
+  "ds-toasts-fixed", "ds-drawer--full", "ds-stars__btn",
 ])
 const isNew = (c) => NEW_CLASS.test(c) || NEW_SYSTEM.has(c)
 
@@ -182,6 +183,20 @@ describe("feuilles app-shell.css et client/*.css", () => {
       expect(SHELL).toContain(`${c}:focus-visible`)
     }
     expect(SHELL).toContain("var(--sh-focus)")
+  })
+})
+
+describe("regles des primitives interactives (app-ui)", () => {
+  it("fournit toasts fixes, tiroir plein ecran, bouton d'etoile et focus clavier tab/chip limite a .c2 et .shell--v2", () => {
+    expect(SHELL).toMatch(/\.ds-toasts-fixed \{[^}]*position: fixed/)
+    expect(SHELL).toMatch(/\.toasts--mobile\.ds-toasts-fixed \{[^}]*bottom: calc\(64px \+ env\(safe-area-inset-bottom/)
+    const tablet = SHELL.slice(SHELL.indexOf("@media (max-width: 1023.98px)"))
+    expect(tablet).toMatch(/\.ds-drawer--full \{[^}]*width: 100%[^}]*box-shadow: none/)
+    expect(SHELL).toMatch(/\.ds-stars__btn \{[^}]*cursor: pointer/)
+    expect(SHELL).toContain(".ds-stars__btn:focus-visible")
+    for (const c of [".tab", ".chip"]) {
+      expect(SHELL).toContain(`.c2 ${c}:focus-visible, .shell--v2 ${c}:focus-visible { outline: none; box-shadow: var(--sh-focus)`)
+    }
   })
 })
 
