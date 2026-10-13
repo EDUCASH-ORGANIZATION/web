@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
+import { createHash } from "node:crypto"
 import { readdirSync, statSync } from "node:fs"
 import path from "node:path"
 
@@ -166,6 +167,56 @@ describe("AppShell (rendu statique)", () => {
     expect(html).not.toMatch(/class="[^"]*\b(?:flex|grid|bg-|text-|p-\d|gap-)/)
     expect(html).not.toContain("style=")
     expect(html).not.toContain("/client/notifications")
+  })
+})
+
+describe("AppShell : rendu client inchangé et clés de navigation mobile optionnelles", () => {
+  // Empreintes SHA-256 du HTML de la coquille client prises avant la transmission de more, hideBelow, mobileTop
+  // (version du sprite normalisée).
+  const BEFORE = {
+    "/client/dashboard": "59681bac650d2a35b1229679da52c25e005db5cdc59395428654e0f1ba59bb1b",
+    "/client/messages/abc": "74ce3d1803aa38a37898aa3d528d2b4b702538661d36d69ae1869a450ad87d3e",
+  }
+  const digest = (html) => createHash("sha256").update(html.replace(/\?v=[0-9a-f]+/g, "?v=V")).digest("hex")
+
+  it("CLIENT_NAV (sans mobileMore, mobileHideBelow ni mobileTop) : même HTML qu'avant, sur deux routes", () => {
+    expect(CLIENT_NAV.mobileMore).toBeUndefined()
+    expect(CLIENT_NAV.mobileHideBelow).toBeUndefined()
+    expect(CLIENT_NAV.mobileTop).toBeUndefined()
+    for (const [route, hash] of Object.entries(BEFORE)) expect(digest(render({}, route))).toBe(hash)
+  })
+
+  it("mobileHideBelow : barre du bas absente sur un enfant strict, présente sur le chemin lui-même", () => {
+    const nav = { ...CLIENT_NAV, mobileHideBelow: ["/client/messages"] }
+    expect(render({ nav }, "/client/messages/abc")).not.toContain("bottom-nav")
+    expect(render({ nav }, "/client/messages")).toContain('class="bottom-nav bottom-nav--v2"')
+    expect(render({ nav }, "/client/dashboard")).toContain('class="bottom-nav bottom-nav--v2"')
+    expect(render({}, "/client/messages/abc")).toContain('class="bottom-nav bottom-nav--v2"')
+  })
+
+  it("mobileMore : le bouton « Plus » et son panneau sont rendus dans la barre du bas", () => {
+    const more = { label: "Plus", icon: "i-menu", items: [{ key: "aide", label: "Aide", href: "/aide", icon: "i-help-circle" }] }
+    const withMore = render({ nav: { ...CLIENT_NAV, mobileMore: more } })
+    const without = render()
+    expect(withMore).not.toBe(without)
+    expect(navHtml(withMore, "bottom-nav")).toContain("Plus")
+    expect(navHtml(without, "bottom-nav")).not.toContain("Plus")
+  })
+
+  it("mobileTop : libellé d'espace et cible de l'avatar surchargés, repli sur space et profileHref", () => {
+    const html = render({ nav: { ...CLIENT_NAV, mobileTop: { space: "Libellé mobile", profileHref: "/autre/profil" } } })
+    expect(html).toContain('<span class="mtop2__space">Libellé mobile</span>')
+    expect(html).toMatch(/class="av2 av2--sm" aria-label="Mon profil" href="\/autre\/profil"/)
+    const partial = render({ nav: { ...CLIENT_NAV, mobileTop: { space: "Libellé mobile" } } })
+    expect(partial).toMatch(/class="av2 av2--sm" aria-label="Mon profil" href="\/client\/profile"/)
+  })
+
+  it("top-bar et mobile-top ne figent aucun texte vouvoyé", async () => {
+    const { readFileSync } = await import("node:fs")
+    for (const file of ["top-bar.jsx", "mobile-top.jsx", "app-shell.jsx"]) {
+      const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8")
+      expect(source).not.toMatch(/\b(?:vous|votre|vos|veuillez)\b/i)
+    }
   })
 })
 

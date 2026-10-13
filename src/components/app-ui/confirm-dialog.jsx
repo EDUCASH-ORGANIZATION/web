@@ -5,14 +5,15 @@ import { Icon } from "@/components/design/icon"
 import { Modal } from "./modal"
 import { confirmStepView } from "./interactive-logic"
 
-const FALLBACK_ERROR = "Une erreur est survenue. Veuillez réessayer."
+export const FALLBACK_ERROR = "Une erreur est survenue. Veuillez réessayer."
 
 /**
  * Dernière étape, une seule fois à la fois : le verrou `guard` (`{ current }`, un useRef) est posé de façon
  * synchrone, donc un second clic avant le rendu suivant est ignoré. Libéré après une erreur (nouvelle tentative).
+ * `fallbackError` : message d'une exception inattendue (défaut : texte de l'espace client).
  * Renvoie { skipped } | { error } | { done }.
  */
-export async function confirmOnce(guard, onConfirm) {
+export async function confirmOnce(guard, onConfirm, fallbackError = FALLBACK_ERROR) {
   if (guard.current) return { skipped: true }
   guard.current = true
   try {
@@ -25,7 +26,7 @@ export async function confirmOnce(guard, onConfirm) {
     return { done: true }
   } catch {
     guard.current = false
-    return { error: FALLBACK_ERROR }
+    return { error: fallbackError }
   }
 }
 
@@ -78,7 +79,7 @@ export function ConfirmDialogView({ steps, step, pending, error, tone, cancelLab
   )
 }
 
-function ConfirmDialogOpen({ onClose, onConfirm, steps, tone, cancelLabel }) {
+function ConfirmDialogOpen({ onClose, onConfirm, steps, tone, cancelLabel, fallbackError }) {
   const [step, setStep] = useState(0)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState(null)
@@ -102,7 +103,7 @@ function ConfirmDialogOpen({ onClose, onConfirm, steps, tone, cancelLabel }) {
     if (sending.current) return
     setPending(true)
     setError(null)
-    const outcome = await confirmOnce(sending, onConfirm)
+    const outcome = await confirmOnce(sending, onConfirm, fallbackError)
     if (outcome.skipped) return
     setPending(false)
     if (outcome.error) {
@@ -131,9 +132,19 @@ function ConfirmDialogOpen({ onClose, onConfirm, steps, tone, cancelLabel }) {
 
 // Confirmation en 1 ou 2 étapes. `steps` : [{ title, description, confirmLabel }] (1 ou 2 entrées).
 // Le rouge plein n'apparaît qu'en tone="danger", à la dernière étape. Une erreur reste affichée sans fermer.
-export function ConfirmDialog({ open, onClose, onConfirm, steps, tone = "default", cancelLabel = "Annuler" }) {
+// `fallbackError` remplace le message d'une exception inattendue (défaut : texte de l'espace client).
+export function ConfirmDialog({ open, onClose, onConfirm, steps, tone = "default", cancelLabel = "Annuler", fallbackError = FALLBACK_ERROR }) {
   if (!open) return null
-  return <ConfirmDialogOpen onClose={onClose} onConfirm={onConfirm} steps={steps} tone={tone} cancelLabel={cancelLabel} />
+  return (
+    <ConfirmDialogOpen
+      onClose={onClose}
+      onConfirm={onConfirm}
+      steps={steps}
+      tone={tone}
+      cancelLabel={cancelLabel}
+      fallbackError={fallbackError}
+    />
+  )
 }
 
 export default ConfirmDialog

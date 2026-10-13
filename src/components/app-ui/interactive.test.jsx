@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
 import { Modal } from "./modal"
 import { Drawer } from "./drawer"
-import { ConfirmDialog, ConfirmDialogView, confirmOnce, isWithinSettle, STEP_SETTLE_MS } from "./confirm-dialog"
+import { ConfirmDialog, ConfirmDialogView, FALLBACK_ERROR, confirmOnce, isWithinSettle, STEP_SETTLE_MS } from "./confirm-dialog"
 import { ToastProvider, ToastViewport } from "./toast"
 import { TabsNav } from "./tabs-nav"
 import { ChipFilter } from "./chip-filter"
@@ -92,6 +92,36 @@ describe("ConfirmDialog", () => {
     expect(html).toContain('role="alert"')
     expect(html).toContain("Solde insuffisant.")
     expect(html).toContain('role="dialog"')
+  })
+})
+
+describe("ConfirmDialog : rendu d'avant et message de repli surchargeable", () => {
+  it("ConfirmDialogView sans nouvelle prop : égal au rendu d'avant (empreinte SHA-256, sprite normalisé)", async () => {
+    const { createHash } = await import("node:crypto")
+    const one = [{ title: "Titre", description: "Desc", confirmLabel: "Oui" }]
+    const out = renderToStaticMarkup(
+      <ConfirmDialogView steps={one} step={0} pending={false} error="Oups" tone="default" cancelLabel="Annuler" onCancel={noop} onConfirm={noop} />,
+    )
+    const digest = createHash("sha256").update(out.replace(/\?v=[0-9a-f]+/g, "?v=V")).digest("hex")
+    expect(digest).toBe("a2f76f7c2db958cd74e7bb1b3a8efa5647124b258e638349b259bfa15a1ab2df")
+  })
+
+  it("le message de repli par défaut est celui d'avant", () => {
+    expect(FALLBACK_ERROR).toBe("Une erreur est survenue. Veuillez réessayer.")
+  })
+
+  it("fallbackError remplace le message d'une exception inattendue, le défaut reste sinon", async () => {
+    const boom = async () => { throw new Error("x") }
+    expect(await confirmOnce({ current: false }, boom)).toEqual({ error: FALLBACK_ERROR })
+    expect(await confirmOnce({ current: false }, boom, "Message neutre")).toEqual({ error: "Message neutre" })
+    expect(await confirmOnce({ current: false }, async () => ({ error: "refus" }), "Message neutre")).toEqual({ error: "refus" })
+  })
+
+  it("ConfirmDialog accepte fallbackError sans changer son rendu ouvert", () => {
+    const one = [{ title: "Titre", description: "Desc", confirmLabel: "Oui" }]
+    const a = renderToStaticMarkup(<ConfirmDialog open onClose={noop} onConfirm={noop} steps={one} />)
+    const b = renderToStaticMarkup(<ConfirmDialog open onClose={noop} onConfirm={noop} steps={one} fallbackError="Message neutre" />)
+    expect(b).toBe(a)
   })
 })
 

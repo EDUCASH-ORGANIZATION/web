@@ -12,14 +12,16 @@ vi.mock("./modal", () => ({ useIsCompact: () => false }))
 const { ToastProvider } = await import("./toast")
 const { OfflineBanner, subscribeOnline, reconnectTransition } = await import("./offline-banner")
 
-function render(onLine) {
+function render(onLine, props = {}) {
   vi.stubGlobal("navigator", { onLine })
   return renderToStaticMarkup(
     <ToastProvider>
-      <OfflineBanner />
+      <OfflineBanner {...props} />
     </ToastProvider>,
   )
 }
+
+const noVersion = (html) => html.replace(/\?v=[0-9a-f]+/g, "?v=V")
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -39,6 +41,31 @@ describe("OfflineBanner sous ToastProvider", () => {
     const text = html.replace(/<[^>]+>/g, " ")
     expect(text).toMatch(/\bVous\b/)
     expect(text).not.toMatch(/(?<![\p{L}-])(?:tu|ton|ta|tes|te|toi)(?![\p{L}])/iu)
+  })
+})
+
+describe("OfflineBanner : défauts inchangés et surcharge", () => {
+  // Rendu consigné avant la paramétrisation (version du sprite normalisée).
+  const BEFORE = "<div class=\"banner banner--encre banner--page\" role=\"status\"><svg class=\"ic\" aria-hidden=\"true\" focusable=\"false\"><use href=\"/sprite.svg?v=V#i-wifi-off\"></use></svg><div class=\"banner__body\"><div class=\"banner__title\">Vous êtes hors connexion</div>Vos actions seront de nouveau disponibles dès le retour du réseau.</div></div><div class=\"toasts ds-toasts-fixed toasts--bureau\"><div class=\"ds-toasts__zone\" role=\"status\" aria-live=\"polite\"></div><div class=\"ds-toasts__zone\" role=\"alert\" aria-live=\"assertive\"></div></div>"
+
+  it("rendu hors ligne sans props : égal au rendu d'avant la paramétrisation", () => {
+    expect(noVersion(render(false))).toBe(BEFORE)
+  })
+
+  it("les textes sont remplacés par les props et les défauts disparaissent", () => {
+    const html = render(false, { title: "Titre neutre", text: "Texte neutre." })
+    expect(html).toContain('<div class="banner__title">Titre neutre</div>Texte neutre.')
+    expect(html).not.toContain("Vous êtes hors connexion")
+    expect(html).not.toContain("Vos actions")
+  })
+
+  it("le texte de reconnexion par défaut est celui d'avant, surchargeable par prop", async () => {
+    const mod = await import("./offline-banner")
+    expect(mod.RECONNECTED_TEXT).toBe("Connexion rétablie")
+    expect(mod.OFFLINE_TITLE).toBe("Vous êtes hors connexion")
+    const source = (await import("node:fs")).readFileSync(new URL("./offline-banner.jsx", import.meta.url), "utf8")
+    expect(source).toContain("success(reconnectedText)")
+    expect(source).toContain("reconnectedText = RECONNECTED_TEXT")
   })
 })
 
@@ -77,7 +104,8 @@ describe("reconnectTransition et toast de reconnexion", () => {
 
   it("le texte du toast est « Connexion rétablie » et l'instantané serveur est en ligne", async () => {
     const source = (await import("node:fs")).readFileSync(new URL("./offline-banner.jsx", import.meta.url), "utf8")
-    expect(source).toContain('success("Connexion rétablie")')
+    expect(source).toContain('RECONNECTED_TEXT = "Connexion rétablie"')
+    expect(source).toContain("success(reconnectedText)")
     expect(source).toMatch(/useSyncExternalStore\(subscribeOnline, \(\) => navigator\.onLine, \(\) => true\)/)
   })
 })
