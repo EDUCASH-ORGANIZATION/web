@@ -94,8 +94,8 @@ describe("helpers", () => {
     expect(remainingSessionDelay(0)).toBe(30_000)
     expect(remainingSessionDelay(40_000)).toBe(0)
   })
-  it("uses tu for students, vous for clients, no em dash", () => {
-    expect(installCopy("student").native).toContain("tes missions")
+  it("uses vous for students and clients, no em dash", () => {
+    expect(installCopy("student").native).toContain("vos missions")
     expect(installCopy("client").native).toContain("vos missions")
     expect(installCopy("public")).toBeNull()
     expect(JSON.stringify([installCopy("student"), installCopy("client")])).not.toMatch(/[\u2014\u2013]/)

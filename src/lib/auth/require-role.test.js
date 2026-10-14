@@ -101,16 +101,16 @@ describe("requireRole : registre des messages selon le rôle exigé", () => {
     expect((await requireRole(["client"])).error).toBe("Vous devez être connecté pour effectuer cette action.")
   })
 
-  it("garde le tutoiement pour étudiant, admin et rôles multiples", async () => {
+  it("vouvoie tous les rôles : étudiant, admin et rôles multiples", async () => {
     getServerRole.mockResolvedValue({ role: "client", profile: { role: "client", is_suspended: false } })
     for (const roles of [["student"], ["admin"], ["student", "admin"]]) {
-      expect((await requireRole(roles)).error).toBe("Tu n'as pas les droits pour effectuer cette action.")
+      expect((await requireRole(roles)).error).toBe("Vous n'avez pas les droits pour effectuer cette action.")
     }
     getServerRole.mockResolvedValue({ role: "student", profile: { role: "student", is_suspended: false } })
-    expect((await requireRole(["client", "admin"])).error).toBe("Tu n'as pas les droits pour effectuer cette action.")
+    expect((await requireRole(["client", "admin"])).error).toBe("Vous n'avez pas les droits pour effectuer cette action.")
     createClient.mockResolvedValue(supabaseUser(null))
-    expect((await requireRole(["student"])).error).toBe("Tu dois être connecté pour effectuer cette action.")
-    expect((await requireRole(["client", "admin"])).error).toBe("Tu dois être connecté pour effectuer cette action.")
-    expect((await requireUser()).error).toBe("Tu dois être connecté pour effectuer cette action.")
+    expect((await requireRole(["student"])).error).toBe("Vous devez être connecté pour effectuer cette action.")
+    expect((await requireRole(["client", "admin"])).error).toBe("Vous devez être connecté pour effectuer cette action.")
+    expect((await requireUser()).error).toBe("Vous devez être connecté pour effectuer cette action.")
   })
 })

@@ -1,13 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { getServerRole } from "@/lib/auth/server-role"
 
-const ERR_AUTH = "Tu dois être connecté pour effectuer cette action."
-const ERR_FORBIDDEN = "Tu n'as pas les droits pour effectuer cette action."
-const ERR_AUTH_CLIENT = "Vous devez être connecté pour effectuer cette action."
-const ERR_FORBIDDEN_CLIENT = "Vous n'avez pas les droits pour effectuer cette action."
-
-// L'espace client est vouvoyé : un rôle exigé exactement ["client"] donne des messages vouvoyés.
-const isClientOnly = (roles) => Array.isArray(roles) && roles.length === 1 && roles[0] === "client"
+// Un seul registre, vouvoyé, pour tous les rôles.
+const ERR_AUTH = "Vous devez être connecté pour effectuer cette action."
+const ERR_FORBIDDEN = "Vous n'avez pas les droits pour effectuer cette action."
 
 /**
  * Exige un utilisateur connecté (jeton vérifié par `getUser()`).
@@ -29,9 +25,8 @@ export async function requireUser(errorMessage = ERR_AUTH) {
  * @returns {Promise<{ supabase: any, user: any, role: string, profile: object, error?: undefined } | { error: string }>}
  */
 export async function requireRole(roles) {
-  const clientOnly = isClientOnly(roles)
-  const errForbidden = clientOnly ? ERR_FORBIDDEN_CLIENT : ERR_FORBIDDEN
-  const auth = await requireUser(clientOnly ? ERR_AUTH_CLIENT : ERR_AUTH)
+  const errForbidden = ERR_FORBIDDEN
+  const auth = await requireUser(ERR_AUTH)
   if (auth.error) return { error: auth.error }
 
   const { supabase, user } = auth

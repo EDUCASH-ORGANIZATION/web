@@ -15,24 +15,17 @@ export const EMPTY_INSTALL_STATE = {
   installed: false,
 }
 
-const COPY = {
-  student: {
-    title: "Installe EduCash",
-    native: "Retrouve tes missions depuis ton écran d'accueil.",
-    ios: "Ajoute EduCash à ton écran d'accueil : touche Partager, puis « Sur l'écran d'accueil ».",
-    install: "Installer",
-    later: "Plus tard",
-    close: "Fermer et ne plus afficher",
-  },
-  client: {
-    title: "Installez EduCash",
-    native: "Retrouvez vos missions depuis votre écran d'accueil.",
-    ios: "Ajoutez EduCash à votre écran d'accueil : touchez Partager, puis « Sur l'écran d'accueil ».",
-    install: "Installer",
-    later: "Plus tard",
-    close: "Fermer et ne plus afficher",
-  },
+// Un seul registre, vouvoyé, pour l'étudiant comme pour le client.
+const COPY_VOUS = {
+  title: "Installez EduCash",
+  native: "Retrouvez vos missions depuis votre écran d'accueil.",
+  ios: "Ajoutez EduCash à votre écran d'accueil : touchez Partager, puis « Sur l'écran d'accueil ».",
+  install: "Installer",
+  later: "Plus tard",
+  close: "Fermer et ne plus afficher",
 }
+
+const COPY = { student: COPY_VOUS, client: COPY_VOUS }
 
 export function installCopy(space) {
   return COPY[space] ?? null
