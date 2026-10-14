@@ -11,19 +11,33 @@ const redirect = vi.fn((to) => {
 })
 const subscriptions = vi.fn()
 
+// Le compteur de non lus lit les missions liées (candidature) puis les messages de leurs clients : `state.unread`
+// messages non lus d'un client lié sur une mission où l'étudiant a postulé.
+const LINKED = {
+  applications: [{ mission_id: "m1" }],
+  missions: [{ id: "m1", client_id: "c1" }],
+}
+
 function makeSupabase() {
-  const chain = {
-    select: () => chain,
-    eq: () => chain,
-    maybeSingle: async () => ({
-      data: state.role
-        ? { role: state.role, full_name: "Awa Dossou", city: "Cotonou", is_suspended: state.suspended }
-        : null,
-      error: null,
-    }),
-    then: (resolve) => resolve({ data: null, count: state.unread, error: null }),
+  const from = (table) => {
+    const rows = () =>
+      table === "messages" ? Array.from({ length: state.unread }, () => ({ sender_id: "c1", mission_id: "m1" })) : (LINKED[table] ?? [])
+    const chain = {
+      select: () => chain,
+      eq: () => chain,
+      in: () => chain,
+      limit: () => chain,
+      maybeSingle: async () => ({
+        data: state.role
+          ? { role: state.role, full_name: "Awa Dossou", city: "Cotonou", is_suspended: state.suspended }
+          : null,
+        error: null,
+      }),
+      then: (resolve) => resolve({ data: rows(), error: null }),
+    }
+    return chain
   }
-  return { auth: { getUser: async () => ({ data: { user: state.user }, error: null }) }, from: () => chain }
+  return { auth: { getUser: async () => ({ data: { user: state.user }, error: null }) }, from }
 }
 
 vi.mock("next/navigation", () => ({

@@ -2,17 +2,30 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 let user
 let profileResult
-let messagesResult
-const messageFilters = []
+let tables
+const log = []
 
+const DEFAULT_TABLES = () => ({
+  applications: { data: [], error: null },
+  missions: { data: [], error: null },
+  messages: { data: [], error: null },
+})
+
+// Faux client : `profiles` répond à maybeSingle ; les autres tables se résolvent avec `tables[nom]`, la réponse d'une
+// fonction recevant les filtres posés. Chaque requête est consignée (table, filtres eq / in, limite).
 function table(name) {
-  const result = () => (name === "profiles" ? profileResult : messagesResult)
+  const q = { table: name, eq: [], in: [], limit: null }
+  if (name !== "profiles") log.push(q)
+  const result = () => {
+    if (name === "profiles") return profileResult
+    const r = tables[name]
+    return typeof r === "function" ? r(q) : r
+  }
   const b = {
     select: () => b,
-    eq: (...args) => {
-      if (name === "messages") messageFilters.push(args)
-      return b
-    },
+    eq: (c, v) => { q.eq.push([c, v]); return b },
+    in: (c, v) => { q.in.push([c, v]); return b },
+    limit: (n) => { q.limit = n; return b },
     maybeSingle: () => Promise.resolve(result()),
     then: (res, rej) => Promise.resolve(result()).then(res, rej),
   }
@@ -36,16 +49,18 @@ beforeEach(() => {
   supabase.auth.getUser = defaultGetUser
   user = { id: "student-1", user_metadata: { role: "student" } }
   profileResult = { data: { ...STUDENT_PROFILE }, error: null }
-  messagesResult = { count: 3, error: null }
-  messageFilters.length = 0
+  tables = DEFAULT_TABLES()
+  log.length = 0
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
 
 describe("getStudentShellData", () => {
-  it("renvoie l'identité d'affichage et le nombre de messages non lus de l'étudiant connecté", async () => {
+  it("renvoie l'identité d'affichage et le nombre de messages non lus de ses clients", async () => {
+    tables.applications = { data: [{ mission_id: "m1" }], error: null }
+    tables.missions = { data: [{ id: "m1", client_id: "client-1" }], error: null }
+    tables.messages = { data: [{ sender_id: "client-1", mission_id: "m1" }, { sender_id: "client-1", mission_id: "m1" }], error: null }
     const res = await getStudentShellData()
-    expect(res).toEqual({ shell: { userId: "student-1", fullName: "Awa Dossou", unreadCount: 3 } })
-    expect(messageFilters).toEqual([["receiver_id", "student-1"], ["read", false]])
+    expect(res).toEqual({ shell: { userId: "student-1", fullName: "Awa Dossou", unreadCount: 2 } })
   })
 
   it("ne renvoie que des champs publics", async () => {
@@ -88,8 +103,23 @@ describe("getStudentShellData", () => {
     expect(await getStudentShellData()).toMatchObject({ error: expect.any(String), redirectTo: "/auth/login" })
   })
 
-  it("garde la coquille quand le compteur est illisible", async () => {
-    messagesResult = { count: null, error: { message: "boom" } }
+  it("garde la coquille quand le compteur est illisible, à chaque étape de la lecture", async () => {
+    const fail = { data: null, error: { message: "boom" } }
+    for (const failing of ["applications", "missions", "messages"]) {
+      tables = DEFAULT_TABLES()
+      tables.applications = { data: [{ mission_id: "m1" }], error: null }
+      tables.missions = { data: [{ id: "m1", client_id: "client-1" }], error: null }
+      tables.messages = { data: [{ sender_id: "client-1", mission_id: "m1" }], error: null }
+      tables[failing] = fail
+      const { shell } = await getStudentShellData()
+      expect(shell.unreadCount, failing).toBe(0)
+    }
+  })
+
+  it("garde la coquille quand une lecture lève une exception", async () => {
+    tables.applications = () => {
+      throw new Error("réseau")
+    }
     const { shell } = await getStudentShellData()
     expect(shell.unreadCount).toBe(0)
   })
@@ -114,5 +144,86 @@ describe("getStudentShellData", () => {
     }
     const res = await getStudentShellData()
     expect(res).toEqual({ error: "Impossible de charger votre espace.", redirectTo: "/" })
+  })
+})
+
+describe("getStudentShellData : le compteur ne compte que les clients liés", () => {
+  const MISSION_A = "mission-a"
+  const MISSION_B = "mission-b"
+  const CLIENT_A = "client-a"
+  const CLIENT_B = "client-b"
+  const STRANGER = "stranger"
+
+  // Candidature à MISSION_A (client CLIENT_A), retenu sur MISSION_B (client CLIENT_B).
+  function link() {
+    tables.applications = { data: [{ mission_id: MISSION_A }], error: null }
+    tables.missions = (q) =>
+      q.in.some(([c]) => c === "id")
+        ? { data: [{ id: MISSION_A, client_id: CLIENT_A }], error: null }
+        : { data: [{ id: MISSION_B, client_id: CLIENT_B }], error: null }
+  }
+
+  const messageFilters = () => log.filter((q) => q.table === "messages")
+
+  it("un compte sans lien n'augmente pas le compteur, même avec des messages non lus bien adressés", async () => {
+    link()
+    // La base renvoie ce que le filtre laisse passer : ici même un faux positif de la requête est écarté.
+    tables.messages = { data: [{ sender_id: STRANGER, mission_id: MISSION_A }, { sender_id: STRANGER, mission_id: "inconnue" }], error: null }
+    expect((await getStudentShellData()).shell.unreadCount).toBe(0)
+  })
+
+  it("un client lié (candidature) compte", async () => {
+    link()
+    tables.messages = { data: [{ sender_id: CLIENT_A, mission_id: MISSION_A }], error: null }
+    expect((await getStudentShellData()).shell.unreadCount).toBe(1)
+  })
+
+  it("un client d'une mission où l'étudiant est retenu compte, sur deux missions", async () => {
+    link()
+    tables.messages = {
+      data: [
+        { sender_id: CLIENT_A, mission_id: MISSION_A },
+        { sender_id: CLIENT_B, mission_id: MISSION_B },
+        { sender_id: CLIENT_B, mission_id: MISSION_B },
+        { sender_id: STRANGER, mission_id: MISSION_B },
+      ],
+      error: null,
+    }
+    expect((await getStudentShellData()).shell.unreadCount).toBe(3)
+  })
+
+  it("un client lié qui écrit sur la mission d'un autre client ne compte pas (couple exact)", async () => {
+    link()
+    tables.messages = { data: [{ sender_id: CLIENT_A, mission_id: MISSION_B }, { sender_id: CLIENT_B, mission_id: MISSION_A }], error: null }
+    expect((await getStudentShellData()).shell.unreadCount).toBe(0)
+  })
+
+  it("la requête de messages est bornée à l'étudiant, non lus, clients et missions liés, avec plafond", async () => {
+    link()
+    await getStudentShellData()
+    const [q] = messageFilters()
+    expect(q.eq).toEqual([["receiver_id", "student-1"], ["read", false]])
+    expect(q.in.map(([c]) => c)).toEqual(["sender_id", "mission_id"])
+    expect([...q.in[0][1]].sort()).toEqual([CLIENT_A, CLIENT_B])
+    expect([...q.in[1][1]].sort()).toEqual([MISSION_A, MISSION_B])
+    expect(q.limit).toBe(500)
+    for (const t of ["applications", "missions"]) {
+      for (const query of log.filter((l) => l.table === t)) expect(query.limit).toBe(200)
+    }
+    expect(log.find((l) => l.table === "applications").eq).toEqual([["student_id", "student-1"]])
+    expect(log.find((l) => l.table === "missions" && l.eq.length).eq).toEqual([["selected_student_id", "student-1"]])
+  })
+
+  it("sans mission liée, aucune lecture de messages", async () => {
+    expect((await getStudentShellData()).shell.unreadCount).toBe(0)
+    expect(messageFilters()).toHaveLength(0)
+  })
+
+  it("une mission retenue ET candidatée n'est lue qu'une fois", async () => {
+    tables.applications = { data: [{ mission_id: MISSION_B }], error: null }
+    tables.missions = { data: [{ id: MISSION_B, client_id: CLIENT_B }], error: null }
+    tables.messages = { data: [{ sender_id: CLIENT_B, mission_id: MISSION_B }], error: null }
+    expect((await getStudentShellData()).shell.unreadCount).toBe(1)
+    expect(log.filter((q) => q.table === "missions")).toHaveLength(1)
   })
 })

@@ -25,8 +25,14 @@ vi.mock("@/lib/supabase/server", () => ({
       if (table === "profiles") {
         return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: state.profile, error: state.profileError }) }) }) }
       }
-      if (table === "messages") {
-        const chain = { select: () => chain, eq: () => chain, then: (ok, ko) => Promise.resolve({ count: state.count, error: state.countError }).then(ok, ko) }
+      if (table === "applications" || table === "missions" || table === "messages") {
+        // Candidature à m1 (client c1) ; `state.count` messages non lus de c1 sur m1.
+        const data = {
+          applications: [{ mission_id: "m1" }],
+          missions: [{ id: "m1", client_id: "c1" }],
+          messages: Array.from({ length: state.count }, () => ({ sender_id: "c1", mission_id: "m1" })),
+        }[table]
+        const chain = { select: () => chain, eq: () => chain, in: () => chain, limit: () => chain, then: (ok, ko) => Promise.resolve({ data, error: state.countError }).then(ok, ko) }
         return chain
       }
       throw new Error(`table inattendue : ${table}`)
@@ -88,10 +94,10 @@ describe("matrice d'autorisation du layout étudiant", () => {
     expect(rendered).not.toHaveBeenCalled()
   })
 
-  it("étudiant actif : rend les enfants et ne lit que profiles puis messages", async () => {
+  it("étudiant actif : rend les enfants et ne lit que profiles, candidatures, missions et messages", async () => {
     const r = await run()
     expect(r.html).toContain("contenu-secret")
-    expect(new Set(reads)).toEqual(new Set(["profiles", "messages"]))
+    expect(new Set(reads)).toEqual(new Set(["profiles", "applications", "missions", "messages"]))
   })
 
   it("compteur de messages en erreur : la coquille s'affiche quand même, pastille à 0", async () => {
