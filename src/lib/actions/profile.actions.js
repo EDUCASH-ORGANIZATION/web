@@ -314,17 +314,9 @@ export async function saveStudentCardUrl(cardUrl) {
     const cardPath = toOwnedStoragePath(cardUrl, "student-cards", user.id)
     if (!cardPath) return { error: ERR_CARD }
 
-    const { error: updateError } = await supabase
-      .from("student_profiles")
-      .upsert({ user_id: user.id, card_url: cardPath }, { onConflict: "user_id" })
-
-    if (updateError) {
-      console.error("[saveStudentCardUrl]", updateError.message)
-      return { error: "Impossible d'enregistrer votre carte étudiante." }
-    }
-
-    // Une nouvelle carte repasse en attente de vérification (comme updateStudentProfileWithCard) : liste blanche
-    // de colonnes, jamais role, is_suspended ni verified_until.
+    // Le profil repasse en attente AVANT l'écriture de la carte : si la seconde écriture échoue, l'état restant
+    // est sûr (badge perdu, ancienne carte), jamais une nouvelle carte sous un badge « vérifié » conservé.
+    // Liste blanche de colonnes : jamais role, is_suspended ni verified_until.
     const { error: resetError } = await supabase
       .from("profiles")
       .update({
@@ -336,6 +328,15 @@ export async function saveStudentCardUrl(cardUrl) {
 
     if (resetError) {
       console.error("[saveStudentCardUrl]", resetError.message)
+      return { error: "Impossible d'enregistrer votre carte étudiante." }
+    }
+
+    const { error: updateError } = await supabase
+      .from("student_profiles")
+      .upsert({ user_id: user.id, card_url: cardPath }, { onConflict: "user_id" })
+
+    if (updateError) {
+      console.error("[saveStudentCardUrl]", updateError.message)
       return { error: "Impossible d'enregistrer votre carte étudiante." }
     }
 

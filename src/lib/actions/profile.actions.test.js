@@ -250,6 +250,38 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     expect(after.rejection_reason).toBeNull()
   })
 
+  it("saveStudentCardUrl : la remise en attente passe AVANT l'écriture de la carte", async () => {
+    const order = []
+    const supabase = {
+      from: (table) => ({
+        update: () => ({ eq: () => { order.push(`update:${table}`); return Promise.resolve({ error: null }) } }),
+        upsert: () => { order.push(`upsert:${table}`); return Promise.resolve({ error: null }) },
+      }),
+    }
+    asRole(supabase)
+    expect(await saveStudentCardUrl("u1/card.jpg")).toEqual({ success: true })
+    expect(order).toEqual(["update:profiles", "upsert:student_profiles"])
+  })
+
+  it("saveStudentCardUrl : remise en attente en échec, la carte n'est jamais écrite (état sûr)", async () => {
+    const captured = {}
+    asRole(session({ failOn: "profiles", captured }))
+    const res = await saveStudentCardUrl("u1/card.jpg")
+    expect(res).toEqual({ error: "Impossible d'enregistrer votre carte étudiante." })
+    expect(captured).not.toHaveProperty("student_profiles")
+    expect(console.error).toHaveBeenCalledWith("[saveStudentCardUrl]", LEAK)
+  })
+
+  it("saveStudentCardUrl : écriture de la carte en échec après la remise en attente, erreur neutre vouvoyée", async () => {
+    const captured = {}
+    asRole(session({ failOn: "student_profiles", captured }))
+    const res = await saveStudentCardUrl("u1/card.jpg")
+    expect(res).toEqual({ error: "Impossible d'enregistrer votre carte étudiante." })
+    expect(res.error).not.toContain(LEAK)
+    // Le badge a déjà été retiré : le profil n'est jamais « vérifié » avec une carte non contrôlée.
+    expect(captured.profiles).toMatchObject({ is_verified: false, rejection_reason: null })
+  })
+
   it("saveStudentCardUrl : un chemin refusé n'écrit rien, ni carte ni remise en attente", async () => {
     const captured = {}
     asRole(session({ captured }))
