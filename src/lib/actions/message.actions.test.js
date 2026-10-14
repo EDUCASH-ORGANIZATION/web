@@ -641,7 +641,7 @@ describe("espace étudiant", () => {
   const studentInserts = () => log.filter((q) => q.op === "insert")
   const sendS = (over) => sendStudentMessage({ missionId: MA, type: "text", content: "Bonjour Marc", ...over })
   const unavailableS = { error: "Cette conversation n'est pas disponible." }
-  const invalidS = { error: "Ton message n'est pas valide. Vérifie son contenu et sa longueur." }
+  const invalidS = { error: "Votre message n'est pas valide. Vérifiez son contenu et sa longueur." }
 
   describe("garde de rôle", () => {
     const calls = {
@@ -653,10 +653,10 @@ describe("espace étudiant", () => {
 
     for (const [name, call] of Object.entries(calls)) {
       it(`${name} exige le rôle étudiant et ne touche à aucune table quand l'accès est refusé`, async () => {
-        requireRole.mockResolvedValueOnce({ error: "Tu n'as pas les droits pour effectuer cette action." })
+        requireRole.mockResolvedValueOnce({ error: "Vous n'avez pas les droits pour effectuer cette action." })
         const result = await call()
         expect(requireRole).toHaveBeenCalledWith(["student"])
-        expect(result).toEqual({ error: "Tu n'as pas les droits pour effectuer cette action." })
+        expect(result).toEqual({ error: "Vous n'avez pas les droits pour effectuer cette action." })
         expect(log).toEqual([])
       })
 
@@ -680,15 +680,17 @@ describe("espace étudiant", () => {
       expect(new Set(withMarc.map((c) => c.key)).size).toBe(2)
       const a = withMarc.find((c) => c.missionId === MA)
       const b = withMarc.find((c) => c.missionId === MB)
-      expect(a.preview).toBe("Toi : Ma réponse")
+      expect(a.preview).toBe("Vous : Ma réponse")
       expect(a.unreadCount).toBe(1)
       expect(b.preview).toBe("Deuxième sur MB")
       expect(b.unreadCount).toBe(2)
     })
 
-    it("tutoie l'aperçu d'un message envoyé et ne contient jamais « Vous »", async () => {
+    it("vouvoie l'aperçu d'un message envoyé (« Vous : »)", async () => {
       const { conversations } = await getStudentConversations()
-      expect(JSON.stringify(conversations)).not.toContain("Vous")
+      const a = conversations.find((c) => c.missionId === MA)
+      expect(a.preview).toBe("Vous : Ma réponse")
+      expect(JSON.stringify(conversations)).not.toContain("Toi :")
     })
 
     it("ignore les messages d'un compte sans candidature ni lien légitime", async () => {
@@ -739,13 +741,13 @@ describe("espace étudiant", () => {
       expect(await getStudentConversations()).toEqual({ conversations: [] })
     })
 
-    it("renvoie une erreur neutre tutoyée quand la lecture échoue, sans texte SQL", async () => {
+    it("renvoie une erreur neutre vouvoyée quand la lecture échoue, sans texte SQL", async () => {
       failures["messages.select"] = 'relation "messages" does not exist'
       const result = await getStudentConversations()
-      expect(result).toEqual({ error: "Impossible de charger tes messages. Réessaie dans un instant." })
+      expect(result).toEqual({ error: "Impossible de charger vos messages. Veuillez réessayer." })
       failures["messages.select"] = undefined
       failures["applications.select"] = "boom sql"
-      expect(await getStudentConversations()).toEqual({ error: "Impossible de charger tes messages. Réessaie dans un instant." })
+      expect(await getStudentConversations()).toEqual({ error: "Impossible de charger vos messages. Veuillez réessayer." })
     })
   })
 
@@ -819,7 +821,7 @@ describe("espace étudiant", () => {
       expect(reads("profiles")[0].columns).toBe("user_id, full_name, avatar_url")
       failures["messages.select"] = "relation messages"
       expect(await getStudentConversation({ missionId: MA })).toEqual({
-        error: "Impossible de charger tes messages. Réessaie dans un instant.",
+        error: "Impossible de charger vos messages. Veuillez réessayer.",
       })
     })
   })
@@ -901,7 +903,7 @@ describe("espace étudiant", () => {
     it("limite le débit : 20 messages par minute au plus, compté sur l'expéditeur", async () => {
       const recent = new Date(Date.now() - 5000).toISOString()
       db.messages = Array.from({ length: 20 }, (_, i) => row({ id: `r${i}`, mission_id: MA, sender_id: STUDENT, receiver_id: CLIENT, created_at: recent }))
-      expect(await sendS()).toEqual({ error: "Tu envoies des messages trop vite. Patiente un instant avant de réessayer." })
+      expect(await sendS()).toEqual({ error: "Vous envoyez des messages trop vite. Patientez un instant avant de réessayer." })
       expect(studentInserts()).toHaveLength(0)
       const count = reads("messages").find((q) => q.head)
       expect(count.filters).toEqual(expect.arrayContaining([["eq", "sender_id", STUDENT]]))
@@ -909,19 +911,19 @@ describe("espace étudiant", () => {
       expect((await sendS()).success).toBe(true)
     })
 
-    it("renvoie une erreur neutre tutoyée quand l'insertion ou le comptage échoue", async () => {
+    it("renvoie une erreur neutre vouvoyée quand l'insertion ou le comptage échoue", async () => {
       failures["messages.insert"] = "duplicate key value violates unique constraint messages_pkey"
       const result = await sendS()
-      expect(result).toEqual({ error: "Ton message n'a pas pu être envoyé. Réessaie dans un instant." })
+      expect(result).toEqual({ error: "Votre message n'a pas pu être envoyé. Veuillez réessayer." })
       expect(JSON.stringify(result)).not.toContain("duplicate")
       failures["messages.insert"] = undefined
       failures["messages.select"] = "boom"
-      expect(await sendS()).toEqual({ error: "Ton message n'a pas pu être envoyé. Réessaie dans un instant." })
+      expect(await sendS()).toEqual({ error: "Votre message n'a pas pu être envoyé. Veuillez réessayer." })
     })
   })
 
   describe("sendStudentMessage : pièces jointes et position", () => {
-    const refused = { error: "Ce fichier n'est pas accepté. Choisis une image ou un message vocal de 10 Mo au plus." }
+    const refused = { error: "Ce fichier n'est pas accepté. Choisissez une image ou un message vocal de 10 Mo au plus." }
 
     it("accepte une image du dossier de l'expéditeur et reconstruit l'adresse publique côté serveur", async () => {
       const result = await sendS({ type: "image", content: "ignoré", mediaPath: `${STUDENT}/1699-abc.jpg`, mediaUrl: "https://evil.test/x.png" })
@@ -1004,10 +1006,10 @@ describe("espace étudiant", () => {
       expect(unread("s4")).toBe(true)
     })
 
-    it("renvoie une erreur neutre tutoyée quand la mise à jour échoue", async () => {
+    it("renvoie une erreur neutre vouvoyée quand la mise à jour échoue", async () => {
       failures["messages.update"] = "permission denied for table messages"
       const result = await markStudentConversationRead({ missionId: MA })
-      expect(result).toEqual({ error: "Impossible de charger tes messages. Réessaie dans un instant." })
+      expect(result).toEqual({ error: "Impossible de charger vos messages. Veuillez réessayer." })
     })
   })
 })

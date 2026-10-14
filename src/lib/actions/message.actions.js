@@ -367,12 +367,6 @@ export async function markClientConversationRead({ missionId, studentId } = {}) 
 
 // ─── Espace étudiant (E06 boîte de réception, E07 conversation) ───────────────────────────────────────────────
 
-const ERR_STUDENT_LOAD = "Impossible de charger tes messages. Réessaie dans un instant."
-const ERR_STUDENT_SEND = "Ton message n'a pas pu être envoyé. Réessaie dans un instant."
-const ERR_STUDENT_INVALID = "Ton message n'est pas valide. Vérifie son contenu et sa longueur."
-const ERR_STUDENT_MEDIA = "Ce fichier n'est pas accepté. Choisis une image ou un message vocal de 10 Mo au plus."
-const ERR_STUDENT_RATE = "Tu envoies des messages trop vite. Patiente un instant avant de réessayer."
-
 // `client_id` sert à DÉDUIRE l'interlocuteur : il n'est jamais renvoyé tel quel aux vues autrement que comme
 // identifiant public de la paire.
 const STUDENT_MISSION_COLUMNS = "id, title, status, selected_student_id, client_id"
@@ -433,7 +427,7 @@ export async function getStudentConversations() {
   const auth = await requireRole(["student"])
   if (auth.error) return { error: auth.error }
   const { supabase, user } = auth
-  if (!isUuid(user.id)) return { error: ERR_STUDENT_LOAD }
+  if (!isUuid(user.id)) return { error: ERR_LOAD }
 
   const { data: rows, error } = await supabase
     .from("messages")
@@ -443,7 +437,7 @@ export async function getStudentConversations() {
     .limit(INBOX_ROWS_LIMIT)
   if (error) {
     console.error("[getStudentConversations] messages", error.message)
-    return { error: ERR_STUDENT_LOAD }
+    return { error: ERR_LOAD }
   }
 
   const built = buildConversations(rows ?? [], user.id)
@@ -459,7 +453,7 @@ export async function getStudentConversations() {
   ])
   if (missionsRes.error || applicationsRes.error) {
     console.error("[getStudentConversations] lecture", missionsRes.error?.message ?? applicationsRes.error?.message)
-    return { error: ERR_STUDENT_LOAD }
+    return { error: ERR_LOAD }
   }
   const missions = new Map((missionsRes.data ?? []).map((m) => [m.id, toStudentMission(m)]))
   const applications = new Map((applicationsRes.data ?? []).map((a) => [a.mission_id, { status: a.status }]))
@@ -479,14 +473,12 @@ export async function getStudentConversations() {
   const profilesRes = await supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).in("user_id", clientIds)
   if (profilesRes.error) {
     console.error("[getStudentConversations] profils", profilesRes.error.message)
-    return { error: ERR_STUDENT_LOAD }
+    return { error: ERR_LOAD }
   }
   const profiles = new Map((profilesRes.data ?? []).map((p) => [p.user_id, p]))
 
   const conversations = legit.map(({ conv, mission, access }) => {
     const client = toStudent(mission.clientId, profiles.get(mission.clientId))
-    // previewOf préfixe « Vous : » (espace client) : l'aperçu étudiant se tutoie, le préfixe est posé ici.
-    const body = previewOf({ ...conv.last, mine: false })
     return {
       key: conv.key,
       missionId: conv.missionId,
@@ -494,7 +486,7 @@ export async function getStudentConversations() {
       avatarUrl: client.avatarUrl,
       missionTitle: mission.title,
       state: access.state,
-      preview: conv.last.mine ? `Toi : ${body}` : body,
+      preview: previewOf(conv.last),
       lastAt: conv.last.createdAt,
       unreadCount: conv.unreadCount,
     }
@@ -515,7 +507,7 @@ export async function getStudentConversation({ missionId } = {}) {
   const { supabase, user } = auth
 
   const pair = await loadStudentPair(supabase, user.id, missionId)
-  if (pair.status === "error") return { error: ERR_STUDENT_LOAD }
+  if (pair.status === "error") return { error: ERR_LOAD }
   if (pair.status === "forbidden") return { notFound: true }
   const other = pair.clientId
 
@@ -531,7 +523,7 @@ export async function getStudentConversation({ missionId } = {}) {
   ])
   if (messagesRes.error || profileRes.error) {
     console.error("[getStudentConversation] lecture", messagesRes.error?.message ?? profileRes.error?.message)
-    return { error: ERR_STUDENT_LOAD }
+    return { error: ERR_LOAD }
   }
 
   // Seconde barrière : seules les lignes de la paire passent, quoi que renvoie la lecture.
@@ -569,7 +561,7 @@ export async function sendStudentMessage(input) {
   const { supabase, user } = auth
 
   const parsed = studentSendSchema.safeParse(input)
-  if (!parsed.success) return { error: ERR_STUDENT_INVALID }
+  if (!parsed.success) return { error: ERR_INVALID }
   const { missionId, type, content, mediaPath, lat, lng } = parsed.data
 
   let text
@@ -578,23 +570,23 @@ export async function sendStudentMessage(input) {
   let longitude = null
   if (type === "text") {
     text = (content ?? "").trim()
-    if (text === "" || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) return { error: ERR_STUDENT_INVALID }
+    if (text === "" || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) return { error: ERR_INVALID }
   } else if (type === "location") {
-    if (!coordsValid(lat, lng)) return { error: ERR_STUDENT_INVALID }
+    if (!coordsValid(lat, lng)) return { error: ERR_INVALID }
     text = MEDIA_CONTENT.location
     latitude = lat
     longitude = lng
   } else {
     const owned = toOwnedStoragePath(mediaPath, MEDIA_BUCKET, user.id)
-    if (!owned || mediaKindOfPath(owned) !== type) return { error: ERR_STUDENT_MEDIA }
+    if (!owned || mediaKindOfPath(owned) !== type) return { error: ERR_MEDIA }
     const { data: publicData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(owned)
-    if (!publicData?.publicUrl) return { error: ERR_STUDENT_SEND }
+    if (!publicData?.publicUrl) return { error: ERR_SEND }
     mediaUrl = publicData.publicUrl
     text = MEDIA_CONTENT[type]
   }
 
   const pair = await loadStudentPair(supabase, user.id, missionId)
-  if (pair.status === "error") return { error: ERR_STUDENT_SEND }
+  if (pair.status === "error") return { error: ERR_SEND }
   if (pair.status === "forbidden") return { error: ERR_UNAVAILABLE }
   if (!pair.access.canWrite) return { error: ERR_READONLY }
 
@@ -606,9 +598,9 @@ export async function sendStudentMessage(input) {
     .gte("created_at", since)
   if (countError) {
     console.error("[sendStudentMessage] débit", countError.message)
-    return { error: ERR_STUDENT_SEND }
+    return { error: ERR_SEND }
   }
-  if ((count ?? 0) >= SEND_LIMIT) return { error: ERR_STUDENT_RATE }
+  if ((count ?? 0) >= SEND_LIMIT) return { error: ERR_RATE }
 
   const { data: row, error } = await supabase
     .from("messages")
@@ -628,7 +620,7 @@ export async function sendStudentMessage(input) {
   const message = row && !error ? toMessage(row, user.id) : null
   if (!message) {
     if (error) console.error("[sendStudentMessage] insertion", error.message)
-    return { error: ERR_STUDENT_SEND }
+    return { error: ERR_SEND }
   }
   return { success: true, message }
 }
@@ -645,7 +637,7 @@ export async function markStudentConversationRead({ missionId } = {}) {
   const { supabase, user } = auth
 
   const pair = await loadStudentPair(supabase, user.id, missionId)
-  if (pair.status === "error") return { error: ERR_STUDENT_LOAD }
+  if (pair.status === "error") return { error: ERR_LOAD }
   if (pair.status === "forbidden") return { error: ERR_UNAVAILABLE }
 
   const { error } = await supabase
@@ -657,7 +649,7 @@ export async function markStudentConversationRead({ missionId } = {}) {
     .eq("read", false)
   if (error) {
     console.error("[markStudentConversationRead]", error.message)
-    return { error: ERR_STUDENT_LOAD }
+    return { error: ERR_LOAD }
   }
   return { success: true }
 }
