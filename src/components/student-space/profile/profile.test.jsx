@@ -425,6 +425,32 @@ describe("submitStudentProfile", () => {
     expect(save.mock.calls[0][0].avatarUrl).toContain("/avatars/u1/avatar-1.png")
   })
 
+  it("échec de l'enregistrement après l'envoi : l'URL de la photo est rendue, le nouvel essai ne renvoie pas la photo", async () => {
+    const url = "https://proj.supabase.co/storage/v1/object/public/avatars/u1/avatar-1.png"
+    const upload = vi.fn().mockResolvedValue(url)
+    const save = vi.fn().mockResolvedValueOnce({ error: "Impossible d'enregistrer." }).mockResolvedValueOnce({ success: true })
+    const first = await submitStudentProfile({ values, avatarFile: photo }, { upload, save })
+    expect(first).toEqual({ kind: "error", error: "Impossible d'enregistrer.", errors: undefined, uploadedUrl: url })
+    const second = await submitStudentProfile({ values, avatarFile: photo, uploadedUrl: first.uploadedUrl }, { upload, save })
+    expect(second).toEqual({ kind: "done" })
+    expect(upload).toHaveBeenCalledTimes(1)
+    expect(save.mock.calls[1][0].avatarUrl).toBe(url)
+  })
+
+  it("exception à l'enregistrement après l'envoi : l'URL est aussi conservée ; sans photo, aucune URL", async () => {
+    const url = "https://proj.supabase.co/storage/v1/object/public/avatars/u1/avatar-2.png"
+    const res = await submitStudentProfile({ values, avatarFile: photo }, { upload: vi.fn().mockResolvedValue(url), save: vi.fn().mockRejectedValue(new Error("x")) })
+    expect(res.uploadedUrl).toBe(url)
+    const none = await submitStudentProfile({ values, avatarFile: null }, { upload: vi.fn(), save: vi.fn().mockResolvedValue({ error: "non" }) })
+    expect(none).not.toHaveProperty("uploadedUrl")
+  })
+
+  it("une URL conservée est ignorée quand la photo a été retirée", async () => {
+    const save = vi.fn().mockResolvedValue({ success: true })
+    await submitStudentProfile({ values, avatarFile: null, uploadedUrl: "https://x/a.png" }, { upload: vi.fn(), save })
+    expect(save.mock.calls[0][0].avatarUrl).toBeUndefined()
+  })
+
   it("signale l'échec de l'envoi de la photo sans enregistrer le profil", async () => {
     const upload = vi.fn().mockRejectedValue(new Error('bucket "secret"'))
     const save = vi.fn()

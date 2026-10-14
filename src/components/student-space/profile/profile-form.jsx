@@ -93,30 +93,33 @@ export function changedSections(initial, current, hasNewPhoto) {
 /**
  * Valide, envoie la photo si besoin, puis enregistre. Fonction à dépendances injectées (`upload`, `save`) :
  * testable sans réseau. Les champs sont conservés par l'appelant quelle que soit l'issue.
- * @param {{ values: object, avatarFile: File | null }} input
+ * Reprise : si la photo a déjà été envoyée lors d'un essai précédent (`uploadedUrl`), elle n'est pas renvoyée, ce qui
+ * évite une photo orpheline par essai. Toute issue après l'envoi renvoie `uploadedUrl` pour le prochain essai.
+ * @param {{ values: object, avatarFile: File | null, uploadedUrl?: string | null }} input
  * @param {{ upload: (file: File) => Promise<string>, save: (data: object) => Promise<{ error?: string, errors?: object }> }} deps
- * @returns {Promise<{ kind: "invalid", errors: object } | { kind: "error", error: string, errors?: object, photo?: boolean } | { kind: "done" }>}
+ * @returns {Promise<{ kind: "invalid", errors: object } | { kind: "error", error: string, errors?: object, photo?: boolean, uploadedUrl?: string } | { kind: "done" }>}
  */
-export async function submitStudentProfile({ values, avatarFile }, { upload, save }) {
+export async function submitStudentProfile({ values, avatarFile, uploadedUrl = null }, { upload, save }) {
   const payload = toPayload(values)
   const errors = validateStudentProfile(payload)
   if (values.school === OTHER_SCHOOL && !payload.school) errors.school = "Indiquez le nom de votre établissement."
   if (Object.keys(errors).length > 0) return { kind: "invalid", errors }
 
-  let avatarUrl
-  if (avatarFile) {
+  let avatarUrl = avatarFile ? uploadedUrl || undefined : undefined
+  if (avatarFile && !avatarUrl) {
     try {
       avatarUrl = await upload(avatarFile)
     } catch {
       return { kind: "error", error: ERR_AVATAR_UPLOAD, photo: true }
     }
   }
+  const kept = avatarUrl ? { uploadedUrl: avatarUrl } : {}
   try {
     const result = await save({ ...payload, avatarUrl })
-    if (result?.error) return { kind: "error", error: result.error, errors: result.errors }
+    if (result?.error) return { kind: "error", error: result.error, errors: result.errors, ...kept }
     return { kind: "done" }
   } catch {
-    return { kind: "error", error: ERR_UNEXPECTED }
+    return { kind: "error", error: ERR_UNEXPECTED, ...kept }
   }
 }
 
@@ -310,6 +313,8 @@ export function StudentProfileForm({ form }) {
   const [saved, setSaved] = useState(false)
   // Un second clic avant le retour du serveur ne relance jamais l'enregistrement.
   const busy = useRef(false)
+  // Photo déjà téléversée lors d'un essai échoué : réutilisée au prochain essai tant que le fichier ne change pas.
+  const uploaded = useRef(null)
   const uid = useId()
 
   const universityOptions = useMemo(
@@ -356,11 +361,13 @@ export function StudentProfileForm({ form }) {
     const problem = checkAvatarFile(file)
     setPhotoError(problem ?? "")
     if (problem) return
+    uploaded.current = null
     setAvatarFile(file)
     setPreviewUrl(URL.createObjectURL(file))
   }
 
   function clearPhoto() {
+    uploaded.current = null
     setAvatarFile(null)
     setPreviewUrl("")
     setPhotoError("")
@@ -379,7 +386,11 @@ export function StudentProfileForm({ form }) {
     busy.current = true
     setSending(true)
     setFormError("")
-    const result = await submitStudentProfile({ values, avatarFile }, { upload: uploadPhoto, save: saveStudentProfile })
+    const result = await submitStudentProfile(
+      { values, avatarFile, uploadedUrl: uploaded.current },
+      { upload: uploadPhoto, save: saveStudentProfile },
+    )
+    if (result.kind === "error" && result.uploadedUrl) uploaded.current = result.uploadedUrl
     busy.current = false
     setSending(false)
 
