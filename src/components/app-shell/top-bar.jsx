@@ -6,8 +6,11 @@ import { Icon } from "@/components/design/icon"
 import { isSearchShortcut } from "./nav-model"
 
 const MAX_ECHO = 100
+// Choix de l'URL conservés quand on relance une recherche depuis la barre du haut (mêmes noms que le formulaire mobile).
+const KEPT_PARAMS = ["type", "cities", "urgency", "budget", "sort"]
+const MAX_KEPT_VALUE = 200
 
-function SearchField({ search, inputRef, defaultValue }) {
+function SearchField({ search, inputRef, defaultValue, echo = false }) {
   return (
     <input
       key={defaultValue}
@@ -19,16 +22,29 @@ function SearchField({ search, inputRef, defaultValue }) {
       aria-keyshortcuts="/"
       autoComplete="off"
       defaultValue={defaultValue}
+      {...(echo ? { maxLength: MAX_ECHO } : {})}
     />
   )
 }
 
-// Reprend la recherche courante (bornée à 100 caractères) seulement si l'action du formulaire est la page affichée.
+// Reprend la recherche courante (élaguée, bornée à 100 caractères) seulement si l'action du formulaire est la page affichée.
 function EchoSearchField({ search, inputRef }) {
   const pathname = usePathname()
   const params = useSearchParams()
-  const current = pathname === search.action ? (params.get(search.param) ?? "").slice(0, MAX_ECHO) : ""
-  return <SearchField search={search} inputRef={inputRef} defaultValue={current || undefined} />
+  const current = pathname === search.action ? (params.get(search.param) ?? "").trim().slice(0, MAX_ECHO) : ""
+  return <SearchField search={search} inputRef={inputRef} defaultValue={current || undefined} echo />
+}
+
+// Conserve les filtres actifs (type, villes, urgence, budget, tri) dans la recherche, en champs cachés, comme le
+// formulaire mobile. Seulement sur la page de l'action ; la page courante n'est pas conservée.
+function EchoKeptFilters({ search }) {
+  const pathname = usePathname()
+  const params = useSearchParams()
+  if (pathname !== search.action) return null
+  return KEPT_PARAMS.map((name) => {
+    const value = (params.get(name) ?? "").slice(0, MAX_KEPT_VALUE)
+    return value ? <input key={name} type="hidden" name={name} value={value} /> : null
+  })
 }
 
 // Barre du haut du bureau : recherche en GET vers l'URL de la configuration, raccourci « / ».
@@ -50,10 +66,15 @@ export function TopBar({ search }) {
   return (
     <header className="top2">
       <form role="search" method="get" action={search.action}>
+        {search.echo ? (
+          <Suspense fallback={null}>
+            <EchoKeptFilters search={search} />
+          </Suspense>
+        ) : null}
         <label className="search2">
           <Icon name="i-search" />
           {search.echo ? (
-            <Suspense fallback={<SearchField search={search} inputRef={input} />}>
+            <Suspense fallback={<SearchField search={search} inputRef={input} echo />}>
               <EchoSearchField search={search} inputRef={input} />
             </Suspense>
           ) : (

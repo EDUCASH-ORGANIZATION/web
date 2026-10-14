@@ -195,6 +195,53 @@ describe("AppShell : champ de recherche de la barre du haut (echo de q, espace �
     expect(value).toHaveLength(100)
   })
 
+  it("élague q et pose maxLength 100 sur le champ étudiant seulement", () => {
+    expect(inputOf(renderStudent("/student/missions", "  design  "))).toContain('value="design"')
+    expect(inputOf(renderStudent("/student/missions", "design"))).toContain('maxLength="100"')
+    search = "q=design"
+    const client = inputOf(render({}, "/client/missions"))
+    search = ""
+    expect(client).not.toContain("maxLength")
+  })
+
+  describe("filtres conservés dans la recherche", () => {
+    const hiddenOf = (html) => [...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)"\/>/g)].map((m) => [m[1], m[2]])
+    const renderWith = (at, query) => {
+      search = query
+      try {
+        return render({ nav: STUDENT_NAV }, at)
+      } finally {
+        search = ""
+      }
+    }
+
+    it("reprend type, villes, urgence, budget et tri en champs cachés, sans q ni page", () => {
+      const html = renderWith("/student/missions", "q=design&type=delivery&cities=Cotonou%2CPorto-Novo&urgency=urgent&budget=b1&sort=prix&page=3")
+      expect(hiddenOf(html)).toEqual([
+        ["type", "delivery"],
+        ["cities", "Cotonou,Porto-Novo"],
+        ["urgency", "urgent"],
+        ["budget", "b1"],
+        ["sort", "prix"],
+      ])
+    })
+
+    it("n'ajoute aucun champ caché sans filtre, hors de la page de l'action, ni pour le client", () => {
+      expect(hiddenOf(renderWith("/student/missions", "q=design"))).toEqual([])
+      expect(hiddenOf(renderWith("/student/dashboard", "type=delivery"))).toEqual([])
+      search = "type=delivery"
+      const client = render({}, "/client/missions")
+      search = ""
+      expect(hiddenOf(client)).toEqual([])
+    })
+
+    it("échappe les valeurs hostiles et les borne", () => {
+      const html = renderWith("/student/missions", `type=${encodeURIComponent('"><script>x</script>')}&sort=${"a".repeat(500)}`)
+      expect(html).not.toContain("<script>x")
+      expect(hiddenOf(html).find(([n]) => n === "sort")[1]).toHaveLength(200)
+    })
+  })
+
   it("n'affiche rien hors de la page de l'action ou sans q", () => {
     expect(inputOf(renderStudent("/student/dashboard", "design"))).not.toContain("value=")
     expect(inputOf(renderStudent("/student/missions"))).not.toContain("value=")
