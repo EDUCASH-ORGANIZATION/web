@@ -9,7 +9,6 @@ import { describe, expect, it } from "vitest"
 const SRC = path.resolve(__dirname, "../../..")
 // Exceptions connues, hors vitrine, à traiter dans un lot dédié (fichier:ligne).
 const KNOWN_EXCEPTIONS = new Set([
-  "app/(student)/profile/edit/page.js:174",
   "lib/email/templates/application-rejected.jsx:28",
   "components/admin/verifications-tabs.js:27",
 ])

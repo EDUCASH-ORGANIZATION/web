@@ -30,9 +30,23 @@
 .e2-10-links > a > .badge + .ic { margin-left: 0; }
 .e2-10-seal { width: 16px; height: 16px; flex: none; }
 
+/* Avatar d'identité (96 px) : taille seulement, la couleur et la bordure restent celles de .av2 */
+.e2-10-avatar { position: relative; flex: none; display: inline-flex; }
+.e2-10-avatar .av2 { width: 96px; height: 96px; font-size: 32px; }
+.e2-10-avatar > .seal { position: absolute; right: -2px; bottom: -2px; width: 28px; height: 28px; }
+.e2-10-who { min-width: 0; }
+.e2-10-bio { white-space: pre-line; overflow-wrap: anywhere; }
+/* Déconnexion : même rangée que les liens du bloc Compte, bouton natif sans habillage propre */
+.e2-10-out { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; border-top: 1px solid var(--c-ligne-2); font-size: var(--t-body-s); font-weight: var(--fw-semibold); color: var(--c-encre); text-align: left; cursor: pointer; }
+.e2-10-out > .ic { width: 20px; height: 20px; color: var(--c-ardoise); stroke-width: 1.75; flex: none; }
+.e2-10-out:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
+.e2-10-id .head2 { padding: 0; }
+
 @media (max-width: 1023.98px) {
   /* Identité empilée : avatar et nom en haut, méta, puis actions sur toute la largeur */
   .e2-10-id { flex-direction: column; align-items: flex-start; gap: var(--s-3); padding: 0 4px; }
   .e2-10-id__meta { gap: 4px 14px; margin-top: 0; font-size: var(--t-caption); }
   .e2-10-id__actions { width: 100%; justify-content: space-between; gap: var(--s-4); }
+  .e2-10-avatar .av2 { width: 72px; height: 72px; font-size: 24px; }
+  .e2-10-avatar > .seal { width: 24px; height: 24px; }
 }
