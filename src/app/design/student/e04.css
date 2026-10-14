@@ -27,6 +27,8 @@
 @media (max-width: 1023.98px) {
   .e2-04-hl { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); padding: var(--s-5); }
   .e2-04-hl .hero2__actions { flex-wrap: wrap; }
+  /* « Voir » (27 px de large) : zone tactile de 44 px, alignement et espacement inchangés */
+  .e2-04-acts .e2-link { min-width: 44px; }
 }
 
 @container e2list (max-width: 900px) {

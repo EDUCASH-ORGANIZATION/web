@@ -1585,6 +1585,7 @@ describe("recette finale : portefeuille, recapitulatif, compteur, edition du pro
   const e07 = stripComments(read("student/e07.css"))
   const e08 = stripComments(read("student/e08.css"))
   const e11 = stripComments(read("student/e11.css"))
+  const e04 = stripComments(read("student/e04.css"))
   const base = stripComments(read("student/base.css"))
   const block = (css, query) => {
     const start = css.indexOf(query)
@@ -1645,6 +1646,12 @@ describe("recette finale : portefeuille, recapitulatif, compteur, edition du pro
     expect(full(224)).toBeGreaterThanOrEqual(330)
     // en une colonne (sous 768 px) la grille garde une seule colonne, le span reste valable
     expect(block(base, "@media (max-width: 767.98px)")).toMatch(/\.e2-form \{ grid-template-columns: minmax\(0, 1fr\);/)
+  })
+
+  it("D5 : le lien Voir des candidatures en cours a une zone de 44 px de large sous 1024 px, sans changer la mise en page", () => {
+    const tablet = block(e04, "@media (max-width: 1023.98px)")
+    expect(tablet).toContain(".e2-04-acts .e2-link { min-width: 44px; }")
+    expect(e04.slice(0, e04.indexOf("@media"))).not.toContain(".e2-04-acts .e2-link { min-width")
   })
 
   it("D5 : zones tactiles de 44 px sous 1024 px, sans toucher a la coquille partagee", () => {
