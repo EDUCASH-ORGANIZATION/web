@@ -6,6 +6,8 @@ import { requireRole } from "@/lib/auth/require-role"
 import {
   getClientConversations,
   getClientConversation,
+  getClientMessageMedia,
+  getStudentMessageMedia,
   sendClientMessage,
   markClientConversationRead,
   getStudentConversations,
@@ -27,6 +29,7 @@ const ORIGIN = "https://example.supabase.co"
 let db
 let log
 let failures
+let signCalls
 
 // ─── Faux client Supabase : tables en mémoire, filtres eq / in / gte / or évalués pour de bon ──────────────
 
@@ -59,6 +62,18 @@ function makeSupabase() {
     storage: {
       from: (bucket) => ({
         getPublicUrl: (path) => ({ data: { publicUrl: `${ORIGIN}/storage/v1/object/public/${bucket}/${path}` } }),
+        createSignedUrls: async (paths, ttl) => {
+          signCalls.push({ bucket, paths, ttl })
+          if (failures["storage.createSignedUrls"]) return { data: null, error: { message: "signature impossible" } }
+          return {
+            data: paths.map((path) =>
+              failures[`sign:${path}`]
+                ? { path, signedUrl: null, error: "Object not found" }
+                : { path, error: null, signedUrl: `${ORIGIN}/storage/v1/object/sign/${bucket}/${path}?token=t-${ttl}` },
+            ),
+            error: null,
+          }
+        },
       }),
     },
     from: (table) => {
@@ -171,6 +186,7 @@ beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", ORIGIN)
   log = []
   failures = {}
+  signCalls = []
   seed()
   requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: CLIENT }, role: "client", profile: {} })
   vi.spyOn(console, "error").mockImplementation(() => {})
@@ -497,7 +513,8 @@ describe("sendClientMessage : pièces jointes", () => {
     expect(payload.media_url).toBe(`${ORIGIN}/storage/v1/object/public/message-media/${CLIENT}/1699-abc.jpg`)
     expect(payload.content).toBe("Image")
     expect(payload.type).toBe("image")
-    expect(result.message.mediaUrl).toBe(payload.media_url)
+    expect(result.message.mediaPath).toBe(`${CLIENT}/1699-abc.jpg`)
+    expect(result.message.mediaUrl).toBe(`${ORIGIN}/storage/v1/object/sign/message-media/${CLIENT}/1699-abc.jpg?token=t-3600`)
   })
 
   it("accepte un message vocal et une adresse publique du projet pour un fichier du dossier de l'expéditeur", async () => {
@@ -1031,5 +1048,215 @@ describe("espace étudiant", () => {
       const result = await markStudentConversationRead({ missionId: MA })
       expect(result).toEqual({ error: "Impossible de charger vos messages. Veuillez réessayer." })
     })
+  })
+})
+
+// ─── Médias : adresses signées (RD-SEC-03b) ─────────────────────────────────────────────────────────────────
+
+const pub = (uid, name) => `${ORIGIN}/storage/v1/object/public/message-media/${uid}/${name}`
+const signed = (uid, name) => `${ORIGIN}/storage/v1/object/sign/message-media/${uid}/${name}?token=t-3600`
+const MEDIA_ID_1 = "99999999-9999-4999-8999-999999999991"
+const MEDIA_ID_2 = "99999999-9999-4999-8999-999999999992"
+const MEDIA_ID_3 = "99999999-9999-4999-8999-999999999993"
+const MEDIA_ID_FOREIGN = "99999999-9999-4999-8999-999999999994"
+const unavailableMedia = { error: "Cette conversation n'est pas disponible." }
+const invalidMedia = { error: "Votre message n'est pas valide. Vérifiez son contenu et sa longueur." }
+
+describe("médias signés : lecture d'une conversation", () => {
+  beforeEach(() => {
+    db.messages.push(
+      row({ id: MEDIA_ID_1, sender_id: S1, receiver_id: CLIENT, type: "image", content: "Image", media_url: pub(S1, "a.png"), created_at: "2026-10-13T08:10:00Z" }),
+      row({ id: MEDIA_ID_2, sender_id: CLIENT, receiver_id: S1, type: "voice", content: "Message vocal", media_url: pub(CLIENT, "v.webm"), created_at: "2026-10-13T08:20:00Z" }),
+    )
+  })
+
+  it("signe tous les médias de la conversation en un seul appel d'une heure", async () => {
+    const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+    expect(signCalls).toHaveLength(1)
+    expect(signCalls[0].ttl).toBe(3600)
+    expect(signCalls[0].bucket).toBe("message-media")
+    expect(signCalls[0].paths.sort()).toEqual([`${CLIENT}/v.webm`, `${S1}/a.png`].sort())
+    const byId = Object.fromEntries(conversation.messages.map((m) => [m.id, m]))
+    expect(byId[MEDIA_ID_1]).toMatchObject({ mediaPath: `${S1}/a.png`, mediaUrl: signed(S1, "a.png") })
+    expect(byId[MEDIA_ID_2]).toMatchObject({ mediaPath: `${CLIENT}/v.webm`, mediaUrl: signed(CLIENT, "v.webm") })
+  })
+
+  it("n'appelle pas la signature quand la conversation n'a aucun média", async () => {
+    await getClientConversation({ missionId: M1, studentId: S2 })
+    expect(signCalls).toHaveLength(0)
+  })
+
+  it("échec de signature : mediaUrl null, jamais l'adresse publique", async () => {
+    failures["storage.createSignedUrls"] = true
+    const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+    const media = conversation.messages.filter((m) => m.type !== "text")
+    expect(media).toHaveLength(2)
+    expect(media.every((m) => m.mediaUrl === null)).toBe(true)
+    expect(JSON.stringify(conversation)).not.toContain("/object/public/")
+  })
+
+  it("une ligne dont la signature échoue seule reste indisponible, les autres sont signées", async () => {
+    failures[`sign:${S1}/a.png`] = true
+    const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+    const byId = Object.fromEntries(conversation.messages.map((m) => [m.id, m]))
+    expect(byId[MEDIA_ID_1].mediaUrl).toBeNull()
+    expect(byId[MEDIA_ID_2].mediaUrl).toBe(signed(CLIENT, "v.webm"))
+  })
+
+  it("accepte aussi une ligne dont l'identifiant est déjà une adresse signée (bucket privé)", async () => {
+    db.messages.find((m) => m.id === MEDIA_ID_1).media_url = `${ORIGIN}/storage/v1/object/sign/message-media/${S1}/a.png?token=vieux`
+    const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+    expect(conversation.messages.find((m) => m.id === MEDIA_ID_1).mediaUrl).toBe(signed(S1, "a.png"))
+  })
+
+  it("une URL externe ou le dossier d'un autre que l'expéditeur donne null et n'est pas signé", async () => {
+    db.messages.find((m) => m.id === MEDIA_ID_1).media_url = pub(STRANGER, "a.png")
+    db.messages.find((m) => m.id === MEDIA_ID_2).media_url = "https://evil.test/storage/v1/object/public/message-media/" + CLIENT + "/v.webm"
+    const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+    expect(conversation.messages.filter((m) => m.type !== "text").map((m) => m.mediaUrl)).toEqual([null, null])
+    expect(signCalls).toHaveLength(0)
+  })
+
+  it("la lecture étudiant signe avec le client de session", async () => {
+    seedStudent()
+    db.messages.push(
+      row({ id: MEDIA_ID_3, mission_id: MA, sender_id: CLIENT, receiver_id: STUDENT, type: "image", content: "Image", media_url: pub(CLIENT, "p.jpg"), created_at: "2026-10-13T08:30:00Z" }),
+    )
+    requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: STUDENT }, role: "student", profile: {} })
+    const { conversation } = await getStudentConversation({ missionId: MA })
+    expect(signCalls).toHaveLength(1)
+    expect(conversation.messages.find((m) => m.id === MEDIA_ID_3).mediaUrl).toBe(signed(CLIENT, "p.jpg"))
+  })
+})
+
+describe("médias signés : envoi", () => {
+  it("sendClientMessage renvoie le message signé et enregistre l'identifiant public canonique", async () => {
+    const result = await sendClientMessage({ missionId: M1, studentId: S1, type: "image", mediaPath: `${CLIENT}/n.png` })
+    expect(result.success).toBe(true)
+    expect(db.messages.at(-1).media_url).toBe(pub(CLIENT, "n.png"))
+    expect(result.message.mediaUrl).toBe(signed(CLIENT, "n.png"))
+    expect(signCalls).toHaveLength(1)
+  })
+
+  it("un envoi réussi dont la signature échoue renvoie un message sans adresse", async () => {
+    failures["storage.createSignedUrls"] = true
+    const result = await sendClientMessage({ missionId: M1, studentId: S1, type: "voice", mediaPath: `${CLIENT}/n.webm` })
+    expect(result.success).toBe(true)
+    expect(result.message.mediaUrl).toBeNull()
+    expect(result.message.mediaPath).toBe(`${CLIENT}/n.webm`)
+  })
+
+  it("sendStudentMessage renvoie le message signé", async () => {
+    seedStudent()
+    requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: STUDENT }, role: "student", profile: {} })
+    const result = await sendStudentMessage({ missionId: MA, type: "image", mediaPath: `${STUDENT}/n.png` })
+    expect(result.success).toBe(true)
+    expect(result.message.mediaUrl).toBe(signed(STUDENT, "n.png"))
+  })
+})
+
+describe("getClientMessageMedia", () => {
+  beforeEach(() => {
+    db.messages.push(
+      row({ id: MEDIA_ID_1, sender_id: S1, receiver_id: CLIENT, type: "image", content: "Image", media_url: pub(S1, "a.png"), created_at: "2026-10-13T08:10:00Z" }),
+      row({ id: MEDIA_ID_2, sender_id: CLIENT, receiver_id: S1, type: "voice", content: "Message vocal", media_url: signed(CLIENT, "v.webm"), created_at: "2026-10-13T08:20:00Z" }),
+      row({ id: MEDIA_ID_3, sender_id: S1, receiver_id: CLIENT, type: "image", content: "Image", media_url: null, created_at: "2026-10-13T08:25:00Z" }),
+      row({ id: MEDIA_ID_FOREIGN, mission_id: M1, sender_id: S2, receiver_id: CLIENT, type: "image", content: "Image", media_url: pub(S2, "x.png"), created_at: "2026-10-13T08:30:00Z" }),
+    )
+  })
+  const call = (over) => getClientMessageMedia({ missionId: M1, studentId: S1, messageIds: [MEDIA_ID_1], ...over })
+
+  it("exige le rôle client avant tout accès aux données", async () => {
+    requireRole.mockResolvedValueOnce({ error: "Vous n'avez pas les droits pour effectuer cette action." })
+    expect(await call()).toEqual({ error: "Vous n'avez pas les droits pour effectuer cette action." })
+    expect(requireRole).toHaveBeenCalledWith(["client"])
+    expect(log).toEqual([])
+    expect(signCalls).toEqual([])
+  })
+
+  it("re-signe en un appel les médias demandés (bucket encore public ou déjà privé)", async () => {
+    const out = await call({ messageIds: [MEDIA_ID_1, MEDIA_ID_2] })
+    expect(out).toEqual({ media: { [MEDIA_ID_1]: signed(S1, "a.png"), [MEDIA_ID_2]: signed(CLIENT, "v.webm") } })
+    expect(signCalls).toHaveLength(1)
+    expect(signCalls[0].ttl).toBe(3600)
+  })
+
+  it("URL absente : null, sans appel de signature", async () => {
+    expect(await call({ messageIds: [MEDIA_ID_3] })).toEqual({ media: { [MEDIA_ID_3]: null } })
+    expect(signCalls).toEqual([])
+  })
+
+  it("chemin invalide en base : null", async () => {
+    db.messages.find((m) => m.id === MEDIA_ID_1).media_url = pub(S1, "..%2F" + CLIENT + "/a.png")
+    expect(await call()).toEqual({ media: { [MEDIA_ID_1]: null } })
+    expect(signCalls).toEqual([])
+  })
+
+  it("échec de signature : null", async () => {
+    failures["storage.createSignedUrls"] = true
+    expect(await call()).toEqual({ media: { [MEDIA_ID_1]: null } })
+  })
+
+  it("ignore l'identifiant d'un message d'une autre paire (jamais signé)", async () => {
+    const out = await call({ messageIds: [MEDIA_ID_1, MEDIA_ID_FOREIGN] })
+    expect(Object.keys(out.media)).toEqual([MEDIA_ID_1])
+    expect(signCalls[0].paths).toEqual([`${S1}/a.png`])
+  })
+
+  it("refuse un non-participant : mission d'un autre client, étudiant sans lien", async () => {
+    expect(await call({ missionId: M_OTHER })).toEqual(unavailableMedia)
+    expect(await call({ studentId: STRANGER })).toEqual(unavailableMedia)
+    expect(signCalls).toEqual([])
+  })
+
+  it("refuse une liste vide, de plus de 50 identifiants ou mal formée", async () => {
+    expect(await call({ messageIds: [] })).toEqual(invalidMedia)
+    expect(await call({ messageIds: Array.from({ length: 51 }, () => MEDIA_ID_1) })).toEqual(invalidMedia)
+    expect(await call({ messageIds: ["pas-un-uuid"] })).toEqual(invalidMedia)
+    expect(await call({ messageIds: undefined })).toEqual(invalidMedia)
+    expect(await call({ studentId: "x" })).toEqual(invalidMedia)
+    expect(signCalls).toEqual([])
+  })
+
+  it("accepte exactement 50 identifiants", async () => {
+    const out = await call({ messageIds: Array.from({ length: 50 }, () => MEDIA_ID_1) })
+    expect(out.media[MEDIA_ID_1]).toBe(signed(S1, "a.png"))
+  })
+
+  it("erreur de lecture : message neutre", async () => {
+    failures["messages.select"] = "boom"
+    expect(await call()).toEqual({ error: "Impossible de charger vos messages. Veuillez réessayer." })
+  })
+})
+
+describe("getStudentMessageMedia", () => {
+  beforeEach(() => {
+    seedStudent()
+    db.messages.push(
+      row({ id: MEDIA_ID_1, mission_id: MA, sender_id: CLIENT, receiver_id: STUDENT, type: "image", content: "Image", media_url: pub(CLIENT, "p.jpg"), created_at: "2026-10-13T08:30:00Z" }),
+      row({ id: MEDIA_ID_FOREIGN, mission_id: MA, sender_id: STRANGER, receiver_id: STUDENT, type: "image", content: "Image", media_url: pub(STRANGER, "x.jpg"), created_at: "2026-10-13T08:40:00Z" }),
+    )
+    requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: STUDENT }, role: "student", profile: {} })
+  })
+  const call = (over) => getStudentMessageMedia({ missionId: MA, messageIds: [MEDIA_ID_1], ...over })
+
+  it("exige le rôle student avant tout accès aux données", async () => {
+    requireRole.mockResolvedValueOnce({ error: "Vous n'avez pas les droits pour effectuer cette action." })
+    expect(await call()).toEqual({ error: "Vous n'avez pas les droits pour effectuer cette action." })
+    expect(requireRole).toHaveBeenCalledWith(["student"])
+    expect(log).toEqual([])
+  })
+
+  it("re-signe le média de la paire et ignore celui d'un intrus", async () => {
+    const out = await call({ messageIds: [MEDIA_ID_1, MEDIA_ID_FOREIGN] })
+    expect(out).toEqual({ media: { [MEDIA_ID_1]: signed(CLIENT, "p.jpg") } })
+    expect(signCalls[0].paths).toEqual([`${CLIENT}/p.jpg`])
+  })
+
+  it("refuse une mission sans lien et des identifiants invalides", async () => {
+    expect(await call({ missionId: MC })).toEqual(unavailableMedia)
+    expect(await call({ messageIds: [] })).toEqual(invalidMedia)
+    expect(await call({ messageIds: Array.from({ length: 51 }, () => MEDIA_ID_1) })).toEqual(invalidMedia)
+    expect(signCalls).toEqual([])
   })
 })

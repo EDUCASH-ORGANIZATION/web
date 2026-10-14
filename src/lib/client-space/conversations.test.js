@@ -16,7 +16,10 @@ import {
   mediaKindOfPath,
   mergeMessages,
   previewOf,
-  safeMediaUrl,
+  MEDIA_SIGNED_URL_TTL,
+  createMediaRefresher,
+  mediaPathOf,
+  safeSignedMediaUrl,
   toMessage,
   unreadTotal,
 } from "./conversations"
@@ -203,18 +206,35 @@ describe("fichiers joints", () => {
     expect(fileProblem(null, "image")).toBe("Ce fichier est vide.")
   })
 
-  it("n'accepte comme adresse de média que le compartiment du projet", () => {
-    const ok = `${ORIGIN}/storage/v1/object/public/message-media/u1/a.jpg`
-    expect(safeMediaUrl(ok)).toBe(ok)
-    expect(safeMediaUrl(`${ok}?token=1`)).toBe(ok)
-    expect(safeMediaUrl("https://evil.test/storage/v1/object/public/message-media/u1/a.jpg")).toBeNull()
-    expect(safeMediaUrl(`${ORIGIN}/storage/v1/object/public/avatars/u1/a.jpg`)).toBeNull()
-    expect(safeMediaUrl(`${ORIGIN}/storage/v1/object/sign/message-media/u1/a.jpg`)).toBeNull()
-    expect(safeMediaUrl("javascript:alert(1)")).toBeNull()
-    expect(safeMediaUrl("/relatif/a.jpg")).toBeNull()
-    expect(safeMediaUrl(null)).toBeNull()
+  it("fixe la validité des adresses signées à 1 h", () => {
+    expect(MEDIA_SIGNED_URL_TTL).toBe(3600)
+  })
+
+  it("mediaPathOf extrait le chemin sous le dossier de l'expéditeur", () => {
+    const base = `${ORIGIN}/storage/v1/object`
+    expect(mediaPathOf(`${base}/public/message-media/u1/a.jpg`, "u1")).toBe("u1/a.jpg")
+    expect(mediaPathOf(`${base}/sign/message-media/u1/a.jpg?token=t`, "u1")).toBe("u1/a.jpg")
+    expect(mediaPathOf(`${base}/authenticated/message-media/u1/a.jpg`, "u1")).toBe("u1/a.jpg")
+    expect(mediaPathOf(`${base}/public/avatars/u1/a.jpg`, "u1")).toBeNull()
+    expect(mediaPathOf(`https://evil.test/storage/v1/object/public/message-media/u1/a.jpg`, "u1")).toBeNull()
+    expect(mediaPathOf(`${base}/public/message-media/u1/../u2/a.jpg`, "u1")).toBeNull()
+    expect(mediaPathOf(`${base}/public/message-media/u1/..%2Fu2/a.jpg`, "u1")).toBeNull()
+    expect(mediaPathOf(`${base}/public/message-media/u2/a.jpg`, "u1")).toBeNull()
+    expect(mediaPathOf(null, "u1")).toBeNull()
+  })
+
+  it("safeSignedMediaUrl n'accepte que l'adresse signée du compartiment du projet", () => {
+    const ok = `${ORIGIN}/storage/v1/object/sign/message-media/u1/a.jpg?token=abc`
+    expect(safeSignedMediaUrl(ok)).toBe(ok)
+    expect(safeSignedMediaUrl(`${ORIGIN}/storage/v1/object/public/message-media/u1/a.jpg`)).toBeNull()
+    expect(safeSignedMediaUrl(`${ORIGIN}/storage/v1/object/sign/avatars/u1/a.jpg?token=abc`)).toBeNull()
+    expect(safeSignedMediaUrl(`${ORIGIN}/storage/v1/object/sign/message-media/../avatars/u1/a.jpg?token=abc`)).toBeNull()
+    expect(safeSignedMediaUrl("https://evil.test/storage/v1/object/sign/message-media/u1/a.jpg?token=abc")).toBeNull()
+    expect(safeSignedMediaUrl("javascript:alert(1)")).toBeNull()
+    expect(safeSignedMediaUrl("/relatif/a.jpg")).toBeNull()
+    expect(safeSignedMediaUrl(null)).toBeNull()
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "")
-    expect(safeMediaUrl(ok)).toBeNull()
+    expect(safeSignedMediaUrl(ok)).toBeNull()
   })
 
   it("valide les coordonnées", () => {
@@ -244,15 +264,24 @@ describe("toMessage, isPairRow, mergeMessages", () => {
 
   it("réduit une ligne à ce que la vue affiche, sans identifiant de personne", () => {
     const m = toMessage(raw(), ME)
-    expect(m).toEqual({ id: "m1", mine: true, type: "text", content: "Bonjour", mediaUrl: null, lat: null, lng: null, createdAt: "2026-10-13T08:00:00Z", read: true })
+    expect(m).toEqual({ id: "m1", mine: true, type: "text", content: "Bonjour", mediaPath: null, mediaUrl: null, lat: null, lng: null, createdAt: "2026-10-13T08:00:00Z", read: true })
     expect(toMessage(raw({ sender_id: S1, receiver_id: ME }), ME).mine).toBe(false)
   })
 
   it("ignore l'adresse d'un média hors compartiment et les coordonnées invalides", () => {
     expect(toMessage(raw({ type: "image", media_url: "https://evil.test/p.png" }), ME).mediaUrl).toBeNull()
     const good = `${ORIGIN}/storage/v1/object/public/message-media/${ME}/p.png`
-    expect(toMessage(raw({ type: "image", media_url: good }), ME).mediaUrl).toBe(good)
-    expect(toMessage(raw({ type: "text", media_url: good }), ME).mediaUrl).toBeNull()
+    const signed = `${ORIGIN}/storage/v1/object/sign/message-media/${ME}/p.png?token=t`
+    // Sans table de signatures : le chemin est connu, jamais l'adresse brute.
+    expect(toMessage(raw({ type: "image", media_url: good }), ME)).toMatchObject({ mediaPath: `${ME}/p.png`, mediaUrl: null })
+    expect(toMessage(raw({ type: "image", media_url: good }), ME, { [`${ME}/p.png`]: signed })).toMatchObject({
+      mediaPath: `${ME}/p.png`,
+      mediaUrl: signed,
+    })
+    // Une adresse non signée ou externe dans la table n'est jamais affichée.
+    expect(toMessage(raw({ type: "image", media_url: good }), ME, { [`${ME}/p.png`]: good }).mediaUrl).toBeNull()
+    expect(toMessage(raw({ type: "image", media_url: good, sender_id: S1, receiver_id: ME }), ME)).toMatchObject({ mediaPath: null })
+    expect(toMessage(raw({ type: "text", media_url: good }), ME)).toMatchObject({ mediaPath: null, mediaUrl: null })
     expect(toMessage(raw({ type: "location", location_lat: 200, location_lng: 1 }), ME)).toMatchObject({ lat: null, lng: null })
     expect(toMessage(raw({ type: "location", location_lat: 6.4, location_lng: 2.4 }), ME)).toMatchObject({ lat: 6.4, lng: 2.4 })
     expect(toMessage(raw({ type: "inconnu" }), ME).type).toBe("text")
@@ -303,5 +332,51 @@ describe("horodatages au fuseau du Bénin (UTC+1)", () => {
     expect(formatDayLabel("2026-10-12T09:00:00Z", now)).toBe("Hier")
     expect(formatDayLabel("2026-10-08T09:00:00Z", now)).toBe("jeudi 8 octobre")
     expect(formatDayLabel("x", now)).toBe("")
+  })
+})
+
+describe("createMediaRefresher", () => {
+  const make = (results) => {
+    const applied = []
+    const fetchUrl = vi.fn(async () => results.shift() ?? null)
+    const refresh = createMediaRefresher({ fetchUrl, onUrl: (id, url) => applied.push([id, url]) })
+    return { refresh, fetchUrl, applied }
+  }
+
+  it("re-signe une fois puis déclare le média indisponible, sans nouvel appel", async () => {
+    const { refresh, fetchUrl, applied } = make(["https://x/new"])
+    await refresh("m1")
+    expect(applied).toEqual([["m1", "https://x/new"]])
+    await refresh("m1")
+    await refresh("m1")
+    expect(fetchUrl).toHaveBeenCalledTimes(1)
+    expect(applied.slice(1)).toEqual([["m1", null], ["m1", null]])
+  })
+
+  it("une signature vide donne null tout de suite", async () => {
+    const { refresh, applied } = make([null])
+    await refresh("m1")
+    expect(applied).toEqual([["m1", null]])
+  })
+
+  it("ignore les erreurs simultanées pendant une signature en cours", async () => {
+    const { refresh, fetchUrl, applied } = make(["https://x/new"])
+    await Promise.all([refresh("m1"), refresh("m1")])
+    expect(fetchUrl).toHaveBeenCalledTimes(1)
+    expect(applied).toEqual([["m1", "https://x/new"]])
+  })
+
+  it("compte séparément chaque message", async () => {
+    const { refresh, fetchUrl } = make(["a", "b"])
+    await refresh("m1")
+    await refresh("m2")
+    expect(fetchUrl).toHaveBeenCalledTimes(2)
+  })
+
+  it("ignore un identifiant invalide", async () => {
+    const { refresh, fetchUrl, applied } = make([])
+    await refresh(undefined)
+    expect(fetchUrl).not.toHaveBeenCalled()
+    expect(applied).toEqual([])
   })
 })

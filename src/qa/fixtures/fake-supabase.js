@@ -39,6 +39,14 @@ export function makeFakeSupabase(ctx) {
     storage: {
       from: (bucket) => ({
         getPublicUrl: (path) => ({ data: { publicUrl: `${ctx.origin}/storage/v1/object/public/${bucket}/${path}` } }),
+        createSignedUrls: async (paths, ttl) => {
+          ctx.log.push({ table: `storage:${bucket}`, op: "createSignedUrls", filters: [], ors: [], paths, ttl })
+          if (ctx.failures["storage.createSignedUrls"]) return { data: null, error: { message: "signature impossible" } }
+          return {
+            data: paths.map((path) => ({ path, error: null, signedUrl: `${ctx.origin}/storage/v1/object/sign/${bucket}/${path}?token=t-${ttl}` })),
+            error: null,
+          }
+        },
       }),
     },
     from: (table) => {
