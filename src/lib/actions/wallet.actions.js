@@ -22,6 +22,7 @@ const MESSAGES = {
     deposit: "Le dépôt n'a pas pu être initié. Réessaie dans un instant.",
     withdrawal: "Le retrait n'a pas pu être initié. Réessaie dans un instant.",
     debitUncertain: "Ta demande a peut-être été débitée. Contacte l'aide avant toute nouvelle demande.",
+    session: "Session expirée. Reconnecte-toi.",
   },
   client: {
     read: "Impossible de charger votre portefeuille.",
@@ -29,6 +30,7 @@ const MESSAGES = {
     deposit: "Le dépôt n'a pas pu être initié. Réessayez dans un instant.",
     withdrawal: "Le retrait n'a pas pu être initié. Réessayez dans un instant.",
     debitUncertain: "Votre demande a peut-être été débitée. Contactez l'aide avant toute nouvelle demande.",
+    session: "Session expirée. Reconnectez-vous.",
   },
 }
 
@@ -155,7 +157,7 @@ export async function initiateDeposit({ amount }) {
 
   const supabase = await createClient()
   const accessToken = await getAccessToken(supabase)
-  if (!accessToken) return { error: "Session expirée. Reconnectez-vous." }
+  if (!accessToken) return { error: (await messagesFor(supabase, user)).session }
 
   const { data, error } = await supabase.functions.invoke(
     "create-deposit-transaction",
@@ -166,8 +168,9 @@ export async function initiateDeposit({ amount }) {
   )
 
   if (error) {
-    if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
-    const { message, detail } = await readFnError(error, (await messagesFor(supabase, user)).deposit)
+    const messages = await messagesFor(supabase, user)
+    if (error?.context?.status === 401) return { error: messages.session }
+    const { message, detail } = await readFnError(error, messages.deposit)
     console.error("[initiateDeposit]", detail)
     return { error: message }
   }
@@ -193,7 +196,7 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
   if (available < amount) return { error: "Solde insuffisant" }
 
   const accessToken = await getAccessToken(supabase)
-  if (!accessToken) return { error: "Session expirée. Reconnectez-vous." }
+  if (!accessToken) return { error: (await messagesFor(supabase, user)).session }
 
   // L'identité n'est jamais envoyée : la fonction la déduit du jeton de session
   const { data, error } = await supabase.functions.invoke(
@@ -205,8 +208,8 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
   )
 
   if (error) {
-    if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
     const messages = await messagesFor(supabase, user)
+    if (error?.context?.status === 401) return { error: messages.session }
     // 502 : la fonction a déjà débité le portefeuille mais le virement n'a pas démarré (sans recréditer).
     // Aucun nouvel essai n'est proposé : un second clic débiterait une seconde fois.
     if (error?.context?.status === 502) {

@@ -286,4 +286,23 @@ describe("messages d'erreur selon le rôle", () => {
     )
     expect(invoke).not.toHaveBeenCalled()
   })
+
+  it("session expirée : l'étudiant est tutoyé, le client vouvoyé, aussi sur un 401", async () => {
+    const args = { amount: 5000, phone: "0197000000", operator: "mtn" }
+    const unauthorized = { data: null, error: { message: "x", context: { status: 401 } } }
+    const cases = [
+      ["student", "Session expirée. Reconnecte-toi."],
+      ["client", "Session expirée. Reconnectez-vous."],
+    ]
+    for (const [role, expected] of cases) {
+      getServerRole.mockResolvedValue({ role })
+      getSession.mockResolvedValue({ data: { session: null } })
+      expect((await initiateDeposit({ amount: 5000 })).error).toBe(expected)
+      expect((await initiateWithdrawal(args)).error).toBe(expected)
+      getSession.mockResolvedValue({ data: { session: { access_token: "session-jwt" } } })
+      invoke.mockResolvedValue(unauthorized)
+      expect((await initiateDeposit({ amount: 5000 })).error).toBe(expected)
+      expect((await initiateWithdrawal(args)).error).toBe(expected)
+    }
+  })
 })
