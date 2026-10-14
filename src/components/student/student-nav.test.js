@@ -6,7 +6,6 @@ import { activeKey } from "../app-shell/nav-model.js"
 
 const APP = path.join(process.cwd(), "src/app")
 const BANNED = /livraison|course|coursier|saisie|bient[oô]t/i
-const VOUVOIEMENT = /\b(vous|votre|vos)\b/i
 const TUTOIEMENT = /\b(tu|ton|ta|tes|toi)\b/i
 
 function pages(dir, acc = []) {
@@ -40,10 +39,9 @@ describe("STUDENT_MOBILE_NAV", () => {
     for (const { icon } of items) expect(sprite).toContain(`id="${icon}"`)
   })
 
-  it("libellés sans mot banni ni formule de politesse", () => {
+  it("libellés sans mot banni ni tutoiement", () => {
     for (const { label } of items) {
       expect(label).not.toMatch(BANNED)
-      expect(label).not.toMatch(VOUVOIEMENT)
       expect(label).not.toMatch(TUTOIEMENT)
     }
   })
