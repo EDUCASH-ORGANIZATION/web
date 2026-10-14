@@ -84,7 +84,7 @@ export async function verifyStudent(userId) {
   if (email) {
     await sendEmail("verification-approved", email, {
       name:          profile?.full_name?.split(" ")[0] ?? "Étudiant",
-      school:        studentProfile?.school ?? "ton établissement",
+      school:        studentProfile?.school ?? "votre établissement",
       verifiedUntil: verifiedUntilISO,
       appUrl:        process.env.NEXT_PUBLIC_APP_URL ?? "https://educash.bj",
     }).catch((err) => console.error("[verifyStudent] email:", err))

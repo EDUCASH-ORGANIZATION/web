@@ -2,11 +2,11 @@ import { AnchorLink } from "./hash-scroll"
 import { Icon } from "@/components/design/icon"
 
 const COPY = {
-  student: "Le client a déjà payé. L'argent t'est versé à la fin de la mission.",
+  student: "Le client a déjà payé. L'argent vous est versé à la fin de la mission.",
   client: "Votre budget reste bloqué jusqu'à ce que vous validiez le travail.",
 }
 
-// Badge « Fonds bloqués » et son explication (maquette V03), tutoyé ou vouvoyé.
+// Badge « Fonds bloqués » et son explication (maquette V03), vouvoyé pour les deux publics.
 export function EscrowNote({ audience = "student" }) {
   return (
     <div className="row row--nowrap row--top">

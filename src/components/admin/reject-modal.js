@@ -119,7 +119,7 @@ export function RejectModal({ userId, name, onClose }) {
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex flex-col gap-2">
             <p className="text-xs text-gray-700">
               <span className="font-semibold">Objet :</span>{" "}
-              Action requise sur ton dossier EduCash
+              Action requise sur votre dossier EduCash
             </p>
             <p className="text-xs text-gray-700">
               <span className="font-semibold">Motif :</span>{" "}

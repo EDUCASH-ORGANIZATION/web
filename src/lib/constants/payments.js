@@ -8,7 +8,7 @@ export function paymentsEnabled() {
   return process.env.PAYMENTS_ENABLED === "true"
 }
 
-/** Libellés partagés de l'état « en cours d'activation » (une version par public : client ou étudiant, toutes deux vouvoyées). */
+/** Libellés partagés de l'état « en cours d'activation » (vouvoiement pour tous les publics). */
 export const PAYMENTS_PENDING_COPY = {
   wallet: {
     title: "Recharge et retrait en cours d'activation",

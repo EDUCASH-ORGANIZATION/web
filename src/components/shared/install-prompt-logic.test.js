@@ -94,8 +94,12 @@ describe("helpers", () => {
     expect(remainingSessionDelay(0)).toBe(30_000)
     expect(remainingSessionDelay(40_000)).toBe(0)
   })
-  it("uses vous for students and clients, no em dash", () => {
+  // Vouvoiement partout (RD-VOUS-01) : l'étudiant est vouvoyé comme le client, plus de tutoiement.
+  it("uses vous for students and clients, no tutoiement, no em dash", () => {
     expect(installCopy("student").native).toContain("vos missions")
+    expect(installCopy("student").title).toBe("Installez EduCash")
+    expect(installCopy("student").ios).toContain("Ajoutez EduCash à votre écran")
+    expect(JSON.stringify(installCopy("student"))).not.toMatch(/(?<![\p{L}])(ton|ta|tes|tu|toi|installe|retrouve|ajoute|touche)(?![\p{L}])/iu)
     expect(installCopy("client").native).toContain("vos missions")
     expect(installCopy("public")).toBeNull()
     expect(JSON.stringify([installCopy("student"), installCopy("client")])).not.toMatch(/[\u2014\u2013]/)

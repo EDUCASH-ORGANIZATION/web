@@ -29,13 +29,12 @@ describe("ForgotPasswordForm", () => {
     expect(html).toContain("Mot de passe oublié ?")
   })
 
-  it("vouvoie le public inconnu et tutoie l'étudiant avec le champ caché", () => {
-    const neutral = renderToStaticMarkup(<ForgotPasswordForm />)
-    expect(text(neutral)).not.toMatch(/\b(tu|ton|ta|tes|toi)\b/i)
-    expect(neutral).not.toContain('name="audience"')
-    const student = renderToStaticMarkup(<ForgotPasswordForm role="student" />)
-    expect(student).toContain("Saisis l&#x27;adresse de ton compte")
-    expect(student).toContain('type="hidden" name="audience" value="student"')
+  it("vouvoie tous les publics, sans champ audience ni forme du tutoiement", () => {
+    const html = renderToStaticMarkup(<ForgotPasswordForm />)
+    expect(html).toContain("Saisissez l&#x27;adresse de votre compte")
+    expect(html).toContain('placeholder="vous@exemple.bj"')
+    expect(html).not.toContain('name="audience"')
+    expect(text(html)).not.toMatch(/(?<!\p{L})(tu|ton|ta|tes|toi)(?!\p{L})/iu)
   })
 
   it("affiche l'erreur de format sous le champ", () => {

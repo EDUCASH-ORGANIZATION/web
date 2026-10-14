@@ -23,35 +23,36 @@ const NEXT = "/client/missions/new?besoin=Repas&ville=Cotonou"
 
 describe("VerifyEmailPanel", () => {
   it("avec adresse : la rappelle, propose la messagerie et un renvoi sans champ email", () => {
-    const html = renderToStaticMarkup(<VerifyEmailPanel email="sena@gmail.com" audience="student" role="student" />)
+    const html = renderToStaticMarkup(<VerifyEmailPanel email="sena@gmail.com" role="student" />)
     const body = text(html)
-    expect(body).toContain("Vérifie ta boîte mail")
+    expect(body).toContain("Vérifiez votre boîte mail")
+    expect(body).not.toMatch(TU_FORMS)
     expect(body).toContain("sena@gmail.com")
     expect(html).toContain("https://mail.google.com/")
     expect(body).toContain("Renvoyer l'email")
     expect(html).not.toContain('type="email"')
     expect(html).toContain('href="/auth/register?role=student"')
-    expect(body).toContain("Connecte-toi ici")
+    expect(body).toContain("Connectez-vous ici")
   })
 
   it("sans adresse : version avec champ email, envoi par action (pas de GET)", () => {
-    const html = renderToStaticMarkup(<VerifyEmailPanel audience="student" role="student" />)
+    const html = renderToStaticMarkup(<VerifyEmailPanel role="student" />)
     expect(html).toContain('type="email"')
     expect(html).toContain('name="email"')
     expect(html).not.toMatch(/method="get"/i)
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled/)
     expect(html).not.toContain("mail.google.com")
-    expect(text(html)).toContain("à ton adresse email")
+    expect(text(html)).toContain("à votre adresse email")
   })
 
   it("le compte à rebours est un bouton désactivé par défaut seulement après un clic", () => {
-    const html = renderToStaticMarkup(<VerifyEmailPanel email="a@exemple.bj" audience="client" />)
+    const html = renderToStaticMarkup(<VerifyEmailPanel email="a@exemple.bj" />)
     expect(html).toMatch(/<button[^>]*type="button"[^>]*>Renvoyer l'email<\/button>/)
     expect(html).not.toContain("Renvoyer dans")
   })
 
   it("client : vouvoiement et liens de reprise conservent role et next", () => {
-    const html = renderToStaticMarkup(<VerifyEmailPanel email="a@exemple.bj" audience="client" role="client" next={NEXT} />)
+    const html = renderToStaticMarkup(<VerifyEmailPanel email="a@exemple.bj" role="client" next={NEXT} />)
     const body = text(html)
     expect(body).toContain("Vérifiez votre boîte mail")
     expect(body).toContain("Connectez-vous ici")
@@ -62,7 +63,7 @@ describe("VerifyEmailPanel", () => {
 
   it("n'affiche aucune durée de validité et n'a aucun style en ligne", () => {
     for (const email of ["a@exemple.bj", null]) {
-      const html = renderToStaticMarkup(<VerifyEmailPanel email={email} audience="student" />)
+      const html = renderToStaticMarkup(<VerifyEmailPanel email={email} />)
       expect(text(html)).not.toMatch(/24 ?h|valable/i)
       expect(html).not.toContain("style=")
     }

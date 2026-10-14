@@ -11,23 +11,23 @@ const COMMISSION = Math.round(COMMISSION_RATE * 100)
 export const FAQ_ITEMS = [
   {
     id: "paye",
-    question: "Est-ce que je suis sûr d'être payé ?",
+    question: "Suis-je sûr d'être payé ?",
     answer: (
       <>
         Oui. Le client bloque le budget sur EduCash <b>avant</b>{" "}
         que la mission commence&nbsp;: c&rsquo;est le séquestre. Une fois la mission faite, le client valide la fin de
-        mission et ton argent arrive sur ton portefeuille EduCash. Jusque-là, il reste bloqué. Un souci pendant la
-        mission&nbsp;? Contacte l&rsquo;équipe EduCash depuis la page{" "}
+        mission et votre argent arrive sur votre portefeuille EduCash. Jusque-là, il reste bloqué. Un souci pendant la
+        mission&nbsp;? Contactez l&rsquo;équipe EduCash depuis la page{" "}
         <Link className="link" href="/contact?sujet=signalement">Contact</Link>&nbsp;: nous intervenons en médiation.
       </>
     ),
   },
   {
     id: "avance",
-    question: "Je dois avancer l'argent du marché ?",
+    question: "Dois-je avancer l'argent du marché ?",
     answer: (
       <>
-        Non. Les achats sont réglés par le client directement au vendeur, par Mobile Money. Toi, tu n&rsquo;avances
+        Non. Les achats sont réglés par le client directement au vendeur, par Mobile Money. Vous, vous n&rsquo;avancez
         rien. Les détails sont dans les{" "}
         <AnchorLink className="link" href="/legal/terms#achats">conditions d&rsquo;utilisation</AnchorLink>.
       </>
@@ -36,18 +36,18 @@ export const FAQ_ITEMS = [
   {
     id: "commission",
     question: "Combien prend EduCash ?",
-    answer: `Une seule commission de ${COMMISSION} %, prélevée sur le paiement de l'étudiant. Tu vois toujours ce que tu touches avant de postuler.`,
+    answer: `Une seule commission de ${COMMISSION} %, prélevée sur le paiement de l'étudiant. Vous voyez toujours ce que vous touchez avant de postuler.`,
   },
   {
     id: "retrait",
-    question: "Comment je retire mon argent ?",
-    answer: `Depuis ton portefeuille, vers ton MTN MoMo, ton Moov Money ou ton Celtiis Cash, à partir de ${formatFcfa(MIN_WITHDRAWAL_AMOUNT)}.`,
+    question: "Comment retirer mon argent ?",
+    answer: `Depuis votre portefeuille, vers votre MTN MoMo, votre Moov Money ou votre Celtiis Cash, à partir de ${formatFcfa(MIN_WITHDRAWAL_AMOUNT)}.`,
   },
   {
     id: "carte",
     question: "Faut-il une carte étudiante pour s'inscrire ?",
     answer:
-      "Non, l'inscription est gratuite. Ta carte étudiante est demandée au moment de postuler et vérifiée à la main par l'équipe.",
+      "Non, l'inscription est gratuite. Votre carte étudiante est demandée au moment de postuler et vérifiée à la main par l'équipe.",
   },
 ]
 
@@ -59,7 +59,7 @@ export function EtudiantsFaq() {
         <div>
           <span className="eyebrow eyebrow--bleu">Questions fréquentes</span>
           <h2 className="display display--l ds-mt-3">
-            Tu te<br /><span className="hl-bleu">demandes ?</span>
+            Vous vous<br /><span className="hl-bleu">demandez ?</span>
           </h2>
           <p className="muted ds-mt-4">Les questions qu&rsquo;on nous pose le plus. Le reste est dans l&rsquo;aide.</p>
           <Link className="btn btn--secondary ds-mt-6" href="/aide">

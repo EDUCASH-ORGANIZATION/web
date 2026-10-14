@@ -40,13 +40,13 @@ export default function VerificationRejected({
           </Section>
 
           {/* ── Titre ─────────────────────────────────────────────── */}
-          <Heading style={h1}>Action requise sur ton profil</Heading>
+          <Heading style={h1}>Action requise sur votre profil</Heading>
 
           {/* ── Corps ─────────────────────────────────────────────── */}
           <Text style={text}>Bonjour {firstName},</Text>
 
           <Text style={text}>
-            Notre équipe a examiné ton dossier mais n&apos;a pas pu valider ta carte
+            Notre équipe a examiné votre dossier mais n&apos;a pas pu valider votre carte
             étudiante pour la raison suivante :
           </Text>
 
@@ -80,7 +80,7 @@ export default function VerificationRejected({
           </Section>
 
           <Text style={text}>
-            Tu peux soumettre un nouveau document dès maintenant.
+            Vous pouvez soumettre un nouveau document dès maintenant.
           </Text>
 
           {/* ── CTA ───────────────────────────────────────────────── */}
@@ -95,7 +95,7 @@ export default function VerificationRejected({
           {/* ── Note rassurante ───────────────────────────────────── */}
           <Text style={note}>
             Notre équipe examine chaque dossier avec attention.
-            N&apos;hésite pas à nous contacter si tu as des questions.
+            N&apos;hésitez pas à nous contacter si vous avez des questions.
           </Text>
 
           <Text style={footer}>

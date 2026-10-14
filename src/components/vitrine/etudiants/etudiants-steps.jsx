@@ -30,9 +30,9 @@ export function EtudiantsSteps() {
             <span className="tag">Carte étudiante</span>
           </div>
           <div>
-            <h3 className="v-step__title">Crée ton profil</h3>
+            <h3 className="v-step__title">Créez votre profil</h3>
             <p className="v-step__text">
-              Gratuit. Tes compétences, ta ville, ton numéro MoMo. La carte étudiante n&rsquo;est demandée qu&rsquo;au
+              Gratuit. Vos compétences, votre ville, votre numéro MoMo. La carte étudiante n&rsquo;est demandée qu&rsquo;au
               moment de postuler.
             </p>
           </div>
@@ -45,10 +45,10 @@ export function EtudiantsSteps() {
             <span className="btn btn--accent btn--sm">Postuler</span>
           </div>
           <div>
-            <h3 className="v-step__title">Postule en un message</h3>
+            <h3 className="v-step__title">Postulez en un message</h3>
             <p className="v-step__text">
-              Filtre par ville, service et budget. Le client lit ton profil et te choisit. Tu vois toujours ce que tu
-              touches avant de postuler.
+              Filtrez par ville, service et budget. Le client lit votre profil et vous choisit. Vous voyez toujours ce que vous
+              touchez avant de postuler.
             </p>
           </div>
         </div>
@@ -58,14 +58,14 @@ export function EtudiantsSteps() {
             <img className="logo-sym" src="/logo-symbole-bleu.svg" alt="" width={34} height={32} />
             <div>
               <div className="push__title">+ {formatFcfa(netAmount(EXAMPLE_BUDGET))}</div>
-              <div className="caption">Versé sur ton portefeuille</div>
+              <div className="caption">Versé sur votre portefeuille</div>
             </div>
           </div>
           <div>
-            <h3 className="v-step__title">Encaisse sur ton MoMo</h3>
+            <h3 className="v-step__title">Encaissez sur votre MoMo</h3>
             <p className="v-step__text">
-              Une fois la mission faite, le client valide la fin de mission. Tu touches {SHARE} % du budget, versé sur
-              ton portefeuille EduCash, et tu le retires sur ton Mobile Money.
+              Une fois la mission faite, le client valide la fin de mission. Vous touchez {SHARE} % du budget, versé sur
+              votre portefeuille EduCash, et vous le retirez sur votre Mobile Money.
             </p>
           </div>
         </div>

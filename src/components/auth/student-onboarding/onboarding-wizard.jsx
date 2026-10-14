@@ -40,8 +40,8 @@ const FIELD_STEP = {
   cardUrl: 3,
 }
 
-const SAVE_ERROR = "Nous n'avons pas pu enregistrer ton profil. Réessaie dans un instant."
-const UPLOAD_ERROR = "L'envoi du fichier a échoué. Vérifie ta connexion puis réessaie."
+const SAVE_ERROR = "Nous n'avons pas pu enregistrer votre profil. Réessayez dans un instant."
+const UPLOAD_ERROR = "L'envoi du fichier a échoué. Vérifiez votre connexion puis réessayez."
 
 /** Clé de sessionStorage du brouillon (champs texte seulement, jamais les fichiers). */
 export function draftKey(userId) {

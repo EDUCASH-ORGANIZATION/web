@@ -15,8 +15,8 @@ export const EMPTY_INSTALL_STATE = {
   installed: false,
 }
 
-// Un seul registre, vouvoyé, pour l'étudiant comme pour le client.
-const COPY_VOUS = {
+// Même texte pour les deux espaces : un seul objet.
+const COPY = {
   title: "Installez EduCash",
   native: "Retrouvez vos missions depuis votre écran d'accueil.",
   ios: "Ajoutez EduCash à votre écran d'accueil : touchez Partager, puis « Sur l'écran d'accueil ».",
@@ -25,10 +25,8 @@ const COPY_VOUS = {
   close: "Fermer et ne plus afficher",
 }
 
-const COPY = { student: COPY_VOUS, client: COPY_VOUS }
-
 export function installCopy(space) {
-  return COPY[space] ?? null
+  return INSTALL_SPACES.includes(space) ? COPY : null
 }
 
 // Retourne { show, mode } avec mode "native" (beforeinstallprompt) ou "ios".

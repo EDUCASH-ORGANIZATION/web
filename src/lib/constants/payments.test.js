@@ -28,11 +28,10 @@ describe("paymentsEnabled", () => {
 })
 
 describe("PAYMENTS_PENDING_COPY", () => {
-  it("porte le message demandé, vouvoie le client comme l'étudiant", () => {
+  it("porte le message demandé, vouvoie le client et l'étudiant", () => {
     expect(PAYMENTS_PENDING_COPY.wallet.title).toBe("Recharge et retrait en cours d'activation")
     expect(PAYMENTS_PENDING_COPY.wallet.client).toMatch(/\bvos?\b/i)
     expect(PAYMENTS_PENDING_COPY.wallet.client).not.toMatch(/\b(ton|ta|tes|tu)\b/i)
-    // Registre unique (RD-VOUS-01) : la version étudiante est vouvoyée aussi.
     expect(PAYMENTS_PENDING_COPY.wallet.student).toMatch(/\bvos?\b/i)
     expect(PAYMENTS_PENDING_COPY.wallet.student).not.toMatch(/\b(ton|ta|tes|tu)\b/i)
     expect(PAYMENTS_PENDING_COPY.publish.title).toBe("Publication en cours d'activation")

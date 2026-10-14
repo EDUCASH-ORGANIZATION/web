@@ -14,10 +14,10 @@ const { EtudiantsHero } = await import("./etudiants-hero")
 const html = renderToStaticMarkup(<EtudiantsHero live={false} openMissions={0} role={null} />)
 
 describe("EtudiantsHero", () => {
-  it("titre tutoyé", () => {
-    expect(html).toContain("Bosse entre")
+  it("titre vouvoyé", () => {
+    expect(html).toContain("Bossez entre")
     expect(html).toContain("deux cours.")
-    expect(html).toContain("Encaisse.")
+    expect(html).toContain("Encaissez.")
   })
 
   it("photo de l'étudiante : source 1024, dimensions 644 x 1100, aplat citron", () => {

@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { getServerRole } from "@/lib/auth/server-role"
 
-// Un seul registre, vouvoyé, pour tous les rôles.
 const ERR_AUTH = "Vous devez être connecté pour effectuer cette action."
 const ERR_FORBIDDEN = "Vous n'avez pas les droits pour effectuer cette action."
 
@@ -25,15 +24,14 @@ export async function requireUser(errorMessage = ERR_AUTH) {
  * @returns {Promise<{ supabase: any, user: any, role: string, profile: object, error?: undefined } | { error: string }>}
  */
 export async function requireRole(roles) {
-  const errForbidden = ERR_FORBIDDEN
-  const auth = await requireUser(ERR_AUTH)
+  const auth = await requireUser()
   if (auth.error) return { error: auth.error }
 
   const { supabase, user } = auth
   const { role, profile, error } = await getServerRole(supabase, user)
-  if (error || !profile || !role) return { error: errForbidden }
-  if (profile.is_suspended === true) return { error: errForbidden }
-  if (!roles.includes(role)) return { error: errForbidden }
+  if (error || !profile || !role) return { error: ERR_FORBIDDEN }
+  if (profile.is_suspended === true) return { error: ERR_FORBIDDEN }
+  if (!roles.includes(role)) return { error: ERR_FORBIDDEN }
 
   return { supabase, user, role, profile }
 }

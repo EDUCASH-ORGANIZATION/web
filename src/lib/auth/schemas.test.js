@@ -49,88 +49,93 @@ describe("PASSWORD_RULES", () => {
 
 describe("makeRegisterSchema", () => {
   it.each(["student", "client"])("accepte le rôle %s", (role) => {
-    const result = parseFormData(makeRegisterSchema(role), form({ ...validRegister, role }))
+    const result = parseFormData(makeRegisterSchema(), form({ ...validRegister, role }))
     expect(result.ok).toBe(true)
     expect(result.data.role).toBe(role)
     expect(result.data.cgu).toBe(true)
   })
 
   it.each([["admin"], ["superadmin"], [""], ["Student"]])("refuse le rôle %j avec un message lisible", (role) => {
-    const result = parseFormData(makeRegisterSchema("student"), form({ ...validRegister, role }))
+    const result = parseFormData(makeRegisterSchema(), form({ ...validRegister, role }))
     expect(result.ok).toBe(false)
-    expect(result.fieldErrors.role).toBe("Choisis si tu es étudiant ou client.")
+    expect(result.fieldErrors.role).toBe("Choisissez si vous êtes étudiant ou client.")
   })
 
   it("refuse l'absence de rôle", () => {
     const { role, ...rest } = validRegister
-    const result = parseFormData(makeRegisterSchema("client"), form(rest))
+    const result = parseFormData(makeRegisterSchema(), form(rest))
     expect(result.fieldErrors.role).toBe("Choisissez si vous êtes étudiant ou client.")
   })
 
   it("exige la case des conditions", () => {
     const { cgu, ...rest } = validRegister
-    const result = parseFormData(makeRegisterSchema("student"), form(rest))
-    expect(result.fieldErrors.cgu).toMatch(/Accepte/)
-    const off = parseFormData(makeRegisterSchema("student"), form({ ...validRegister, cgu: "off" }))
+    const result = parseFormData(makeRegisterSchema(), form(rest))
+    expect(result.fieldErrors.cgu).toMatch(/Acceptez/)
+    const off = parseFormData(makeRegisterSchema(), form({ ...validRegister, cgu: "off" }))
     expect(off.fieldErrors.cgu).toBeDefined()
   })
 
   it("exige une confirmation identique", () => {
-    const result = parseFormData(makeRegisterSchema("student"), form({ ...validRegister, confirmPassword: "Autre1!aa" }))
+    const result = parseFormData(makeRegisterSchema(), form({ ...validRegister, confirmPassword: "Autre1!aa" }))
     expect(result.fieldErrors).toEqual({ confirmPassword: "Les deux mots de passe ne sont pas identiques." })
   })
 
   it("exige une confirmation renseignée", () => {
-    const result = parseFormData(makeRegisterSchema("client"), form({ ...validRegister, confirmPassword: "" }))
+    const result = parseFormData(makeRegisterSchema(), form({ ...validRegister, confirmPassword: "" }))
     expect(result.fieldErrors.confirmPassword).toBe("Confirmez votre mot de passe.")
   })
 
   it.each(["abc", "abcdefgh", "ABCDEFG1!", "Abcdefgh1", "Ab1!"])("refuse le mot de passe faible %j", (password) => {
     const result = parseFormData(
-      makeRegisterSchema("student"),
+      makeRegisterSchema(),
       form({ ...validRegister, password, confirmPassword: password })
     )
     expect(result.fieldErrors.password).toMatch(/règles/)
   })
 
   it("refuse un email jetable et un email invalide", () => {
-    const disposable = parseFormData(makeRegisterSchema("student"), form({ ...validRegister, email: "x@Mailinator.com" }))
+    const disposable = parseFormData(makeRegisterSchema(), form({ ...validRegister, email: "x@Mailinator.com" }))
     expect(disposable.fieldErrors.email).toMatch(/jetables/)
-    const invalid = parseFormData(makeRegisterSchema("student"), form({ ...validRegister, email: "pas-un-email" }))
+    const invalid = parseFormData(makeRegisterSchema(), form({ ...validRegister, email: "pas-un-email" }))
     expect(invalid.fieldErrors.email).toBe("Cette adresse email n'est pas valide.")
   })
 
   it("refuse un email de plus de 254 caractères", () => {
     const long = `${"a".repeat(250)}@example.com`
-    const result = parseFormData(makeRegisterSchema("student"), form({ ...validRegister, email: long }))
+    const result = parseFormData(makeRegisterSchema(), form({ ...validRegister, email: long }))
     expect(result.fieldErrors.email).toMatch(/254/)
   })
 
   it("coupe les espaces autour de l'email", () => {
-    const result = parseFormData(makeRegisterSchema("student"), form({ ...validRegister, email: "  sena@example.com " }))
+    const result = parseFormData(makeRegisterSchema(), form({ ...validRegister, email: "  sena@example.com " }))
     expect(result.data.email).toBe("sena@example.com")
   })
 })
 
-describe("messages par audience", () => {
+describe("messages : vouvoiement pour tous", () => {
   const empty = form({})
+  const TU_FORMS = /(?<!\p{L})(tu|ton|ta|tes|toi)(?!\p{L})/iu
 
-  it("tutoie l'étudiant", () => {
-    const { fieldErrors } = parseFormData(makeLoginSchema("student"), empty)
-    expect(fieldErrors).toEqual({ email: "Saisis ton adresse email.", password: "Saisis ton mot de passe." })
-  })
-
-  it("vouvoie le client et les écrans neutres", () => {
+  it("vouvoie, quel que soit l'argument d'audience hérité des anciens appels", () => {
     const expected = { email: "Saisissez votre adresse email.", password: "Saisissez votre mot de passe." }
+    expect(parseFormData(makeLoginSchema(), empty).fieldErrors).toEqual(expected)
+    expect(parseFormData(makeLoginSchema("student"), empty).fieldErrors).toEqual(expected)
     expect(parseFormData(makeLoginSchema("client"), empty).fieldErrors).toEqual(expected)
     expect(parseFormData(loginSchema, empty).fieldErrors).toEqual(expected)
   })
 
-  it("n'emploie pas « vous » côté étudiant ni « tu » côté client", () => {
-    const student = parseFormData(makeRegisterSchema("student"), empty).fieldErrors
-    const client = parseFormData(makeRegisterSchema("client"), empty).fieldErrors
-    expect(Object.values(student).join(" ")).not.toMatch(/(?<!\p{L})(vous|votre|vos)(?!\p{L})/iu)
-    expect(Object.values(client).join(" ")).not.toMatch(/(?<!\p{L})(tu|ton|ta|tes)(?!\p{L})/iu)
+  it("n'emploie aucune forme du tutoiement, inscription et onboardings compris", () => {
+    const messages = [
+      parseFormData(makeRegisterSchema(), empty).fieldErrors,
+      parseFormData(studentIdentitySchema, empty).fieldErrors,
+      parseFormData(studentStudiesSchema, empty).fieldErrors,
+      parseFormData(clientTypeSchema, empty).fieldErrors,
+      parseFormData(clientIdentitySchema, empty).fieldErrors,
+      parseFormData(makeRegisterSchema(), form({ ...validRegister, role: "x", email: "a@mailinator.com", password: "abc", confirmPassword: "zz" })).fieldErrors,
+      parseFormData(studentIdentitySchema, form({ fullName: "1234", city: "Paris", phone: "1", bio: "x".repeat(201) })).fieldErrors,
+    ].flatMap((errors) => Object.values(errors))
+    expect(messages.length).toBeGreaterThan(10)
+    expect(messages.join(" ")).not.toMatch(TU_FORMS)
   })
 })
 
@@ -149,16 +154,16 @@ describe("loginSchema", () => {
 describe("forgotSchema, resendSchema, resetSchema", () => {
   it("valident l'email", () => {
     expect(parseFormData(forgotSchema, form({ email: "a@example.com" })).ok).toBe(true)
-    expect(parseFormData(makeForgotSchema("student"), form({ email: "nope" })).fieldErrors.email).toBeDefined()
+    expect(parseFormData(makeForgotSchema(), form({ email: "nope" })).fieldErrors.email).toBeDefined()
     expect(parseFormData(resendSchema, form({ email: "a@example.com" })).ok).toBe(true)
-    expect(parseFormData(makeResendSchema("student"), form({ email: "" })).fieldErrors.email).toMatch(/Saisis/)
+    expect(parseFormData(makeResendSchema(), form({ email: "" })).fieldErrors.email).toMatch(/Saisissez/)
   })
 
   it("reset : règles et confirmation", () => {
     expect(parseFormData(resetSchema, form({ password: STRONG, confirmPassword: STRONG })).ok).toBe(true)
     expect(parseFormData(resetSchema, form({ password: "abc", confirmPassword: "abc" })).fieldErrors.password).toBeDefined()
     expect(
-      parseFormData(makeResetSchema("student"), form({ password: STRONG, confirmPassword: "Zzzzzz1!" })).fieldErrors.confirmPassword
+      parseFormData(makeResetSchema(), form({ password: STRONG, confirmPassword: "Zzzzzz1!" })).fieldErrors.confirmPassword
     ).toBeDefined()
   })
 })
@@ -184,14 +189,14 @@ describe("studentIdentitySchema", () => {
     expect(parseFormData(studentIdentitySchema, form({ ...valid, fullName: "S" })).fieldErrors.fullName).toBeDefined()
     expect(parseFormData(studentIdentitySchema, form({ ...valid, fullName: "x".repeat(81) })).fieldErrors.fullName).toBeDefined()
     expect(parseFormData(studentIdentitySchema, form({ ...valid, fullName: "1234" })).fieldErrors.fullName).toMatch(/lettre/)
-    expect(parseFormData(studentIdentitySchema, form({ ...valid, fullName: "" })).fieldErrors.fullName).toBe("Saisis ton nom et ton prénom.")
+    expect(parseFormData(studentIdentitySchema, form({ ...valid, fullName: "" })).fieldErrors.fullName).toBe("Saisissez votre nom et votre prénom.")
   })
 
-  it("refuse une ville hors CITIES et un téléphone invalide, avec messages tutoyés", () => {
+  it("refuse une ville hors CITIES et un téléphone invalide, avec messages vouvoyés", () => {
     const result = parseFormData(studentIdentitySchema, form({ ...valid, city: "Paris", phone: "97 45 21" }))
-    expect(result.fieldErrors.city).toBe("Choisis ta ville.")
+    expect(result.fieldErrors.city).toBe("Choisissez votre ville.")
     expect(result.fieldErrors.phone).toMatch(/10 chiffres/)
-    expect(parseFormData(studentIdentitySchema, form({ ...valid, phone: "" })).fieldErrors.phone).toBe("Saisis ton numéro de téléphone.")
+    expect(parseFormData(studentIdentitySchema, form({ ...valid, phone: "" })).fieldErrors.phone).toBe("Saisissez votre numéro de téléphone.")
   })
 })
 
@@ -215,9 +220,9 @@ describe("studentStudiesSchema", () => {
   it("refuse établissement, niveau et compétences manquants ou hors liste", () => {
     const result = parseFormData(studentStudiesSchema, form({ school: "", level: "CP", skills: [] }))
     expect(result.fieldErrors).toMatchObject({
-      school: "Choisis ton établissement.",
-      level: "Choisis ton niveau.",
-      skills: "Choisis au moins une compétence.",
+      school: "Choisissez votre établissement.",
+      level: "Choisissez votre niveau.",
+      skills: "Choisissez au moins une compétence.",
     })
     expect(parseFormData(studentStudiesSchema, form({ ...valid, skills: ["Piratage"] })).ok).toBe(false)
     expect(parseFormData(studentStudiesSchema, form({ ...valid, availability: ["Jamais"] })).ok).toBe(false)
@@ -251,7 +256,7 @@ describe("clientTypeSchema et clientIdentitySchema", () => {
 
 describe("parseFormData", () => {
   it("renvoie la première erreur de chaque champ", () => {
-    const result = parseFormData(makeLoginSchema("student"), form({ email: "", password: "" }))
+    const result = parseFormData(makeLoginSchema(), form({ email: "", password: "" }))
     expect(result.ok).toBe(false)
     expect(Object.keys(result.fieldErrors).sort()).toEqual(["email", "password"])
   })
@@ -284,7 +289,7 @@ describe("confirmation et listes (corrections d'intégration)", () => {
     fd.set("email", "pas-un-email")
     fd.set("password", "Abcdef1!x")
     fd.set("confirmPassword", "Autre1!xyz")
-    const result = parseFormData(makeRegisterSchema("student"), fd)
+    const result = parseFormData(makeRegisterSchema(), fd)
     expect(result.ok).toBe(false)
     expect(result.fieldErrors.email).toBeDefined()
     expect(result.fieldErrors.confirmPassword).toMatch(/pas identiques/)

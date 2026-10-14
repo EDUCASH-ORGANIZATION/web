@@ -33,13 +33,13 @@ const TEMPLATES = {
 
 const SUBJECTS = {
   "welcome-student":        "Bienvenue sur EduCash",
-  "welcome-verified":       "Ton profil a été vérifié",
+  "welcome-verified":       "Votre profil a été vérifié",
   "new-application":        "Nouvelle candidature pour votre mission",
   "application-accepted":   "Bonne nouvelle ! Vous avez été sélectionné(e)",
   "application-rejected":   "Mise à jour de votre candidature",
-  "verification-approved":  "Ton profil EduCash est vérifié",
-  "verification-rejected":  "Action requise sur ton dossier EduCash",
-  "verification-expired":   "Ton badge EduCash a expiré : renouvelle-le",
+  "verification-approved":  "Votre profil EduCash est vérifié",
+  "verification-rejected":  "Action requise sur votre dossier EduCash",
+  "verification-expired":   "Votre badge EduCash a expiré : renouvelez-le",
   "wallet-deposited":           "Votre portefeuille a été rechargé",
   "payment-received-wallet":    "Paiement reçu dans votre portefeuille",
   "contact-message":            "Contact EduCash",

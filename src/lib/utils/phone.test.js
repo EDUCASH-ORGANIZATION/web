@@ -75,8 +75,8 @@ describe("beninPhoneSchema", () => {
   })
 
   it("accepte des messages personnalisés", () => {
-    const schema = makeBeninPhoneSchema({ empty: "Saisis ton numéro." })
-    expect(schema.safeParse("").error.issues[0].message).toBe("Saisis ton numéro.")
+    const schema = makeBeninPhoneSchema({ empty: "Indiquez votre numéro." })
+    expect(schema.safeParse("").error.issues[0].message).toBe("Indiquez votre numéro.")
   })
 })
 

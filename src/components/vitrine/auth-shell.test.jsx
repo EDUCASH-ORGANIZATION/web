@@ -10,7 +10,7 @@ const { AuthShell } = await import("./auth-shell")
 const text = (html) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")
 
 describe("AuthShell", () => {
-  it("rend la racine .ds, le gabarit .auth et le panneau bleu étudiant tutoyé", () => {
+  it("rend la racine .ds, le gabarit .auth et le panneau bleu étudiant vouvoyé", () => {
     const html = renderToStaticMarkup(
       <AuthShell audience="student">
         <form className="auth__form" />
@@ -21,8 +21,10 @@ describe("AuthShell", () => {
     expect(html).toContain("auth__brand grid-bg")
     expect(html).not.toContain("auth__brand--client")
     expect(html).toContain('<form class="auth__form">')
-    expect(html).toContain("Le client bloque l&#x27;argent avant que tu commences.")
-    expect(text(html)).not.toMatch(/\b(vous|votre|vos)\b/i)
+    expect(html).toContain("Le client bloque l&#x27;argent avant que vous commenciez.")
+    expect(text(html)).toContain("Bossez entre deux cours.")
+    expect(text(html)).toContain("Encaissez.")
+    expect(text(html)).not.toMatch(/(?<!\p{L})(tu|te|ton|ta|tes|toi)(?!\p{L})/iu)
   })
 
   it("rend le panneau encre client vouvoyé, sans délai ni prestataire", () => {

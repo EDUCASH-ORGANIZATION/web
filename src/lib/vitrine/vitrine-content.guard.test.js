@@ -130,6 +130,25 @@ describe("garde-fous de contenu vitrine", () => {
     expect(hits).toEqual([])
   })
 
+  it("vouvoiement : aucun tutoiement dans les textes de la vitrine publique", () => {
+    // Filet local, volontairement conservé : le garde-fou global src/lib/security/no-tutoiement.guard.test.js
+    // est la référence (plus complet) ; celui-ci échoue plus près des fichiers de la vitrine.
+    // Décision RD-VOUS-01 : vouvoiement partout. L'authentification (components/auth, app/auth, auth-shell)
+    // est couverte par ses propres tests ; le garde-fou global no-tutoiement.guard.test.js couvre tout src/.
+    const PRONOUNS = /(^|[^\p{L}-])(?:(?:tu|toi|ton|ta|tes|te)(?![\p{L}-])|t(?:['\u2019]|&rsquo;|&apos;))/iu
+    const COMPOUND = /\p{L}+-(toi|tu|te)(?![\p{L}-])/iu
+    const IMPERATIVES = /(^|[^\p{L}-])(Crée|Encaisse|Postule|Écris|Fais|Trouve|Prouve|Découvre|Retire|Reprends|Réessaie|Vérifie|Envoie|Contacte|Choisis|Parcours|Bosse|Sois|Essaie|Précise|Explique|Laisse|Inscris|Connecte|Reviens|Retrouve|Filtre|Ouvre|Utilise|Renvoie|Élargis|Donne|Passe)(?![\p{L}])/u
+    const hits = []
+    for (const f of files.filter((n) => /\.jsx?$/.test(n) && !/^src\/(components|app)\/auth\//.test(n))) {
+      const text = visibleText(f).replace(/(className|href|id|name|type|htmlFor|aria-labelledby|aria-describedby)=("[^"]*"|\{[^}]*\})/g, "")
+      for (const re of [PRONOUNS, COMPOUND, IMPERATIVES]) {
+        const m = text.match(re)
+        if (m) hits.push(`${f}: ${m[0].trim()}`)
+      }
+    }
+    expect(hits).toEqual([])
+  })
+
   it("aucun <select> natif dans l'authentification (Select maison du design system)", () => {
     const hits = files.filter((f) => /^src\/(components|app)\/auth\//.test(f) && /<select[\s>]/.test(read(f)))
     expect(hits).toEqual([])

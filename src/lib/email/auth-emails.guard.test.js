@@ -5,7 +5,7 @@ import { join } from "node:path"
 const TEMPLATES_DIR = "src/lib/email/templates"
 const SUPABASE_DIR = "supabase/templates"
 
-// Gabarits d'accueil (etudiants, tutoiement) et ensemble des gabarits Resend.
+// Gabarits d'accueil et ensemble des gabarits Resend (vouvoiement partout, decision RD-VOUS-01).
 const AUTH_RESEND = ["welcome-student.jsx", "welcome-verified.jsx"].map((f) => join(TEMPLATES_DIR, f))
 const ALL_RESEND = readdirSync(TEMPLATES_DIR)
   .filter((f) => f.endsWith(".jsx"))
@@ -18,8 +18,26 @@ const INDEX = "src/lib/email/index.js"
 const read = (f) => readFileSync(f, "utf8")
 const VISIBLE = [...AUTH_RESEND, ...SUPABASE]
 
+// Detecteur de tutoiement : pronoms et possessifs de la 2e personne du singulier, elisions (t'),
+// pronom postpose (-toi, -tu) et impératifs courants des anciens gabarits (sans pronom).
+// Les bornes de mot sont posees avec \p{L} : \b ne reconnait pas les lettres accentuees (ex. "n'etes").
+const L = "(?<![\\p{L}\\p{N}_])"
+const R = "(?![\\p{L}\\p{N}_])"
+const TUTOIEMENT = new RegExp(
+  `${L}(tu|toi|ton|ta|tes|te)${R}|${L}t['\\u2019]|${L}t&apos;|-(toi|tu)${R}|${L}(confirme|reinitialise|réinitialise|copie|ignore|consulte|commence|garde|hesite|hésite|renouvelle|reprends|soumets|explore)${R}`,
+  "iu",
+)
+
 // Retire les commentaires HTML (consignes d'application) pour ne scanner que le texte envoye
 const withoutComments = (src) => src.replace(/<!--[\s\S]*?-->/g, "")
+
+// Texte visible : sans commentaires (HTML, bloc, ligne), balises ni attributs, pour que le detecteur
+// ne s'applique pas au code (noms de props, classes, URL).
+const visibleText = (src) =>
+  withoutComments(src)
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1")
+    .replace(/<[^<>]*>/g, " ")
 
 describe("emails d'auth", () => {
   it("les deux gabarits Supabase existent", () => {
@@ -78,7 +96,43 @@ describe("emails d'auth", () => {
     expect(subjectValues.filter((l) => /\u2014|wallet|\p{Extended_Pictographic}/iu.test(l))).toEqual([])
   })
 
-  it("tutoiement dans les gabarits etudiants", () => {
-    for (const f of AUTH_RESEND) expect(read(f)).not.toMatch(/\bvotre\b|\bvous\b|\bvos\b/i)
+  it("detecteur de tutoiement : fixtures vrai positif et vrai negatif", () => {
+    const tutoyes = [
+      "Ton profil est verifie",
+      "Tu peux postuler",
+      "Confirme ton adresse email",
+      "Copie ce lien dans ton navigateur",
+      "Consulte les missions près de chez toi",
+      "Tu n'as pas cree de compte",
+      "N&apos;hésite pas à nous contacter",
+      "Réinitialise le mot de passe",
+      "Connecte-toi pour continuer",
+      "Garde ton avantage",
+    ]
+    const vouvoyes = [
+      "Votre profil est verifie",
+      "Vous pouvez postuler",
+      "Confirmez votre adresse email",
+      "Copiez ce lien dans votre navigateur",
+      "Consultez les missions près de chez vous",
+      "Vous n'avez pas cree de compte",
+      "N&apos;hésitez pas à nous contacter",
+      "Gardez votre avantage compétitif",
+      "Bienvenue sur EduCash. Nous examinons votre carte.",
+    ]
+    for (const t of tutoyes) expect(t, t).toMatch(TUTOIEMENT)
+    for (const v of vouvoyes) expect(v, v).not.toMatch(TUTOIEMENT)
+  })
+
+  it("le texte visible ignore balises, attributs et commentaires mais garde le texte", () => {
+    const code = '<a href="https://x.fr/ton" data-te="1">Ton lien</a> {/* tu es ici */} // tu aussi\n<!-- ton -->'
+    expect(visibleText(code)).toMatch(TUTOIEMENT)
+    expect(visibleText('<a href="https://x.fr/ton" data-te="1">Votre lien</a> {/* tu es ici */}')).not.toMatch(TUTOIEMENT)
+    expect(visibleText("const a = 1 // tu peux\nconst b = 2")).not.toMatch(TUTOIEMENT)
+  })
+
+  it("vouvoiement partout : aucune forme de tutoiement dans les gabarits ni les objets d'email", () => {
+    const hits = [...ALL_RESEND, ...SUPABASE, INDEX].filter((f) => TUTOIEMENT.test(visibleText(read(f))))
+    expect(hits).toEqual([])
   })
 })

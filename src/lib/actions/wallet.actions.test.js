@@ -229,6 +229,7 @@ describe("messages d'erreur : un seul registre vouvoyé pour tous les rôles", (
     getServerRole.mockRejectedValue(new Error("db"))
     failRead()
     expect((await getWallet()).error).toBe("Impossible de charger votre portefeuille.")
+    expect(getServerRole).not.toHaveBeenCalled()
   })
 
   it("le client est vouvoyé quand la fonction de paiement échoue", async () => {
@@ -278,7 +279,7 @@ describe("messages d'erreur : un seul registre vouvoyé pour tous les rôles", (
     expect(await initiateDeposit({ amount: 5000 })).toEqual({ error: "Le dépôt n'a pas pu être initié. Réessayez dans un instant." })
   })
 
-  it("le portefeuille illisible lors d'un retrait suit le rôle", async () => {
+  it("le portefeuille illisible lors d'un retrait est vouvoyé", async () => {
     getServerRole.mockResolvedValue({ role: "client" })
     single.mockResolvedValue({ data: null, error: { message: "boom" } })
     expect((await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })).error).toBe(

@@ -59,7 +59,7 @@ export function MissionCard({ mission }) {
       <div className="mission__foot">
         <div className="mission__price">
           <span className="amount amount--m">{fmtInt(budget)}&#8239;<small>FCFA</small></span>
-          <small className="net">Tu touches {fmtInt(net)}&#8239;FCFA</small>
+          <small className="net">Vous touchez {fmtInt(net)}&#8239;FCFA</small>
         </div>
         <span className="btn btn--primary btn--sm">Voir</span>
       </div>
