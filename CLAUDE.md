@@ -39,7 +39,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - L'authentification (`/auth/*`) est refondue sur le design system (RD-02) ; plus aucune page MUI.
 - Règle pour tout nouvel écran : uniquement les classes du système sous une racine `.ds`, en reprenant la maquette de `/Users/brandonmedehou/Desktop/EDUCASH/design-rebrand/maquettes/`. Pas de Tailwind dans un écran refondu.
 - Exception tolérée : utilitaires Tailwind de dimension et de forme (w-*, h-*, max-w-*, rounded-full, object-cover) pour les squelettes de chargement et les images d'avatar, tant que le système ne fournit pas d'équivalent. Aucune couleur, aucun espacement de mise en page en Tailwind dans un écran refondu.
-- UX : l'étudiant est tutoyé, le client vouvoyé, l'admin se tutoie entre collègues. Deux publics seulement : les clients (familles, salariés, fonctionnaires, entreprises : même compte) sur `/`, les étudiants sur `/etudiants`. Pas de page ni de bloc « Entreprises ».
+- UX : tous les textes visibles (clients, étudiants, admin, emails, vitrine, messages d'erreur des actions serveur) sont au VOUVOIEMENT, jamais de tutoiement. Deux publics seulement : les clients (familles, salariés, fonctionnaires, entreprises : même compte) sur `/`, les étudiants sur `/etudiants`. Pas de page ni de bloc « Entreprises ».
 
 ## Routes cibles (décision 14 de INVENTAIRE.md)
 - Espace étudiant entièrement sous `/student/...` (`/dashboard`, `/applications`, `/messages`, `/wallet`, `/profile` y déménagent, avec redirections depuis les anciennes URL).
@@ -86,7 +86,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 - Appels de portefeuille (réserver, libérer, rembourser) : client service role côté serveur, via `callWalletRpc` (`src/lib/wallet/wallet-rpc.js`). Succès seulement si `error == null` et `data.success === true`.
 - Missions : `createMission` publie puis réserve les fonds, et supprime la mission si la réservation échoue. `discardMission` rembourse puis annule : la base refusera de supprimer une mission ayant des mouvements de portefeuille.
 - Paiements en pause : tout est derrière `PAYMENTS_ENABLED` (faux par défaut). Lire le drapeau par `paymentsEnabled()` et afficher `PAYMENTS_PENDING_COPY` (`src/lib/constants/payments.js`). Les Edge Functions de paiement répondent 503 tant qu'il est désactivé, l'auto-release est inerte, aucun paiement automatique. Aucun prestataire de paiement nommé dans les textes visibles : la passerelle reste à définir.
-- Garde-fous de sécurité : `vitrine-content`, `vocabulary.render`, `client-boundary`, `mission-type-display`, `role-authority`, `service-client`, `no-em-dash` (sans exception), `auth-emails`, `payments-disabled`, et le test des colonnes privées dans `profile.actions.test.js`.
+- Garde-fous de sécurité : `vitrine-content`, `vocabulary.render`, `client-boundary`, `mission-type-display`, `role-authority`, `service-client`, `no-em-dash` (sans exception), `auth-emails`, `no-tutoiement` (vouvoiement partout : scanne les chaînes et le texte JSX visibles de tout `src/`, hors tests et hors le prompt LLM interne de `verify-card.actions.js`), `payments-disabled`, et le test des colonnes privées dans `profile.actions.test.js`.
 
 ## Conventions
 - Commits Conventional Commits en anglais. Branches `feat/<TASK_ID>-<slug>`. Jamais de push sur `main`.
