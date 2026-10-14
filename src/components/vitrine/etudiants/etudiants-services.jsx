@@ -15,7 +15,7 @@ const TYPE_STYLE = {
   },
   "Livraison": {
     shape: "sh-circle", card: "", sq: " ic-sq--givre",
-    example: "Tu fais le marché pour une famille. Les achats, c'est le client qui les paie au vendeur.",
+    example: "Vous faites le marché pour une famille. Les achats, c'est le client qui les paie au vendeur.",
   },
   "Saisie": {
     shape: "sh-quarter", card: " v-cat--encre", sq: "",

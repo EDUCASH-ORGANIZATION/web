@@ -18,7 +18,7 @@ export function EtudiantsProofs({ rating }) {
     <div className="v-proofs ds-mt-4">
       <div className="v-proof">
         <div>
-          <div className="eyebrow">Retrait sur ton Mobile Money</div>
+          <div className="eyebrow">Retrait sur votre Mobile Money</div>
           <Payers />
         </div>
       </div>
@@ -26,9 +26,9 @@ export function EtudiantsProofs({ rating }) {
       <div className="v-proof">
         <span className="ic-sq ic-sq--lg"><Icon name="i-lock" /></span>
         <div>
-          <div className="v-proof__title">Ton argent est bloqué avant que tu bosses.</div>
+          <div className="v-proof__title">Votre argent est bloqué avant que vous travailliez.</div>
           <div className="v-proof__text">
-            Le client paie d&rsquo;avance. L&rsquo;argent reste en séquestre et arrive sur ton portefeuille dès qu&rsquo;il
+            Le client paie d&rsquo;avance. L&rsquo;argent reste en séquestre et arrive sur votre portefeuille dès qu&rsquo;il
             valide la mission.
           </div>
         </div>
@@ -51,7 +51,7 @@ export function EtudiantsProofs({ rating }) {
           <span className="ic-sq ic-sq--lg ic-sq--bleu"><Icon name="i-shield" /></span>
           <div>
             <div className="v-proof__title">Un badge qui rassure.</div>
-            <div className="v-proof__text">Ta carte est contrôlée par l&rsquo;équipe. Badge valable 1 an.</div>
+            <div className="v-proof__text">Votre carte est contrôlée par l&rsquo;équipe. Badge valable 1 an.</div>
           </div>
         </div>
       )}

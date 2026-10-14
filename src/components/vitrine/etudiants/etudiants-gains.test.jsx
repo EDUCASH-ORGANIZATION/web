@@ -13,7 +13,7 @@ describe("EtudiantsGains", () => {
   const share = 100 - commission
 
   it("calcule les pourcentages depuis COMMISSION_RATE", () => {
-    expect(text(html)).toContain(`${share} % pour toi`)
+    expect(text(html)).toContain(`${share} % pour vous`)
     expect(text(html)).toContain(`commission unique de ${commission} %`)
   })
 
@@ -29,7 +29,7 @@ describe("EtudiantsGains", () => {
     const t = text(html)
     for (const budget of [5000, 25000, 15000]) {
       const net = new Intl.NumberFormat("fr-FR").format(netAmount(budget)).replace(/[  ]/g, " ")
-      expect(t).toContain(`Tu touches ${net} FCFA`)
+      expect(t).toContain(`Vous touchez ${net} FCFA`)
     }
   })
 
