@@ -1,0 +1,334 @@
+/* @ds-screen RD-STUDENT-01 */
+/* =====================================================================
+   EduCash - student/base.css
+   Espace etudiant v2.1 « calme » (E02 a E13), port de v2-etudiant.css.
+   Charge apres app-shell.css et client.css, via student.css.
+
+   1. Apaisement des composants v1 dans .e2 (racine de l'espace etudiant,
+      posee par le layout : <div className="ds e2">) : filets 1 px, aucune
+      ombre dure, controles coches en encre. La portee de la planche
+      (body.v2e) devient .e2.
+   1b. Equivalents .e2 des regles .c2 de client/base.css et d'app-shell.css
+      dont dependent les composants app-ui et la coquille (boutons icone,
+      onglets, champs, etoiles, avatars, cibles de 44 px, mouvement reduit).
+   2. Composants communs (prefixe .e2-) : retour, onglets, notes, vide,
+      recu, suivi, barre fixe mobile, cartes de mission...
+   Aucune regle hors .e2 ne cible une classe du code ancien : le rendu des
+   pages existantes ne change pas.
+
+   Differences avec la planche :
+   - .table et .table-wrap deviennent .ds-table et .ds-table-wrap ;
+   - les variantes --m des planches (DOM mobile separe) et .mpage2 sont
+     remplacees par des media queries sur les classes de base ;
+   - la barre du bas est celle de RD-NAV-02 (capsule, app-shell.css) : les
+     deux regles .v2e .bottom-nav--v2 .bnav-item de la planche ne sont pas
+     reprises (min-width: 0 casserait la capsule) ;
+   - ombres des fenetres : couleur par color-mix sur --c-encre (aucun rgba) ;
+   - .e2-mbar est fixe (position: fixed + safe-area), pas absolue.
+   ===================================================================== */
+
+/* ---------- 1. Composants v1 atténués ---------- */
+.e2 .card, .e2 .mission, .e2 .detail-card { border: 1px solid var(--c-ligne); box-shadow: none; }
+.e2 .modal, .e2 .sheet { border: 1px solid var(--c-ligne); box-shadow: 0 24px 60px color-mix(in srgb, var(--c-encre) 18%, transparent); border-radius: var(--r-l); }
+.e2 .sheet { border-radius: var(--r-l) var(--r-l) 0 0; border-bottom: 0; }
+/* Tiroir : colle au bord, sans ombre ni arrondi (comme .c2 .drawer) */
+.e2 .drawer { border: 0; border-left: 1px solid var(--c-ligne); box-shadow: none; border-radius: 0; }
+.e2 .toast { box-shadow: 0 12px 32px color-mix(in srgb, var(--c-encre) 18%, transparent); }
+.e2 .btn--secondary { border: 1.5px solid var(--c-brume); }
+.e2 .segmented { border: 1px solid var(--c-ligne); }
+.e2 .chip { border: 1px solid var(--c-ligne); }
+.e2 .chip:hover, .e2 .chip.is-hover { border-color: var(--c-acier); }
+.e2 .chip.is-selected { border-color: var(--c-encre); }
+.e2 .chip.is-selected .count { background: transparent; color: var(--c-brume); }
+.e2 .tab.is-active { border-bottom-color: var(--c-encre); }
+.e2 .tab .count, .e2 .tab.is-active .count { background: transparent; color: var(--c-ardoise); min-width: 0; padding: 0; }
+.e2 .check input:checked, .e2 .check.is-checked input { background-color: var(--c-encre); border-color: var(--c-encre); }
+.e2 .radio input:checked, .e2 .radio.is-checked input { border-color: var(--c-encre); background: radial-gradient(circle, var(--c-encre) 0 5px, var(--c-blanc) 6px); }
+.e2 .page-btn.is-active { background: var(--c-givre); color: var(--c-encre); border-color: var(--c-ligne); }
+.e2 .recap { background: var(--c-givre); }
+.e2 .input, .e2 .select { border-width: 1.5px; }
+
+/* Montants signés : le « + » reste en encre (pas de vert hors badge) */
+.e2 .amount--plus { color: var(--c-encre); }
+.e2 .ds-table-wrap, .e2 .tcard { border: 1px solid var(--c-ligne); }
+.e2 .ds-table td { border-bottom-width: 1px; }
+
+/* Choix, étapes, écran de résultat : version calme */
+.e2 .choice { border: 1.5px solid var(--c-ligne); }
+.e2 .choice:hover, .e2 .choice.is-hover { border-color: var(--c-acier); }
+.e2 .choice.is-selected { border-color: var(--c-encre); background: var(--c-blanc); box-shadow: none; }
+.e2 .choice.is-selected .choice__mark { background-color: var(--c-encre); border-color: var(--c-encre); }
+.e2 .step.is-current .step__dot { background: var(--c-blanc); border: 2px solid var(--c-encre); color: var(--c-encre); box-shadow: none; }
+.e2 .step.is-done .step__dot { color: var(--c-blanc); }
+.e2 .step__line.is-done { background: var(--c-encre); }
+.e2 .modal__icon { display: none; }
+.e2 .e-success__mark { background: var(--c-givre); color: var(--c-encre); border: 1px solid var(--c-ligne); box-shadow: none; width: 56px; height: 56px; }
+.e2 .e-success__mark .ic { width: 26px; height: 26px; }
+.e2 .toast--succes .toast__icon { background: var(--c-encre-700); color: var(--c-blanc); }
+.e2 .modal__head > .iconbtn2:last-child { margin-left: auto; }
+
+/* ---------- 1b. Équivalents .e2 des règles .c2 utilisées par app-ui et la coquille ---------- */
+
+/* Boutons icône (fermer d'une fenêtre, d'un toast) : carrés arrondis discrets, jamais ronds cerclés d'encre */
+.e2 .btn-icon { width: 40px; height: 40px; border-radius: 10px; border: 0; background: transparent; }
+.e2 .btn-icon--sm { width: 36px; height: 36px; }
+.e2 .btn-icon:hover, .e2 .btn-icon.is-hover { background: var(--c-givre); }
+.e2 .toast__close:hover, .e2 .toast__close.is-hover { background: var(--c-encre-700); }
+
+/* Champs : filet 1,5 px, focus bleu inchangé */
+.e2 .control { border-width: 1.5px; }
+.e2 .check input, .e2 .radio input { border-width: 1.5px; }
+
+/* Étoiles de notation : encre (le citron reste réservé à .flag2) */
+.e2 .stars--input .is-on { fill: var(--c-encre); stroke: var(--c-encre); }
+.e2 .stars--input .is-hover { fill: var(--c-ligne); }
+
+/* Onglets : actif souligné encre, filet d'un pixel */
+.e2 .tabs { border-bottom: 1px solid var(--c-ligne); }
+.e2 .tab { border-bottom-width: 2px; margin-bottom: -1px; }
+
+/* Avatars : initiales neutres, image rognée dans le cercle */
+.e2 .av2 { overflow: hidden; }
+.e2 .av2 img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+
+/* Anneau systeme (3 px) sur les liens de cartes et de listes, et sortie visible des champs sans anneau propre.
+   Seules les cibles sans anneau propre sont visees : aucun composant du systeme (couleur, ombre, transform) n'est ecrase. */
+.e2 .link:focus-visible, .e2 .list2__more:focus-visible, .e2 .hero2__link:focus-visible, .e2 .list2__head a:focus-visible, .e2 .item2__action:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
+.e2 input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(.input):not(.composer__input2):focus-visible, .e2 textarea:not(.input):not(.composer__input2):focus-visible, .e2 select:not(.select):focus-visible { outline: 2px solid var(--c-bleu); outline-offset: 2px; }
+
+/* Focus visible des éléments propres à l'espace étudiant (bleu sur clair, bleu et citron sur encre) */
+.e2 .e2-tab:focus-visible, .e2 .e2-pill:focus-visible, .e2 .e2-link:focus-visible, .e2 .e2-back:focus-visible,
+.e2 .e2-06-convo:focus-visible, .e2 .e2-10-links > a:focus-visible, .e2 .e2-04-row:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+.e2 .e2-pill.is-active:focus-visible { box-shadow: var(--sh-focus-sombre); }
+.e2 .e2-mcard:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+.e2 .e2-mcard:has(:focus-visible) { box-shadow: var(--sh-focus); }
+
+/* ---------- 2. Composants communs ---------- */
+
+/* Lien de retour au-dessus du titre */
+.e2-back { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-body-s); font-weight: var(--fw-semibold); color: var(--c-ardoise); border-radius: 6px; }
+.e2-back .ic { width: 16px; height: 16px; stroke-width: 2; }
+/* Sous-titre de page (sous le titre Anton) */
+.e2-lead { font-size: 15px; color: var(--c-ardoise); line-height: 1.5; margin-top: 6px; max-width: 720px; }
+
+/* Deux colonnes : contenu + colonne latérale (largeur de la colonne fluide : jamais plus de 360 px) */
+.e2-cols { display: grid; grid-template-columns: minmax(0, 1fr) clamp(280px, 30vw, 360px); gap: var(--s-5); align-items: start; }
+.e2-cols--l { grid-template-columns: clamp(240px, 22vw, 300px) minmax(0, 1fr); }
+.e2-stack { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+
+/* Section blanche à titre simple (corps de page) */
+.e2-sec { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); min-width: 0; }
+.e2-sec__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); padding: var(--s-5) var(--s-6) 0; }
+.e2-sec__title { font-size: var(--t-h4); font-weight: var(--fw-xbold); }
+.e2-sec__title span { color: var(--c-ardoise); font-weight: var(--fw-semibold); margin-left: 6px; }
+.e2-sec__body { padding: var(--s-4) var(--s-6) var(--s-6); display: flex; flex-direction: column; gap: var(--s-3); }
+.e2-text { font-size: 15px; line-height: 1.6; color: var(--c-encre); }
+.e2-muted { color: var(--c-ardoise); }
+
+/* Onglets sobres : texte, filet encre sous l'actif, compteurs discrets (ardoise : 4,5:1 minimum sur blanc) */
+.e2-tabs { display: flex; gap: var(--s-6); border-bottom: 1px solid var(--c-ligne); overflow-x: auto; scrollbar-width: none; }
+.e2-tab { display: inline-flex; align-items: center; gap: 6px; height: 44px; font-size: var(--t-body-s); font-weight: var(--fw-semibold); color: var(--c-ardoise); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; cursor: pointer; }
+.e2-tab b { font-weight: var(--fw-bold); color: var(--c-ardoise); font-variant-numeric: tabular-nums; }
+.e2-tab.is-active { color: var(--c-encre); font-weight: var(--fw-xbold); border-bottom-color: var(--c-encre); }
+.e2-tab.is-focus { box-shadow: var(--sh-focus); border-radius: 6px; }
+
+/* Pastilles de filtre sobres */
+.e2-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.e2-pills--scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.e2-pill { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: var(--r-pill); background: var(--c-blanc); border: 1px solid var(--c-ligne); font-size: var(--t-body-s); font-weight: var(--fw-semibold); color: var(--c-encre); white-space: nowrap; cursor: pointer; flex: none; }
+.e2-pill b { font-weight: var(--fw-bold); color: var(--c-ardoise); font-variant-numeric: tabular-nums; }
+.e2-pill .ic { width: 16px; height: 16px; }
+.e2-pill.is-active { background: var(--c-encre); border-color: var(--c-encre); color: var(--c-blanc); }
+.e2-pill.is-active b { color: var(--c-brume); }
+
+/* Note sobre (remplace les bandeaux colorés) : fond givre, icône ardoise */
+.e2-note { display: flex; align-items: flex-start; gap: 12px; padding: 14px var(--s-5); border-radius: 16px; background: var(--c-givre); font-size: var(--t-body-s); line-height: 1.5; color: var(--c-encre); }
+.e2-note > .ic { width: 18px; height: 18px; flex: none; color: var(--c-ardoise); margin-top: 1px; stroke-width: 1.75; }
+.e2-note__body { flex: 1; min-width: 0; }
+.e2-note__title { font-weight: var(--fw-xbold); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.e2-note__text { color: var(--c-ardoise); }
+.e2-note__actions { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; margin-top: 8px; }
+.e2-note--blanc { background: var(--c-blanc); border: 1px solid var(--c-ligne); }
+
+/* Lien bleu (texte) */
+.e2-link { font-size: var(--t-body-s); font-weight: var(--fw-bold); color: var(--c-bleu); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.e2-link .ic { width: 16px; height: 16px; }
+.e2-link--quiet { color: var(--c-ardoise); font-weight: var(--fw-semibold); }
+
+/* État vide / erreur / introuvable : dans une carte blanche, centré */
+.e2-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: var(--s-10) var(--s-6); }
+.e2-empty__ic { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--c-givre); color: var(--c-ardoise); margin-bottom: 4px; }
+.e2-empty__ic .ic { width: 22px; height: 22px; stroke-width: 1.75; }
+.e2-empty__title { font-size: var(--t-h4); font-weight: var(--fw-xbold); }
+.e2-empty__text { font-size: var(--t-body-s); color: var(--c-ardoise); max-width: 360px; line-height: 1.5; }
+.e2-empty__actions { display: flex; align-items: center; gap: var(--s-4); margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* Lignes clé / valeur (reçu, récapitulatif) */
+.e2-kv { display: flex; flex-direction: column; }
+.e2-kv__row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); padding: 10px 0; font-size: var(--t-body-s); }
+.e2-kv__row + .e2-kv__row { border-top: 1px solid var(--c-ligne-2); }
+.e2-kv__row > span:first-child { color: var(--c-ardoise); }
+.e2-kv__row > b, .e2-kv__row > span:last-child { font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; text-align: right; }
+/* Valeur sans espace (titre de mission d'un seul mot) : coupee au lieu de deborder (a 320 px : +276 px) */
+.e2-kv__row > b, .e2-kv__row > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.e2-kv__row--total { padding-top: 12px; font-size: 15px; }
+/* Meme specificite que la bordure de .e2-kv__row + .e2-kv__row, declaree apres : le total garde son trait plus fonce, sans !important. */
+.e2-kv__row + .e2-kv__row--total { border-top: 1px solid var(--c-ligne); }
+.e2-kv__row--total > span:first-child { color: var(--c-encre); font-weight: var(--fw-bold); }
+.e2-kv__row--total > b { font-weight: var(--fw-black); }
+
+/* Montant en Figtree (jamais Anton) */
+.e2-amount { font-family: var(--f-text); font-weight: var(--fw-xbold); font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -.01em; white-space: nowrap; }
+.e2-amount small { font-size: max(var(--t-micro), .62em); font-weight: var(--fw-bold); margin-left: .25em; letter-spacing: 0; }
+.e2-amount--l { font-size: 32px; font-weight: var(--fw-black); letter-spacing: -.02em; line-height: 1.1; }
+.e2-amount--m { font-size: var(--t-amount-m); }
+.e2-amount--s { font-size: var(--t-amount-s); }
+
+/* Suivi vertical neutre (chronologie) */
+.e2-track { display: flex; flex-direction: column; }
+.e2-step { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; position: relative; padding-bottom: var(--s-5); }
+.e2-step:last-child { padding-bottom: 0; }
+.e2-step::before { content: ""; position: absolute; left: 13px; top: 30px; bottom: 2px; width: 2px; background: var(--c-ligne); }
+.e2-step:last-child::before { display: none; }
+.e2-step__dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--c-brume); background: var(--c-blanc); color: var(--c-ardoise); position: relative; z-index: 1; }
+.e2-step__dot .ic { width: 14px; height: 14px; stroke-width: 2.5; }
+.e2-step__title { font-size: var(--t-body-s); font-weight: var(--fw-bold); color: var(--c-ardoise); padding-top: 4px; }
+.e2-step__sub { font-size: var(--t-caption); color: var(--c-ardoise); margin-top: 2px; line-height: 1.45; }
+.e2-step--done .e2-step__dot { background: var(--c-encre); border-color: var(--c-encre); color: var(--c-blanc); }
+.e2-step--done .e2-step__title { color: var(--c-encre); }
+.e2-step--done::before { background: var(--c-encre); }
+.e2-step--now .e2-step__dot { border: 2px solid var(--c-encre); color: var(--c-encre); }
+.e2-step--now .e2-step__dot::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c-encre); }
+.e2-step--now .e2-step__title { color: var(--c-encre); font-weight: var(--fw-xbold); }
+
+/* Carte de mission sobre (liste, grille, similaires) */
+.e2-mcard { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); padding: var(--s-5) var(--s-6); display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; }
+.e2-mcard:hover, .e2-mcard.is-hover { border-color: var(--c-acier); }
+.e2-mcard.is-focus { box-shadow: var(--sh-focus); }
+.e2-mcard__top { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+.e2-mcard__type { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-caption); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
+.e2-mcard__type .ic { width: 16px; height: 16px; stroke-width: 1.75; }
+.e2-mcard__top .badge { margin-left: auto; }
+.e2-mcard__title { font-size: var(--t-h4); font-weight: var(--fw-xbold); line-height: 1.3; }
+.e2-mcard__meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--t-caption); color: var(--c-ardoise); }
+.e2-mcard__meta span { display: inline-flex; align-items: center; gap: 5px; }
+.e2-mcard__meta .ic { width: 14px; height: 14px; stroke-width: 1.75; }
+.e2-mcard__foot { margin-top: auto; padding-top: var(--s-3); border-top: 1px solid var(--c-ligne-2); display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-3); }
+.e2-mcard__gain { display: flex; flex-direction: column; gap: 2px; }
+.e2-mcard__gain small { font-size: var(--t-micro); color: var(--c-ardoise); }
+/* Grilles de cartes : colonnes selon la largeur disponible (3 colonnes de 240 px au moins, 2 colonnes de 280 px au moins, 1 sur mobile) */
+.e2-grid3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: var(--s-4); }
+.e2-grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--s-4); }
+
+/* Personne (client) : avatar + nom + sous-ligne */
+.e2-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.e2-who .avatar { flex: none; }
+.e2-who__name { font-size: 15px; font-weight: var(--fw-bold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.e2-who__sub { font-size: var(--t-caption); color: var(--c-ardoise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Mobile : en-tête de sous-page (retour + titre court). Masqué au bureau (la page porte alors son lien retour). */
+.e2-mtop { height: 60px; flex: none; display: none; align-items: center; gap: var(--s-2); margin: 0 0 0 calc(-1 * var(--s-2)); padding: 0; }
+.e2-mtop__spacer { width: 40px; height: 40px; flex: none; }
+.e2-mtop__title { flex: 1; min-width: 0; font-size: var(--t-body); font-weight: var(--fw-xbold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Mobile : barre d'action fixe (remplace la barre du bas sur les sous-pages, voir app-shell.css). Masquée au bureau. */
+.e2-mbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-nav); background: var(--c-blanc); border-top: 1px solid var(--c-ligne); padding: 12px var(--s-4) calc(12px + env(safe-area-inset-bottom, 0px)); display: none; align-items: center; gap: var(--s-3); }
+.e2-mbar__info { flex: 1; min-width: 0; line-height: 1.25; }
+.e2-mbar__info small { display: block; font-size: var(--t-micro); color: var(--c-ardoise); }
+.e2-mbar__info .e2-amount small { display: inline; font-size: max(var(--t-micro), .62em); color: inherit; }
+.e2-mbar .btn { flex: none; }
+.e2-mbar--stack { flex-direction: column; align-items: stretch; }
+
+/* Champ de formulaire dans une carte : grille 2 colonnes */
+/* Deux colonnes seulement quand chacune garde 200 px : a 1024 px la colonne du formulaire (~270 px utiles) tronquait la ville et decalait les champs. */
+.e2-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: var(--s-5) var(--s-5); align-items: start; }
+.e2-form .e2-span { grid-column: 1 / -1; }
+.e2-form--1 { grid-template-columns: 1fr; }
+
+/* En-tête de page : titre à gauche, actions à droite */
+.e2-pagehead { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-6); }
+
+/* Ligne d'opération avec montant à droite (historique, à venir) */
+.e2-op { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto 150px; align-items: center; gap: var(--s-4); padding: 14px var(--s-6); }
+.e2-op + .e2-op { border-top: 1px solid var(--c-ligne-2); }
+.e2-op__amount { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.e2-op__amount .e2-amount { font-size: 15px; }
+.e2-op__amount small { font-size: var(--t-micro); color: var(--c-ardoise); white-space: nowrap; }
+.e2-op__date { font-size: var(--t-caption); color: var(--c-ardoise); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.list2__tools { display: flex; align-items: center; gap: var(--s-4); }
+.list2__filters { padding: var(--s-3) var(--s-6); border-bottom: 1px solid var(--c-ligne); }
+
+/* ---------- Responsive : sous 1024 ---------- */
+@media (max-width: 1023.98px) {
+  /* Coquille : sur une sous-page l'en-tête .e2-mtop remplace l'en-tête .mtop2 (specificite plus haute que .mtop2) */
+  .e2:has(.e2-mtop) .mtop2 { display: none; }
+  .e2-mtop { display: flex; }
+  .e2-mbar { display: flex; }
+  .e2-mtop .iconbtn2, .e2-mtop__spacer { width: 44px; height: 44px; }
+  /* Les toasts passent au-dessus de la barre d'action fixe (hauteur reservee : 140 px, comme .mbar2) */
+  .e2:has(.e2-mbar) .toasts--mobile.ds-toasts-fixed { bottom: calc(140px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
+
+  .e2 .e2-cols, .e2 .e2-cols--l { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+  .e2-stack { gap: var(--s-4); }
+  .e2-lead { font-size: var(--t-body-s); margin-top: 4px; }
+  .e2-sec__head { padding: var(--s-4) var(--s-4) 0; }
+  .e2-sec__title { font-size: var(--t-body); }
+  .e2-sec__body { padding: var(--s-3) var(--s-4) var(--s-4); }
+  .e2-text { font-size: var(--t-body-s); }
+  .e2-tabs { gap: var(--s-5); padding: 0 4px; }
+  .e2-note { padding: 12px 14px; }
+  .e2-empty { padding: var(--s-8) var(--s-4); }
+  .e2-mcard { padding: var(--s-4); border-radius: 20px; }
+  .e2-mcard__title { font-size: 15px; }
+  .e2-op, .e2 .e2-05-req { grid-template-columns: 32px minmax(0, 1fr) auto; gap: var(--s-3); padding: var(--s-3) var(--s-4); }
+  .e2-op > .item2__ic { width: 32px; height: 32px; }
+  .e2-op .item2__title { font-size: var(--t-body-s); }
+  .e2-op .item2__sub { font-size: var(--t-micro); white-space: normal; }
+  .e2-op > .e2-op__date, .e2 .e2-05-req > :nth-child(n+4) { grid-column: 2 / -1; }
+  .e2 .item2__sub .badge { margin-top: 3px; }
+  .list2__filters { padding: var(--s-3) var(--s-4); }
+  .e2 .tabs { gap: var(--s-5); }
+
+  /* Les contenus collants du bureau ne collent plus : une seule colonne */
+  .e2 .e2-02-filters, .e2 .e2-03-aside, .e2 .e2-05-aside { position: static; }
+
+  /* Cibles tactiles de 44 px (liens et pastilles isolés, boutons icône, fermeture des fenêtres) */
+  .e2-back, .e2-link { min-height: 44px; }
+  .e2-pill { min-height: 44px; }
+  .e2 .chip { min-height: 44px; }
+  .e2 .iconbtn2, .e2 .btn-icon, .e2 .btn-icon--sm { width: 44px; height: 44px; }
+  .e2 .toast__close { margin: -8px -8px -8px 0; }
+  .e2 .check, .e2 .radio { min-height: 44px; align-items: flex-start; }
+  .e2 .ds-stars__btn { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; }
+  .e2 .btn--sm { min-height: 44px; }
+  /* Symbole et avatar de l'en-tête .mtop2 (seuls liens directs) : zone de 44 px de haut, apparence inchangée */
+  .e2 .mtop2 > a { position: relative; }
+  .e2 .mtop2 > a::after { content: ""; position: absolute; inset: -6px; }
+  .e2 .mtop2 > a.av2 { overflow: visible; }
+  .e2 .mtop2 > a.av2::after { inset: -7px; }
+  /* Liens-texte des rangées et des cartes */
+  .e2 .item2__action, .e2 .hero2__link, .e2 .list2__more { display: inline-flex; align-items: center; min-height: 44px; }
+  /* « Voir » (candidatures en cours) : 27 px de large, zone portee a 44 px */
+  .e2 .item2__action { min-width: 44px; }
+  /* Liens-titres des lignes d'operation (historique, a venir) : zone de 44 px de haut, mise en page inchangee */
+  .e2-op .item2__title .link { position: relative; }
+  .e2-op .item2__title .link::after { content: ""; position: absolute; inset: -12px 0; }
+  /* Sous-lignes de rangee (ex. « Aucune mission en cours, aucun avis a laisser » a 320 px) : retour a la ligne au lieu de l'ellipse */
+  .e2 .stat2__sub, .e2 .money2 .stat2__sub, .e2 .item2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+
+/* ---------- Responsive : 768 ---------- */
+@media (max-width: 767.98px) {
+  .e2-form { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+  .e2-kv__row { gap: var(--s-3); }
+}
+
+/* ---------- Responsive : 480 ---------- */
+@media (max-width: 480px) {
+  .e2-mbar { padding-left: var(--s-3); padding-right: var(--s-3); }
+  .e2-note { padding: 12px; }
+}
+
+/* ---------- Mouvement réduit ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .e2, .e2 *, .e2 *::before, .e2 *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

@@ -1,0 +1,45 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E05 Mission retenue (suivi) : chronologie, lignes de gain, client, actions. */
+.e2-05-top { display: flex; flex-direction: column; gap: 10px; }
+.e2-05-top .head2__title { max-width: 1000px; }
+.e2-05-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; font-size: var(--t-body-s); color: var(--c-ardoise); }
+.e2-05-meta > span:not(.badge) { display: inline-flex; align-items: center; gap: 6px; }
+.e2-05-meta > span:not(.badge) .ic { width: 16px; height: 16px; stroke-width: 1.75; }
+.e2-05-min { min-width: 0; }
+.e2-05-aside { position: sticky; top: 0; }
+.e2-05-caption { font-size: var(--t-caption); color: var(--c-ardoise); line-height: 1.5; }
+.e2-05-actions { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
+.e2-05-client { display: flex; align-items: center; gap: 12px; }
+.e2-05-client .e2-who { flex: 1; }
+.e2-05-pad { padding: 0 4px; }
+.e2-05-pad-l { padding: var(--s-4) var(--s-6) var(--s-2); }
+.e2-05-pad12 { padding: 12px; }
+.e2-05-progress { display: flex; flex-direction: column; gap: 8px; padding-bottom: var(--s-3); border-bottom: 1px solid var(--c-ligne-2); margin-bottom: var(--s-2); }
+.e2-05-progress__row { display: flex; justify-content: space-between; font-size: var(--t-body-s); }
+.e2-05-progress__row span { color: var(--c-ardoise); font-variant-numeric: tabular-nums; }
+.e2-05-progress__bar { height: 6px; border-radius: var(--r-pill); background: var(--c-ligne-2); overflow: hidden; }
+.e2-05-progress__bar i { display: block; height: 100%; border-radius: inherit; background: var(--c-encre); }
+.e2-05-req { grid-template-columns: 36px minmax(0, 1fr) auto 110px 48px; }
+.e2-05-req__amount { font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; font-size: var(--t-body-s); }
+.e2-05-foot { border-top: 1px solid var(--c-ligne); padding: var(--s-3) var(--s-6) var(--s-5); display: flex; flex-direction: column; gap: 8px; }
+.e2-05-quote { background: var(--c-givre); border-radius: 16px; padding: 12px 14px; font-size: var(--t-body-s); line-height: 1.5; }
+.e2-05-modal { width: 560px; }
+.e2-05-ta { min-height: 88px; }
+.e2-05-ta--s { min-height: 80px; }
+.e2-05-fieldset { border: 0; padding: 0; margin: 0; }
+.e2-05-toasts { bottom: 40px; }
+
+/* Suivi (ST-11) : montants longs et titres d'étape sans débordement, a 320 px comme a 1440.
+   Spécificité (0,2,0) sur des proprietes de mise en page seulement : aucune couleur, ombre ni transform du systeme. */
+.e2-05-lines .e2-kv__row { flex-wrap: wrap; }
+.e2-05-lines .e2-kv__row > b { min-width: 0; margin-left: auto; overflow-wrap: anywhere; }
+.e2-05-track .e2-step__title, .e2-05-track .e2-step__sub { overflow-wrap: anywhere; }
+.e2-05-actions .e2-link { min-width: 0; }
+
+@media (max-width: 1023.98px) {
+  .e2-05-meta { font-size: var(--t-caption); gap: 6px 12px; padding: 0 4px; }
+  .e2-05-meta > span:not(.badge) .ic { width: 14px; height: 14px; }
+  .e2-05-req__amount { font-size: var(--t-caption); }
+  .e2-05-aside { position: static; }
+  .e2-05-foot { padding: var(--s-2) var(--s-4) var(--s-4); }
+}

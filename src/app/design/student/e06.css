@@ -1,0 +1,40 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E06 Messages : boîte de réception centrée sur la personne (aussi utilisée par E07 en bureau).
+   La hauteur suit la fenêtre (224 px = barre du haut, titre et marges) : la liste défile dans son cadre. */
+.e2-06-inbox { display: grid; grid-template-columns: clamp(280px, 26vw, 360px) minmax(0, 1fr); gap: var(--s-5); height: max(480px, calc(100dvh - 224px)); min-height: 0; }
+.e2-06-inbox--tall { height: max(560px, calc(100dvh - 224px)); }
+.e2-06-list { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.e2-06-list__head { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-5) var(--s-5) var(--s-4); border-bottom: 1px solid var(--c-ligne); }
+.e2-06-list__title { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); font-size: var(--t-h4); font-weight: var(--fw-xbold); }
+.e2-06-list__title span { font-size: var(--t-caption); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
+.e2-06-list .search2 { width: auto; }
+.e2-06-list__items { display: flex; flex-direction: column; gap: 2px; padding: var(--s-2); overflow-y: auto; min-height: 0; }
+.e2-06-convo { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; cursor: pointer; }
+.e2-06-convo:hover, .e2-06-convo.is-hover, .e2-06-convo.is-active { background: var(--c-givre); }
+.e2-06-convo .av2 { width: 44px; height: 44px; }
+.e2-06-convo__name { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: var(--fw-bold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.e2-06-convo__name .seal { width: 16px; height: 16px; }
+.e2-06-convo__preview { font-size: var(--t-caption); color: var(--c-ardoise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.e2-06-convo__mission { font-size: var(--t-micro); color: var(--c-ardoise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.e2-06-convo.is-unread .e2-06-convo__name { font-weight: var(--fw-xbold); }
+.e2-06-convo.is-unread .e2-06-convo__preview { color: var(--c-encre); font-weight: var(--fw-semibold); }
+.e2-06-convo__side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; align-self: start; padding-top: 2px; font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.e2-06-convo.is-unread .e2-06-convo__side { color: var(--c-encre); font-weight: var(--fw-bold); }
+/* Non lu : compteur encre discret (jamais de couleur vive) */
+.e2-06-count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--c-encre); color: var(--c-blanc); font-size: var(--t-micro); font-weight: var(--fw-xbold); display: grid; place-items: center; }
+.e2-06-pane { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); display: flex; align-items: center; justify-content: center; min-height: 0; }
+.e2-06-skel { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px; }
+
+@media (max-width: 1023.98px) {
+  /* Une seule colonne : la liste prend toute la largeur, le volet vide « choisis une conversation » disparaît */
+  .e2-06-inbox, .e2-06-inbox--tall { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .e2-06-pane { display: none; }
+  .e2-06-list__items { padding: 6px; overflow-y: visible; }
+  /* Mobile : recherche et pastilles sur le fond de page, les conversations dans une seule carte blanche */
+  .e2-06-list { background: transparent; border: 0; border-radius: 0; overflow: visible; gap: var(--s-3); }
+  .e2-06-list__head { padding: 0; border-bottom: 0; }
+  .e2-06-list__title { display: none; }
+  .e2-06-list__items { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); }
+  /* Champ blanc bordé au repos (.shell--v2 .search2 le donne givre, invisible sur fond givre) ; le focus garde son filet bleu */
+  .e2 .e2-06-search:not(:focus-within) { background: var(--c-blanc); border-color: var(--c-ligne); }
+}

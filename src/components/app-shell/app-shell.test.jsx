@@ -1,18 +1,21 @@
 import { describe, expect, it, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
+import { createHash } from "node:crypto"
 import { readdirSync, statSync } from "node:fs"
 import path from "node:path"
 
 let pathname = "/client/dashboard"
+let search = ""
 let unread = 2
 const unreadHook = vi.fn((_id, initial) => (unread ?? initial))
 
-vi.mock("next/navigation", () => ({ usePathname: () => pathname }))
+vi.mock("next/navigation", () => ({ usePathname: () => pathname, useSearchParams: () => new URLSearchParams(search) }))
 vi.mock("@/hooks/use-unread-count", () => ({ useUnreadCount: (...args) => unreadHook(...args) }))
 vi.mock("@/lib/actions/auth.actions", () => ({ logout: vi.fn() }))
 
 const { AppShell } = await import("./app-shell")
 const { CLIENT_NAV } = await import("../client-space/shell/client-nav")
+const { STUDENT_NAV } = await import("../student-space/shell/student-nav")
 
 const USER = { id: "client-1", fullName: "Rosine Houngbédji" }
 
@@ -166,6 +169,139 @@ describe("AppShell (rendu statique)", () => {
     expect(html).not.toMatch(/class="[^"]*\b(?:flex|grid|bg-|text-|p-\d|gap-)/)
     expect(html).not.toContain("style=")
     expect(html).not.toContain("/client/notifications")
+  })
+})
+
+describe("AppShell : champ de recherche de la barre du haut (echo de q, espace étudiant seulement)", () => {
+  const inputOf = (html) => html.match(/<input[^>]*type="search"[^>]*>/)[0]
+  const renderStudent = (at, q) => {
+    search = q === undefined ? "" : `q=${encodeURIComponent(q)}`
+    try {
+      return render({ nav: STUDENT_NAV }, at)
+    } finally {
+      search = ""
+    }
+  }
+
+  it("affiche q dans le champ sur la page de l'action, échappé par React", () => {
+    expect(inputOf(renderStudent("/student/missions", "design"))).toContain('value="design"')
+    const hostile = inputOf(renderStudent("/student/missions", '"><script>alert(1)</script>'))
+    expect(hostile).not.toContain("<script>")
+    expect(hostile).toContain("&quot;&gt;&lt;script&gt;")
+  })
+
+  it("borne la valeur à 100 caractères", () => {
+    const value = inputOf(renderStudent("/student/missions", "a".repeat(250))).match(/value="([^"]*)"/)[1]
+    expect(value).toHaveLength(100)
+  })
+
+  it("élague q et pose maxLength 100 sur le champ étudiant seulement", () => {
+    expect(inputOf(renderStudent("/student/missions", "  design  "))).toContain('value="design"')
+    expect(inputOf(renderStudent("/student/missions", "design"))).toContain('maxLength="100"')
+    search = "q=design"
+    const client = inputOf(render({}, "/client/missions"))
+    search = ""
+    expect(client).not.toContain("maxLength")
+  })
+
+  describe("filtres conservés dans la recherche", () => {
+    const hiddenOf = (html) => [...html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)"\/>/g)].map((m) => [m[1], m[2]])
+    const renderWith = (at, query) => {
+      search = query
+      try {
+        return render({ nav: STUDENT_NAV }, at)
+      } finally {
+        search = ""
+      }
+    }
+
+    it("reprend type, villes, urgence, budget et tri en champs cachés, sans q ni page", () => {
+      const html = renderWith("/student/missions", "q=design&type=delivery&cities=Cotonou%2CPorto-Novo&urgency=urgent&budget=b1&sort=prix&page=3")
+      expect(hiddenOf(html)).toEqual([
+        ["type", "delivery"],
+        ["cities", "Cotonou,Porto-Novo"],
+        ["urgency", "urgent"],
+        ["budget", "b1"],
+        ["sort", "prix"],
+      ])
+    })
+
+    it("n'ajoute aucun champ caché sans filtre, hors de la page de l'action, ni pour le client", () => {
+      expect(hiddenOf(renderWith("/student/missions", "q=design"))).toEqual([])
+      expect(hiddenOf(renderWith("/student/dashboard", "type=delivery"))).toEqual([])
+      search = "type=delivery"
+      const client = render({}, "/client/missions")
+      search = ""
+      expect(hiddenOf(client)).toEqual([])
+    })
+
+    it("échappe les valeurs hostiles et les borne", () => {
+      const html = renderWith("/student/missions", `type=${encodeURIComponent('"><script>x</script>')}&sort=${"a".repeat(500)}`)
+      expect(html).not.toContain("<script>x")
+      expect(hiddenOf(html).find(([n]) => n === "sort")[1]).toHaveLength(200)
+    })
+  })
+
+  it("n'affiche rien hors de la page de l'action ou sans q", () => {
+    expect(inputOf(renderStudent("/student/dashboard", "design"))).not.toContain("value=")
+    expect(inputOf(renderStudent("/student/missions"))).not.toContain("value=")
+  })
+
+  it("le client n'affiche jamais q, même sur sa page d'action", () => {
+    search = "q=design"
+    const html = render({}, "/client/missions")
+    search = ""
+    expect(inputOf(html)).not.toContain("value=")
+  })
+})
+
+describe("AppShell : rendu client inchangé et clés de navigation mobile optionnelles", () => {
+  // Empreintes SHA-256 du HTML de la coquille client prises avant la transmission de more, hideBelow, mobileTop
+  // (version du sprite normalisée).
+  const BEFORE = {
+    "/client/dashboard": "59681bac650d2a35b1229679da52c25e005db5cdc59395428654e0f1ba59bb1b",
+    "/client/messages/abc": "74ce3d1803aa38a37898aa3d528d2b4b702538661d36d69ae1869a450ad87d3e",
+  }
+  const digest = (html) => createHash("sha256").update(html.replace(/\?v=[0-9a-f]+/g, "?v=V")).digest("hex")
+
+  it("CLIENT_NAV (sans mobileMore, mobileHideBelow ni mobileTop) : même HTML qu'avant, sur deux routes", () => {
+    expect(CLIENT_NAV.mobileMore).toBeUndefined()
+    expect(CLIENT_NAV.mobileHideBelow).toBeUndefined()
+    expect(CLIENT_NAV.mobileTop).toBeUndefined()
+    for (const [route, hash] of Object.entries(BEFORE)) expect(digest(render({}, route))).toBe(hash)
+  })
+
+  it("mobileHideBelow : barre du bas absente sur un enfant strict, présente sur le chemin lui-même", () => {
+    const nav = { ...CLIENT_NAV, mobileHideBelow: ["/client/messages"] }
+    expect(render({ nav }, "/client/messages/abc")).not.toContain("bottom-nav")
+    expect(render({ nav }, "/client/messages")).toContain('class="bottom-nav bottom-nav--v2"')
+    expect(render({ nav }, "/client/dashboard")).toContain('class="bottom-nav bottom-nav--v2"')
+    expect(render({}, "/client/messages/abc")).toContain('class="bottom-nav bottom-nav--v2"')
+  })
+
+  it("mobileMore : le bouton « Plus » et son panneau sont rendus dans la barre du bas", () => {
+    const more = { label: "Plus", icon: "i-menu", items: [{ key: "aide", label: "Aide", href: "/aide", icon: "i-help-circle" }] }
+    const withMore = render({ nav: { ...CLIENT_NAV, mobileMore: more } })
+    const without = render()
+    expect(withMore).not.toBe(without)
+    expect(navHtml(withMore, "bottom-nav")).toContain("Plus")
+    expect(navHtml(without, "bottom-nav")).not.toContain("Plus")
+  })
+
+  it("mobileTop : libellé d'espace et cible de l'avatar surchargés, repli sur space et profileHref", () => {
+    const html = render({ nav: { ...CLIENT_NAV, mobileTop: { space: "Libellé mobile", profileHref: "/autre/profil" } } })
+    expect(html).toContain('<span class="mtop2__space">Libellé mobile</span>')
+    expect(html).toMatch(/class="av2 av2--sm" aria-label="Mon profil" href="\/autre\/profil"/)
+    const partial = render({ nav: { ...CLIENT_NAV, mobileTop: { space: "Libellé mobile" } } })
+    expect(partial).toMatch(/class="av2 av2--sm" aria-label="Mon profil" href="\/client\/profile"/)
+  })
+
+  it("top-bar et mobile-top ne figent aucun texte vouvoyé", async () => {
+    const { readFileSync } = await import("node:fs")
+    for (const file of ["top-bar.jsx", "mobile-top.jsx", "app-shell.jsx"]) {
+      const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8")
+      expect(source).not.toMatch(/\b(?:vous|votre|vos|veuillez)\b/i)
+    }
   })
 })
 

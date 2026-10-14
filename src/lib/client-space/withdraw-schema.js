@@ -101,3 +101,13 @@ export function maskLocalPhone(raw) {
   const d = parsed.local
   return `${d.slice(0, 2)} ${d.slice(2, 4)} •• •• ${d.slice(8)}`
 }
+
+/**
+ * Numéro masqué sauf les 2 derniers chiffres (espace étudiant) : « •• •• •• •• 08 ». "" si le numéro est invalide.
+ * Le masque client (`maskLocalPhone`) reste inchangé.
+ * @param {unknown} raw
+ */
+export function maskLocalPhoneLastTwo(raw) {
+  const parsed = parseBeninPhone(raw)
+  return parsed.ok ? `•• •• •• •• ${parsed.local.slice(8)}` : ""
+}

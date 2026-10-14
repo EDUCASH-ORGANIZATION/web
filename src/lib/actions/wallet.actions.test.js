@@ -202,7 +202,7 @@ describe("filtre par type de mouvement", () => {
   })
 })
 
-describe("messages d'erreur : vouvoiement pour tous les rôles", () => {
+describe("messages d'erreur : un seul registre vouvoyé pour tous les rôles", () => {
   const failRead = () => {
     single.mockResolvedValue({ data: null, error: { message: "boom" } })
     txResult = { data: null, error: { message: "boom" } }
@@ -217,7 +217,7 @@ describe("messages d'erreur : vouvoiement pour tous les rôles", () => {
     expect((await getWallet("victime")).error).toBe("Vous n'avez pas accès à ce portefeuille.")
   })
 
-  it("l'étudiant est vouvoyé comme le client", async () => {
+  it("l'étudiant est vouvoyé comme le client sur les lectures", async () => {
     failRead()
     for (const res of [await getWallet(), await getWalletTransactions(), await getWalletStats()]) {
       expect(res.error).toBe("Impossible de charger votre portefeuille.")
@@ -225,7 +225,7 @@ describe("messages d'erreur : vouvoiement pour tous les rôles", () => {
     expect((await getWallet("victime")).error).toBe("Vous n'avez pas accès à ce portefeuille.")
   })
 
-  it("un rôle illisible reste vouvoyé", async () => {
+  it("un rôle illisible donne le même texte vouvoyé", async () => {
     getServerRole.mockRejectedValue(new Error("db"))
     failRead()
     expect((await getWallet()).error).toBe("Impossible de charger votre portefeuille.")
@@ -286,5 +286,24 @@ describe("messages d'erreur : vouvoiement pour tous les rôles", () => {
       "Impossible de charger votre portefeuille.",
     )
     expect(invoke).not.toHaveBeenCalled()
+  })
+
+  it("session expirée : même message vouvoyé pour tous les rôles, aussi sur un 401", async () => {
+    const args = { amount: 5000, phone: "0197000000", operator: "mtn" }
+    const unauthorized = { data: null, error: { message: "x", context: { status: 401 } } }
+    const cases = [
+      ["student", "Session expirée. Reconnectez-vous."],
+      ["client", "Session expirée. Reconnectez-vous."],
+    ]
+    for (const [role, expected] of cases) {
+      getServerRole.mockResolvedValue({ role })
+      getSession.mockResolvedValue({ data: { session: null } })
+      expect((await initiateDeposit({ amount: 5000 })).error).toBe(expected)
+      expect((await initiateWithdrawal(args)).error).toBe(expected)
+      getSession.mockResolvedValue({ data: { session: { access_token: "session-jwt" } } })
+      invoke.mockResolvedValue(unauthorized)
+      expect((await initiateDeposit({ amount: 5000 })).error).toBe(expected)
+      expect((await initiateWithdrawal(args)).error).toBe(expected)
+    }
   })
 })

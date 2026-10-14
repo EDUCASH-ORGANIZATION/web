@@ -1,0 +1,44 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E03 Détail de mission et candidature : colonne principale, bloc de candidature (colonne ou feuille). */
+.e2-03-top { display: flex; flex-direction: column; gap: 10px; }
+.e2-03-top .head2__title { max-width: 1000px; overflow-wrap: anywhere; }
+.e2-03-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; font-size: var(--t-body-s); color: var(--c-ardoise); }
+.e2-03-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.e2-03-meta .ic { width: 16px; height: 16px; stroke-width: 1.75; }
+.e2-03-sub { font-size: var(--t-body-s); font-weight: var(--fw-xbold); margin-top: 4px; }
+.e2-03-list { display: flex; flex-direction: column; gap: 8px; font-size: var(--t-body-s); }
+.e2-03-list li { display: flex; align-items: flex-start; gap: 10px; }
+.e2-03-list .ic { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--c-ardoise); stroke-width: 2; }
+.e2-03-client { display: flex; align-items: center; gap: 12px; }
+.e2-03-client .e2-who { flex: 1; }
+.e2-03-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.e2-03-caption { font-size: var(--t-caption); color: var(--c-ardoise); line-height: 1.5; overflow-wrap: anywhere; }
+.e2-03-aside { position: sticky; top: 0; }
+.e2-03-desc { white-space: pre-line; overflow-wrap: anywhere; }
+/* Récapitulatif du gain : la valeur passe sous le libellé plutôt que de déborder (montants jusqu'à 10 chiffres à 320 px) */
+.e2-03-recap .e2-kv__row { flex-wrap: wrap; }
+.e2-03-recap .e2-kv__row > b { margin-left: auto; overflow-wrap: anywhere; }
+/* Barre fixe : le montant peut passer à la ligne au lieu de recouvrir le bouton */
+.e2-03-info .e2-amount { white-space: normal; overflow-wrap: anywhere; }
+.e2-03-ta .input { min-height: 140px; }
+.e2-03-ta .field__count, .e2-03-ta--s .field__count { white-space: nowrap; flex: none; }
+.e2-03-ta--s .input { min-height: 112px; }
+.e2-03-gain { font-size: var(--t-caption); color: var(--c-ardoise); }
+.e2-03-gain .e2-amount { display: block; font-size: var(--t-amount-s); color: var(--c-encre); }
+.e2-03-msg { background: var(--c-givre); border-radius: 16px; padding: 12px 14px; font-size: var(--t-body-s); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.e2-03-actions { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
+.e2-03-mtype { padding: 0 4px; }
+.e2-03-mbody { padding-top: var(--s-2); }
+.e2-03-sfoot.modal__foot { flex-direction: row; padding-bottom: calc(var(--s-5) + env(safe-area-inset-bottom, 0px)); }
+.sheet .e2-03-sfoot .btn { width: auto; flex: none; }
+.sheet .e2-03-sfoot .btn--dark { flex: 1; }
+.e2-03-modal { width: 560px; }
+
+@media (max-width: 1023.98px) {
+  .e2-03-meta { font-size: var(--t-caption); gap: 4px 12px; padding: 0 4px; }
+  .e2-03-meta .ic { width: 14px; height: 14px; }
+  /* Le retour est porté par l'en-tête de sous-page (.e2-mtop) */
+  .e2-03-top .e2-back { display: none; }
+  /* Le bloc de candidature du bureau disparaît : la barre fixe et la feuille sont rendues à plat dans la page */
+  .e2-03-aside { display: contents; }
+}

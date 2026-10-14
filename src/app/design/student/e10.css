@@ -1,0 +1,52 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E10 Mon profil : identité, disponibilités, avis, liens. */
+.e2-10-id { display: flex; align-items: center; gap: var(--s-6); }
+.e2-10-id__main { flex: 1; min-width: 0; }
+.e2-10-id__top { display: flex; align-items: center; gap: var(--s-4); }
+.e2-10-id__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; margin-top: 10px; font-size: var(--t-body-s); color: var(--c-ardoise); }
+.e2-10-id__meta > span { display: inline-flex; align-items: center; gap: 6px; }
+.e2-10-id__meta .ic { width: 16px; height: 16px; stroke-width: 1.75; }
+.e2-10-id__actions { display: flex; align-items: center; gap: var(--s-5); flex: none; }
+/* Jours de disponibilité : 7 colonnes quand la carte est large, retour à la ligne sinon (sans seuil d'écran) */
+.e2-10-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; }
+.e2-10-day { border: 1px solid var(--c-ligne); border-radius: 14px; padding: 10px; white-space: nowrap; display: flex; flex-direction: column; gap: 2px; font-size: var(--t-caption); color: var(--c-ardoise); min-width: 0; }
+.e2-10-day b { font-size: var(--t-body-s); font-weight: var(--fw-bold); color: var(--c-encre); }
+.e2-10-day.is-off { background: var(--c-givre); border-color: var(--c-givre); }
+.e2-10-day.is-off b { color: var(--c-ardoise); }
+.e2-10-score { display: flex; align-items: baseline; gap: 10px; }
+.e2-10-dist { display: flex; flex-direction: column; gap: 8px; }
+.e2-10-dist__row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 20px; align-items: center; gap: 10px; font-size: var(--t-caption); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
+.e2-10-dist__row > span:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--c-encre); font-weight: var(--fw-bold); }
+.e2-10-review { display: flex; flex-direction: column; gap: 8px; }
+.e2-10-review + .e2-10-review { border-top: 1px solid var(--c-ligne-2); padding-top: var(--s-4); margin-top: 4px; }
+.e2-10-review .stars { margin-left: auto; flex: none; }
+.e2-10-review p { font-size: var(--t-body-s); line-height: 1.5; }
+.e2-10-links { display: flex; flex-direction: column; }
+.e2-10-links > a { display: flex; align-items: center; gap: 12px; min-height: 48px; font-size: var(--t-body-s); font-weight: var(--fw-semibold); color: var(--c-encre); cursor: pointer; }
+.e2-10-links > a + a { border-top: 1px solid var(--c-ligne-2); }
+.e2-10-links > a > .ic { width: 20px; height: 20px; color: var(--c-ardoise); stroke-width: 1.75; flex: none; }
+.e2-10-links > a > .ic:last-child:not(:first-child) { width: 16px; height: 16px; margin-left: auto; }
+.e2-10-links > a > .badge { margin-left: auto; }
+.e2-10-links > a > .badge + .ic { margin-left: 0; }
+.e2-10-seal { width: 16px; height: 16px; flex: none; }
+
+/* Avatar d'identité (96 px) : taille seulement, la couleur et la bordure restent celles de .av2 */
+.e2-10-avatar { position: relative; flex: none; display: inline-flex; }
+.e2-10-avatar .av2 { width: 96px; height: 96px; font-size: 32px; }
+.e2-10-avatar > .seal { position: absolute; right: -2px; bottom: -2px; width: 28px; height: 28px; }
+.e2-10-who { min-width: 0; }
+.e2-10-bio { white-space: pre-line; overflow-wrap: anywhere; }
+/* Déconnexion : même rangée que les liens du bloc Compte, bouton natif sans habillage propre */
+.e2-10-out { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; border-top: 1px solid var(--c-ligne-2); font-size: var(--t-body-s); font-weight: var(--fw-semibold); color: var(--c-encre); text-align: left; cursor: pointer; }
+.e2-10-out > .ic { width: 20px; height: 20px; color: var(--c-ardoise); stroke-width: 1.75; flex: none; }
+.e2-10-out:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
+.e2-10-id .head2 { padding: 0; }
+
+@media (max-width: 1023.98px) {
+  /* Identité empilée : avatar et nom en haut, méta, puis actions sur toute la largeur */
+  .e2-10-id { flex-direction: column; align-items: flex-start; gap: var(--s-3); padding: 0 4px; }
+  .e2-10-id__meta { gap: 4px 14px; margin-top: 0; font-size: var(--t-caption); }
+  .e2-10-id__actions { width: 100%; justify-content: space-between; gap: var(--s-4); }
+  .e2-10-avatar .av2 { width: 72px; height: 72px; font-size: 24px; }
+  .e2-10-avatar > .seal { width: 24px; height: 24px; }
+}

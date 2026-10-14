@@ -5,7 +5,7 @@ import { Icon } from "@/components/design/icon"
 import { Modal } from "./modal"
 import { confirmStepView } from "./interactive-logic"
 
-const FALLBACK_ERROR = "Une erreur est survenue. Veuillez réessayer."
+export const FALLBACK_ERROR = "Une erreur est survenue. Veuillez réessayer."
 
 /**
  * Dernière étape, une seule fois à la fois : le verrou `guard` (`{ current }`, un useRef) est posé de façon
@@ -133,7 +133,15 @@ function ConfirmDialogOpen({ onClose, onConfirm, steps, tone, cancelLabel }) {
 // Le rouge plein n'apparaît qu'en tone="danger", à la dernière étape. Une erreur reste affichée sans fermer.
 export function ConfirmDialog({ open, onClose, onConfirm, steps, tone = "default", cancelLabel = "Annuler" }) {
   if (!open) return null
-  return <ConfirmDialogOpen onClose={onClose} onConfirm={onConfirm} steps={steps} tone={tone} cancelLabel={cancelLabel} />
+  return (
+    <ConfirmDialogOpen
+      onClose={onClose}
+      onConfirm={onConfirm}
+      steps={steps}
+      tone={tone}
+      cancelLabel={cancelLabel}
+    />
+  )
 }
 
 export default ConfirmDialog

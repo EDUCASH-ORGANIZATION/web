@@ -18,6 +18,7 @@ export function retry(router, onRetry) {
 }
 
 // Erreur de chargement, distincte du vide : annoncée (role alert) avec un bouton « Réessayer ».
+// `title` et `text` ont des défauts vouvoyés communs à tous les espaces (registre unique) ; ils restent surchargeables.
 export function ErrorState({
   title = "Un problème est survenu",
   text = "Le chargement a échoué. Vos données et vos fonds ne sont pas touchés.",

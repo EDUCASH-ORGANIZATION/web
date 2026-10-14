@@ -7,6 +7,7 @@ import { requireUser, requireRole } from "@/lib/auth/require-role"
 import { toOwnedAvatarUrl, toOwnedStoragePath } from "@/lib/storage/owned-paths"
 import { CITIES } from "@/lib/supabase/database.constants"
 import { parseBeninPhone } from "@/lib/utils/phone"
+import { SKILLS_MAX, validateStudentProfile } from "@/lib/student-space/profile-rules"
 import { firstName } from "@/lib/vitrine/public-name"
 
 // Colonnes de la ligne de l'appelant, lues côté serveur : les colonnes privées (phone,
@@ -26,6 +27,7 @@ const NAME_MAX = 100
 const ERR_SUMMARY = "Impossible de charger votre profil."
 const ERR_AVATAR = "Cette photo n'est pas valide. Envoyez-la à nouveau."
 const ERR_CARD = "Cette carte n'est pas valide. Envoyez-la à nouveau."
+const ERR_INVALID = "Certains champs sont à corriger avant d'enregistrer."
 
 /**
  * Lit la ligne `profiles` de l'utilisateur connecté, colonnes privées comprises.
@@ -238,6 +240,9 @@ export async function getMyStudentProfile() {
 /**
  * Met à jour le profil d'un étudiant connecté.
  * L'avatar est uploadé côté client - on reçoit ici uniquement son URL (string).
+ * Les champs sont validés ICI (règles de `validateStudentProfile` : ville de la liste, téléphone béninois,
+ * bornes de longueur, nombre et type des compétences) : la sécurité ne dépend d'aucun appelant. Un refus
+ * n'écrit rien.
  *
  * @param {{ fullName, city, phone, bio, school, level, availability, skills: string[], avatarUrl?: string }} data
  */
@@ -247,18 +252,19 @@ export async function updateStudentProfile(data) {
     if (auth.error) return { error: auth.error }
     const { supabase, user } = auth
 
-    const { fullName, city, phone, bio, school, level, availability, skills, avatarUrl } = data
+    const input = data && typeof data === "object" ? data : {}
+    const errors = validateStudentProfile(input)
+    if (Object.keys(errors).length > 0) return { error: ERR_INVALID, errors }
 
-    if (!fullName?.trim()) return { error: "Le nom complet est requis." }
-    if (!city?.trim())     return { error: "La ville est requise." }
+    const { fullName, city, bio, school, level, availability, skills, avatarUrl } = input
 
     const avatar = avatarUrl ? toOwnedAvatarUrl(avatarUrl, user.id) : null
     if (avatarUrl && !avatar) return { error: ERR_AVATAR }
 
     const profileUpdate = {
       full_name: fullName.trim(),
-      city: city.trim(),
-      phone: phone?.trim() || null,
+      city,
+      phone: parseBeninPhone(input.phone).e164,
       bio: bio?.trim() || null,
     }
     if (avatarUrl) profileUpdate.avatar_url = avatar
@@ -273,6 +279,9 @@ export async function updateStudentProfile(data) {
       return { error: "Impossible d'enregistrer votre profil." }
     }
 
+    // Compétences distinctes et bornées : la validation a déjà refusé plus de SKILLS_MAX entrées.
+    const cleanSkills = Array.isArray(skills) ? [...new Set(skills.map((skill) => skill.trim()))].slice(0, SKILLS_MAX) : []
+
     const { error: studentError } = await supabase
       .from("student_profiles")
       .upsert(
@@ -281,7 +290,7 @@ export async function updateStudentProfile(data) {
           school: school?.trim() || null,
           level: level?.trim() || null,
           availability: availability?.trim() || null,
-          skills: Array.isArray(skills) ? skills : [],
+          skills: cleanSkills,
         },
         { onConflict: "user_id" }
       )
@@ -314,6 +323,23 @@ export async function saveStudentCardUrl(cardUrl) {
     const cardPath = toOwnedStoragePath(cardUrl, "student-cards", user.id)
     if (!cardPath) return { error: ERR_CARD }
 
+    // Le profil repasse en attente AVANT l'écriture de la carte : si la seconde écriture échoue, l'état restant
+    // est sûr (badge perdu, ancienne carte), jamais une nouvelle carte sous un badge « vérifié » conservé.
+    // Liste blanche de colonnes : jamais role, is_suspended ni verified_until.
+    const { error: resetError } = await supabase
+      .from("profiles")
+      .update({
+        is_verified: false,
+        rejection_reason: null,
+        verification_submitted_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id)
+
+    if (resetError) {
+      console.error("[saveStudentCardUrl]", resetError.message)
+      return { error: "Impossible d'enregistrer votre carte étudiante." }
+    }
+
     const { error: updateError } = await supabase
       .from("student_profiles")
       .upsert({ user_id: user.id, card_url: cardPath }, { onConflict: "user_id" })
@@ -327,94 +353,6 @@ export async function saveStudentCardUrl(cardUrl) {
     return { success: true }
   } catch (err) {
     console.error("[saveStudentCardUrl]", err)
-    return { error: "Une erreur inattendue est survenue. Réessayez." }
-  }
-}
-
-/**
- * Met à jour le profil étudiant ET la carte si une nouvelle est fournie.
- * L'avatar et la carte sont uploadés côté client - on reçoit les URLs.
- *
- * @param {{
- *   fullName: string,
- *   city: string,
- *   phone?: string,
- *   bio?: string,
- *   school?: string,
- *   level?: string,
- *   availability?: string,
- *   skills?: string[],
- *   avatarUrl?: string,
- *   cardUrl?: string,
- * }} data
- */
-export async function updateStudentProfileWithCard(data) {
-  try {
-    const auth = await requireRole(["student"])
-    if (auth.error) return { error: auth.error }
-    const { supabase, user } = auth
-
-    const { fullName, city, phone, bio, school, level, availability, skills, avatarUrl, cardUrl } = data
-
-    if (!fullName?.trim()) return { error: "Le nom complet est requis." }
-    if (!city?.trim())     return { error: "La ville est requise." }
-
-    const avatar = avatarUrl ? toOwnedAvatarUrl(avatarUrl, user.id) : null
-    if (avatarUrl && !avatar) return { error: ERR_AVATAR }
-
-    const cardPath = cardUrl ? toOwnedStoragePath(cardUrl, "student-cards", user.id) : null
-    if (cardUrl && !cardPath) return { error: ERR_CARD }
-
-    // Mise à jour du profil principal
-    const profileUpdate = {
-      full_name: fullName.trim(),
-      city:      city.trim(),
-      phone:     phone?.trim() || null,
-      bio:       bio?.trim()   || null,
-    }
-    if (avatarUrl) profileUpdate.avatar_url = avatar
-
-    // Si une nouvelle carte est soumise : repasse en attente de vérification
-    if (cardPath) {
-      profileUpdate.is_verified               = false
-      profileUpdate.rejection_reason          = null
-      profileUpdate.verification_submitted_at = new Date().toISOString()
-    }
-
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update(profileUpdate)
-      .eq("user_id", user.id)
-
-    if (profileError) {
-      console.error("[updateStudentProfileWithCard]", profileError.message)
-      return { error: "Impossible d'enregistrer votre profil." }
-    }
-
-    // Mise à jour du profil académique
-    const studentUpdate = {
-      user_id:      user.id,
-      school:       school?.trim()      || null,
-      level:        level?.trim()       || null,
-      availability: availability?.trim() || null,
-      skills:       Array.isArray(skills) ? skills : [],
-    }
-    if (cardPath) studentUpdate.card_url = cardPath
-
-    const { error: studentError } = await supabase
-      .from("student_profiles")
-      .upsert(studentUpdate, { onConflict: "user_id" })
-
-    if (studentError) {
-      console.error("[updateStudentProfileWithCard]", studentError.message)
-      return { error: "Impossible d'enregistrer votre profil." }
-    }
-
-    revalidatePath("/profile")
-    revalidatePath("/student/profile")
-    return { success: true }
-  } catch (err) {
-    console.error("[updateStudentProfileWithCard]", err)
     return { error: "Une erreur inattendue est survenue. Réessayez." }
   }
 }

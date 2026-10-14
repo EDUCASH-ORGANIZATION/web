@@ -5,7 +5,7 @@ vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 
 import { revalidatePath } from "next/cache"
 import { requireRole } from "@/lib/auth/require-role"
-import { createClientReview, getClientReviewPage } from "./review.actions"
+import { createClientReview, getClientReviewPage, createStudentReview, getStudentReviewPage } from "./review.actions"
 
 const ME = "11111111-1111-4111-8111-111111111111"
 const STUDENT = "22222222-2222-4222-8222-222222222222"
@@ -317,5 +317,291 @@ describe("getClientReviewPage", () => {
     const db = makeDb({ missions: [doneMission], errors: { missions: true } })
     asClient(db)
     await expect(getClientReviewPage(MISSION)).rejects.toThrow("Impossible de charger cette page.")
+  })
+})
+
+// ─── Avis de l'étudiant sur le client (E13) ──────────────────────────────────────────────────────────
+
+function asStudent(db, id = STUDENT) {
+  requireRole.mockResolvedValue({ supabase: db.client, user: { id }, role: "student", profile: {} })
+}
+
+const studentMission = { id: MISSION, client_id: ME, status: "done", selected_student_id: STUDENT, title: "Garde", type: "other", budget: 10000 }
+
+describe("createStudentReview : garde et propriété", () => {
+  it("appelle requireRole(['student']) en premier et refuse sans toucher la base", async () => {
+    requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
+    const res = await createStudentReview({ missionId: MISSION, rating: 5 })
+    expect(res).toEqual({ error: "Vous n'avez pas les droits pour effectuer cette action." })
+    expect(requireRole).toHaveBeenCalledWith(["student"])
+  })
+
+  it("refuse un client, un administrateur ou un compte suspendu (requireRole refuse) sans écrire", async () => {
+    const db = makeDb({ missions: [studentMission] })
+    requireRole.mockResolvedValue({ error: "Accès refusé." })
+    expect(await createStudentReview({ missionId: MISSION, rating: 5 })).toEqual({ error: "Accès refusé." })
+    expect(db.log.inserts).toEqual([])
+    expect(requireRole).toHaveBeenCalledTimes(1)
+    expect(requireRole).toHaveBeenCalledWith(["student"])
+  })
+
+  it("refuse la mission d'un autre étudiant avec le message neutre d'une mission inexistante", async () => {
+    const db = makeDb({ missions: [{ ...studentMission, selected_student_id: "55555555-5555-4555-8555-555555555555" }] })
+    asStudent(db)
+    const other = await createStudentReview({ missionId: MISSION, rating: 5 })
+    const db2 = makeDb({ missions: [] })
+    asStudent(db2)
+    const missing = await createStudentReview({ missionId: MISSION, rating: 5 })
+    expect(other).toEqual(missing)
+    expect(other.error).toBe("Cette mission est introuvable.")
+    expect(db.log.inserts).toEqual([])
+  })
+
+  it("refuse un étudiant qui a seulement postulé (non retenu) : mission filtrée sur selected_student_id", async () => {
+    const db = makeDb({ missions: [{ ...studentMission, selected_student_id: null }] })
+    asStudent(db)
+    expect((await createStudentReview({ missionId: MISSION, rating: 5 })).error).toBe("Cette mission est introuvable.")
+    expect(db.log.filters).toContainEqual(["missions", "selected_student_id", STUDENT])
+    expect(db.log.inserts).toEqual([])
+  })
+
+  it.each(["open", "in_progress", "cancelled"])("refuse une mission non terminée (%s)", async (status) => {
+    const db = makeDb({ missions: [{ ...studentMission, status }] })
+    asStudent(db)
+    const res = await createStudentReview({ missionId: MISSION, rating: 5 })
+    expect(res.error).toBe("Vous pourrez noter le client une fois la mission terminée.")
+    expect(db.log.inserts).toEqual([])
+  })
+})
+
+describe("createStudentReview : enregistrement", () => {
+  it("enregistre la note sur le client DÉDUIT de la mission, commentaire nettoyé", async () => {
+    const db = makeDb({ missions: [studentMission] })
+    asStudent(db)
+    const res = await createStudentReview({ missionId: MISSION, rating: 4, comment: "  Consignes claires  " })
+    expect(res).toEqual({ success: true, review: { rating: 4, comment: "Consignes claires" } })
+    expect(db.log.inserts).toEqual([
+      {
+        table: "reviews",
+        payload: { mission_id: MISSION, reviewer_id: STUDENT, reviewed_id: ME, rating: 4, comment: "Consignes claires" },
+      },
+    ])
+    expect(revalidatePath).toHaveBeenCalled()
+  })
+
+  it("ignore un reviewedId ou reviewerId forgé dans l'entrée", async () => {
+    const db = makeDb({ missions: [studentMission] })
+    asStudent(db)
+    await createStudentReview({ missionId: MISSION, rating: 5, reviewedId: OTHER_CLIENT, reviewerId: OTHER_CLIENT, client_id: OTHER_CLIENT })
+    expect(db.log.inserts).toHaveLength(1)
+    expect(db.log.inserts[0].payload.reviewed_id).toBe(ME)
+    expect(db.log.inserts[0].payload.reviewer_id).toBe(STUDENT)
+  })
+
+  it("commentaire absent ou vide : enregistré à null", async () => {
+    const db = makeDb({ missions: [studentMission] })
+    asStudent(db)
+    expect((await createStudentReview({ missionId: MISSION, rating: 3 })).review.comment).toBeNull()
+    expect((await createStudentReview({ missionId: MISSION, rating: 3, comment: "   " })).review.comment).toBeNull()
+  })
+
+  it("refuse un avis déjà donné, sans second insert", async () => {
+    const db = makeDb({ missions: [studentMission], reviews: [{ id: "r1", mission_id: MISSION, reviewer_id: STUDENT }] })
+    asStudent(db)
+    const res = await createStudentReview({ missionId: MISSION, rating: 5 })
+    expect(res.error).toBe("Vous avez déjà noté le client pour cette mission.")
+    expect(db.log.inserts).toEqual([])
+  })
+
+  it("double envoi concurrent : la violation 23505 est traitée comme « déjà noté »", async () => {
+    const db = makeDb({ missions: [studentMission], insertError: { code: "23505", message: "duplicate key" } })
+    asStudent(db)
+    const res = await createStudentReview({ missionId: MISSION, rating: 5 })
+    expect(res).toEqual({ error: "Vous avez déjà noté le client pour cette mission." })
+  })
+
+  it("erreur d'écriture ou de lecture : message neutre sans détail SQL", async () => {
+    const failing = makeDb({ missions: [studentMission], insertError: { code: "XX000", message: "relation secrète" } })
+    asStudent(failing)
+    const res = await createStudentReview({ missionId: MISSION, rating: 5 })
+    expect(res.error).toBe("Impossible d'enregistrer votre avis. Réessayez dans un instant.")
+    expect(res.error).not.toContain("secrète")
+    const broken = makeDb({ errors: { missions: true } })
+    asStudent(broken)
+    expect((await createStudentReview({ missionId: MISSION, rating: 5 })).error).toBe(res.error)
+  })
+})
+
+describe("createStudentReview : tests d'abus", () => {
+  it.each([[0], [6], [-1], [3.5], [NaN], [Infinity], ["5"], ["abc"], [null], [undefined], [true], [[5]], [{}]])(
+    "refuse la note %j sans lire ni écrire",
+    async (rating) => {
+      const db = makeDb({ missions: [studentMission] })
+      asStudent(db)
+      const res = await createStudentReview({ missionId: MISSION, rating })
+      expect(res.error).toBe("Choisissez une note de 1 à 5 étoiles.")
+      expect(db.log.inserts).toEqual([])
+      expect(db.log.filters).toEqual([])
+    },
+  )
+
+  it.each([1, 2, 3, 4, 5])("accepte la note entière %i", async (rating) => {
+    const db = makeDb({ missions: [studentMission] })
+    asStudent(db)
+    expect((await createStudentReview({ missionId: MISSION, rating })).success).toBe(true)
+  })
+
+  it.each([[null], [undefined], [""], ["x".repeat(300)]])("accepte un commentaire valide (%#)", async (comment) => {
+    const db = makeDb({ missions: [studentMission] })
+    asStudent(db)
+    expect((await createStudentReview({ missionId: MISSION, rating: 5, comment })).success).toBe(true)
+  })
+
+  it("refuse un commentaire de 301 caractères et un commentaire non texte", async () => {
+    const db = makeDb({ missions: [studentMission] })
+    asStudent(db)
+    expect((await createStudentReview({ missionId: MISSION, rating: 5, comment: "x".repeat(301) })).error).toContain("300")
+    for (const comment of [42, {}, ["a"], true]) {
+      expect((await createStudentReview({ missionId: MISSION, rating: 5, comment })).error).toBe("Votre commentaire n'est pas valide.")
+    }
+    expect(db.log.inserts).toEqual([])
+  })
+
+  it.each(["a\u0000b", "a\u0007b", "a\u001Bb", "a\u007Fb", "a\u202Eb", "a\u2066b", "a\u200Bb", "a\u200Fb", "a\uFEFFb"])(
+    "refuse les caractères de contrôle, bidi ou de largeur nulle (%#)",
+    async (comment) => {
+      const db = makeDb({ missions: [studentMission] })
+      asStudent(db)
+      expect((await createStudentReview({ missionId: MISSION, rating: 5, comment })).error).toBe(
+        "Votre commentaire contient des caractères non autorisés.",
+      )
+      expect(db.log.inserts).toEqual([])
+    },
+  )
+
+  it("conserve tabulation et sauts de ligne", async () => {
+    const db = makeDb({ missions: [studentMission] })
+    asStudent(db)
+    expect((await createStudentReview({ missionId: MISSION, rating: 5, comment: "a\nb\tc" })).success).toBe(true)
+  })
+
+  it.each([[undefined], [null], [""], ["pas-un-uuid"], ["1' or '1'='1"], [42], [{}]])(
+    "refuse l'identifiant de mission %j sans interroger la base",
+    async (missionId) => {
+      const db = makeDb({ missions: [studentMission] })
+      asStudent(db)
+      expect((await createStudentReview({ missionId, rating: 5 })).error).toBe("Cette mission est introuvable.")
+      expect(db.log.filters).toEqual([])
+    },
+  )
+
+  it("refuse une entrée absente ou qui n'est pas un objet", async () => {
+    const db = makeDb({ missions: [studentMission] })
+    asStudent(db)
+    for (const input of [undefined, null, "x", 3]) {
+      expect((await createStudentReview(input)).error).toBe("Cette mission est introuvable.")
+    }
+  })
+
+  it("aucun message d'erreur ne tutoie l'étudiant", async () => {
+    const db = makeDb({ missions: [{ ...studentMission, status: "open" }] })
+    asStudent(db)
+    const errors = [
+      (await createStudentReview({ missionId: "x", rating: 5 })).error,
+      (await createStudentReview({ missionId: MISSION, rating: 0 })).error,
+      (await createStudentReview({ missionId: MISSION, rating: 5, comment: 1 })).error,
+      (await createStudentReview({ missionId: MISSION, rating: 5 })).error,
+    ]
+    for (const e of errors) expect(e).not.toMatch(/\b(tu|ton|ta|tes|toi)\b|Réessaie\b/i)
+  })
+})
+
+describe("getStudentReviewPage", () => {
+  const clientProfile = { user_id: ME, full_name: "Rosine Adjovi Hounkpatin", avatar_url: null, city: "Cotonou" }
+
+  it("exige requireRole(['student']) et renvoie null sans lecture quand il refuse", async () => {
+    requireRole.mockResolvedValue({ error: "Accès refusé." })
+    expect(await getStudentReviewPage(MISSION)).toBeNull()
+    expect(requireRole).toHaveBeenCalledWith(["student"])
+  })
+
+  it("renvoie null pour un identifiant mal formé, sans interroger la base", async () => {
+    const db = makeDb()
+    asStudent(db)
+    expect(await getStudentReviewPage("pas-un-uuid")).toBeNull()
+    expect(db.log.filters).toEqual([])
+  })
+
+  it("renvoie null pour une mission inconnue, d'un autre étudiant ou sans étudiant retenu", async () => {
+    const db = makeDb({ missions: [{ ...studentMission, selected_student_id: "55555555-5555-4555-8555-555555555555" }] })
+    asStudent(db)
+    expect(await getStudentReviewPage(MISSION)).toBeNull()
+    expect(db.log.filters).toContainEqual(["missions", "selected_student_id", STUDENT])
+    const none = makeDb({ missions: [] })
+    asStudent(none)
+    expect(await getStudentReviewPage(MISSION)).toBeNull()
+  })
+
+  it("état « form » : mission terminée, profil public du client (prénom et initiale), aucune donnée privée", async () => {
+    const db = makeDb({ missions: [studentMission], profiles: [clientProfile] })
+    asStudent(db)
+    const page = await getStudentReviewPage(MISSION)
+    expect(page.state).toBe("form")
+    expect(page.client).toEqual({ name: "Rosine H.", avatarUrl: null, city: "Cotonou" })
+    expect(page.mission).toEqual({ id: MISSION, title: "Garde", type: "other", budget: 10000, status: "done" })
+    expect(page.review).toBeNull()
+    expect(JSON.stringify(page)).not.toContain("Hounkpatin")
+    expect(JSON.stringify(page)).not.toContain(ME)
+  })
+
+  it("avatar du client : l'URL du projet est gardée, une URL externe (pixel de suivi) devient null", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://proj.supabase.co")
+    try {
+      const own = "https://proj.supabase.co/storage/v1/object/public/avatars/c1/a.png"
+      for (const [raw, expected] of [
+        [own, own],
+        ["https://evil.example/pixel.png", null],
+        ["https://proj.supabase.co/storage/v1/object/public/avatars/..%2F..%2Fx", null],
+      ]) {
+        const db = makeDb({ missions: [studentMission], profiles: [{ ...clientProfile, avatar_url: raw }] })
+        asStudent(db)
+        expect((await getStudentReviewPage(MISSION)).client.avatarUrl).toBe(expected)
+      }
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it("état « already » : l'avis déjà donné est renvoyé", async () => {
+    const db = makeDb({
+      missions: [studentMission],
+      profiles: [clientProfile],
+      reviews: [{ mission_id: MISSION, reviewer_id: STUDENT, rating: 5, comment: "Super", created_at: "2026-10-07T10:00:00Z" }],
+    })
+    asStudent(db)
+    const page = await getStudentReviewPage(MISSION)
+    expect(page.state).toBe("already")
+    expect(page.review).toEqual({ rating: 5, comment: "Super", createdAt: "2026-10-07T10:00:00Z" })
+  })
+
+  it("état « not_done » : mission non terminée", async () => {
+    const db = makeDb({ missions: [{ ...studentMission, status: "in_progress" }], profiles: [clientProfile] })
+    asStudent(db)
+    expect((await getStudentReviewPage(MISSION)).state).toBe("not_done")
+  })
+
+  it("nom du client absent : signature par défaut, la page ne casse pas", async () => {
+    const db = makeDb({ missions: [studentMission], profiles: [] })
+    asStudent(db)
+    expect((await getStudentReviewPage(MISSION)).client.name).toBe("Client EduCash")
+  })
+
+  it("lecture en échec : erreur neutre sans message SQL", async () => {
+    const db = makeDb({ errors: { missions: true } })
+    asStudent(db)
+    await expect(getStudentReviewPage(MISSION)).rejects.toThrow("Impossible de charger cette page.")
+    const db2 = makeDb({ missions: [studentMission], errors: { profiles: true } })
+    asStudent(db2)
+    await expect(getStudentReviewPage(MISSION)).rejects.toThrow("Impossible de charger cette page.")
   })
 })

@@ -8,14 +8,16 @@ import path from "node:path"
 // Périmètre : tous les .js et .jsx de src/, sauf :
 // - les fichiers de test (*.test.js et *.test.jsx) : ils portent les fixtures de détection et les regex ;
 // - src/lib/actions/verify-card.actions.js : prompt LLM interne (« Tu es un système de vérification... »),
-//   jamais affiché à un utilisateur.
+//   jamais affiché à un utilisateur ;
+// - src/lib/security/space-guard-rules.js : la liste de mots du détecteur de tutoiement des garde-fous
+//   d'espace (« Vérifie », « Recharge »...), des données de détection et non du texte affiché.
 // Les emails (gabarits Resend dans src/lib/email) sont couverts ici ; les gabarits HTML Supabase le sont par
 // auth-emails.guard.test.js.
 
 const ROOT = process.cwd()
 const SRC = path.join(ROOT, "src")
 const TEST_FILE = /\.test\.(js|jsx)$/
-const EXCLUDED = new Set(["src/lib/actions/verify-card.actions.js"])
+const EXCLUDED = new Set(["src/lib/actions/verify-card.actions.js", "src/lib/security/space-guard-rules.js"])
 
 // ─── Lecture du source : retire les commentaires, extrait les chaînes ───────────────────────
 
@@ -246,6 +248,7 @@ describe("vouvoiement partout dans src", () => {
       expect(files.some((f) => f.startsWith(dir)), dir).toBe(true)
     }
     expect(files).not.toContain("src/lib/actions/verify-card.actions.js")
+    expect(files).not.toContain("src/lib/security/space-guard-rules.js")
   })
 
   it("aucun tutoiement dans les chaînes et le texte JSX visibles", () => {

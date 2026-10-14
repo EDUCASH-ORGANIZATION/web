@@ -1,73 +1,31 @@
+// @ds-screen RD-STUDENT-01
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { getServerRole } from "@/lib/auth/server-role"
-import { dashboardFor } from "@/lib/auth/destinations"
-import { Sidebar } from "@/components/shared/sidebar"
-import { StudentHeader } from "@/components/shared/student-header"
+import { isInternalPath } from "@/lib/auth/internal-path"
+import { getStudentShellData } from "@/lib/actions/student-shell.actions"
+import { AppShell } from "@/components/app-shell/app-shell"
+import { STUDENT_NAV } from "@/components/student-space/shell/student-nav"
+import { ToastProvider } from "@/components/app-ui/toast"
+import { OfflineBanner } from "@/components/app-ui/offline-banner"
 import { PwaInstallBannerLoader } from "@/components/shared/pwa-install-banner-loader"
-import { BottomNav } from "@/components/app-shell/bottom-nav"
-import { UnreadProvider } from "@/components/app-shell/unread-provider"
-import { STUDENT_MOBILE_NAV } from "@/components/student/student-nav"
 
 export default async function StudentLayout({ children }) {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect("/auth/login")
-
-  // Autorité : profiles.role (jamais user_metadata). Rôle introuvable : retour à l'accueil (fail-closed).
-  const { role } = await getServerRole(supabase, user)
-  if (!role) redirect("/")
-  if (role !== "student") redirect(dashboardFor(role) ?? "/")
-
-  const [{ data: profile }, { data: studentProfile }, { count: unreadCount }, { data: walletData }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("full_name, avatar_url, role, city, is_verified, verified_until")
-      .eq("user_id", user.id)
-      .single(),
-    supabase
-      .from("student_profiles")
-      .select("school")
-      .eq("user_id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("messages")
-      .select("*", { count: "exact", head: true })
-      .eq("receiver_id", user.id)
-      .eq("read", false),
-    supabase
-      .from("wallets")
-      .select("balance, reserved")
-      .eq("user_id", user.id)
-      .single(),
-  ])
-
-  const walletAvailable = walletData
-    ? (walletData.balance ?? 0) - (walletData.reserved ?? 0)
-    : 0
+  // Garde : getStudentShellData exige profiles.role = student (jamais user_metadata), refuse un compte
+  // suspendu et renvoie la destination fail-closed (connexion, accueil ou tableau de bord du bon rôle).
+  const data = await getStudentShellData()
+  // La coquille est exigée : une réponse sans `shell` (refus, réponse vide) ne rend jamais les enfants.
+  // La destination n'est suivie que si c'est un chemin interne ; sinon accueil. redirect() hors try/catch.
+  if (!data?.shell) redirect(isInternalPath(data?.redirectTo) ? data.redirectTo : "/")
+  const { shell } = data
 
   return (
-    <div className="flex h-full min-h-screen bg-[#F5F6FA]">
-      <Sidebar role="student" profile={profile} userId={user.id} unreadCount={unreadCount ?? 0} walletAvailable={walletAvailable} />
-      <div className="flex-1 min-w-0 flex flex-col">
-        <StudentHeader
-          profile={profile}
-          school={studentProfile?.school}
-          userId={user.id}
-        />
-        <main className="flex-1 overflow-auto">
+    <div className="ds e2">
+      <ToastProvider>
+        <OfflineBanner />
+        <AppShell nav={STUDENT_NAV} user={{ id: shell.userId, fullName: shell.fullName }} unreadCount={shell.unreadCount}>
           <PwaInstallBannerLoader space="student" />
           {children}
-          <UnreadProvider userId={user.id} initialCount={unreadCount ?? 0}>
-            <BottomNav
-              items={STUDENT_MOBILE_NAV.mobile}
-              hideBelow={STUDENT_MOBILE_NAV.mobileHideBelow}
-              reserveSpace
-            />
-          </UnreadProvider>
-        </main>
-      </div>
+        </AppShell>
+      </ToastProvider>
     </div>
   )
 }

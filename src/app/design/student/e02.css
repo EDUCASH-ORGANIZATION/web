@@ -1,0 +1,45 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E02 Explorer les missions : filtres en colonne (bureau) ou en feuille (mobile), barre de tri, pastilles. */
+.e2-02-cols { grid-template-columns: clamp(220px, 20vw, 264px) minmax(0, 1fr); }
+.e2-02-filters { position: sticky; top: 0; }
+.e2-02-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.e2-02-group { display: flex; flex-direction: column; gap: 10px; }
+.e2-02-group + .e2-02-group { border-top: 1px solid var(--c-ligne-2); padding-top: var(--s-4); margin-top: 4px; }
+.e2-02-gtitle { font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-ardoise); }
+.e2-02-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; min-height: 40px; }
+.e2-02-bar__left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.e2-02-count { font-size: var(--t-body-s); font-weight: var(--fw-bold); }
+.e2-02-sort { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: var(--t-caption); color: var(--c-ardoise); }
+.e2-02-sort .select { width: auto; }
+.e2-pill.e2-02-tag { height: 32px; padding: 0 10px 0 12px; font-size: var(--t-caption); position: relative; }
+.e2-02-msearch { width: 100%; }
+/* Champ de recherche mobile : blanc bordé au repos (.shell--v2 .search2 le donne givre, invisible sur fond givre) ; le focus garde son filet bleu */
+.e2 .e2-02-msearch:not(:focus-within) { background: var(--c-blanc); border-color: var(--c-ligne); }
+/* Pied de la feuille : la Modal pose .modal__foot, ce bloc range les deux boutons sur une ligne */
+.e2-02-sfoot { display: flex; align-items: center; gap: var(--s-3); width: 100%; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sheet .e2-02-sfoot .btn { width: auto; flex: none; }
+.sheet .e2-02-sfoot .btn--dark { flex: 1; }
+/* Carte entière cliquable : le lien « Voir » étend sa zone sur la carte (relative), « Voir » reste le libellé accessible */
+.e2-02-grid .e2-mcard__foot .e2-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.e2-02-skel { height: 220px; border-radius: var(--r-l); }
+.sheet .e2-02-group + .e2-02-group { padding-top: var(--s-3); }
+.e2-02-mcount { font-size: var(--t-caption); color: var(--c-ardoise); padding: 0 4px; }
+
+@media (max-width: 1023.98px) {
+  .e2 .e2-02-cols { grid-template-columns: minmax(0, 1fr); }
+  /* Étiquette de filtre retirable : hauteur visuelle conservée, zone tactile de 44 px par pseudo-élément */
+  .e2-pill.e2-02-tag { min-height: 0; }
+  /* inset se calcule depuis la boite de remplissage (bordure de 1 px) : 30 + 2 x 7 = 44 px. Ecart de rangee de 12 px : zones voisines sans chevauchement. */
+  .e2-pill.e2-02-tag::after { content: ""; position: absolute; inset: -7px 0; }
+  .e2 .e2-02-tags { row-gap: 12px; }
+  /* Pagination et tri : cibles de 44 px (40 px au bureau) */
+  .e2 .pagination .page-btn { min-width: 44px; height: 44px; }
+  .e2 .e2-02-sort .select--sm { height: 44px; }
+}
+
+/* Feuille de filtres sous 480 px : le pied tient dans la feuille (278 px a 320, 318 px a 360 ; les deux boutons cote a cote
+   demandent 136 + 12 + 199 = 347 px) : colonne, boutons pleine largeur, sans rogner le bouton principal */
+@media (max-width: 480px) {
+  .e2-02-sfoot { flex-direction: column; align-items: stretch; }
+  .sheet .e2-02-sfoot .btn, .sheet .e2-02-sfoot .btn--dark { width: 100%; min-width: 0; flex: none; }
+}

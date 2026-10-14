@@ -76,3 +76,28 @@ export function toOwnedAvatarUrl(value, userId) {
     return null
   }
 }
+
+/**
+ * Valide l'URL publique d'un avatar SANS connaître son propriétaire : projet Supabase, bucket `avatars`, aucune
+ * requête. Sert à afficher l'avatar d'un tiers sans suivre une URL externe (pixel de suivi). Les paramètres sont retirés.
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+export function toProjectAvatarUrl(value) {
+  if (typeof value !== "string") return null
+  const origin = supabaseOrigin()
+  if (!origin) return null
+  try {
+    const url = new URL(value.trim())
+    if (url.origin !== origin || !/^https?:$/.test(url.protocol)) return null
+    const prefix = "/storage/v1/object/public/avatars/"
+    if (!url.pathname.startsWith(prefix) || url.pathname.length === prefix.length) return null
+    const rest = url.pathname.slice(prefix.length)
+    // Comme isCleanRelativePath : aucun `%` (traversée encodée `..%2F`), antislash ni caractère de contrôle.
+    if (/[\\%\u0000-\u001f\u007f]/.test(rest)) return null
+    if (rest.split("/").some((s) => s === "" || s === "." || s === "..")) return null
+    return `${url.origin}${url.pathname}`
+  } catch {
+    return null
+  }
+}

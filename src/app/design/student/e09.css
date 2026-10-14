@@ -1,0 +1,21 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E09 Retrait : phrase de récapitulatif et équivalents .e2 des règles .c2 de la modale de retrait (client/c16.css). */
+.e2-09-sentence { font-size: var(--t-body-l); line-height: 1.45; padding: var(--s-4) var(--s-5); border-radius: 16px; background: var(--c-givre); }
+.e2-09-sentence b { font-weight: var(--fw-xbold); white-space: nowrap; }
+/* Montants rapides : les puces retournent à la ligne dans la modale */
+.e2-09-chips .chips--scroll { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+.e2-09-chips .chip { height: 34px; font-size: var(--t-caption); }
+.e2 .chips .chip.is-selected .payer { color: var(--c-blanc); }
+.e2 .chip .payer__logo { height: 24px; width: auto; }
+.e2 .modal .stepper { margin-bottom: 2px; }
+.e2 .modal__body .banner .link2:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 4px; }
+
+@media (max-width: 1023.98px) {
+  /* Cibles de 44 px : montants rapides et liens des bannières (la fermeture de la fenêtre est dans base.css) */
+  .e2-09-chips .chip { min-height: 44px; }
+  .e2 .modal__body .banner__actions .link2 { min-height: 44px; }
+  .e2 .modal__body .banner__actions { margin: 6px 0 0; }
+}
+@media (max-width: 480px) {
+  .e2-09-chips .chips--scroll { gap: 6px; }
+}

@@ -7,10 +7,8 @@ import path from "node:path"
 const ROOT = path.resolve(import.meta.dirname, "../../..")
 const DIRS = ["src/app", "src/components"]
 
-// Exceptions documentées : `type` n'est pas un type de mission.
-const EXCEPTIONS = {
-  "src/components/messages/location-picker-modal.js": "type d'un lieu renvoyé par la recherche d'adresses",
-}
+// Exceptions documentées : `type` n'est pas un type de mission (aucune pour l'instant).
+const EXCEPTIONS = {}
 
 function walk(dir, out = []) {
   for (const e of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {

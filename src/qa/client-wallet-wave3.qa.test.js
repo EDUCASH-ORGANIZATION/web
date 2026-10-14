@@ -173,8 +173,8 @@ describe("getClientFundedMissions", () => {
   })
 })
 
-describe("wallet.actions : messages vouvoyés pour tous les rôles", () => {
-  it("étudiant : textes vouvoyés (forbidden, read)", async () => {
+describe("wallet.actions : messages vouvoyés quel que soit le rôle (RD-VOUS-01)", () => {
+  it("étudiant : mêmes textes vouvoyés que le client (forbidden, read)", async () => {
     profile = roleOf("student")
     expect((await w.getWallet(OTHER)).error).toBe("Vous n'avez pas accès à ce portefeuille.")
     wallet = { data: null, error: { message: "x" } }
@@ -187,17 +187,17 @@ describe("wallet.actions : messages vouvoyés pour tous les rôles", () => {
     expect((await w.getWallet()).error).toBe("Impossible de charger votre portefeuille.")
   })
   for (const [name, p] of Object.entries({ "rôle illisible": { data: null, error: { message: "x" } }, "rôle inconnu": roleOf("root"), "profil absent": { data: null, error: null }, admin: roleOf("admin") })) {
-    it(`${name} : texte vouvoyé`, async () => {
+    it(`${name} : même texte vouvoyé`, async () => {
       profile = p
       expect((await w.getWallet(OTHER)).error).toBe("Vous n'avez pas accès à ce portefeuille.")
     })
   }
-  it("user_metadata client avec profil étudiant : texte vouvoyé", async () => {
+  it("user_metadata client avec profil étudiant : même texte vouvoyé", async () => {
     profile = roleOf("student")
     session = { id: ME, user_metadata: { role: "client" } }
     expect((await w.getWallet(OTHER)).error).toMatch(/^Vous /)
   })
-  it("échec d'invoke : message d'initiation vouvoyé, détail jamais relayé", async () => {
+  it("échec d'invoke : message d'initiation vouvoyé pour tous les rôles, détail jamais relayé", async () => {
     invoke = vi.fn(async () => ({ data: null, error: { message: "secret detail", context: { status: 500, text: async () => JSON.stringify({ error: "Stripe down 0.88" }) } } }))
     profile = roleOf("student")
     expect((await w.initiateDeposit({ amount: 5000 })).error).toBe("Le dépôt n'a pas pu être initié. Réessayez dans un instant.")

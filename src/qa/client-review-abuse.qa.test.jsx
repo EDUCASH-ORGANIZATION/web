@@ -24,12 +24,13 @@ vi.mock("next/navigation", () => ({
   redirect: (to) => { throw Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT", to }) },
   notFound: () => { throw Object.assign(new Error("NEXT_NOT_FOUND"), { digest: "NEXT_NOT_FOUND" }) },
 }))
-vi.mock("@/components/review/review-form", () => ({ ReviewForm: () => null }))
+vi.mock("@/components/student-space/review/review-view", () => ({ ReviewView: () => null }))
 vi.mock("@/components/client-space/review/review-view", () => ({ ReviewView: () => null }))
 
 const { createClientReview, getClientReviewPage } = await import("@/lib/actions/review.actions")
 const { default: LegacyReviewPage } = await import("@/app/review/[missionId]/page")
 const { default: ClientReviewPage } = await import("@/app/(client)/client/review/[missionId]/page")
+const { default: StudentReviewPage } = await import("@/app/(student)/student/review/[missionId]/page")
 
 function seed(role = "client", suspended = false) {
   ctx.user = { id: CLIENT, user_metadata: { role: "client" } }
@@ -269,32 +270,39 @@ describe("/review/<id> : redirection selon le rôle", () => {
     seed("admin")
     expect((await run(M_DONE)).e.to).toBe("/auth/login")
   })
-  it("étudiant retenu : comportement d'origine (formulaire rendu, pas de redirection)", async () => {
+  it("étudiant retenu : redirigé vers /student/review/<id> sans lire la mission (identifiant encodé)", async () => {
     seed("student")
     ctx.db.profiles[0].user_id = STUDENT
     ctx.user = { id: STUDENT }
-    const { el, e } = await run(M_DONE)
-    expect(e).toBeUndefined()
-    expect(isValidElement(el)).toBe(true)
+    const { e } = await run(M_DONE)
+    expect(e.digest).toBe("NEXT_REDIRECT")
+    expect(e.to).toBe(`/student/review/${M_DONE}`)
+    expect(dataQueries()).toEqual([])
+    expect((await run("a/b?c")).e.to).toBe("/student/review/a%2Fb%3Fc")
   })
-  it("étudiant non impliqué dans la mission : 404", async () => {
+  const runStudent = (missionId) => StudentReviewPage({ params: Promise.resolve({ missionId }) }).then((el) => ({ el }), (e) => ({ e }))
+  it("étudiant non impliqué dans la mission : la page /student/review répond 404", async () => {
     seed("student")
     ctx.db.profiles[0].user_id = OTHER_STUDENT
     ctx.user = { id: OTHER_STUDENT }
-    const { e } = await run(M_DONE)
+    const { e } = await runStudent(M_DONE)
     expect(e.digest).toBe("NEXT_NOT_FOUND")
   })
-  it("étudiant, mission non terminée : 404", async () => {
+  it("étudiant retenu, mission non terminée : la page rend l'état « pas encore possible », aucun avis écrit", async () => {
     seed("student")
     ctx.db.profiles[0].user_id = STUDENT
     ctx.user = { id: STUDENT }
-    expect((await run(M_PROG)).e.digest).toBe("NEXT_NOT_FOUND")
+    const { el, e } = await runStudent(M_PROG)
+    expect(e).toBeUndefined()
+    expect(isValidElement(el)).toBe(true)
+    expect(el.props.page.state).toBe("not_done")
   })
-  it("étudiant ayant déjà noté : renvoyé vers /dashboard", async () => {
+  it("étudiant ayant déjà noté : la page rend l'état « déjà noté »", async () => {
     seed("student")
     ctx.db.profiles[0].user_id = STUDENT
     ctx.user = { id: STUDENT }
-    ctx.db.reviews.push({ mission_id: M_DONE, reviewer_id: STUDENT })
-    expect((await run(M_DONE)).e.to).toBe("/dashboard")
+    ctx.db.reviews.push({ mission_id: M_DONE, reviewer_id: STUDENT, rating: 4, comment: null, created_at: "2026-10-07T10:00:00Z" })
+    const { el } = await runStudent(M_DONE)
+    expect(el.props.page.state).toBe("already")
   })
 })

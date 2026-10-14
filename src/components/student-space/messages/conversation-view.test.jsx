@@ -1,0 +1,412 @@
+// @ds-screen RD-STUDENT-01
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest"
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
+import { join } from "node:path"
+import { renderToStaticMarkup } from "react-dom/server"
+
+vi.mock("next/link", () => ({
+  default: ({ href, children, ...rest }) => <a href={href} {...rest}>{children}</a>,
+}))
+vi.mock("next/image", () => ({
+  default: ({ src, className }) => <span data-image={src} className={className} />,
+}))
+vi.mock("next/navigation", () => ({ notFound: vi.fn(), useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }))
+vi.mock("@/lib/actions/message.actions", () => ({
+  sendStudentMessage: vi.fn(),
+  markStudentConversationRead: vi.fn(),
+  getStudentConversation: vi.fn(),
+}))
+const realtime = vi.fn(({ initialMessages }) => ({ messages: initialMessages, append: vi.fn() }))
+vi.mock("@/hooks/use-realtime-messages", () => ({
+  useRealtimeMessages: (options) => realtime(options),
+  useMessageMediaUpload: () => vi.fn(),
+}))
+
+const { StudentConversationView, deliverMessage } = await import("./conversation-view")
+const { Bubble } = await import("./bubble")
+const { StatusBanner } = await import("./status-banner")
+const { Composer, LockedComposer, clockText } = await import("./composer")
+const { ImageDialog, LocationDialog } = await import("./media-dialogs")
+const { isPairRow } = await import("@/lib/client-space/conversations")
+
+const ORIGIN = "https://example.supabase.co"
+const M1 = "11111111-1111-4111-8111-111111111111"
+const STUDENT = "22222222-2222-4222-8222-222222222221"
+const CLIENT = "33333333-3333-4333-8333-333333333331"
+const NOW = "2026-10-13T12:00:00Z"
+
+beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", ORIGIN)
+  realtime.mockClear()
+})
+afterEach(() => vi.unstubAllEnvs())
+
+const h1Count = (html) => (html.match(/<h1[\s>]/g) ?? []).length
+
+const msg = (over) => ({
+  id: "m1",
+  mine: false,
+  type: "text",
+  content: "Bonjour",
+  mediaUrl: null,
+  lat: null,
+  lng: null,
+  createdAt: "2026-10-13T09:00:00Z",
+  read: false,
+  ...over,
+})
+
+const conversation = (over) => ({
+  userId: STUDENT,
+  missionId: M1,
+  clientId: CLIENT,
+  client: { id: CLIENT, name: "Rosine H.", avatarUrl: null },
+  mission: { title: "Cours de maths niveau 3e", status: "open" },
+  state: "candidate",
+  canWrite: true,
+  messages: [],
+  ...over,
+})
+
+const view = (over) => renderToStaticMarkup(<StudentConversationView conversation={conversation(over)} now={NOW} />)
+
+describe("StudentConversationView : conversation vide, candidature en cours", () => {
+  const html = view()
+
+  it("affiche l'en-tête (retour, nom du client, mission), un seul h1 et l'invitation à écrire", () => {
+    expect(html).toContain('<h1 class="e2-07-name">Rosine H.</h1>')
+    expect(html).toContain("Cours de maths niveau 3e")
+    expect(html).toContain('href="/messages"')
+    expect(html).toContain('aria-label="Retour aux messages"')
+    expect(html).toContain("Aucun message pour l&#x27;instant. Écrivez à Rosine H. pour démarrer la discussion.")
+    expect(h1Count(html)).toBe(1)
+  })
+
+  it("montre le bandeau « Voir la mission » vers la mission", () => {
+    expect(html).toContain("Candidature en attente de la réponse du client")
+    expect(html).toContain(`href="/student/missions/${M1}"`)
+    expect(html).toContain("Voir la mission")
+  })
+
+  it("propose un compositeur vouvoyé avec image, message vocal et position", () => {
+    expect(html).toContain("Écrivez un message...")
+    expect(html).toContain('aria-label="Joindre une image"')
+    expect(html).toContain('aria-label="Enregistrer un message vocal"')
+    expect(html).toContain('aria-label="Partager une position"')
+    expect(html).toContain('aria-label="Envoyer"')
+    expect(html).toMatch(/maxLength="2000"/i)
+  })
+
+  it("garde le compositeur dans le volet (pas de barre fixe) et annonce le journal poliment", () => {
+    expect(html).toContain('class="e2-07-bar"')
+    expect(html).not.toContain("mbar2")
+    expect(html).not.toContain("e2-mbar")
+    expect(html).toContain('role="log"')
+    expect(html).toContain('aria-live="polite"')
+    expect(html).toContain('aria-relevant="additions"')
+  })
+})
+
+describe("StudentConversationView : temps réel", () => {
+  it("passe le client comme autre partie au hook et l'étudiant comme utilisateur", () => {
+    view({ messages: [msg()] })
+    expect(realtime).toHaveBeenCalledTimes(1)
+    const options = realtime.mock.calls[0][0]
+    expect(options.missionId).toBe(M1)
+    expect(options.studentId).toBe(CLIENT)
+    expect(options.userId).toBe(STUDENT)
+    expect(typeof options.onIncoming).toBe("function")
+  })
+
+  it("le filtre de paire du hook couvre le cas étudiant (échange dans les deux sens, jamais un tiers)", () => {
+    expect(isPairRow({ sender_id: STUDENT, receiver_id: CLIENT }, STUDENT, CLIENT)).toBe(true)
+    expect(isPairRow({ sender_id: CLIENT, receiver_id: STUDENT }, STUDENT, CLIENT)).toBe(true)
+    expect(isPairRow({ sender_id: "autre", receiver_id: STUDENT }, STUDENT, CLIENT)).toBe(false)
+    expect(isPairRow({ sender_id: CLIENT, receiver_id: "autre" }, STUDENT, CLIENT)).toBe(false)
+  })
+})
+
+describe("StudentConversationView : mission en cours", () => {
+  const html = view({ state: "in_progress", mission: { title: "Cours de maths", status: "in_progress" }, messages: [msg()] })
+
+  it("rappelle de prévenir le client quand c'est terminé", () => {
+    expect(html).toContain("Mission en cours. Prévenez le client par message quand c&#x27;est terminé.")
+    expect(html).toContain("Voir la mission")
+  })
+
+  it("rend les messages avec séparateur de jour et heure du Bénin", () => {
+    expect(html).toContain('class="chat__day"')
+    expect(html).toContain("Aujourd&#x27;hui")
+    expect(html).toContain("10:00")
+  })
+})
+
+describe("StudentConversationView : mission terminée", () => {
+  const html = view({ state: "done", canWrite: false, mission: { title: "Cours de maths", status: "done" }, messages: [msg()] })
+
+  it("propose « Noter le client » et verrouille l'écriture", () => {
+    expect(html).toContain("Noter le client")
+    expect(html).toContain(`href="/student/review/${M1}"`)
+    expect(html).toContain("Mission terminée : cette conversation est en lecture seule.")
+    expect(html).toContain("composer e2-07-composer is-locked")
+    expect(html).not.toContain("<textarea")
+    expect(html).not.toContain('aria-label="Envoyer"')
+  })
+})
+
+describe("StudentConversationView : lecture seule", () => {
+  for (const [state, text] of [
+    ["cancelled", "Mission annulée : cette conversation est en lecture seule."],
+    ["rejected", "Candidature non retenue : cette conversation est en lecture seule."],
+    ["closed", "Un autre étudiant a été retenu : cette conversation est en lecture seule."],
+  ]) {
+    it(`verrouille l'écriture quand l'état est ${state}`, () => {
+      const html = view({ state, canWrite: false, messages: [msg()] })
+      expect(html).toContain(text.replace("'", "&#x27;"))
+      expect(html).not.toContain("<textarea")
+    })
+  }
+
+  it("n'invite pas à écrire dans une conversation vide en lecture seule", () => {
+    const html = view({ state: "done", canWrite: false })
+    expect(html).toContain("Aucun message dans cette conversation.")
+    expect(html).not.toContain("démarrer la discussion")
+  })
+})
+
+describe("Bubble", () => {
+  const render = (message, extra) => renderToStaticMarkup(<Bubble message={message} senderName="Rosine H." {...extra} />)
+
+  it("distingue le message de l'étudiant (bulle encre) de celui du client", () => {
+    expect(render(msg({ mine: true }))).toContain("bubble bubble--me")
+    expect(render(msg({ mine: true }))).toContain('<span class="sr-only">Vous : </span>')
+    expect(render(msg())).toContain("bubble bubble--them")
+    expect(render(msg())).toContain("Rosine H. : ")
+  })
+
+  it("échappe le texte, sans HTML interprété ni lien automatique", () => {
+    const html = render(msg({ content: '<img src=x onerror="alert(1)"> <script>x</script> https://exemple.test' }))
+    expect(html).not.toContain("<img")
+    expect(html).not.toContain("<script>")
+    expect(html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;")
+    expect(html).not.toContain("<a ")
+    expect(html).toContain("https://exemple.test")
+  })
+
+  it("rend une image et un message vocal du compartiment du projet, sans lien vers l'objet brut", () => {
+    const image = `${ORIGIN}/storage/v1/object/public/message-media/u/a.jpg`
+    const html = render(msg({ type: "image", mediaUrl: image }))
+    expect(html).toContain(`src="${image}"`)
+    expect(html).toContain("bubble--media")
+    expect(html).not.toContain("<a ")
+    expect(render(msg({ type: "voice", mediaUrl: image }))).toContain("<audio")
+  })
+
+  it("affiche un média indisponible quand l'adresse a été refusée", () => {
+    expect(render(msg({ type: "image", mediaUrl: null }))).toContain("Image indisponible")
+    expect(render(msg({ type: "voice", mediaUrl: null }))).toContain("Message vocal indisponible")
+    expect(render(msg({ type: "location", lat: null, lng: null }))).toContain("Position indisponible")
+  })
+
+  it("rend une position comme un lien construit à partir de nombres", () => {
+    const html = render(msg({ type: "location", lat: 6.37, lng: 2.39 }))
+    expect(html).toContain('href="https://www.openstreetmap.org/?mlat=6.37&amp;mlon=2.39#map=16/6.37/2.39"')
+    expect(html).toContain('rel="noopener noreferrer"')
+  })
+
+  it("montre l'envoi en cours sans actions", () => {
+    const html = render(msg({ mine: true }), { status: "sending" })
+    expect(html).toContain("is-sending")
+    expect(html).toContain("Envoi en cours...")
+    expect(html).not.toContain("Réessayer")
+  })
+
+  it("montre l'échec d'envoi visible avec Réessayer et Supprimer", () => {
+    const html = render(msg({ mine: true }), { status: "failed", error: "Non envoyé. Votre message n'a pas pu être envoyé." })
+    expect(html).toContain("is-failed")
+    expect(html).toContain("Non envoyé. Votre message n&#x27;a pas pu être envoyé.")
+    expect(html).toContain("Réessayer")
+    expect(html).toContain("Supprimer")
+  })
+
+  it("indique lu ou envoyé pour un message de l'étudiant", () => {
+    expect(render(msg({ mine: true, read: true }))).toContain("Lu")
+    expect(render(msg({ mine: true, read: false }))).toContain("Envoyé")
+    expect(render(msg({ mine: false }))).not.toContain("Envoyé")
+  })
+})
+
+describe("StatusBanner", () => {
+  const render = (state) => renderToStaticMarkup(<StatusBanner state={state} missionId={M1} />)
+
+  it("décline chaque état avec son action", () => {
+    expect(render("candidate")).toContain("En attente")
+    expect(render("in_progress")).toContain("En cours")
+    expect(render("done")).toContain("Terminée")
+    expect(render("done")).toContain("Noter le client")
+    expect(render("cancelled")).toContain("Annulée")
+    expect(render("cancelled")).not.toContain("<a ")
+    expect(render("rejected")).toContain("Non retenue")
+    expect(render("closed")).toContain("Attribuée")
+  })
+
+  it("ne rend rien pour un état inconnu", () => {
+    expect(render("???")).toBe("")
+  })
+})
+
+describe("Composer et dialogues", () => {
+  it("désactive l'envoi tant que le champ est vide et borne la longueur et le type de fichier", () => {
+    const html = renderToStaticMarkup(<Composer onSend={vi.fn()} />)
+    expect(html).toMatch(/<button type="submit" class="composer__send" aria-label="Envoyer" disabled/)
+    expect(html).toMatch(/maxLength="2000"|maxlength="2000"/i)
+    expect(html).toContain('accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"')
+  })
+
+  it("rend l'écriture verrouillée avec une note", () => {
+    const html = renderToStaticMarkup(<LockedComposer text="Lecture seule." />)
+    expect(html).toContain('role="note"')
+    expect(html).toContain("Lecture seule.")
+  })
+
+  it("formate la durée d'enregistrement", () => {
+    expect(clockText(0)).toBe("00:00")
+    expect(clockText(75)).toBe("01:15")
+  })
+
+  it("demande confirmation avant d'envoyer une image (fenêtre modale titrée, taille annoncée)", () => {
+    const html = renderToStaticMarkup(
+      <ImageDialog file={{ size: 2.5 * 1024 * 1024 }} previewUrl="blob:local" onConfirm={vi.fn()} onCancel={vi.fn()} />,
+    )
+    expect(html).toContain('role="dialog"')
+    expect(html).toContain('aria-modal="true"')
+    expect(html).toContain("Envoyer cette image ?")
+    expect(html).toContain("2,5 Mo")
+    expect(html).toContain('src="blob:local"')
+  })
+
+  it("propose le partage de position dans une fenêtre modale vouvoyée", () => {
+    const html = renderToStaticMarkup(<LocationDialog onConfirm={vi.fn()} onClose={vi.fn()} />)
+    expect(html).toContain('role="dialog"')
+    expect(html).toContain("Partager une position")
+    expect(html).toContain("Le client pourra l&#x27;ouvrir dans une carte.")
+    expect(html).toContain("Utiliser ma position")
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>Partager cette position/)
+  })
+})
+
+describe("deliverMessage", () => {
+  const sent = { id: "srv-1", mine: true, type: "text", content: "Bonjour" }
+
+  it("envoie un texte sans téléverser", async () => {
+    const upload = vi.fn()
+    const send = vi.fn().mockResolvedValue({ success: true, message: sent })
+    const out = await deliverMessage({ type: "text", content: "Bonjour" }, { upload, send })
+    expect(out).toEqual({ ok: true, message: sent })
+    expect(upload).not.toHaveBeenCalled()
+    expect(send).toHaveBeenCalledWith({ type: "text", content: "Bonjour", mediaPath: undefined, lat: undefined, lng: undefined })
+  })
+
+  it("téléverse d'abord un fichier puis transmet seulement son chemin", async () => {
+    const file = new Blob(["x"], { type: "image/png" })
+    const upload = vi.fn().mockResolvedValue(`${STUDENT}/a.png`)
+    const send = vi.fn().mockResolvedValue({ success: true, message: sent })
+    await deliverMessage({ type: "image", file, ext: "png" }, { upload, send })
+    expect(upload).toHaveBeenCalledWith(file, "png")
+    expect(send.mock.calls[0][0]).toMatchObject({ type: "image", mediaPath: `${STUDENT}/a.png` })
+    expect(send.mock.calls[0][0]).not.toHaveProperty("file")
+  })
+
+  it("signale un échec de téléversement sans appeler l'action", async () => {
+    const upload = vi.fn().mockRejectedValue(new Error("upload"))
+    const send = vi.fn()
+    const out = await deliverMessage({ type: "voice", file: new Blob(["x"]), ext: "webm" }, { upload, send })
+    expect(out).toEqual({ ok: false, error: "Non envoyé. Votre fichier n'a pas pu être téléversé.", mediaPath: undefined })
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it("conserve le chemin téléversé quand l'envoi échoue, et ne téléverse pas deux fois à la reprise", async () => {
+    const upload = vi.fn().mockResolvedValue(`${STUDENT}/a.png`)
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce({ error: "Cette conversation est en lecture seule." })
+      .mockResolvedValueOnce({ success: true, message: sent })
+    const item = { type: "image", file: new Blob(["x"]), ext: "png" }
+    const first = await deliverMessage(item, { upload, send })
+    expect(first).toEqual({ ok: false, error: "Non envoyé. Cette conversation est en lecture seule.", mediaPath: `${STUDENT}/a.png` })
+    const second = await deliverMessage({ ...item, mediaPath: first.mediaPath }, { upload, send })
+    expect(second.ok).toBe(true)
+    expect(upload).toHaveBeenCalledTimes(1)
+  })
+
+  it("convertit une exception réseau en erreur neutre", async () => {
+    const out = await deliverMessage({ type: "text", content: "x" }, { upload: vi.fn(), send: vi.fn().mockRejectedValue(new Error("TypeError: Failed to fetch")) })
+    expect(out).toEqual({ ok: false, error: "Non envoyé. Votre message n'a pas pu être envoyé.", mediaPath: undefined })
+  })
+
+  it("traite une réponse vide comme un échec", async () => {
+    const out = await deliverMessage({ type: "text", content: "x" }, { upload: vi.fn(), send: vi.fn().mockResolvedValue(undefined) })
+    expect(out.ok).toBe(false)
+  })
+})
+
+// ─── Garde-fous de structure et de sécurité ────────────────────────────────────────────────────────────────
+
+describe("structure et sécurité", () => {
+  const root = join(import.meta.dirname, "..", "..", "..", "..")
+  const messagesDir = join(root, "src", "components", "student-space", "messages")
+  const sources = readdirSync(messagesDir)
+    .filter((f) => /\.jsx$/.test(f) && !f.endsWith(".test.jsx"))
+    .map((f) => [f, readFileSync(join(messagesDir, f), "utf8")])
+  const pagePath = join(root, "src", "app", "(student)", "messages", "[missionId]", "page.js")
+  const page = readFileSync(pagePath, "utf8")
+
+  it("n'utilise jamais dangerouslySetInnerHTML ni h-screen / 100vh", () => {
+    for (const [file, source] of [...sources, ["page.js", page]]) {
+      expect(source, file).not.toContain("dangerouslySetInnerHTML")
+      expect(source, file).not.toMatch(/h-screen|100vh/)
+    }
+  })
+
+  it("n'écrit jamais dans messages depuis le navigateur : seul le hook de src/hooks touche Supabase", () => {
+    for (const [file, source] of sources) {
+      expect(source, file).not.toMatch(/lib\/supabase\//)
+      expect(source, file).not.toMatch(/\.from\(\s*["']messages["']/)
+      expect(source, file).not.toMatch(/\.update\(|\.insert\(/)
+    }
+    const view = sources.find(([f]) => f === "conversation-view.jsx")[1]
+    expect(view).toContain("sendStudentMessage")
+    expect(view).toContain("markStudentConversationRead")
+    expect(view).toContain("useMessageMediaUpload(userId)")
+  })
+
+  it("n'importe aucun composant de la messagerie client ni de l'ancienne messagerie", () => {
+    for (const [file, source] of [...sources, ["page.js", page]]) {
+      expect(source, file).not.toMatch(/components\/messages\//)
+      expect(source, file).not.toMatch(/components\/client-space\//)
+    }
+  })
+
+  it("ne place aucun loading.js sous messages (le segment [missionId] appelle notFound)", () => {
+    const base = join(root, "src", "app", "(student)", "messages")
+    const found = []
+    const walk = (dir) => {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name)
+        if (statSync(p).isDirectory()) walk(p)
+        else if (/^loading\./.test(name)) found.push(p)
+      }
+    }
+    expect(existsSync(base)).toBe(true)
+    walk(base)
+    expect(found).toEqual([])
+    expect(existsSync(join(root, "src", "app", "(student)", "loading.js"))).toBe(false)
+  })
+
+  it("la page appelle notFound() hors de tout <Suspense> et ne lit jamais l'autre partie dans l'adresse", () => {
+    expect(page).toContain("notFound()")
+    expect(page).not.toMatch(/<Suspense[\s>]/)
+    expect(page).not.toContain("searchParams")
+    expect(page).toContain("getStudentConversation({ missionId })")
+  })
+})

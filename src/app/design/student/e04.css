@@ -1,0 +1,42 @@
+/* @ds-screen RD-STUDENT-01 */
+/* E04 Mes candidatures : carte « retenue » mise en avant, liste de candidatures (une seule mise en page, la ligne se replie en conteneur). */
+
+/* Candidature acceptée mise en avant (carte blanche horizontale) */
+.e2-04-hl { overflow-wrap: anywhere; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-8); padding: var(--s-6) var(--s-8); }
+.e2-04-hl .hero2__title { margin-top: 10px; }
+.e2-04-hl .hero2__text { margin-top: 4px; }
+.e2-04-hl .hero2__actions { margin-top: 0; padding-top: 0; flex-wrap: nowrap; }
+/* Ligne de candidature (bureau) : type, mission, statut + date, gain, actions en liens.
+   La liste est un conteneur : sous 900 px de large (fenêtre étroite, sidebar comprise, ou mobile), la ligne passe en deux colonnes. */
+.e2-04-list { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); container: e2list / inline-size; }
+.e2-04-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) 196px 164px 244px; align-items: center; gap: var(--s-4); padding: 18px var(--s-6); }
+.e2-04-row + .e2-04-row { border-top: 1px solid var(--c-ligne-2); }
+.e2-04-status { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; font-size: var(--t-caption); color: var(--c-ardoise); white-space: nowrap; min-width: 0; }
+.e2-04-status > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.e2-04-gain { display: flex; flex-direction: column; gap: 2px; font-size: var(--t-caption); color: var(--c-ardoise); white-space: nowrap; }
+.e2-04-gain .e2-amount { font-size: 15px; color: var(--c-encre); }
+.e2-04-acts { display: flex; justify-content: flex-end; align-items: center; gap: var(--s-4); white-space: nowrap; }
+.e2-04-row.is-off .item2__title, .e2-04-row.is-off .e2-04-gain .e2-amount { color: var(--c-ardoise); }
+/* Actions sous une carte mobile (classe de la planche, gardée par app-css.guard ; la liste n'utilise plus de carte mobile) */
+.e2-04-macts { display: flex; align-items: center; gap: var(--s-5); flex-wrap: wrap; margin-top: -4px; }
+.e2-04-macts .e2-link { min-height: 44px; }
+/* Toast sans accent citron (le citron reste la carte « Retenue ») */
+.e2-04-toast .toast__icon { background: var(--c-encre-700); color: var(--c-blanc); }
+.e2-04-toast .toast__action { color: var(--c-blanc); }
+
+@media (max-width: 1023.98px) {
+  .e2-04-hl { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); padding: var(--s-5); }
+  .e2-04-hl .hero2__actions { flex-wrap: wrap; }
+  /* « Voir » (27 px de large) : zone tactile de 44 px, alignement et espacement inchangés */
+  .e2-04-acts .e2-link { min-width: 44px; }
+}
+
+@container e2list (max-width: 900px) {
+  .e2-04-row { grid-template-columns: 36px minmax(0, 1fr); gap: var(--s-2) var(--s-4); padding: var(--s-4); }
+  .e2-04-row > :nth-child(n+3) { grid-column: 2; }
+  /* Cellule sans contenu (mission illisible) : retirée pour ne pas ajouter d'écart de rangée */
+  .e2-04-row > span:empty { display: none; }
+  .e2-04-status { white-space: normal; }
+  .e2-04-gain { white-space: normal; }
+  .e2-04-acts { justify-content: flex-start; flex-wrap: wrap; white-space: normal; }
+}

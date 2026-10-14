@@ -5,11 +5,23 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { sendEmail } from "@/lib/email/index"
+import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
+import { isUuid } from "@/lib/vitrine/ids"
+import { todayInBenin, isPastDeadline } from "@/lib/vitrine/dates"
+import { verificationFromRows } from "@/lib/student-space/verification-status"
 
+// Un seul registre, vouvoyé, pour tous les rôles.
 const ERR_GENERIC = "Une erreur est survenue. Réessayez dans un instant."
 const ERR_FORBIDDEN = "Vous n'avez pas les droits pour effectuer cette action."
+const ERR_DEADLINE_PASSED = "L'échéance de cette mission est dépassée."
 const ERR_LOAD = "Impossible de charger les candidatures."
 const MESSAGE_MAX = 500
+// Décision D2 : refus de candidature selon le statut de vérification (espace étudiant).
+const ERR_CANNOT_APPLY = {
+  not_submitted: "Envoyez votre carte étudiante pour pouvoir postuler.",
+  rejected: "Votre carte a été refusée, renvoyez-la pour pouvoir postuler.",
+  expired: "Votre badge a expiré, renouvelez-le pour pouvoir postuler.",
+}
 
 /** Borne le nombre de lignes renvoyées (défaut 100, maximum 200). */
 function boundedLimit(limit) {
@@ -52,7 +64,29 @@ async function getFullName(supabase, userId) {
 }
 
 /**
- * Postule à une mission.
+ * Statut de vérification de l'étudiant, calculé côté serveur. Les colonnes privées (carte, motif de refus) sont
+ * lues par `getMyProfile` et `getMyStudentProfile` (service role, filtre sur l'identifiant de la session) : seul le
+ * statut calculé est utilisé, jamais renvoyé.
+ *
+ * @returns {Promise<import("@/lib/student-space/verification-status").VerificationView | null>} null si la lecture échoue
+ */
+async function readVerification() {
+  try {
+    const [profileRes, studentRes] = await Promise.all([getMyProfile(), getMyStudentProfile()])
+    if (profileRes.error || studentRes.error || !profileRes.profile) {
+      console.error("[apply] Lecture du statut de vérification:", profileRes.error ?? studentRes.error ?? "profil introuvable")
+      return null
+    }
+    return verificationFromRows(profileRes.profile, studentRes.studentProfile)
+  } catch (err) {
+    console.error("[apply] Lecture du statut de vérification:", err?.message)
+    return null
+  }
+}
+
+/**
+ * Postule à une mission. Refuse l'étudiant dont la carte n'a jamais été envoyée, a été refusée ou dont le badge a
+ * expiré (décision D2) : le contrôle est fait ici, il ne dépend pas de l'interface.
  *
  * @param {{ missionId: string, message: string }} params
  * @returns {Promise<{ success: true } | { error: string }>}
@@ -62,20 +96,25 @@ export async function apply({ missionId, message }) {
   if (auth.error) return { error: auth.error }
   const { supabase, user } = auth
 
-  if (!missionId) return { error: "Mission introuvable." }
+  if (!isUuid(missionId)) return { error: "Mission introuvable." }
   if (typeof message !== "string" || !message.trim()) return { error: "Le message de candidature est requis." }
   if (message.trim().length > MESSAGE_MAX) {
     return { error: `Le message ne doit pas dépasser ${MESSAGE_MAX} caractères.` }
   }
 
-  const { data: mission } = await supabase
+  const { data: mission, error: missionError } = await supabase
     .from("missions")
-    .select("id, title, client_id, status")
+    .select("id, title, client_id, status, deadline")
     .eq("id", missionId)
     .maybeSingle()
 
+  if (missionError) {
+    console.error("[apply] mission", missionError.message)
+    return { error: ERR_GENERIC }
+  }
   if (!mission) return { error: "Mission introuvable." }
   if (mission.status !== "open") return { error: "Cette mission n'accepte plus de candidatures." }
+  if (isPastDeadline(mission.deadline, todayInBenin())) return { error: ERR_DEADLINE_PASSED }
   if (mission.client_id === user.id) return { error: "Vous ne pouvez pas postuler à votre propre mission." }
 
   // Vérifie qu'aucune candidature n'existe déjà
@@ -87,6 +126,10 @@ export async function apply({ missionId, message }) {
     .maybeSingle()
 
   if (existing) return { error: "Vous avez déjà postulé à cette mission." }
+
+  const verification = await readVerification()
+  if (!verification) return { error: ERR_GENERIC }
+  if (!verification.canApply) return { error: ERR_CANNOT_APPLY[verification.key] ?? ERR_GENERIC }
 
   const { error: insertError } = await supabase
     .from("applications")
@@ -123,39 +166,10 @@ export async function apply({ missionId, message }) {
     console.error("[apply] Erreur email:", emailErr)
   }
 
-  revalidatePath("/student/applications")
+  revalidatePath("/applications")
   revalidatePath("/missions/" + missionId)
 
   return { success: true }
-}
-
-/**
- * Retourne les candidatures de l'étudiant connecté avec les missions jointes.
- * L'identité vient de la session : un identifiant différent est refusé.
- *
- * @param {string} [studentId] doit égaler l'utilisateur connecté s'il est fourni
- * @param {{ limit?: number }} [options]
- * @returns {Promise<Array>}
- */
-export async function getStudentApplications(studentId, { limit } = {}) {
-  const auth = await requireRole(["student"])
-  if (auth.error) throw new Error(auth.error)
-  const { supabase, user } = auth
-
-  if (studentId !== undefined && studentId !== user.id) throw new Error(ERR_FORBIDDEN)
-
-  const { data, error } = await supabase
-    .from("applications")
-    .select("*, missions(title, type, city, budget, status)")
-    .eq("student_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(boundedLimit(limit))
-
-  if (error) {
-    console.error("[getStudentApplications]", error.message)
-    throw new Error(ERR_LOAD)
-  }
-  return data ?? []
 }
 
 /**

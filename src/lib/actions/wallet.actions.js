@@ -20,6 +20,7 @@ const MESSAGES = {
   deposit: "Le dépôt n'a pas pu être initié. Réessayez dans un instant.",
   withdrawal: "Le retrait n'a pas pu être initié. Réessayez dans un instant.",
   debitUncertain: "Votre demande a peut-être été débitée. Contactez l'aide avant toute nouvelle demande.",
+  session: "Session expirée. Reconnectez-vous.",
 }
 
 // Détail d'une erreur de fonction Edge, pour le journal serveur seulement.
@@ -134,7 +135,7 @@ export async function initiateDeposit({ amount }) {
 
   const supabase = await createClient()
   const accessToken = await getAccessToken(supabase)
-  if (!accessToken) return { error: "Session expirée. Reconnectez-vous." }
+  if (!accessToken) return { error: MESSAGES.session }
 
   const { data, error } = await supabase.functions.invoke(
     "create-deposit-transaction",
@@ -145,7 +146,7 @@ export async function initiateDeposit({ amount }) {
   )
 
   if (error) {
-    if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
+    if (error?.context?.status === 401) return { error: MESSAGES.session }
     const { message, detail } = await readFnError(error, MESSAGES.deposit)
     console.error("[initiateDeposit]", detail)
     return { error: message }
@@ -172,7 +173,7 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
   if (available < amount) return { error: "Solde insuffisant" }
 
   const accessToken = await getAccessToken(supabase)
-  if (!accessToken) return { error: "Session expirée. Reconnectez-vous." }
+  if (!accessToken) return { error: MESSAGES.session }
 
   // L'identité n'est jamais envoyée : la fonction la déduit du jeton de session
   const { data, error } = await supabase.functions.invoke(
@@ -184,7 +185,7 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
   )
 
   if (error) {
-    if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
+    if (error?.context?.status === 401) return { error: MESSAGES.session }
     // 502 : la fonction a déjà débité le portefeuille mais le virement n'a pas démarré (sans recréditer).
     // Aucun nouvel essai n'est proposé : un second clic débiterait une seconde fois.
     if (error?.context?.status === 502) {
