@@ -88,8 +88,8 @@ const END = "(?![\\p{L}\\p{N}_])"
 
 // tu, toi, ton, tes, te (minuscule ou capitalisé : les sigles TE, TON, TES ne sont pas détectés), ta (hors trait d'union).
 const PRONOUNS = new RegExp(`${START}(?:[Tt][Uu]|[Tt][Oo][Ii]|[Tt](?:on|es|e))${END}|${START_NO_HYPHEN}[Tt]a${END}`, "u")
-// Élisions : t'as, t’inquiète, t&apos;.
-const ELISION = new RegExp(`${START}t(?:['\\u2019]|&rsquo;|&apos;)(?=\\p{L})`, "iu")
+// Élisions : t'as, t’inquiète (les entités d'apostrophe sont ramenées à « ' » par normalizeApostrophes).
+const ELISION = new RegExp(`${START}t['\\u2019](?=\\p{L})`, "iu")
 // Composés : Connecte-toi, peux-tu, vois-te.
 const COMPOUND = new RegExp(`\\p{L}-(?:toi|tu|te)${END}`, "iu")
 // Impératifs de la 2e personne du singulier sans pronom, en début de phrase (majuscule) :
@@ -102,10 +102,16 @@ const IMPERATIVES = new RegExp(
   "u",
 )
 
+/** Ramène les entités d'apostrophe écrites en JSX (t&apos;es, t&rsquo;aide, t&#39;, t&#x27;) à l'apostrophe droite. */
+function normalizeApostrophes(text) {
+  return text.replace(/&(?:apos|rsquo|lsquo|#0*39|#x0*27);/gi, "'")
+}
+
 /** @returns {string | null} la première forme de tutoiement trouvée dans un texte visible */
 export function findTutoiement(text) {
+  const normalized = normalizeApostrophes(text)
   for (const re of [PRONOUNS, ELISION, COMPOUND, IMPERATIVES]) {
-    const m = text.match(re)
+    const m = normalized.match(re)
     if (m) return m[0].trim()
   }
   return null
@@ -174,6 +180,13 @@ describe("détecteurs de tutoiement (fixtures)", () => {
     'const t = "Valide le dossier"',
     'const t = "Annule la mission"',
     'const t = "Sélectionne une ville"',
+    "<p>ne t&apos;est dû</p>",
+    "<p>Merci, t&apos;es inscrit</p>",
+    "<p>Je t&rsquo;aide</p>",
+    "<p>Je t&#39;aide</p>",
+    "<p>Je t&#x27;aide</p>",
+    "<p>Je t&lsquo;aide</p>",
+    "<p>Bonjour {name}, t&apos;es inscrit</p>",
   ]
   const NEGATIVES = [
     'const t = "Rechargez votre compte"',
@@ -199,6 +212,9 @@ describe("détecteurs de tutoiement (fixtures)", () => {
     "function f(x) { return 'Vous avez gagné' }",
     "switch (x) { case 'a': return 'Votre solde' }",
     'const t = "Mettez à jour, Lancez, Partagez, Téléchargez"',
+    "<p>ne vous est dû</p>",
+    "<p>l&apos;argent vous est versé</p>",
+    "<p>L&rsquo;équipe, c&#39;est vous, n&#x27;hésitez pas</p>",
   ]
 
   it.each(POSITIVES)("détecte : %s", (src) => {
