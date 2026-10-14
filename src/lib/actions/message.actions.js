@@ -1,19 +1,25 @@
 "use server"
 
-// Messagerie de l'espace client (C12 boîte de réception, C13 conversation).
+// Messagerie (espace client C12 et C13, espace étudiant E06 et E07).
 //
-// Une conversation est une paire (mission, étudiant). Chaque export commence par requireRole(["client"]),
-// puis établit côté serveur, à CHAQUE appel : la mission appartient au client de la session ; l'étudiant est
-// l'étudiant retenu ou a une candidature à CETTE mission. La politique messages_insert de la base laisse
-// envoyer à n'importe quel destinataire : c'est cette action qui refuse un destinataire tiers. L'expéditeur
-// est toujours l'identifiant de la session. Aucune lecture ne renvoie de colonne privée de profils :
-// nom public ("Prénom I."), avatar et initiales seulement.
+// Une conversation est une paire (mission, étudiant). Fonctions client : chaque export commence par
+// requireRole(["client"]), puis établit côté serveur, à CHAQUE appel : la mission appartient au client de la
+// session ; l'étudiant est l'étudiant retenu ou a une candidature à CETTE mission.
+// Fonctions étudiant : chaque export commence par requireRole(["student"]). La conversation est (mission,
+// étudiant = session) : l'étudiant y est retenu ou a une candidature à cette mission, et l'interlocuteur est
+// DÉDUIT de la mission (`missions.client_id`), jamais lu dans l'entrée, l'adresse ou une ligne de message.
+// La politique messages_insert de la base laisse envoyer à n'importe quel destinataire : ce sont ces actions
+// qui refusent un destinataire tiers, et les lectures qui ignorent les messages d'un compte sans lien légitime.
+// L'expéditeur est toujours l'identifiant de la session. Aucune lecture ne renvoie de colonne privée de
+// profils : nom public ("Prénom I."), avatar et initiales seulement.
 //
 // Limites documentées :
 // - la boîte de réception lit les 1000 messages les plus récents de l'utilisateur ; une conversation dont
 //   tous les messages sont plus anciens n'y figure pas ;
 // - une conversation charge ses 200 derniers messages ;
-// - débit : 20 messages par minute et par client, compté en base (valable entre instances) ;
+// - débit : 20 messages par minute et par utilisateur, compté en base (valable entre instances). Le
+//   comptage puis l'insertion ne sont pas atomiques : des envois simultanés peuvent dépasser la limite de
+//   quelques messages, sans autre effet ;
 // - la taille d'un fichier joint est bornée par le compartiment (10 Mo) et par le navigateur avant l'envoi ;
 //   l'action contrôle le chemin (dossier de l'expéditeur) et le type d'après l'extension.
 
@@ -354,6 +360,295 @@ export async function markClientConversationRead({ missionId, studentId } = {}) 
     .eq("read", false)
   if (error) {
     console.error("[markClientConversationRead]", error.message)
+    return { error: ERR_LOAD }
+  }
+  return { success: true }
+}
+
+// ─── Espace étudiant (E06 boîte de réception, E07 conversation) ───────────────────────────────────────────────
+
+// `client_id` sert à DÉDUIRE l'interlocuteur : il n'est jamais renvoyé tel quel aux vues autrement que comme
+// identifiant public de la paire.
+const STUDENT_MISSION_COLUMNS = "id, title, status, selected_student_id, client_id"
+
+const studentSendSchema = z.object({
+  missionId: uuid,
+  type: z.enum(["text", "image", "voice", "location"]),
+  content: z.string().max(MESSAGE_MAX_LENGTH).optional(),
+  mediaPath: z.string().max(300).optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+})
+
+const toStudentMission = (m) => ({ ...toMission(m), clientId: m.client_id })
+
+/**
+ * Établit que l'étudiant `userId` (la session) a une conversation légitime sur `missionId` : il est retenu ou
+ * a une candidature à cette mission. L'interlocuteur est le client de la mission, lu en base.
+ * @returns {Promise<{ status: "ok", mission: object, access: object, clientId: string } | { status: "forbidden" } | { status: "error" }>}
+ */
+async function loadStudentPair(supabase, userId, missionId) {
+  if (!isUuid(userId) || !isUuid(missionId)) return { status: "forbidden" }
+  const { data: missionRow, error } = await supabase
+    .from("missions")
+    .select(STUDENT_MISSION_COLUMNS)
+    .eq("id", missionId)
+    .maybeSingle()
+  if (error) {
+    console.error("[message.actions] mission (étudiant)", error.message)
+    return { status: "error" }
+  }
+  if (!missionRow || !isUuid(missionRow.client_id) || missionRow.client_id === userId) return { status: "forbidden" }
+  const mission = toStudentMission(missionRow)
+
+  const { data: application, error: appError } = await supabase
+    .from("applications")
+    .select("status")
+    .eq("mission_id", missionId)
+    .eq("student_id", userId)
+    .maybeSingle()
+  if (appError) {
+    console.error("[message.actions] candidature (étudiant)", appError.message)
+    return { status: "error" }
+  }
+
+  const access = conversationAccess({ mission, application: application ?? null, studentId: userId })
+  if (!access.allowed) return { status: "forbidden" }
+  return { status: "ok", mission, access, clientId: mission.clientId }
+}
+
+/**
+ * Conversations de l'étudiant, une par (mission, client), les plus récentes d'abord. Seules les paires
+ * légitimes apparaissent : l'étudiant a candidaté ou est retenu, et l'interlocuteur est le client de la
+ * mission. Un message d'un autre compte (même vers l'étudiant, même sur une de ses missions) est ignoré.
+ * @returns {Promise<{ conversations: Array<object> } | { error: string }>}
+ */
+export async function getStudentConversations() {
+  const auth = await requireRole(["student"])
+  if (auth.error) return { error: auth.error }
+  const { supabase, user } = auth
+  if (!isUuid(user.id)) return { error: ERR_LOAD }
+
+  const { data: rows, error } = await supabase
+    .from("messages")
+    .select(INBOX_COLUMNS)
+    .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+    .order("created_at", { ascending: false })
+    .limit(INBOX_ROWS_LIMIT)
+  if (error) {
+    console.error("[getStudentConversations] messages", error.message)
+    return { error: ERR_LOAD }
+  }
+
+  const built = buildConversations(rows ?? [], user.id)
+  if (built.length === 0) return { conversations: [] }
+
+  const missionIds = [...new Set(built.map((c) => c.missionId))].filter(isUuid)
+  if (missionIds.length === 0) return { conversations: [] }
+  // Les candidatures de la session seulement, puis les missions concernées : aucun identifiant issu d'un
+  // message écrit par un tiers n'ouvre une lecture d'une autre personne.
+  const [missionsRes, applicationsRes] = await Promise.all([
+    supabase.from("missions").select(STUDENT_MISSION_COLUMNS).in("id", missionIds),
+    supabase.from("applications").select("mission_id, status").eq("student_id", user.id).in("mission_id", missionIds),
+  ])
+  if (missionsRes.error || applicationsRes.error) {
+    console.error("[getStudentConversations] lecture", missionsRes.error?.message ?? applicationsRes.error?.message)
+    return { error: ERR_LOAD }
+  }
+  const missions = new Map((missionsRes.data ?? []).map((m) => [m.id, toStudentMission(m)]))
+  const applications = new Map((applicationsRes.data ?? []).map((a) => [a.mission_id, { status: a.status }]))
+
+  const legit = []
+  for (const conv of built) {
+    const mission = missions.get(conv.missionId)
+    // L'interlocuteur du message doit être le client de la mission.
+    if (!mission || mission.clientId !== conv.studentId) continue
+    const access = conversationAccess({ mission, application: applications.get(conv.missionId) ?? null, studentId: user.id })
+    if (!access.allowed) continue
+    legit.push({ conv, mission, access })
+  }
+  if (legit.length === 0) return { conversations: [] }
+
+  const clientIds = [...new Set(legit.map((l) => l.mission.clientId))]
+  const profilesRes = await supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).in("user_id", clientIds)
+  if (profilesRes.error) {
+    console.error("[getStudentConversations] profils", profilesRes.error.message)
+    return { error: ERR_LOAD }
+  }
+  const profiles = new Map((profilesRes.data ?? []).map((p) => [p.user_id, p]))
+
+  const conversations = legit.map(({ conv, mission, access }) => {
+    const client = toStudent(mission.clientId, profiles.get(mission.clientId))
+    return {
+      key: conv.key,
+      missionId: conv.missionId,
+      name: client.name,
+      avatarUrl: client.avatarUrl,
+      missionTitle: mission.title,
+      state: access.state,
+      preview: previewOf(conv.last),
+      lastAt: conv.last.createdAt,
+      unreadCount: conv.unreadCount,
+    }
+  })
+  return { conversations }
+}
+
+/**
+ * Une conversation de l'étudiant : en-tête, droit d'écriture et messages de la paire (étudiant de la session,
+ * client de la mission). Mission sans candidature ni sélection de l'étudiant, inexistante ou identifiant mal
+ * formé : `{ notFound: true }`.
+ * @param {{ missionId: string }} input
+ * @returns {Promise<{ conversation: object } | { notFound: true } | { error: string }>}
+ */
+export async function getStudentConversation({ missionId } = {}) {
+  const auth = await requireRole(["student"])
+  if (auth.error) return { error: auth.error }
+  const { supabase, user } = auth
+
+  const pair = await loadStudentPair(supabase, user.id, missionId)
+  if (pair.status === "error") return { error: ERR_LOAD }
+  if (pair.status === "forbidden") return { notFound: true }
+  const other = pair.clientId
+
+  const [messagesRes, profileRes] = await Promise.all([
+    supabase
+      .from("messages")
+      .select(MESSAGE_COLUMNS)
+      .eq("mission_id", missionId)
+      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${other}),and(sender_id.eq.${other},receiver_id.eq.${user.id})`)
+      .order("created_at", { ascending: false })
+      .limit(THREAD_ROWS_LIMIT),
+    supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("user_id", other).maybeSingle(),
+  ])
+  if (messagesRes.error || profileRes.error) {
+    console.error("[getStudentConversation] lecture", messagesRes.error?.message ?? profileRes.error?.message)
+    return { error: ERR_LOAD }
+  }
+
+  // Seconde barrière : seules les lignes de la paire passent, quoi que renvoie la lecture.
+  const pairMessages = (messagesRes.data ?? [])
+    .filter((row) => row.mission_id === missionId && isPairRow(row, user.id, other))
+    .map((row) => toMessage(row, user.id))
+    .filter(Boolean)
+  const messages = mergeMessages([], pairMessages)
+
+  return {
+    conversation: {
+      userId: user.id,
+      missionId,
+      clientId: other,
+      client: toStudent(other, profileRes.data),
+      mission: { title: pair.mission.title, status: pair.mission.status },
+      state: pair.access.state,
+      canWrite: pair.access.canWrite,
+      messages,
+    },
+  }
+}
+
+/**
+ * Envoie un message de l'étudiant au client de la mission. Texte, image, message vocal ou position. Le
+ * destinataire est déduit de la mission : tout `receiver_id`, `sender_id` ou identifiant d'interlocuteur
+ * présent dans l'entrée est ignoré. `mediaPath` doit désigner un fichier du dossier de l'expéditeur dans
+ * `message-media` ; l'adresse publique est reconstruite ici, jamais reprise du navigateur.
+ * @param {{ missionId: string, type: "text"|"image"|"voice"|"location", content?: string, mediaPath?: string, lat?: number, lng?: number }} input
+ * @returns {Promise<{ success: true, message: object } | { error: string }>}
+ */
+export async function sendStudentMessage(input) {
+  const auth = await requireRole(["student"])
+  if (auth.error) return { error: auth.error }
+  const { supabase, user } = auth
+
+  const parsed = studentSendSchema.safeParse(input)
+  if (!parsed.success) return { error: ERR_INVALID }
+  const { missionId, type, content, mediaPath, lat, lng } = parsed.data
+
+  let text
+  let mediaUrl = null
+  let latitude = null
+  let longitude = null
+  if (type === "text") {
+    text = (content ?? "").trim()
+    if (text === "" || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) return { error: ERR_INVALID }
+  } else if (type === "location") {
+    if (!coordsValid(lat, lng)) return { error: ERR_INVALID }
+    text = MEDIA_CONTENT.location
+    latitude = lat
+    longitude = lng
+  } else {
+    const owned = toOwnedStoragePath(mediaPath, MEDIA_BUCKET, user.id)
+    if (!owned || mediaKindOfPath(owned) !== type) return { error: ERR_MEDIA }
+    const { data: publicData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(owned)
+    if (!publicData?.publicUrl) return { error: ERR_SEND }
+    mediaUrl = publicData.publicUrl
+    text = MEDIA_CONTENT[type]
+  }
+
+  const pair = await loadStudentPair(supabase, user.id, missionId)
+  if (pair.status === "error") return { error: ERR_SEND }
+  if (pair.status === "forbidden") return { error: ERR_UNAVAILABLE }
+  if (!pair.access.canWrite) return { error: ERR_READONLY }
+
+  const since = new Date(Date.now() - SEND_WINDOW_MS).toISOString()
+  const { count, error: countError } = await supabase
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("sender_id", user.id)
+    .gte("created_at", since)
+  if (countError) {
+    console.error("[sendStudentMessage] débit", countError.message)
+    return { error: ERR_SEND }
+  }
+  if ((count ?? 0) >= SEND_LIMIT) return { error: ERR_RATE }
+
+  const { data: row, error } = await supabase
+    .from("messages")
+    .insert({
+      mission_id: missionId,
+      sender_id: user.id,
+      receiver_id: pair.clientId,
+      content: text,
+      type,
+      media_url: mediaUrl,
+      location_lat: latitude,
+      location_lng: longitude,
+      read: false,
+    })
+    .select(MESSAGE_COLUMNS)
+    .single()
+  const message = row && !error ? toMessage(row, user.id) : null
+  if (!message) {
+    if (error) console.error("[sendStudentMessage] insertion", error.message)
+    return { error: ERR_SEND }
+  }
+  return { success: true, message }
+}
+
+/**
+ * Marque comme lus les messages REÇUS du client de cette mission : jamais ceux d'une autre mission ni d'un
+ * autre expéditeur. Seule la colonne `read` est modifiée.
+ * @param {{ missionId: string }} input
+ * @returns {Promise<{ success: true } | { error: string }>}
+ */
+export async function markStudentConversationRead({ missionId } = {}) {
+  const auth = await requireRole(["student"])
+  if (auth.error) return { error: auth.error }
+  const { supabase, user } = auth
+
+  const pair = await loadStudentPair(supabase, user.id, missionId)
+  if (pair.status === "error") return { error: ERR_LOAD }
+  if (pair.status === "forbidden") return { error: ERR_UNAVAILABLE }
+
+  const { error } = await supabase
+    .from("messages")
+    .update({ read: true })
+    .eq("mission_id", missionId)
+    .eq("receiver_id", user.id)
+    .eq("sender_id", pair.clientId)
+    .eq("read", false)
+  if (error) {
+    console.error("[markStudentConversationRead]", error.message)
     return { error: ERR_LOAD }
   }
   return { success: true }
