@@ -35,7 +35,7 @@ export default function NotFound() {
         </h1>
         <p className="text-gray-400 text-base leading-relaxed mb-8">
           Peut-être qu&apos;elle cherche un étudiant, ou un client, ou les deux.
-          En attendant, on a plein d&apos;autres missions pour vous.
+          En attendant, nous avons plein d&apos;autres missions pour vous.
         </p>
 
         {/* Actions */}
