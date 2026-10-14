@@ -43,7 +43,6 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => fake() }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: () => fake() }))
 vi.mock("@/lib/email/index", () => ({ sendEmail: vi.fn(async () => ({})) }))
 vi.mock("@/lib/actions/auth.actions", () => ({ getCurrentUser: async () => ctx.user }))
-vi.mock("@/components/profile/card-upload-form", () => ({ CardUploadForm: () => <p>formulaire carte</p> }))
 
 import { apply } from "@/lib/actions/application.actions"
 import { saveStudentCardUrl } from "@/lib/actions/profile.actions"
