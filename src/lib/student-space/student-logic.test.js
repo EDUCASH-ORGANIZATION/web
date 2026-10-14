@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { verificationView, EXPIRING_DAYS } from "./verification-status.js"
+import { verificationView, verificationFromRows, EXPIRING_DAYS } from "./verification-status.js"
 import { parseExploreParams, escapeLike, notExpiredFilter } from "./explore-query.js"
 import {
   APPLICATION_TABS,
@@ -78,8 +78,21 @@ describe("verificationView", () => {
     expect(verificationView({ isVerified: true, verifiedUntil: "2000-01-01" }).key).toBe("expired")
   })
 
-  it("une échéance illisible est traitée comme absente", () => {
-    expect(verificationView({ isVerified: true, verifiedUntil: "n'importe quoi" }, TODAY).key).toBe("verified")
+  it("une échéance illisible donne un badge expiré, une échéance absente reste sans fin", () => {
+    expect(verificationView({ isVerified: true, verifiedUntil: "n'importe quoi" }, TODAY)).toMatchObject({
+      key: "expired",
+      canApply: false,
+      daysLeft: null,
+    })
+    expect(verificationView({ isVerified: true, verifiedUntil: null }, TODAY).key).toBe("verified")
+    expect(verificationView({ isVerified: true, verifiedUntil: "" }, TODAY).key).toBe("verified")
+  })
+
+  it("verificationFromRows calcule le statut à partir des lignes serveur", () => {
+    expect(verificationFromRows({ is_verified: false, rejection_reason: "flou" }, { card_url: "u/c.jpg" }).key).toBe("rejected")
+    expect(verificationFromRows({ is_verified: false }, { card_url: "u/c.jpg" }).key).toBe("pending")
+    expect(verificationFromRows(null, null).key).toBe("not_submitted")
+    expect(verificationFromRows({ is_verified: true, verified_until: "2999-01-01" }, null).key).toBe("verified")
   })
 
   it("les 6 statuts existent, canApply suit la décision D2 et les libellés sont tutoyables", () => {
@@ -169,7 +182,8 @@ describe("parseExploreParams", () => {
   })
 
   it("échappe %, _, virgule, parenthèses et astérisque dans le motif", () => {
-    expect(escapeLike("100%_a,b(c)*d\\e")).toBe("100\\%\\_a\\,b\\(c\\)\\*d\\\\e")
+    // `*` reste tel quel : PostgREST le convertit en `%` même échappé (joker accepté, pas une faille).
+    expect(escapeLike("100%_a,b(c)*d\\e")).toBe("100\\%\\_a\\,b\\(c\\)*d\\\\e")
     expect(parseExploreParams({ q: "50%,_(x)" }).likePattern).toBe("%50\\%\\,\\_\\(x\\)%")
   })
 

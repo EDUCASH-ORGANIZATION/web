@@ -44,6 +44,10 @@ export function verificationView(
 ) {
   if (isVerified) {
     const until = beninDate(verifiedUntil)
+    // Une date de fin présente mais illisible ne vaut pas « vérifié sans fin » : le badge est traité comme expiré.
+    if (!until && verifiedUntil !== null && verifiedUntil !== undefined && verifiedUntil !== "") {
+      return { key: "expired", label: "Badge expiré", canApply: false, daysLeft: null, action: { ...RENEW_BADGE } }
+    }
     if (!until) {
       return { key: "verified", label: "Compte vérifié", canApply: true, daysLeft: null, action: null }
     }
@@ -63,4 +67,20 @@ export function verificationView(
     return { key: "pending", label: "Carte en cours d'examen", canApply: true, daysLeft: null, action: null }
   }
   return { key: "not_submitted", label: "Carte à envoyer", canApply: false, daysLeft: null, action: { ...SEND_CARD } }
+}
+
+/**
+ * Statut de vérification à partir des lignes lues côté serveur (`getMyProfile`, `getMyStudentProfile`).
+ * Seul le statut calculé doit sortir du serveur, jamais les colonnes brutes.
+ * @param {{ is_verified?: boolean, verified_until?: string|null, rejection_reason?: string|null } | null | undefined} profile
+ * @param {{ card_url?: string|null } | null | undefined} studentProfile
+ * @returns {VerificationView}
+ */
+export function verificationFromRows(profile, studentProfile) {
+  return verificationView({
+    isVerified: profile?.is_verified === true,
+    verifiedUntil: profile?.verified_until ?? null,
+    hasCard: Boolean(studentProfile?.card_url),
+    rejectionReason: profile?.rejection_reason ?? null,
+  })
 }
