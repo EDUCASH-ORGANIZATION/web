@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { sendEmail } from "@/lib/email/index"
+import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { verificationFromRows } from "@/lib/student-space/verification-status"
 
 const ERR_GENERIC = "Une erreur est survenue. Réessaie dans un instant."
@@ -63,23 +64,19 @@ async function getFullName(supabase, userId) {
 
 /**
  * Statut de vérification de l'étudiant, calculé côté serveur. Les colonnes privées (carte, motif de refus) sont
- * lues en service role avec l'identifiant de la session : seul le statut calculé est utilisé, jamais renvoyé.
+ * lues par `getMyProfile` et `getMyStudentProfile` (service role, filtre sur l'identifiant de la session) : seul le
+ * statut calculé est utilisé, jamais renvoyé.
  *
- * @param {string} userId identifiant issu de la session
  * @returns {Promise<import("@/lib/student-space/verification-status").VerificationView | null>} null si la lecture échoue
  */
-async function readVerification(userId) {
+async function readVerification() {
   try {
-    const service = createServiceClient()
-    const [profileRes, studentRes] = await Promise.all([
-      service.from("profiles").select("is_verified, verified_until, rejection_reason").eq("user_id", userId).maybeSingle(),
-      service.from("student_profiles").select("card_url").eq("user_id", userId).maybeSingle(),
-    ])
-    if (profileRes.error || studentRes.error) {
-      console.error("[apply] Lecture du statut de vérification:", (profileRes.error ?? studentRes.error).message)
+    const [profileRes, studentRes] = await Promise.all([getMyProfile(), getMyStudentProfile()])
+    if (profileRes.error || studentRes.error || !profileRes.profile) {
+      console.error("[apply] Lecture du statut de vérification:", profileRes.error ?? studentRes.error ?? "profil introuvable")
       return null
     }
-    return verificationFromRows(profileRes.data, studentRes.data)
+    return verificationFromRows(profileRes.profile, studentRes.studentProfile)
   } catch (err) {
     console.error("[apply] Lecture du statut de vérification:", err?.message)
     return null
@@ -124,7 +121,7 @@ export async function apply({ missionId, message }) {
 
   if (existing) return { error: "Tu as déjà postulé à cette mission." }
 
-  const verification = await readVerification(user.id)
+  const verification = await readVerification()
   if (!verification) return { error: ERR_GENERIC }
   if (!verification.canApply) return { error: ERR_CANNOT_APPLY[verification.key] ?? ERR_GENERIC }
 

@@ -7,7 +7,7 @@ let respond = () => ({ data: null, error: null })
 function makeQuery(table) {
   const q = { table, action: "select", values: undefined, filters: [] }
   const chain = {
-    select: (c) => { q.columns = c; return chain },
+    select: () => chain,
     insert: (v) => { q.action = "insert"; q.values = v; return chain },
     update: (v) => { q.action = "update"; q.values = v; return chain },
     eq: (c, v) => { q.filters.push(["eq", c, v]); return chain },
@@ -17,25 +17,19 @@ function makeQuery(table) {
     maybeSingle: () => chain,
     then: (resolve, reject) => {
       calls.push(q)
-      return Promise.resolve(verificationRead(q) ?? respond(q)).then(resolve, reject)
+      return Promise.resolve(respond(q)).then(resolve, reject)
     },
   }
   return chain
 }
 
-// Lecture du statut de vérification de l'étudiant (profiles.is_verified, student_profiles.card_url) : ligne par défaut
-// « compte vérifié », modifiable par test. Les autres lectures passent par `respond`.
+// Statut de vérification : lu par getMyProfile / getMyStudentProfile (service role, filtre sur la session), simulés ici.
 const verifiedProfile = { is_verified: true, verified_until: null, rejection_reason: null }
 let profileRow = verifiedProfile
 let cardRow = { card_url: "stu-1/card.jpg" }
 let verificationError = null
-function verificationRead(q) {
-  if (q.table === "profiles" && /is_verified/.test(q.columns ?? "")) {
-    return verificationError ? { data: null, error: verificationError } : { data: profileRow, error: null }
-  }
-  if (q.table === "student_profiles") return { data: cardRow, error: null }
-  return undefined
-}
+const getMyProfile = vi.fn(async () => (verificationError ? { error: verificationError } : { profile: profileRow }))
+const getMyStudentProfile = vi.fn(async () => (verificationError ? { error: verificationError } : { studentProfile: cardRow }))
 
 const supabase = { from: (table) => makeQuery(table) }
 const getUserById = vi.fn()
@@ -48,6 +42,10 @@ vi.mock("@/lib/supabase/service", () => ({
   createServiceClient: vi.fn(() => ({ auth: { admin: { getUserById } }, from: (table) => makeQuery(table) })),
 }))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: (...a) => requireRole(...a) }))
+vi.mock("@/lib/actions/profile.actions", () => ({
+  getMyProfile: (...a) => getMyProfile(...a),
+  getMyStudentProfile: (...a) => getMyStudentProfile(...a),
+}))
 vi.mock("@/lib/email/index", () => ({ sendEmail: (...a) => sendEmail(...a) }))
 
 import { apply, acceptApplication, rejectApplication, getStudentApplications, getMissionApplications } from "./application.actions"
@@ -61,6 +59,8 @@ beforeEach(() => {
   profileRow = verifiedProfile
   cardRow = { card_url: "stu-1/card.jpg" }
   verificationError = null
+  getMyProfile.mockClear()
+  getMyStudentProfile.mockClear()
   getUserById.mockReset()
   getUserById.mockResolvedValue({ data: { user: { email: "dest@example.com" } } })
   sendEmail.mockReset()
@@ -177,11 +177,10 @@ describe("apply", () => {
       expect(writes()).toHaveLength(1)
     })
 
-    it("lit le statut avec l'identifiant de la session, jamais un paramètre", async () => {
+    it("lit le statut par les lectures de la session (aucun paramètre d'identité transmis)", async () => {
       await apply({ missionId: "m1", message: "Bonjour", userId: "autre", studentId: "autre" })
-      const reads = calls.filter((q) => (q.table === "profiles" && /is_verified/.test(q.columns)) || q.table === "student_profiles")
-      expect(reads).toHaveLength(2)
-      for (const q of reads) expect(filterOf(q, "user_id")).toBe("stu-1")
+      expect(getMyProfile).toHaveBeenCalledWith()
+      expect(getMyStudentProfile).toHaveBeenCalledWith()
     })
 
     it("lecture du statut en échec : refus neutre sans insertion", async () => {
