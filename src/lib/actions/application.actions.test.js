@@ -190,6 +190,17 @@ describe("apply", () => {
     expect(sendEmail).toHaveBeenCalledWith("new-application", "dest@example.com", expect.objectContaining({ missionId: APPLY_MISSION }))
   })
 
+  it("revalide les routes qui existent : /applications (jamais /student/applications) et le détail de la mission", async () => {
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath.mockClear()
+    asStudent()
+    respond = (q) => (q.table === "missions" ? { data: openMission } : { data: null, error: null })
+    expect(await apply({ missionId: APPLY_MISSION, message: "Bonjour" })).toEqual({ success: true })
+    const paths = revalidatePath.mock.calls.map((c) => c[0])
+    expect(paths).toContain("/applications")
+    expect(paths).not.toContain("/student/applications")
+  })
+
   describe("décision D2 : contrôle serveur du statut de vérification", () => {
     const plus = (days) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
     const post = () => apply({ missionId: APPLY_MISSION, message: "Bonjour" })

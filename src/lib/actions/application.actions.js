@@ -166,7 +166,7 @@ export async function apply({ missionId, message }) {
     console.error("[apply] Erreur email:", emailErr)
   }
 
-  revalidatePath("/student/applications")
+  revalidatePath("/applications")
   revalidatePath("/missions/" + missionId)
 
   return { success: true }
