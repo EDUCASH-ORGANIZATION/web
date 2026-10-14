@@ -71,6 +71,12 @@ describe("garde-fou de palette", () => {
   it("aucun doublon entre les modules d'exemption", () => {
     const all = Object.values(GREEN_MODULES).flat()
     expect(all.filter((f, i) => all.indexOf(f) !== i)).toEqual([])
-    expect(EXEMPT_GREEN.length).toBeLessThanOrEqual(38)
+    expect(EXEMPT_GREEN.length).toBeLessThanOrEqual(14)
+  })
+
+  it("aucun fichier de l'espace étudiant n'est exempté du vert", () => {
+    const student = EXEMPT_GREEN.filter((f) => /student/i.test(f))
+    expect(student).toEqual([])
+    expect(Object.keys(GREEN_MODULES).filter((k) => k.startsWith("student"))).toEqual([])
   })
 })

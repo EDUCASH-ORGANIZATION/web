@@ -1354,13 +1354,8 @@ describe("anciennes pages etudiant : aucune classe attenuee par .e2", () => {
   const section1 = STUDENT_BASE.slice(0, STUDENT_BASE.indexOf(".e2 .btn-icon {"))
   const softened = [...new Set([...section1.matchAll(/\.e2 \.([A-Za-z][\w-]*)/g)].map((m) => m[1]))].filter((n) => !n.startsWith("e2-"))
 
-  // Pages anciennes (sans @ds-screen) et composants propres a l'espace etudiant ancien.
-  const legacy = [
-    ...walk("src/app/(student)"),
-    ...walk("src/components/student"),
-    ...walk("src/components/profile"),
-    "src/components/missions/student-apply-form.js",
-  ].filter((f) => !readFileSync(path.join(root, f), "utf8").slice(0, 300).includes("@ds-screen"))
+  // Plus aucune ancienne page étudiant (RD-STUDENT-01) : toute page sans @ds-screen qui réapparaîtrait est contrôlée ici.
+  const legacy = walk("src/app/(student)").filter((f) => !readFileSync(path.join(root, f), "utf8").slice(0, 300).includes("@ds-screen"))
 
   const classTokens = (source) => {
     const tokens = new Set()
@@ -1373,7 +1368,8 @@ describe("anciennes pages etudiant : aucune classe attenuee par .e2", () => {
 
   it("la liste des classes attenuees est lue et non vide (card, modal, chip, tab, input...)", () => {
     expect(softened).toEqual(expect.arrayContaining(["card", "modal", "chip", "tab", "input", "select"]))
-    expect(legacy.length).toBeGreaterThan(5)
+    expect(walk("src/app/(student)").length).toBeGreaterThan(15)
+    expect(legacy).toEqual([])
   })
 
   it("aucune ancienne page ou composant etudiant n'utilise une classe attenuee", () => {
@@ -1410,24 +1406,6 @@ describe("anciennes pages etudiant : pas de debordement horizontal de la coquill
     expect(computedStyle(withRule, e2)["min-width"]).toBe("0")
     // Dans toutes les feuilles client, aucune regle ne cible un enfant direct de .page2.
     expect(CLIENT).not.toMatch(/\.page2\s*>/)
-  })
-
-  it("la page candidatures garde ses onglets dans un conteneur defilant (overflow-x-auto, pleine largeur) : ils defilent au lieu d'elargir la page", () => {
-    const tabs = readFileSync(path.join(dir, "..", "..", "components", "student", "applications-tabs.js"), "utf8")
-    expect(tabs).toMatch(/className="flex gap-2 w-full overflow-x-auto[^"]*" role="tablist"/)
-    // La page /applications n'est plus l'ancienne page Tailwind (max-w-2xl) : E04 la remplace par une page mince
-    // (ST-07). Seul l'ancien composant d'onglets, présent jusqu'à ST-17, reste gardé ici.
-  })
-
-  it("calcul de largeur : les onglets de 461 px (shrink-0) tiennent dans la page de 320, 360 et 390 px avec la largeur pleine", () => {
-    const tabsMin = 461
-    for (const screen of [320, 360, 390]) {
-      const pad = 16 * 2 // px-4 de la page ancienne
-      const page = Math.min(screen, 672) // max-w-2xl
-      const content = page - pad
-      expect(content).toBeLessThan(tabsMin) // trop etroit : l'ancien rendu debordait (scrollWidth 477)
-      expect(page).toBeLessThanOrEqual(screen) // la page ne depasse plus l'ecran
-    }
   })
 })
 

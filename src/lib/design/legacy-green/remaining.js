@@ -1,5 +1,5 @@
-// Exemptions de la famille verte historique hors espace étudiant : admin, composants partagés encore non portés, vitrine du lot B.
-// Les exemptions de l'espace étudiant vivent dans les modules student-*.js.
+// Exemptions de la famille verte historique : admin, composants partagés encore non portés, vitrine du lot B.
+// Aucun fichier de l'espace étudiant n'est exempté du vert (RD-STUDENT-01).
 // Vider cette liste quand le fichier est migré (le garde-fou refuse une entrée inutile).
 export const REMAINING_GREEN = [
   "src/app/(admin)/admin/dashboard/page.js",

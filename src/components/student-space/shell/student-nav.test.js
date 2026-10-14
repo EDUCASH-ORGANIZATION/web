@@ -51,6 +51,7 @@ describe("STUDENT_NAV", () => {
   it("chaque href vise une page existante", () => {
     expect([...new Set(all.map((i) => i.href))].filter((h) => !exists(h))).toEqual([])
     expect(exists("/inexistant")).toBe(false)
+    expect(exists("/student/missions/abc")).toBe(true)
     expect(exists(STUDENT_NAV.search.action)).toBe(true)
   })
 

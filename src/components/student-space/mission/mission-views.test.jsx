@@ -28,8 +28,8 @@ const followed = (status, over) =>
 
 const h1Count = (html) => (html.match(/<h1[\s>]/g) ?? []).length
 
-describe("MissionApplyView (bouchon E03)", () => {
-  it("mission ouverte : un seul h1, gain par escrowSplit, ancien formulaire conservé", () => {
+describe("MissionApplyView (états d'ensemble)", () => {
+  it("mission ouverte : un seul h1, gain par escrowSplit, bouton de candidature", () => {
     const html = renderToStaticMarkup(<MissionApplyView detail={open()} flags={flags} />)
     expect(h1Count(html)).toBe(1)
     expect(html).toContain("Cours de maths niveau 3e")
@@ -45,7 +45,7 @@ describe("MissionApplyView (bouchon E03)", () => {
     expect(html).not.toContain("Envoyer ma candidature")
   })
 
-  it("vérification bloquante : lien vers la vérification, formulaire désactivé", () => {
+  it("vérification bloquante : lien vers la vérification", () => {
     const verification = {
       key: "not_submitted", label: "Carte à envoyer", canApply: false, daysLeft: null,
       action: { label: "Envoyer ma carte", href: "/profile/verify" },
@@ -63,7 +63,7 @@ describe("MissionApplyView (bouchon E03)", () => {
   })
 })
 
-describe("MissionFollowupView (bouchon E05)", () => {
+describe("MissionFollowupView (états d'ensemble)", () => {
   it("en cours : ta part par escrowSplit, écrire au client, signaler, aucun bouton J'ai terminé", () => {
     const html = renderToStaticMarkup(<MissionFollowupView detail={followed("in_progress")} flags={flags} />)
     expect(h1Count(html)).toBe(1)
