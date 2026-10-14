@@ -3,7 +3,6 @@
 export const STUDENT_PROFILE_GREEN = [
   "src/app/(student)/profile/edit/page.js",
   "src/app/(student)/profile/page.js",
-  "src/app/(student)/profile/verify/page.js",
   "src/components/profile/card-upload-form.js",
   "src/components/profile/profile-edit-form.js",
 ]
