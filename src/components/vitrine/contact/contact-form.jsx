@@ -63,7 +63,7 @@ export function ContactForm({ defaultSubject = "", defaultMessage = "" }) {
         setError(key, { type: "server", message }, { shouldFocus: first })
         first = false
       }
-      if (first) setServerError("Le message n'a pas pu être envoyé. Vérifie les champs et réessaie.")
+      if (first) setServerError("Le message n'a pas pu être envoyé. Vérifiez les champs et réessayez.")
       return
     }
     setServerError(result.message)
@@ -83,7 +83,7 @@ export function ContactForm({ defaultSubject = "", defaultMessage = "" }) {
           </span>
           <h2 className="display display--m">Message envoyé.</h2>
           <p className="body-l">
-            Merci {sent.name}. Ton message est bien arrivé&nbsp;: on te répond à{" "}
+            Merci {sent.name}. Votre message est bien arrivé&nbsp;: nous vous répondons à{" "}
             <b>{sent.email}</b>.
           </p>
           <div className="recap">
@@ -200,7 +200,7 @@ export function ContactForm({ defaultSubject = "", defaultMessage = "" }) {
         <textarea
           id="contact-message"
           className={`input${errors.message ? " is-error" : ""}`}
-          placeholder="Explique ta demande. Si elle concerne une mission, donne son titre."
+          placeholder="Expliquez votre demande. Si elle concerne une mission, donnez son titre."
           aria-invalid={errors.message ? "true" : undefined}
           aria-describedby={errors.message ? "contact-message-error" : undefined}
           {...register("message")}
@@ -213,14 +213,14 @@ export function ContactForm({ defaultSubject = "", defaultMessage = "" }) {
       </div>
 
       <div className="sr-only" aria-hidden="true">
-        <label htmlFor="contact-website">Laisse ce champ vide</label>
+        <label htmlFor="contact-website">Laissez ce champ vide</label>
         <input id="contact-website" type="text" tabIndex={-1} autoComplete="off" {...register(HONEYPOT_FIELD)} />
       </div>
 
       <div className="banner banner--info">
         <Icon name="i-flag" />
         <div className="banner__body">
-          Un problème sur une mission en cours&nbsp;? Précise-le dans ton message&nbsp;: l&apos;équipe EduCash intervient en médiation.
+          Un problème sur une mission en cours&nbsp;? Précisez-le dans votre message&nbsp;: l&apos;équipe EduCash intervient en médiation.
         </div>
       </div>
 

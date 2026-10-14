@@ -18,11 +18,11 @@ import { homeFigures } from "@/lib/vitrine/figures"
 export const metadata = {
   title: "Pour les étudiants",
   description:
-    "Bosse entre deux cours et encaisse : des missions près de ta fac à Cotonou, Porto-Novo et Abomey-Calavi, payées par séquestre et retirées sur ton MTN MoMo, ton Moov Money ou ton Celtiis Cash.",
+    "Bossez entre deux cours et encaissez : des missions près de votre fac à Cotonou, Porto-Novo et Abomey-Calavi, payées par séquestre et retirées sur votre MTN MoMo, votre Moov Money ou votre Celtiis Cash.",
   openGraph: {
     title: "Pour les étudiants - EduCash",
     description:
-      "Des petites missions près de ta fac, payées par séquestre et retirées sur ton Mobile Money, à Cotonou, Porto-Novo et Abomey-Calavi.",
+      "Des petites missions près de votre fac, payées par séquestre et retirées sur votre Mobile Money, à Cotonou, Porto-Novo et Abomey-Calavi.",
     url: "/etudiants",
   },
 }

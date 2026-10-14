@@ -16,11 +16,11 @@ function Empty({ cta }) {
       <div>
         <span className="eyebrow eyebrow--bleu">Missions ouvertes</span>
         <h2 className="display display--l ds-mt-3">
-          Sois prêt pour<br /><span className="hl-bleu">les premières missions.</span>
+          Soyez prêt pour<br /><span className="hl-bleu">les premières missions.</span>
         </h2>
         <p className="body-l muted ds-mt-4 ds-measure-l">
-          Aucune mission n&rsquo;est ouverte à cet instant. Crée ton compte maintenant : on te prévient dès qu&rsquo;une
-          mission tombe près de chez toi.
+          Aucune mission n&rsquo;est ouverte à cet instant. Créez votre compte maintenant : nous vous prévenons dès qu&rsquo;une
+          mission tombe près de chez vous.
         </p>
         <div className="row ds-mt-6 ds-gap-4">
           <Link className="btn btn--primary btn--lg" href={cta.href}>
@@ -53,7 +53,7 @@ export function EtudiantsPreview({ missions, openCount, error, cta }) {
           <StateBlock
             kind="error"
             title="Les missions n'ont pas pu être chargées"
-            text="Le reste de la page fonctionne. Vérifie ta connexion puis réessaie."
+            text="Le reste de la page fonctionne. Vérifiez votre connexion puis réessayez."
             actions={[
               { href: "/etudiants", label: "Réessayer" },
               { href: "/missions", label: "Voir toutes les missions", variant: "ghost" },

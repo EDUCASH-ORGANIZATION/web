@@ -65,10 +65,10 @@ beforeEach(() => {
 const render = async () => renderToStaticMarkup(await EtudiantsPage())
 
 describe("page /etudiants", () => {
-  it("rend le hero tutoyé, la recherche vers /missions et la photo de l'étudiante", async () => {
+  it("rend le hero vouvoyé, la recherche vers /missions et la photo de l'étudiante", async () => {
     const html = await render()
-    expect(html).toContain("Bosse entre")
-    expect(html).toContain("Encaisse.")
+    expect(html).toContain("Bossez entre")
+    expect(html).toContain("Encaissez.")
     expect(html).toContain('action="/missions"')
     expect(html).toContain('srcSet="/images/hero/portrait-hero.webp"')
     expect(html).toContain('width="644"')
@@ -89,7 +89,7 @@ describe("page /etudiants", () => {
   it("état vide : invite à créer un compte", async () => {
     tables.missions = ok(0, [])
     const html = await render()
-    expect(html).toContain("Sois prêt pour")
+    expect(html).toContain("Soyez prêt pour")
     expect(html).toContain('href="/auth/register?role=student"')
   })
 
@@ -97,7 +97,7 @@ describe("page /etudiants", () => {
     tables.missions = { data: null, count: null, error: { code: "X", message: "boom" } }
     const html = await render()
     expect(html).toContain("Les missions n&#x27;ont pas pu être chargées")
-    expect(html).toContain("Tes gains")
+    expect(html).toContain("Vos gains")
     expect(console.error).toHaveBeenCalled()
   })
 
@@ -143,9 +143,9 @@ describe("page /etudiants", () => {
     expect(html).toContain("missions ouvertes en ce moment")
   })
 
-  it("métadonnées : titre, description tutoyée, url openGraph", () => {
+  it("métadonnées : titre, description vouvoyée, url openGraph", () => {
     expect(metadata.title).toBe("Pour les étudiants")
-    expect(metadata.description).toMatch(/Bosse entre deux cours/)
+    expect(metadata.description).toMatch(/Bossez entre deux cours/)
     expect(metadata.description).toContain("Celtiis Cash")
     expect(metadata.openGraph.url).toBe("/etudiants")
     expect(JSON.stringify(metadata)).not.toMatch(/fedapay/i)

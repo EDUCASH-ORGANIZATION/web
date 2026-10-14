@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 
-// Bandeau de l'étudiant qui consulte son propre profil (tutoiement).
+// Bandeau de l'étudiant qui consulte son propre profil (vouvoiement).
 export function OwnerBanner() {
   return (
     <div className="v04-own">
-      <span>Voici ce que voient les clients sur ton profil.</span>
+      <span>Voici ce que voient les clients sur votre profil.</span>
       <Link className="btn btn--secondary btn--sm" href="/profile/edit">Modifier</Link>
     </div>
   )

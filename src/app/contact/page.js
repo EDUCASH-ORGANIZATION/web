@@ -9,7 +9,7 @@ import { safeNextPath } from "@/lib/utils/safe-next"
 export const metadata = {
   title: "Contact",
   description:
-    "Écris à l'équipe EduCash : une question sur une mission, un paiement ou ta vérification.",
+    "Écrivez à l'équipe EduCash : une question sur une mission, un paiement ou votre vérification.",
   openGraph: { url: "/contact" },
 }
 
@@ -41,14 +41,14 @@ export default async function ContactPage({ searchParams }) {
             <span>
               ouvrées pour
               <br />
-              te répondre
+              vous répondre
             </span>
           </div>
         </div>
         <Icon name="sc-arrow" className="scribble v08-scribble" />
         <span className="eyebrow">Contact</span>
         <h1 className="display display--xxl ds-mt-6">
-          Écris-nous.
+          Écrivez-nous.
           <br />
           <span className="hl-citron">On répond.</span>
         </h1>
@@ -84,7 +84,7 @@ export default async function ContactPage({ searchParams }) {
                 </div>
               </div>
               <div className="v08-help">
-                <b>Ta réponse est peut-être déjà là</b>
+                <b>Votre réponse est peut-être déjà là</b>
                 {HELP_LINKS.map((l) => (
                   <AnchorLink key={l.href} href={l.href}>
                     {l.label}

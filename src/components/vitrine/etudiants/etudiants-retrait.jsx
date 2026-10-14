@@ -13,7 +13,7 @@ export function EtudiantsRetrait() {
         <div>
           <span className="eyebrow eyebrow--bleu">Retrait et vérification</span>
           <h2 className="display display--l ds-mt-3">
-            Ton argent sur ton MoMo.<br /><span className="hl-bleu">Ton sérieux, vérifié.</span>
+            Votre argent sur votre MoMo.<br /><span className="hl-bleu">Votre sérieux, vérifié.</span>
           </h2>
         </div>
       </div>
@@ -21,15 +21,15 @@ export function EtudiantsRetrait() {
         <div className="card card--hl stack stack--3">
           <div className="row">
             <span className="ic-sq ic-sq--bleu"><Icon name="i-smartphone" /></span>
-            <h3 className="ds-h3">Retire sur ton Mobile Money</h3>
+            <h3 className="ds-h3">Retirez sur votre Mobile Money</h3>
           </div>
           <p className="body-s muted">
-            Dès {formatFcfa(MIN_WITHDRAWAL_AMOUNT)}, sur ton numéro béninois.
+            Dès {formatFcfa(MIN_WITHDRAWAL_AMOUNT)}, sur votre numéro béninois.
           </p>
           <Payers />
           <div className="banner banner--info">
             <div className="banner__body">
-              Un souci avec un retrait&nbsp;? Contacte l&rsquo;équipe EduCash depuis la page{" "}
+              Un souci avec un retrait&nbsp;? Contactez l&rsquo;équipe EduCash depuis la page{" "}
               <Link className="link" href="/contact?sujet=signalement">Contact</Link>.
             </div>
           </div>
@@ -37,10 +37,10 @@ export function EtudiantsRetrait() {
         <div className="card card--hl stack stack--3">
           <div className="row">
             <span className="ic-sq"><Icon name="i-shield" /></span>
-            <h3 className="ds-h3">Fais-toi vérifier</h3>
+            <h3 className="ds-h3">Faites-vous vérifier</h3>
           </div>
           <p className="body-s muted">
-            Ta carte étudiante n&rsquo;est demandée qu&rsquo;au moment de postuler. L&rsquo;équipe la contrôle à la main.
+            Votre carte étudiante n&rsquo;est demandée qu&rsquo;au moment de postuler. L&rsquo;équipe la contrôle à la main.
           </p>
           <div className="stack stack--2">
             <div className="row row--between">

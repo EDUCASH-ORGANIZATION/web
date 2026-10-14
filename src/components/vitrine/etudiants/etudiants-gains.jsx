@@ -12,23 +12,23 @@ const EXAMPLES = [
   { label: "200 fiches clients à mettre en forme", budget: 15000 },
 ]
 
-// « Tes gains » (maquette V05 v3) : pourcentages et montants calculés depuis COMMISSION_RATE.
+// « Vos gains » (maquette V05 v3) : pourcentages et montants calculés depuis COMMISSION_RATE.
 export function EtudiantsGains() {
   const net = netAmount(BILL_BUDGET)
   return (
     <section className="section" id="gains">
       <div className="v05-split">
         <div className="stack stack--6">
-          <span className="eyebrow eyebrow--bleu">Tes gains</span>
+          <span className="eyebrow eyebrow--bleu">Vos gains</span>
           <h2 className="display display--l">
-            {SHARE} % pour toi.<br /><span className="hl-bleu">Affiché d&rsquo;avance.</span>
+            {SHARE} % pour vous.<br /><span className="hl-bleu">Affiché d&rsquo;avance.</span>
           </h2>
           <p className="body-l">
-            EduCash prend une commission unique de {COMMISSION} % sur le budget du client. Tout le reste est pour toi,
-            et tu le vois sur chaque mission avant de postuler.
+            EduCash prend une commission unique de {COMMISSION} % sur le budget du client. Tout le reste est pour vous,
+            et vous le voyez sur chaque mission avant de postuler.
           </p>
           <p className="muted">
-            Inscription gratuite. Pas d&rsquo;abonnement. Tu n&rsquo;avances jamais d&rsquo;argent, même pour le marché.
+            Inscription gratuite. Pas d&rsquo;abonnement. Vous n&rsquo;avancez jamais d&rsquo;argent, même pour le marché.
           </p>
         </div>
         <div className="v05-bill">
@@ -39,7 +39,7 @@ export function EtudiantsGains() {
           <div className="v05-bar">
             <div className="v05-bar__etu">
               {formatFcfa(net)}
-              <small>{SHARE} % pour toi</small>
+              <small>{SHARE} % pour vous</small>
             </div>
             <div className="v05-bar__edu">
               {COMMISSION} %
@@ -50,12 +50,12 @@ export function EtudiantsGains() {
             {EXAMPLES.map(({ label, budget }) => (
               <div className="recap__line" key={label}>
                 <span>{label} · budget {formatFcfa(budget)}</span>
-                <b>Tu touches {formatFcfa(netAmount(budget))}</b>
+                <b>Vous touchez {formatFcfa(netAmount(budget))}</b>
               </div>
             ))}
           </div>
           <p className="caption muted">
-            Exemples de budgets, à titre indicatif. Le montant que tu touches est affiché sur chaque mission, avant de
+            Exemples de budgets, à titre indicatif. Le montant que vous touchez est affiché sur chaque mission, avant de
             postuler.
           </p>
         </div>

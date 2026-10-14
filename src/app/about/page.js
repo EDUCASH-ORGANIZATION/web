@@ -158,14 +158,14 @@ export default function AboutPage() {
         student={{
           title: (
             <>
-              Ton temps<br />vaut de l&rsquo;argent.<br />Prouve-le.
+              Votre temps<br />vaut de l&rsquo;argent.<br />Prouvez-le.
             </>
           ),
-          text: "Crée ton profil gratuitement, postule près de ta fac et encaisse sur ton MoMo.",
+          text: "Créez votre profil gratuitement, postulez près de votre fac et encaissez sur votre MoMo.",
           href: "/auth/register?role=student",
           label: "Créer mon compte",
           secondary: { href: "/missions", label: "Voir les missions" },
-          badge: { value: "0 FCFA", caption: "pour t'inscrire" },
+          badge: { value: "0 FCFA", caption: "pour vous inscrire" },
         }}
         client={{
           tag: "Particulier, PME, association",
