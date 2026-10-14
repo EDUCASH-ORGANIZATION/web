@@ -26,14 +26,20 @@
 /* Ligne d'opération sans colonne de pastille : icône, texte, montant (montants de 10 chiffres sans débordement) */
 .e2-08-op { grid-template-columns: 36px minmax(0, 1fr) auto; }
 .e2-08-op .e2-op__amount { min-width: 0; }
+.e2-08-op > div:nth-child(2) { min-width: 0; }
 /* Filtres de l'historique : les 4 puces passent à la ligne, jamais de défilement horizontal */
 .e2 .list2__filters .chips--scroll { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 
 @media (max-width: 1023.98px) {
   .e2-08-top { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
   .e2-08-op { grid-template-columns: 32px minmax(0, 1fr) auto; }
+  /* Le titre (avec son lien de mission) passe a la ligne au lieu d'etre rogne : a 390 px la colonne texte ne mesurait que 121 px. */
+  .e2-08-op .item2__title { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 }
 @media (max-width: 480px) {
+  /* Montant empile sous le libelle (colonne texte 212 px a 320, 282 px a 390, au lieu de ~100 px) : plus de collision avec le badge. */
+  .e2-08-op .e2-op__amount { grid-column: 2 / -1; flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: flex-start; gap: 2px var(--s-2); text-align: left; }
+  .e2-08-op .e2-op__amount small { white-space: normal; }
   .e2-08-bars { gap: 6px; }
   .e2-08-axis span:nth-child(2), .e2-08-axis span:nth-child(4) { display: none; }
 }
