@@ -1,5 +1,6 @@
 -- =============================================================================
--- Reflet de la production Educash au 2026-10-14 (après RD-SEC-01 et RD-SEC-02).
+-- État de référence de la production Educash après RD-SEC-01, RD-SEC-02 et
+-- RD-SEC-03b (relevé du 2026-10-14, puis scripts 60, 61 et 62 de RD-SEC-03b).
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
@@ -363,7 +364,7 @@ CREATE OR REPLACE FUNCTION public.check_verification_expiry()
  RETURNS void
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 begin
   update public.profiles
@@ -701,7 +702,7 @@ CREATE OR REPLACE FUNCTION public.handle_mission_done()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 declare
   v_inserted int;
@@ -730,7 +731,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 declare
   v_role text;
@@ -756,7 +757,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_wallet()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 begin
   insert into public.wallets (user_id, balance, reserved)
@@ -879,7 +880,7 @@ CREATE OR REPLACE FUNCTION public.recompute_profile_rating()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 begin
   if tg_op in ('INSERT', 'UPDATE') then
@@ -900,7 +901,7 @@ CREATE OR REPLACE FUNCTION public.recompute_rating_for(p_user_id uuid)
  RETURNS void
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 begin
   perform 1 from public.profiles where user_id = p_user_id for update;
@@ -961,22 +962,6 @@ $function$;
 revoke all on function public.reviews_rules() from public, anon, authenticated, service_role;
 grant execute on function public.reviews_rules() to service_role;
 
-CREATE OR REPLACE FUNCTION public.set_updated_at()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$function$;
-
-revoke all on function public.set_updated_at() from public, anon, authenticated, service_role;
-grant execute on function public.set_updated_at() to public;
-grant execute on function public.set_updated_at() to anon;
-grant execute on function public.set_updated_at() to authenticated;
-grant execute on function public.set_updated_at() to service_role;
-
 CREATE OR REPLACE FUNCTION public.student_profiles_card_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1019,7 +1004,7 @@ CREATE OR REPLACE FUNCTION public.sync_role_to_auth()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 begin
   if old.role = new.role then
@@ -1038,28 +1023,6 @@ $function$;
 revoke all on function public.sync_role_to_auth() from public, anon, authenticated, service_role;
 grant execute on function public.sync_role_to_auth() to service_role;
 
-CREATE OR REPLACE FUNCTION public.update_profile_rating()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-BEGIN
-  UPDATE profiles
-  SET rating = (
-    SELECT ROUND(AVG(rating)::NUMERIC, 1)
-    FROM reviews
-    WHERE reviewed_id = NEW.reviewed_id
-  )
-  WHERE user_id = NEW.reviewed_id;
-  RETURN NEW;
-END;
-$function$;
-
-revoke all on function public.update_profile_rating() from public, anon, authenticated, service_role;
-grant execute on function public.update_profile_rating() to public;
-grant execute on function public.update_profile_rating() to anon;
-grant execute on function public.update_profile_rating() to authenticated;
-grant execute on function public.update_profile_rating() to service_role;
-
 CREATE OR REPLACE FUNCTION public.update_updated_at()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1071,9 +1034,6 @@ END;
 $function$;
 
 revoke all on function public.update_updated_at() from public, anon, authenticated, service_role;
-grant execute on function public.update_updated_at() to public;
-grant execute on function public.update_updated_at() to anon;
-grant execute on function public.update_updated_at() to authenticated;
 grant execute on function public.update_updated_at() to service_role;
 
 CREATE OR REPLACE FUNCTION public.wallet_cancel_mission(p_mission_id uuid, p_client_id uuid DEFAULT NULL::uuid)
@@ -1157,11 +1117,11 @@ CREATE OR REPLACE FUNCTION public.wallet_deposit(p_user_id uuid, p_amount numeri
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 declare
-  v_wallet   wallets%rowtype;
-  v_existing wallet_transactions%rowtype;
+  v_wallet   public.wallets%rowtype;
+  v_existing public.wallet_transactions%rowtype;
   v_tx_id    uuid;
 begin
   if p_user_id is null or p_amount is null or p_amount <= 0 then
@@ -1174,7 +1134,7 @@ begin
 
   -- Verrouille le portefeuille : deux livraisons simultanees du meme paiement se serialisent
   select * into v_wallet
-  from wallets
+  from public.wallets
   where user_id = p_user_id
   for update;
 
@@ -1184,7 +1144,7 @@ begin
 
   -- Rejeu : ce paiement a deja credite un portefeuille
   select * into v_existing
-  from wallet_transactions
+  from public.wallet_transactions
   where type = 'deposit' and fedapay_id = p_fedapay_id
   limit 1;
 
@@ -1203,7 +1163,7 @@ begin
   end if;
 
   begin
-    insert into wallet_transactions
+    insert into public.wallet_transactions
       (user_id, type, amount, balance_before, balance_after, fedapay_id, note)
     values
       (p_user_id, 'deposit', p_amount,
@@ -1215,7 +1175,7 @@ begin
     return json_build_object('success', false, 'error', 'Identifiant de paiement déjà utilisé', 'code', 'payment_id_conflict');
   end;
 
-  update wallets
+  update public.wallets
   set balance = balance + p_amount, updated_at = now()
   where user_id = p_user_id;
 
@@ -1235,7 +1195,7 @@ CREATE OR REPLACE FUNCTION public.wallet_mission_reserved_left(p_client_id uuid,
  RETURNS numeric
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
   select coalesce(sum(
     case type
@@ -1258,11 +1218,11 @@ CREATE OR REPLACE FUNCTION public.wallet_refund(p_client_id uuid, p_mission_id u
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 declare
-  v_wallet  wallets%rowtype;
-  v_mission missions%rowtype;
+  v_wallet  public.wallets%rowtype;
+  v_mission public.missions%rowtype;
   v_left    numeric;
   v_is_user boolean := auth.uid() is not null or coalesce(auth.role(), '') in ('authenticated', 'anon');
 begin
@@ -1271,7 +1231,7 @@ begin
   end if;
 
   -- Verrou de la mission (pour tous les appelants)
-  select * into v_mission from missions where id = p_mission_id for update;
+  select * into v_mission from public.missions where id = p_mission_id for update;
 
   if not found
      or v_mission.client_id is distinct from p_client_id
@@ -1291,13 +1251,13 @@ begin
   end if;
 
   select * into v_wallet
-  from wallets where user_id = p_client_id for update;
+  from public.wallets where user_id = p_client_id for update;
 
   if not found then
     return json_build_object('success', false, 'error', 'Portefeuille introuvable');
   end if;
 
-  insert into wallet_transactions
+  insert into public.wallet_transactions
     (user_id, type, amount, balance_before, balance_after, mission_id, note)
   values
     (p_client_id, 'refund', p_amount,
@@ -1305,7 +1265,7 @@ begin
      v_wallet.balance - v_wallet.reserved + p_amount,
      p_mission_id, 'Remboursement - mission annulée');
 
-  update wallets
+  update public.wallets
   set reserved = reserved - p_amount,
       updated_at = now()
   where user_id = p_client_id;
@@ -1321,16 +1281,16 @@ CREATE OR REPLACE FUNCTION public.wallet_release(p_client_id uuid, p_student_id 
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 declare
   -- Taux de commission fixe, impose a TOUS les appelants (service role compris)
   c_rate           constant numeric := 0.12;
   v_commission     numeric;
   v_net_student    numeric;
-  v_client_wallet  wallets%rowtype;
-  v_student_wallet wallets%rowtype;
-  v_mission        missions%rowtype;
+  v_client_wallet  public.wallets%rowtype;
+  v_student_wallet public.wallets%rowtype;
+  v_mission        public.missions%rowtype;
   v_left           numeric;
   v_is_user        boolean := auth.uid() is not null or coalesce(auth.role(), '') in ('authenticated', 'anon');
 begin
@@ -1344,7 +1304,7 @@ begin
   end if;
 
   -- Verrou de la mission (pour tous les appelants)
-  select * into v_mission from missions where id = p_mission_id for update;
+  select * into v_mission from public.missions where id = p_mission_id for update;
 
   if not found
      or v_mission.client_id is distinct from p_client_id
@@ -1380,25 +1340,25 @@ begin
   -- Verrouille les deux portefeuilles dans un ordre fixe (evite l'interblocage entre
   -- deux paiements croises client A -> etudiant B et client B -> etudiant A)
   perform 1
-  from wallets
+  from public.wallets
   where user_id in (p_client_id, p_student_id)
   order by user_id
   for update;
 
-  select * into v_client_wallet from wallets where user_id = p_client_id;
+  select * into v_client_wallet from public.wallets where user_id = p_client_id;
 
   if not found then
     return json_build_object('success', false, 'error', 'Portefeuille client introuvable');
   end if;
 
-  select * into v_student_wallet from wallets where user_id = p_student_id;
+  select * into v_student_wallet from public.wallets where user_id = p_student_id;
 
   if not found then
     return json_build_object('success', false, 'error', 'Portefeuille étudiant introuvable');
   end if;
 
   -- Mouvement client : débloque le reserved
-  insert into wallet_transactions
+  insert into public.wallet_transactions
     (user_id, type, amount, balance_before, balance_after, mission_id, note)
   values
     (p_client_id, 'release', p_amount_total,
@@ -1406,7 +1366,7 @@ begin
      v_client_wallet.balance - v_client_wallet.reserved,
      p_mission_id, 'Mission terminée - fonds libérés');
 
-  update wallets
+  update public.wallets
   set reserved = reserved - p_amount_total,
       balance  = balance  - p_amount_total,
       updated_at = now()
@@ -1414,7 +1374,7 @@ begin
 
   -- Mouvement commission EduCash (trace dans wallet_transactions ; amount > 0 exige par contrainte)
   if v_commission > 0 then
-    insert into wallet_transactions
+    insert into public.wallet_transactions
       (user_id, type, amount, balance_before, balance_after, mission_id, note)
     values
       (p_client_id, 'commission', v_commission,
@@ -1423,14 +1383,14 @@ begin
   end if;
 
   -- Crédite l'étudiant
-  insert into wallet_transactions
+  insert into public.wallet_transactions
     (user_id, type, amount, balance_before, balance_after, mission_id, note)
   values
     (p_student_id, 'release', v_net_student,
      v_student_wallet.balance, v_student_wallet.balance + v_net_student,
      p_mission_id, 'Paiement reçu - mission complétée');
 
-  update wallets
+  update public.wallets
   set balance = balance + v_net_student, updated_at = now()
   where user_id = p_student_id;
 
@@ -1449,11 +1409,11 @@ CREATE OR REPLACE FUNCTION public.wallet_reserve(p_user_id uuid, p_amount numeri
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 declare
-  v_wallet    wallets%rowtype;
-  v_mission   missions%rowtype;
+  v_wallet    public.wallets%rowtype;
+  v_mission   public.missions%rowtype;
   v_available numeric;
   -- Appelant "utilisateur" : identifiant de session present, ou jeton authenticated / anon
   v_is_user   boolean := auth.uid() is not null or coalesce(auth.role(), '') in ('authenticated', 'anon');
@@ -1467,7 +1427,7 @@ begin
   end if;
 
   -- Verrou de la mission : serialise reserve / release / refund d'une meme mission
-  select * into v_mission from missions where id = p_mission_id for update;
+  select * into v_mission from public.missions where id = p_mission_id for update;
 
   if not found
      or v_mission.client_id is distinct from p_user_id
@@ -1478,14 +1438,14 @@ begin
 
   -- Une mission ne peut etre reservee qu'une seule fois
   if exists (
-    select 1 from wallet_transactions
+    select 1 from public.wallet_transactions
     where user_id = p_user_id and mission_id = p_mission_id and type = 'reserve'
   ) then
     return json_build_object('success', false, 'error', 'Fonds deja reserves pour cette mission');
   end if;
 
   select * into v_wallet
-  from wallets
+  from public.wallets
   where user_id = p_user_id
   for update;
 
@@ -1504,14 +1464,14 @@ begin
     );
   end if;
 
-  insert into wallet_transactions
+  insert into public.wallet_transactions
     (user_id, type, amount, balance_before, balance_after, mission_id, note)
   values
     (p_user_id, 'reserve', p_amount,
      v_available, v_available - p_amount,
      p_mission_id, 'Fonds bloqués - mission publiée');
 
-  update wallets
+  update public.wallets
   set reserved = reserved + p_amount, updated_at = now()
   where user_id = p_user_id;
 
@@ -1530,12 +1490,12 @@ CREATE OR REPLACE FUNCTION public.wallet_withdraw(p_user_id uuid, p_amount numer
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 declare
   v_delay_seconds constant integer := 120;
   v_min_amount    constant numeric := 2000;
-  v_wallet        wallets%rowtype;
+  v_wallet        public.wallets%rowtype;
   v_available     numeric;
   v_last_at       timestamptz;
   v_wait          integer;
@@ -1551,7 +1511,7 @@ begin
 
   -- Verrouille le portefeuille : deux retraits simultanes se serialisent, le delai ne se contourne pas
   select * into v_wallet
-  from wallets
+  from public.wallets
   where user_id = p_user_id
   for update;
 
@@ -1561,11 +1521,11 @@ begin
 
   -- Anti-enchainement : dernier retrait de moins de v_delay_seconds secondes, hors retraits recredites
   select max(t.created_at) into v_last_at
-  from wallet_transactions t
+  from public.wallet_transactions t
   where t.user_id = p_user_id
     and t.type = 'withdrawal'
     and t.created_at > now() - (v_delay_seconds * interval '1 second')
-    and not exists (select 1 from wallet_transactions r where r.reverses_id = t.id);
+    and not exists (select 1 from public.wallet_transactions r where r.reverses_id = t.id);
 
   if v_last_at is not null then
     v_wait := greatest(1, ceil(extract(epoch from (v_last_at + (v_delay_seconds * interval '1 second') - now())))::integer);
@@ -1588,7 +1548,7 @@ begin
     );
   end if;
 
-  insert into wallet_transactions
+  insert into public.wallet_transactions
     (user_id, type, amount, balance_before, balance_after, fedapay_id, note)
   values
     (p_user_id, 'withdrawal', p_amount,
@@ -1596,7 +1556,7 @@ begin
      p_fedapay_id, 'Retrait vers Mobile Money')
   returning id into v_tx_id;
 
-  update wallets
+  update public.wallets
   set balance = balance - p_amount, updated_at = now()
   where user_id = p_user_id;
 
@@ -1616,11 +1576,11 @@ CREATE OR REPLACE FUNCTION public.wallet_withdraw_reverse(p_transaction_id uuid,
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO ''
 AS $function$
 declare
-  v_tx          wallet_transactions%rowtype;
-  v_wallet      wallets%rowtype;
+  v_tx          public.wallet_transactions%rowtype;
+  v_wallet      public.wallets%rowtype;
   v_existing_id uuid;
   v_available   numeric;
   v_new_id      uuid;
@@ -1630,7 +1590,7 @@ begin
   end if;
 
   select * into v_tx
-  from wallet_transactions
+  from public.wallet_transactions
   where id = p_transaction_id;
 
   if not found then
@@ -1643,7 +1603,7 @@ begin
 
   -- Verrouille le portefeuille du retrait : serialise les recredits et les autres mouvements
   select * into v_wallet
-  from wallets
+  from public.wallets
   where user_id = v_tx.user_id
   for update;
 
@@ -1652,7 +1612,7 @@ begin
   end if;
 
   select id into v_existing_id
-  from wallet_transactions
+  from public.wallet_transactions
   where reverses_id = p_transaction_id;
 
   if found then
@@ -1669,7 +1629,7 @@ begin
   v_available := v_wallet.balance - v_wallet.reserved;
 
   begin
-    insert into wallet_transactions
+    insert into public.wallet_transactions
       (user_id, type, amount, balance_before, balance_after, mission_id, note, reverses_id)
     values
       (v_tx.user_id, 'refund', v_tx.amount,
@@ -1678,7 +1638,7 @@ begin
     returning id into v_new_id;
   exception when unique_violation then
     -- Filet de securite (index unique) : deja compense par un appel concurrent
-    select id into v_existing_id from wallet_transactions where reverses_id = p_transaction_id;
+    select id into v_existing_id from public.wallet_transactions where reverses_id = p_transaction_id;
     return json_build_object(
       'success', true,
       'already_reversed', true,
@@ -1689,7 +1649,7 @@ begin
     );
   end;
 
-  update wallets
+  update public.wallets
   set balance = balance + v_tx.amount, updated_at = now()
   where user_id = v_tx.user_id;
 
@@ -1715,24 +1675,19 @@ grant execute on function public.wallet_withdraw_reverse(p_transaction_id uuid, 
 
 CREATE TRIGGER applications_apply_rules BEFORE INSERT ON public.applications FOR EACH ROW EXECUTE FUNCTION public.applications_apply_rules();
 CREATE TRIGGER guard_applications BEFORE INSERT OR UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION public.guard_applications();
-CREATE TRIGGER set_applications_updated_at BEFORE UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_applications_updated_at BEFORE UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER messages_rules BEFORE INSERT ON public.messages FOR EACH ROW EXECUTE FUNCTION public.messages_rules();
 CREATE TRIGGER guard_missions BEFORE INSERT OR DELETE OR UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.guard_missions();
-CREATE TRIGGER set_missions_updated_at BEFORE UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_mission_done AFTER UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.handle_mission_done();
 CREATE TRIGGER trg_missions_updated_at BEFORE UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER guard_profile_sensitive_columns BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.guard_profile_sensitive_columns();
 CREATE TRIGGER on_profile_role_changed AFTER UPDATE OF role ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.sync_role_to_auth();
-CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_create_wallet_on_signup AFTER INSERT ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_new_wallet();
 CREATE TRIGGER trg_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER recompute_profile_rating AFTER INSERT OR DELETE OR UPDATE OF rating, reviewed_id ON public.reviews FOR EACH ROW EXECUTE FUNCTION public.recompute_profile_rating();
 CREATE TRIGGER reviews_rules BEFORE INSERT OR UPDATE OF mission_id, reviewer_id, reviewed_id, rating, comment ON public.reviews FOR EACH ROW EXECUTE FUNCTION public.reviews_rules();
-CREATE TRIGGER set_student_profiles_updated_at BEFORE UPDATE ON public.student_profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER student_profiles_card_guard BEFORE INSERT OR UPDATE OF card_url ON public.student_profiles FOR EACH ROW EXECUTE FUNCTION public.student_profiles_card_guard();
 CREATE TRIGGER trg_student_profiles_updated_at BEFORE UPDATE ON public.student_profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-CREATE TRIGGER set_transactions_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_transactions_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER trg_wallets_updated_at BEFORE UPDATE ON public.wallets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER enforce_metadata_role BEFORE INSERT OR UPDATE OF raw_user_meta_data ON auth.users FOR EACH ROW EXECUTE FUNCTION public.enforce_metadata_role();
@@ -1835,9 +1790,6 @@ create policy "Admin lit toutes les cartes étudiantes" on storage.objects as pe
 create policy "Delete own message media" on storage.objects as permissive for delete to authenticated
   using (((bucket_id = 'message-media'::text) AND ((auth.uid())::text = (storage.foldername(name))[1])));
 
-create policy "Update avatar" on storage.objects as permissive for update to public
-  using (((bucket_id = 'avatars'::text) AND ((auth.uid())::text = (string_to_array(name, '/'::text))[1])));
-
 create policy "Upload avatar" on storage.objects as permissive for insert to public
   with check (((bucket_id = 'avatars'::text) AND ((auth.uid())::text = (string_to_array(name, '/'::text))[1])));
 
@@ -1854,9 +1806,6 @@ create policy message_media_select_participants on storage.objects as permissive
   using (((bucket_id = 'message-media'::text) AND (((( SELECT auth.uid() AS uid))::text = (storage.foldername(name))[1]) OR (EXISTS ( SELECT 1
    FROM messages m
   WHERE ((m.media_url IS NOT NULL) AND ("substring"(m.media_url, '/message-media/(.+)$'::text) = objects.name) AND (split_part(objects.name, '/'::text, 1) = (m.sender_id)::text) AND ((m.sender_id = ( SELECT auth.uid() AS uid)) OR (m.receiver_id = ( SELECT auth.uid() AS uid)))))))));
-
-create policy student_cards_service_only on storage.objects as permissive for select to public
-  using (((bucket_id = 'student-cards'::text) AND (auth.role() = 'service_role'::text)));
 
 create policy "Étudiant gère sa carte" on storage.objects as permissive for all to public
   using (((bucket_id = 'student-cards'::text) AND ((auth.uid())::text = (string_to_array(name, '/'::text))[1])))
@@ -1961,7 +1910,7 @@ values ('avatars', 'avatars', true, 5242880, array['image/jpeg', 'image/png', 'i
 on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('message-media', 'message-media', true, 10485760, array['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif', 'audio/*'])
+values ('message-media', 'message-media', false, 10485760, array['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif', 'audio/*'])
 on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -1995,14 +1944,19 @@ alter publication supabase_realtime add table public.messages;
 --   dans les politiques supposent le search_path par défaut de Supabase
 --   (public, extensions).
 --
+-- ÉTAT APRÈS RD-SEC-03b
+-- Ce fichier décrit l'état APRÈS application des scripts 60 (14 fonctions en
+-- search_path vide) et 61 (code mort supprimé) en production, et 62 (bucket
+-- message-media privé, appliqué après le déploiement du code d'URL signées).
+-- Tant que le script 62 n'est pas appliqué, la production garde message-media
+-- public.
+--
 -- DETTE CONNUE
--- - 14 fonctions SECURITY DEFINER ont search_path = 'public' et non vide :
---   check_verification_expiry, handle_mission_done, handle_new_user,
---   handle_new_wallet, recompute_profile_rating, recompute_rating_for,
---   sync_role_to_auth, wallet_deposit, wallet_mission_reserved_left,
---   wallet_refund, wallet_release, wallet_reserve, wallet_withdraw,
---   wallet_withdraw_reverse.
--- - message-media est un bucket public (suivi : bucket privé et URL signées).
+-- - Politiques conservées volontairement bien que redondantes : "Admin lit tous
+--   les profils" et "Admin lit tous les student_profiles" (englobées par les
+--   politiques using (true)), "Admin lit toutes les cartes étudiantes"
+--   (l'admin passe par le service role). Elles portent l'intention admin si la
+--   lecture publique est resserrée un jour.
 -- =============================================================================
 
 commit;
