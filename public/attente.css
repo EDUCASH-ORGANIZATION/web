@@ -1,0 +1,74 @@
+/* Page d'attente (RD-STAGE-01) : valeurs identiques à src/app/design/tokens.css */
+:root {
+  --c-bleu: #1028F0;
+  --c-encre: #17213A;
+  --c-blanc: #FFFFFF;
+  --c-citron: #C1EE3E;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; min-height: 100%; }
+
+body {
+  min-height: 100vh;
+  background: var(--c-bleu);
+  color: var(--c-blanc);
+  font-family: system-ui, sans-serif;
+  font-size: 18px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attente {
+  width: 100%;
+  max-width: 640px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.attente__logo {
+  display: block;
+  width: 180px;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 40px;
+}
+
+.attente__titre {
+  margin: 0 0 16px;
+  font-size: 40px;
+  line-height: 1.2;
+  color: var(--c-blanc);
+}
+
+.attente__texte {
+  margin: 0 0 16px;
+  font-size: 18px;
+  color: var(--c-blanc);
+}
+
+.attente__lien {
+  color: var(--c-blanc);
+  text-decoration: underline;
+  text-decoration-color: var(--c-citron);
+  text-underline-offset: 4px;
+}
+
+.attente__lien:focus-visible {
+  outline: 3px solid var(--c-citron);
+  outline-offset: 4px;
+}
+
+@media (max-width: 768px) {
+  .attente__titre { font-size: 34px; }
+}
+
+@media (max-width: 480px) {
+  body { font-size: 16px; }
+  .attente { padding: 24px 16px; }
+  .attente__titre { font-size: 28px; }
+  .attente__texte { font-size: 16px; }
+}

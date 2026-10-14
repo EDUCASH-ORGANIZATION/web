@@ -1,10 +1,13 @@
 import { createClient } from "@supabase/supabase-js"
 import { todayInBenin } from "@/lib/vitrine/dates"
+import { waitingModeEnabled } from "@/lib/site/waiting-mode"
 
 // Client anonyme sans cookies : le sitemap reste statique, la lecture passe par la RLS.
 export const revalidate = 3600
 
 export default async function sitemap() {
+  if (waitingModeEnabled()) return []
+
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.educash.bj"
 
   const staticRoutes = [
