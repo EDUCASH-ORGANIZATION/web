@@ -33,7 +33,7 @@ describe("pages admin : contrôle de rôle fail-closed", () => {
     requireRole.mockReset()
     createServiceClient.mockReset()
     redirect.mockClear()
-    requireRole.mockResolvedValue({ error: "Tu n'as pas les droits pour effectuer cette action." })
+    requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
   })
 
   it.each([

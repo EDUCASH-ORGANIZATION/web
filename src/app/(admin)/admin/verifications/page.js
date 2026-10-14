@@ -58,7 +58,7 @@ export default async function AdminVerificationsPage({ searchParams } = {}) {
         </div>
         <div role="alert" className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4">
           <p className="text-sm font-black text-red-800">Impossible de charger les dossiers de vérification.</p>
-          <p className="text-xs text-red-700 mt-0.5">Recharge la page. Si le problème persiste, contacte l&apos;équipe technique.</p>
+          <p className="text-xs text-red-700 mt-0.5">Rechargez la page. Si le problème persiste, contactez l&apos;équipe technique.</p>
         </div>
       </div>
     )
