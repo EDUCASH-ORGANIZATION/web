@@ -78,7 +78,7 @@ describe("MissionFollowupView (bouchon E05)", () => {
     const ledger = [{ type: "release", amount: 17600, createdAt: "2026-10-20T10:00:00Z" }]
     const html = renderToStaticMarkup(<MissionFollowupView detail={followed("done", { ledger })} flags={flags} />)
     expect(html).toContain("Noter le client")
-    expect(html).toContain("/review/m1")
+    expect(html).toContain("/student/review/m1")
   })
 
   it("terminée sans ligne de grand livre : paiement en cours, aucun montant inventé", () => {

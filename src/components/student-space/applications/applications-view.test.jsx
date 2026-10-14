@@ -123,7 +123,7 @@ describe("StudentApplicationsView : actions par statut", () => {
     const base = row({ status: "accepted", missionStatus: "done" })
     const sans = render(data({ ...done, rows: [base] }))
     expect(sans).toContain("Noter le client")
-    expect(sans).toContain('href="/review/m1"')
+    expect(sans).toContain('href="/student/review/m1"')
     expect(sans).toContain("Avis à laisser")
     expect(sans).toContain("versés · budget")
     const avec = render(data({ ...done, rows: [{ ...base, review: { rating: 5 } }] }))

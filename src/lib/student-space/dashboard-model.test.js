@@ -119,7 +119,7 @@ describe("buildDashboardModel : états", () => {
     expect(m.hero.title).toBe("Notez Koffi")
     expect(m.list.count).toBe(7)
     expect(m.list.items).toHaveLength(5)
-    expect(m.list.items[0].action.href).toBe("/review/d1")
+    expect(m.list.items[0].action.href).toBe("/student/review/d1")
   })
 })
 

@@ -146,7 +146,7 @@ describe("StudentConversationView : mission terminée", () => {
 
   it("propose « Noter le client » et verrouille l'écriture", () => {
     expect(html).toContain("Noter le client")
-    expect(html).toContain(`href="/review/${M1}"`)
+    expect(html).toContain(`href="/student/review/${M1}"`)
     expect(html).toContain("Mission terminée : cette conversation est en lecture seule.")
     expect(html).toContain("composer e2-07-composer is-locked")
     expect(html).not.toContain("<textarea")

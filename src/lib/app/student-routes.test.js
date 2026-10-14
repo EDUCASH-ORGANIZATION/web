@@ -70,8 +70,9 @@ describe("fabriques d'URL étudiant", () => {
     expect(studentWalletHref({ filtre: "paiements", retrait: true })).toBe("/wallet?filtre=paiements&retrait=1")
   })
 
-  it("studentReviewHref reste sur /review tant que /student/review n'existe pas", () => {
-    expect(studentReviewHref("m1")).toBe("/review/m1")
+  it("studentReviewHref pointe vers /student/review, identifiant encodé", () => {
+    expect(studentReviewHref("m1")).toBe("/student/review/m1")
+    expect(studentReviewHref("a/b?c")).toBe("/student/review/a%2Fb%3Fc")
     expect(studentReviewHref("")).toBe("/applications")
   })
 
