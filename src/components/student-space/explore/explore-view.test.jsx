@@ -107,6 +107,13 @@ describe("StudentExploreView : états", () => {
     expect(page).toContain("Revenir à la première page")
   })
 
+  it("page au-delà du dernier résultat avec un filtre actif : page vide, lien vers la page 1 qui garde les filtres", () => {
+    const html = render({ filters: filters({ q: "traduction", type: "Traduction", page: 4 }), hasFilter: true, total: 0, missions: [] })
+    expect(html).toContain("Cette page est vide")
+    expect(html).not.toContain("Aucune mission pour")
+    expect(html).toContain('<a class="hero2__link" href="/student/missions?q=traduction&amp;type=Traduction">Revenir à la première page</a>')
+  })
+
   it("erreur : message distinct du vide, bouton Réessayer, un seul h1", () => {
     const html = renderToStaticMarkup(<StudentExploreView result={{ error: "x" }} />)
     expect(html).toContain("Impossible de charger les missions")

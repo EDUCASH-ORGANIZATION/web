@@ -171,22 +171,23 @@ function Lead() {
 
 function EmptyBlock({ filters, hasFilter }) {
   let content
-  if (hasFilter) {
+  if (filters.page > 1) {
+    // Au-delà du dernier résultat (filtres actifs ou non) : la page est vide, pas la recherche. Le lien garde les filtres.
+    content = (
+      <EmptyState
+        icon="i-search"
+        title="Cette page est vide"
+        text="Il n'y a pas autant de missions."
+        action={{ label: "Revenir à la première page", href: studentMissionsHref({ ...filters, page: 1 }) }}
+      />
+    )
+  } else if (hasFilter) {
     content = (
       <EmptyState
         icon="i-search"
         title={filters.q ? `Aucune mission pour « ${filters.q} »` : "Aucune mission ne correspond"}
         text="Essaie un autre mot, une autre ville ou retire un filtre."
         action={{ label: "Effacer les filtres", href: studentMissionsHref() }}
-      />
-    )
-  } else if (filters.page > 1) {
-    content = (
-      <EmptyState
-        icon="i-search"
-        title="Cette page est vide"
-        text="Il n'y a pas autant de missions."
-        action={{ label: "Revenir à la première page", href: studentMissionsHref(filters.type ? { type: filters.type } : {}) }}
       />
     )
   } else {
