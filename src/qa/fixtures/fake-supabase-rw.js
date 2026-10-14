@@ -80,6 +80,14 @@ export function makeRW(ctx) {
     storage: {
       from: (bucket) => ({
         getPublicUrl: (path) => ({ data: { publicUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}` } }),
+        createSignedUrls: async (paths, ttl) => {
+          ctx.log.push({ table: `storage:${bucket}`, op: "createSignedUrls", filters: [], ors: [], paths, ttl })
+          if (ctx.failures?.["storage.createSignedUrls"]) return { data: null, error: { message: "signature impossible" } }
+          return {
+            data: paths.map((path) => ({ path, error: null, signedUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/sign/${bucket}/${path}?token=t-${ttl}` })),
+            error: null,
+          }
+        },
       }),
     },
     from: (table) => {

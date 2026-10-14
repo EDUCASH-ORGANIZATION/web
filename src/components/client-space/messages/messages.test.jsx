@@ -13,15 +13,18 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: 
 vi.mock("@/lib/actions/message.actions", () => ({
   sendClientMessage: vi.fn(),
   markClientConversationRead: vi.fn(),
+  getClientMessageMedia: vi.fn(async () => ({ media: {} })),
 }))
+const realtime = vi.fn(({ initialMessages }) => ({ messages: initialMessages, append: vi.fn(), refreshMedia: vi.fn() }))
 vi.mock("@/hooks/use-realtime-messages", () => ({
-  useRealtimeMessages: ({ initialMessages }) => ({ messages: initialMessages, append: vi.fn() }),
+  useRealtimeMessages: (options) => realtime(options),
   useMessageMediaUpload: () => vi.fn(),
 }))
 
 const { InboxView, InboxSkeleton, inboxHref, subtitleOf } = await import("./inbox-view")
 const { ConversationView, deliverMessage } = await import("./conversation-view")
 const { Bubble } = await import("./bubble")
+const { getClientMessageMedia } = await import("@/lib/actions/message.actions")
 const { StatusBanner } = await import("./status-banner")
 const { Composer, LockedComposer, clockText } = await import("./composer")
 const { ImageDialog } = await import("./image-dialog")
@@ -233,6 +236,43 @@ describe("ConversationView : premier message à un candidat", () => {
     expect(html).toContain('role="log"')
     expect(html).toContain('aria-relevant="additions"')
     expect(html).toContain('aria-label="Retour aux messages"')
+  })
+})
+
+
+// Descend dans l'arbre d'éléments rendu par Bubble pour retrouver le premier <img> ou <audio>.
+function findMedia(node) {
+  if (!node || typeof node !== "object") return null
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = findMedia(child)
+      if (found) return found
+    }
+    return null
+  }
+  if (node.type === "img" || node.type === "audio") return node
+  const rendered = typeof node.type === "function" ? node.type(node.props) : null
+  return findMedia(rendered) ?? findMedia(node.props?.children)
+}
+
+describe("ConversationView : médias signés", () => {
+  it("fournit au hook une résolution qui appelle getClientMessageMedia avec la paire", async () => {
+    realtime.mockClear()
+    view({ messages: [msg()] })
+    const { resolveMedia } = realtime.mock.calls[0][0]
+    await resolveMedia(["m-1"])
+    expect(getClientMessageMedia).toHaveBeenCalledWith({ missionId: M1, studentId: S1, messageIds: ["m-1"] })
+  })
+
+  it("une erreur de chargement de l'image ou du vocal appelle onMediaError avec l'identifiant du message", () => {
+    const onMediaError = vi.fn()
+    const signed = `${ORIGIN}/storage/v1/object/sign/message-media/u/a.jpg?token=t`
+    for (const type of ["image", "voice"]) {
+      const el = findMedia(Bubble({ message: msg({ id: `m-${type}`, type, mediaUrl: signed }), senderName: "Awa K.", onMediaError }))
+      expect(el.props.src).toBe(signed)
+      el.props.onError()
+      expect(onMediaError).toHaveBeenLastCalledWith(`m-${type}`)
+    }
   })
 })
 

@@ -36,14 +36,17 @@ import { publicDisplayName } from "@/lib/vitrine/public-name"
 import {
   MEDIA_BUCKET,
   MEDIA_CONTENT,
+  MEDIA_SIGNED_URL_TTL,
   MESSAGE_MAX_LENGTH,
   buildConversations,
   conversationAccess,
   coordsValid,
   isPairRow,
   mediaKindOfPath,
+  mediaPathOf,
   mergeMessages,
   previewOf,
+  safeSignedMediaUrl,
   toMessage,
 } from "@/lib/client-space/conversations"
 
@@ -61,6 +64,7 @@ const SEND_LIMIT = 20
 const SEND_WINDOW_MS = 60 * 1000
 
 const INBOX_COLUMNS = "id, mission_id, sender_id, receiver_id, content, type, read, created_at"
+const MEDIA_IDS_MAX = 50
 const MESSAGE_COLUMNS =
   "id, mission_id, sender_id, receiver_id, content, type, media_url, location_lat, location_lng, read, created_at"
 const MISSION_COLUMNS = "id, title, status, selected_student_id"
@@ -77,6 +81,8 @@ const sendSchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
 })
+
+const mediaIdsSchema = z.array(uuid).min(1).max(MEDIA_IDS_MAX)
 
 const toMission = (m) => ({
   id: m.id,
@@ -135,6 +141,73 @@ async function loadPair(supabase, userId, missionId, studentId) {
   const access = conversationAccess({ mission, application: application ?? null, studentId: candidateId })
   if (!access.allowed) return { status: "forbidden" }
   return { status: "ok", mission, access, application: application ?? null, studentId: candidateId }
+}
+
+/**
+ * Adresses signées (1 h) des médias donnés, en UN appel, avec le client de SESSION : la politique de lecture
+ * `message_media_select_participants` limite la signature aux participants du message (jamais de service role).
+ * Une erreur ou une adresse invalide laisse le chemin absent du résultat : jamais de repli sur
+ * l'adresse publique. Fonctionne que le compartiment soit public ou privé.
+ * @param {object} supabase client de session
+ * @param {string[]} paths chemins dans message-media
+ * @returns {Promise<Record<string, string>>} adresse signée par chemin
+ */
+async function signMediaPaths(supabase, paths) {
+  const unique = [...new Set(paths.filter((p) => typeof p === "string" && p !== ""))]
+  if (unique.length === 0) return {}
+  try {
+    const { data, error } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrls(unique, MEDIA_SIGNED_URL_TTL)
+    if (error || !Array.isArray(data)) {
+      console.error("[message.actions] signature", error?.message ?? "réponse inattendue")
+      return {}
+    }
+    const signed = {}
+    for (const item of data) {
+      const url = !item?.error ? safeSignedMediaUrl(item?.signedUrl) : null
+      if (url && unique.includes(item.path)) signed[item.path] = url
+    }
+    return signed
+  } catch (e) {
+    console.error("[message.actions] signature", e?.message)
+    return {}
+  }
+}
+
+/** Messages (toMessage) de lignes déjà filtrées, avec leurs médias signés en un seul appel. */
+async function toSignedMessages(supabase, rows, userId) {
+  const paths = rows.map((row) => (row.type === "image" || row.type === "voice" ? mediaPathOf(row.media_url, row.sender_id) : null))
+  const signed = await signMediaPaths(supabase, paths.filter(Boolean))
+  return rows.map((row) => toMessage(row, userId, signed)).filter(Boolean)
+}
+
+/**
+ * Nouvelle signature des médias de messages d'une paire déjà établie. Le chemin vient de la ligne en base,
+ * jamais de l'entrée ; un identifiant hors de la paire est ignoré (absent du résultat).
+ */
+async function resolvePairMedia(supabase, userId, otherId, missionId, messageIds) {
+  const { data, error } = await supabase
+    .from("messages")
+    .select(MESSAGE_COLUMNS)
+    .eq("mission_id", missionId)
+    .in("id", messageIds)
+  if (error) {
+    console.error("[message.actions] médias", error.message)
+    return { error: ERR_LOAD }
+  }
+  const rows = (data ?? []).filter(
+    (row) =>
+      messageIds.includes(row.id) &&
+      row.mission_id === missionId &&
+      isPairRow(row, userId, otherId) &&
+      (row.type === "image" || row.type === "voice"),
+  )
+  const signed = await signMediaPaths(supabase, rows.map((row) => mediaPathOf(row.media_url, row.sender_id)).filter(Boolean))
+  const media = {}
+  for (const row of rows) {
+    const path = mediaPathOf(row.media_url, row.sender_id)
+    media[row.id] = (path && signed[path]) || null
+  }
+  return { media }
 }
 
 /**
@@ -248,10 +321,11 @@ export async function getClientConversation({ missionId, studentId } = {}) {
   }
 
   // Seconde barrière : seules les lignes de la paire passent, quoi que renvoie la lecture.
-  const pairMessages = (messagesRes.data ?? [])
-    .filter((row) => row.mission_id === missionId && isPairRow(row, user.id, other))
-    .map((row) => toMessage(row, user.id))
-    .filter(Boolean)
+  const pairMessages = await toSignedMessages(
+    supabase,
+    (messagesRes.data ?? []).filter((row) => row.mission_id === missionId && isPairRow(row, user.id, other)),
+    user.id,
+  )
   // Du plus ancien au plus récent, sans doublon.
   const messages = mergeMessages([], pairMessages)
 
@@ -302,6 +376,7 @@ export async function sendClientMessage(input) {
     if (!owned || mediaKindOfPath(owned) !== type) return { error: ERR_MEDIA }
     const { data: publicData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(owned)
     if (!publicData?.publicUrl) return { error: ERR_SEND }
+    // Identifiant du média (URL publique canonique), pas une adresse servie : l'affichage passe par une adresse signée.
     mediaUrl = publicData.publicUrl
     text = MEDIA_CONTENT[type]
   }
@@ -338,12 +413,31 @@ export async function sendClientMessage(input) {
     })
     .select(MESSAGE_COLUMNS)
     .single()
-  const message = row && !error ? toMessage(row, user.id) : null
+  const [message] = row && !error ? await toSignedMessages(supabase, [row], user.id) : []
   if (!message) {
     if (error) console.error("[sendClientMessage] insertion", error.message)
     return { error: ERR_SEND }
   }
   return { success: true, message }
+}
+
+/**
+ * Nouvelles adresses signées de médias d'une conversation (temps réel, adresse expirée). Retourne
+ * `{ media: { [messageId]: adresse|null } }` ; un message qui n'est pas de la paire est absent du résultat.
+ * @param {{ missionId: string, studentId: string, messageIds: string[] }} input
+ * @returns {Promise<{ media: Record<string, string|null> } | { error: string }>}
+ */
+export async function getClientMessageMedia({ missionId, studentId, messageIds } = {}) {
+  const auth = await requireRole(["client"])
+  if (auth.error) return { error: auth.error }
+  const { supabase, user } = auth
+  const ids = mediaIdsSchema.safeParse(messageIds)
+  if (!ids.success || !isUuid(studentId)) return { error: ERR_INVALID }
+
+  const pair = await loadPair(supabase, user.id, missionId, studentId)
+  if (pair.status === "error") return { error: ERR_LOAD }
+  if (pair.status === "forbidden") return { error: ERR_UNAVAILABLE }
+  return resolvePairMedia(supabase, user.id, pair.studentId, missionId, ids.data)
 }
 
 /**
@@ -538,10 +632,11 @@ export async function getStudentConversation({ missionId } = {}) {
   }
 
   // Seconde barrière : seules les lignes de la paire passent, quoi que renvoie la lecture.
-  const pairMessages = (messagesRes.data ?? [])
-    .filter((row) => row.mission_id === missionId && isPairRow(row, user.id, other))
-    .map((row) => toMessage(row, user.id))
-    .filter(Boolean)
+  const pairMessages = await toSignedMessages(
+    supabase,
+    (messagesRes.data ?? []).filter((row) => row.mission_id === missionId && isPairRow(row, user.id, other)),
+    user.id,
+  )
   const messages = mergeMessages([], pairMessages)
 
   return {
@@ -592,6 +687,7 @@ export async function sendStudentMessage(input) {
     if (!owned || mediaKindOfPath(owned) !== type) return { error: ERR_MEDIA }
     const { data: publicData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(owned)
     if (!publicData?.publicUrl) return { error: ERR_SEND }
+    // Identifiant du média (URL publique canonique), pas une adresse servie : l'affichage passe par une adresse signée.
     mediaUrl = publicData.publicUrl
     text = MEDIA_CONTENT[type]
   }
@@ -628,12 +724,30 @@ export async function sendStudentMessage(input) {
     })
     .select(MESSAGE_COLUMNS)
     .single()
-  const message = row && !error ? toMessage(row, user.id) : null
+  const [message] = row && !error ? await toSignedMessages(supabase, [row], user.id) : []
   if (!message) {
     if (error) console.error("[sendStudentMessage] insertion", error.message)
     return { error: ERR_SEND }
   }
   return { success: true, message }
+}
+
+/**
+ * Nouvelles adresses signées de médias de la conversation de l'étudiant (temps réel, adresse expirée).
+ * @param {{ missionId: string, messageIds: string[] }} input
+ * @returns {Promise<{ media: Record<string, string|null> } | { error: string }>}
+ */
+export async function getStudentMessageMedia({ missionId, messageIds } = {}) {
+  const auth = await requireRole(["student"])
+  if (auth.error) return { error: auth.error }
+  const { supabase, user } = auth
+  const ids = mediaIdsSchema.safeParse(messageIds)
+  if (!ids.success) return { error: ERR_INVALID }
+
+  const pair = await loadStudentPair(supabase, user.id, missionId)
+  if (pair.status === "error") return { error: ERR_LOAD }
+  if (pair.status === "forbidden") return { error: ERR_UNAVAILABLE }
+  return resolvePairMedia(supabase, user.id, pair.clientId, missionId, ids.data)
 }
 
 /**

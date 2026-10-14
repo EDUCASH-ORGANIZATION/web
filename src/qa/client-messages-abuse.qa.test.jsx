@@ -283,7 +283,9 @@ describe("media_path : dossier de l'expéditeur, traversée, autre utilisateur, 
     const out = await send({ type: "image", mediaPath: `${CLIENT}/photo.PNG`, mediaUrl: "https://evil.example/x.png", media_url: "https://evil.example/y.png" })
     expect(out.success).toBe(true)
     expect(inserted()[0].media_url).toBe(`${ORIGIN}/storage/v1/object/public/message-media/${CLIENT}/photo.PNG`)
-    expect(out.message.mediaUrl).toBe(inserted()[0].media_url)
+    // Identifiant stocké = URL publique canonique ; adresse renvoyée = adresse signée (1 h), jamais l'objet brut.
+    expect(out.message.mediaUrl).toBe(`${ORIGIN}/storage/v1/object/sign/message-media/${CLIENT}/photo.PNG?token=t-3600`)
+    expect(out.message.mediaUrl).not.toBe(inserted()[0].media_url)
   })
   it("le contrôle du chemin précède la lecture de la mission : un chemin hostile ne coûte aucune requête", async () => {
     await send({ type: "image", mediaPath: `${OTHER_CLIENT}/a.png` })
@@ -298,8 +300,18 @@ describe("URL de média en lecture", () => {
     return out.conversation.messages[0]
   }
   const good = `${ORIGIN}/storage/v1/object/public/message-media/${S1}/a.png`
-  it("l'adresse du compartiment du projet est conservée (sans paramètres)", async () => {
-    expect((await readMedia(`${good}?token=abc`)).mediaUrl).toBe(good)
+  const signedGood = `${ORIGIN}/storage/v1/object/sign/message-media/${S1}/a.png?token=t-3600`
+  it("l'adresse du compartiment du projet est remplacée par une adresse signée", async () => {
+    expect((await readMedia(`${good}?token=abc`)).mediaUrl).toBe(signedGood)
+  })
+  it("une ancienne ligne portant une adresse signée est re-signée, jamais reprise telle quelle", async () => {
+    expect((await readMedia(`${ORIGIN}/storage/v1/object/sign/message-media/${S1}/a.png?token=vieux`)).mediaUrl).toBe(signedGood)
+  })
+  it("échec de signature : adresse null (jamais de repli sur l'adresse publique)", async () => {
+    ctx.failures["storage.createSignedUrls"] = true
+    const m = await readMedia(good)
+    expect(m.mediaUrl).toBeNull()
+    expect(renderToStaticMarkup(<Bubble message={m} senderName="Awa K." />)).toContain("Image indisponible")
   })
   const hostile = {
     "domaine externe": "https://evil.example/a.png",
@@ -312,7 +324,7 @@ describe("URL de média en lecture", () => {
     "hôte maquillé par identifiants": `https://example.supabase.co@evil.example/storage/v1/object/public/message-media/a.png`,
     "sous-domaine piège": `https://example.supabase.co.evil.example/storage/v1/object/public/message-media/a.png`,
     "protocole relatif": `//evil.example/storage/v1/object/public/message-media/a.png`,
-    "URL signée (pas publique)": `${ORIGIN}/storage/v1/object/sign/message-media/${S1}/a.png?token=t`,
+    "dossier d'un autre que l'expéditeur": `${ORIGIN}/storage/v1/object/public/message-media/${OTHER_CLIENT}/a.png`,
     "chaîne vide": "",
     "nombre": 12,
   }

@@ -2,6 +2,8 @@
 // (mission, étudiant) : la clé est toujours `${missionId}:${studentId}`, jamais la seule mission.
 // Importable côté serveur (actions), navigateur (vues, hook temps réel) et tests.
 
+import { toOwnedStoragePath } from "@/lib/storage/owned-paths"
+
 const BENIN_TZ = "Africa/Porto-Novo"
 
 export const MESSAGE_MAX_LENGTH = 2000
@@ -10,6 +12,8 @@ export const MESSAGE_TYPES = ["text", "image", "voice", "location"]
 export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"]
 export const AUDIO_EXTENSIONS = ["webm", "ogg", "oga", "mp3", "mpeg", "m4a", "mp4", "aac", "wav"]
 export const MEDIA_BUCKET = "message-media"
+/** Validité d'une adresse signée de média, en secondes (1 h). */
+export const MEDIA_SIGNED_URL_TTL = 3600
 
 /** Texte stocké dans `content` pour un message sans texte (la colonne est obligatoire). */
 export const MEDIA_CONTENT = {
@@ -86,9 +90,26 @@ export function fileProblem(file, kind) {
   return null
 }
 
-// URL publique d'un fichier du compartiment de messagerie du projet : toute autre adresse est ignorée
-// (une ligne écrite par un autre compte ne peut pas faire charger une adresse arbitraire au navigateur).
-export function safeMediaUrl(value) {
+/**
+ * Chemin d'un média dans `message-media`, sous le dossier de son expéditeur. `media_url` est un identifiant
+ * (URL publique canonique écrite à l'envoi), jamais une adresse à afficher : le chemin sert à demander une
+ * adresse signée. Accepte une URL publique, signée ou authentifiée du projet ; toute autre valeur donne null.
+ * @param {unknown} mediaUrl
+ * @param {unknown} senderId
+ * @returns {string|null}
+ */
+export function mediaPathOf(mediaUrl, senderId) {
+  return toOwnedStoragePath(mediaUrl, MEDIA_BUCKET, senderId)
+}
+
+/**
+ * Adresse signée d'un fichier du compartiment de messagerie du projet (query conservée : elle porte le jeton).
+ * Toute autre adresse est ignorée : une ligne écrite par un autre compte ne peut pas faire charger une
+ * adresse arbitraire au navigateur, ni l'objet brut.
+ * @param {unknown} value
+ * @returns {string|null}
+ */
+export function safeSignedMediaUrl(value) {
   if (typeof value !== "string" || value === "") return null
   let origin
   try {
@@ -99,10 +120,37 @@ export function safeMediaUrl(value) {
   try {
     const url = new URL(value)
     if (url.origin !== origin || !/^https?:$/.test(url.protocol)) return null
-    if (!url.pathname.startsWith(`/storage/v1/object/public/${MEDIA_BUCKET}/`)) return null
-    return `${url.origin}${url.pathname}`
+    const prefix = `/storage/v1/object/sign/${MEDIA_BUCKET}/`
+    if (!url.pathname.startsWith(prefix) || url.pathname.length === prefix.length) return null
+    if (url.pathname.split("/").some((s) => s === "." || s === ".." || /%2e/i.test(s))) return null
+    return `${url.origin}${url.pathname}${url.search}`
   } catch {
     return null
+  }
+}
+
+/**
+ * Renouvellement d'une adresse de média expirée : UNE seule nouvelle signature par message. Au second échec de
+ * chargement, ou si la signature ne donne rien, l'adresse est déclarée indisponible (null). Pas de boucle.
+ * @param {{ fetchUrl: (messageId: string) => Promise<string|null>, onUrl: (messageId: string, url: string|null) => void }} deps
+ * @returns {(messageId: string) => Promise<void>}
+ */
+export function createMediaRefresher({ fetchUrl, onUrl }) {
+  const retried = new Set()
+  const inFlight = new Set()
+  return async function refresh(messageId) {
+    if (typeof messageId !== "string" || inFlight.has(messageId)) return
+    if (retried.has(messageId)) {
+      onUrl(messageId, null)
+      return
+    }
+    retried.add(messageId)
+    inFlight.add(messageId)
+    try {
+      onUrl(messageId, await fetchUrl(messageId))
+    } finally {
+      inFlight.delete(messageId)
+    }
   }
 }
 
@@ -119,19 +167,27 @@ export function coordsValid(lat, lng) {
 /**
  * Message d'une ligne de la table `messages`, réduit à ce que la vue affiche. `mine` vient de l'identité
  * de la session : la ligne ne livre ni identifiant d'expéditeur ni de destinataire.
- * @returns {{ id: string, mine: boolean, type: string, content: string, mediaUrl: string|null, lat: number|null, lng: number|null, createdAt: string, read: boolean }|null}
+ * `mediaPath` est le chemin du média (identifiant à signer) ; `mediaUrl` n'est jamais tirée de `media_url` :
+ * c'est l'adresse signée de `signedByPath[mediaPath]`, ou null (texte « indisponible »).
+ * @param {object} row
+ * @param {string} userId
+ * @param {Record<string, string>} [signedByPath] adresses signées par chemin
+ * @returns {{ id: string, mine: boolean, type: string, content: string, mediaPath: string|null, mediaUrl: string|null, lat: number|null, lng: number|null, createdAt: string, read: boolean }|null}
  */
-export function toMessage(row, userId) {
+export function toMessage(row, userId, signedByPath) {
   if (!row || typeof row.id !== "string" || typeof row.created_at !== "string") return null
   const type = MESSAGE_TYPES.includes(row.type) ? row.type : "text"
   const hasMedia = type === "image" || type === "voice"
   const located = type === "location" && coordsValid(row.location_lat, row.location_lng)
+  const mediaPath = hasMedia ? mediaPathOf(row.media_url, row.sender_id) : null
+  const signed = mediaPath && signedByPath ? signedByPath[mediaPath] : null
   return {
     id: row.id,
     mine: row.sender_id === userId,
     type,
     content: typeof row.content === "string" ? row.content : "",
-    mediaUrl: hasMedia ? safeMediaUrl(row.media_url) : null,
+    mediaPath,
+    mediaUrl: safeSignedMediaUrl(signed),
     lat: located ? row.location_lat : null,
     lng: located ? row.location_lng : null,
     createdAt: row.created_at,

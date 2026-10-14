@@ -6,7 +6,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
 import { useMessageMediaUpload, useRealtimeMessages } from "@/hooks/use-realtime-messages"
-import { markStudentConversationRead, sendStudentMessage } from "@/lib/actions/message.actions"
+import { getStudentMessageMedia, markStudentConversationRead, sendStudentMessage } from "@/lib/actions/message.actions"
 import { studentMessagesHref } from "@/lib/app/student-routes"
 import { MEDIA_CONTENT, dayOf, formatDayLabel } from "@/lib/client-space/conversations"
 import { Bubble } from "./bubble"
@@ -77,12 +77,17 @@ export function StudentConversationView({ conversation, now }) {
   const markRead = useCallback(() => {
     markStudentConversationRead({ missionId }).catch(() => {})
   }, [missionId])
-  const { messages, append } = useRealtimeMessages({
+  const resolveMedia = useCallback(
+    (messageIds) => getStudentMessageMedia({ missionId, messageIds }),
+    [missionId],
+  )
+  const { messages, append, refreshMedia } = useRealtimeMessages({
     missionId,
     studentId: clientId,
     userId,
     initialMessages: conversation.messages,
     onIncoming: markRead,
+    resolveMedia,
   })
   const upload = useMessageMediaUpload(userId)
   const [pending, setPending] = useState([])
@@ -177,7 +182,7 @@ export function StudentConversationView({ conversation, now }) {
             {index === 0 || dayOf(message.createdAt) !== dayOf(messages[index - 1].createdAt) ? (
               <span className="chat__day">{formatDayLabel(message.createdAt, nowDate)}</span>
             ) : null}
-            <Bubble message={message} senderName={client.name} />
+            <Bubble message={message} onMediaError={refreshMedia} senderName={client.name} />
           </Fragment>
         ))}
         {pending.map((item) => (
