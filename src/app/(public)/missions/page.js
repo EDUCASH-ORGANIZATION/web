@@ -60,7 +60,7 @@ function PublishPromo() {
     <div className="v02-promo on-encre">
       <Icon name="sc-burst" className="scribble" />
       <span className="badge badge--citron badge--sm v02-promo__badge">Un besoin ?</span>
-      <h3 className="display display--s v02-promo__title">Un coup de main ?</h3>
+      <h3 className="display display--s v02-promo__title">Un coup de main&nbsp;?</h3>
       <p className="body-s v02-promo__text">
         Publiez une mission, le budget reste bloqué jusqu&rsquo;à votre validation. Étudiants vérifiés par l&rsquo;équipe.
       </p>

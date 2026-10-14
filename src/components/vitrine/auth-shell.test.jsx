@@ -22,6 +22,7 @@ describe("AuthShell", () => {
     expect(html).not.toContain("auth__brand--client")
     expect(html).toContain('<form class="auth__form">')
     expect(html).toContain("Le client bloque l&#x27;argent avant que vous commenciez.")
+    expect(text(html)).toContain("Bossez entre deux cours.")
     expect(text(html)).toContain("Encaissez.")
     expect(text(html)).not.toMatch(/(?<!\p{L})(tu|te|ton|ta|tes|toi)(?!\p{L})/iu)
   })

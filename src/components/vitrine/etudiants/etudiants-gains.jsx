@@ -21,7 +21,7 @@ export function EtudiantsGains() {
         <div className="stack stack--6">
           <span className="eyebrow eyebrow--bleu">Vos gains</span>
           <h2 className="display display--l">
-            {SHARE} % pour vous.<br /><span className="hl-bleu">Affiché d&rsquo;avance.</span>
+            {SHARE} % pour&nbsp;vous.<br /><span className="hl-bleu">Affiché d&rsquo;avance.</span>
           </h2>
           <p className="body-l">
             EduCash prend une commission unique de {COMMISSION} % sur le budget du client. Tout le reste est pour vous,

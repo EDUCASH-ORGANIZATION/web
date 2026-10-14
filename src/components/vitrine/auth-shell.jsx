@@ -9,7 +9,7 @@ const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100)
 // et client (panneau encre), tous deux vouvoyés. Aucun délai d'examen, aucun prestataire de paiement nommé.
 export const BRAND_PANELS = {
   student: {
-    lines: ["Travaillez entre", "deux cours."],
+    lines: ["Bossez entre", "deux cours."],
     highlight: "Encaissez.",
     points: [
       { icon: "i-lock", title: "Paiement garanti.", text: "Le client bloque l'argent avant que vous commenciez." },

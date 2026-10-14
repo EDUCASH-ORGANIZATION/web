@@ -14,6 +14,7 @@ describe("EtudiantsGains", () => {
 
   it("calcule les pourcentages depuis COMMISSION_RATE", () => {
     expect(text(html)).toContain(`${share} % pour vous`)
+    expect(html).toContain(`${share} % pour\u00a0vous.`)
     expect(text(html)).toContain(`commission unique de ${commission} %`)
   })
 
