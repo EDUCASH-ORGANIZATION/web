@@ -1,8 +1,8 @@
 /* @ds-screen RD-STUDENT-01 */
-/* E04 Mes candidatures : carte « retenue » mise en avant, liste de candidatures. */
+/* E04 Mes candidatures : carte « retenue » mise en avant, liste de candidatures (une seule mise en page, la ligne se replie en conteneur). */
 
 /* Candidature acceptée mise en avant (carte blanche horizontale) */
-.e2-04-hl { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-8); padding: var(--s-6) var(--s-8); }
+.e2-04-hl { overflow-wrap: anywhere; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-8); padding: var(--s-6) var(--s-8); }
 .e2-04-hl .hero2__title { margin-top: 10px; }
 .e2-04-hl .hero2__text { margin-top: 4px; }
 .e2-04-hl .hero2__actions { margin-top: 0; padding-top: 0; flex-wrap: nowrap; }
@@ -17,7 +17,7 @@
 .e2-04-gain .e2-amount { font-size: 15px; color: var(--c-encre); }
 .e2-04-acts { display: flex; justify-content: flex-end; align-items: center; gap: var(--s-4); white-space: nowrap; }
 .e2-04-row.is-off .item2__title, .e2-04-row.is-off .e2-04-gain .e2-amount { color: var(--c-ardoise); }
-/* Actions sous une carte mobile */
+/* Actions sous une carte mobile (classe de la planche, gardée par app-css.guard ; la liste n'utilise plus de carte mobile) */
 .e2-04-macts { display: flex; align-items: center; gap: var(--s-5); flex-wrap: wrap; margin-top: -4px; }
 .e2-04-macts .e2-link { min-height: 44px; }
 /* Toast sans accent citron (le citron reste la carte « Retenue ») */
@@ -32,6 +32,8 @@
 @container e2list (max-width: 900px) {
   .e2-04-row { grid-template-columns: 36px minmax(0, 1fr); gap: var(--s-2) var(--s-4); padding: var(--s-4); }
   .e2-04-row > :nth-child(n+3) { grid-column: 2; }
+  /* Cellule sans contenu (mission illisible) : retirée pour ne pas ajouter d'écart de rangée */
+  .e2-04-row > span:empty { display: none; }
   .e2-04-status { white-space: normal; }
   .e2-04-gain { white-space: normal; }
   .e2-04-acts { justify-content: flex-start; flex-wrap: wrap; white-space: normal; }
