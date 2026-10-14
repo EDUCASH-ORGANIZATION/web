@@ -56,11 +56,12 @@ async function readVerification() {
  * >}
  */
 export async function getStudentExplore(params = {}) {
-  const auth = await requireRole(["student"])
-  if (auth.error) return { error: auth.error }
-  const { supabase, user } = auth
-
   try {
+    // Le refus de rôle reste un refus (message de requireRole) ; seule une exception (cookies, réseau) donne l'erreur neutre.
+    const auth = await requireRole(["student"])
+    if (auth.error) return { error: auth.error }
+    const { supabase, user } = auth
+
     const query = parseExploreParams(params)
 
     let builder = supabase

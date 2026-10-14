@@ -73,6 +73,29 @@ describe("getStudentExplore : accès", () => {
     expect(calls.some((c) => c.table === "missions")).toBe(false)
   })
 
+  it("une exception pendant le contrôle du rôle donne l'erreur neutre, sans lire de mission ni fuir le détail", async () => {
+    user = { id: "student-1" }
+    const original = supabase.auth.getUser
+    supabase.auth.getUser = async () => {
+      throw new Error("cookies secret")
+    }
+    try {
+      const res = await getStudentExplore({})
+      expect(res).toEqual({ error: "Impossible de charger les missions." })
+      expect(JSON.stringify(res)).not.toContain("secret")
+    } finally {
+      supabase.auth.getUser = original
+    }
+    expect(calls.some((c) => c.table === "missions")).toBe(false)
+  })
+
+  it("le refus de rôle garde son message de refus (pas l'erreur neutre)", async () => {
+    profileResult = { data: { role: "client", is_suspended: false }, error: null }
+    const res = await getStudentExplore({})
+    expect(res.error).toMatch(/droits/)
+    expect(res.error).not.toBe("Impossible de charger les missions.")
+  })
+
   it("refuse un étudiant suspendu, un visiteur et un profil illisible", async () => {
     profileResult = { data: { role: "student", is_suspended: true }, error: null }
     expect((await getStudentExplore({})).error).toBeTruthy()
@@ -136,10 +159,10 @@ describe("getStudentExplore : requête", () => {
 })
 
 describe("getStudentExplore : recherche hostile", () => {
-  it("échappe %, _, *, antislash, virgule et parenthèses avant le motif ILIKE", async () => {
+  it("échappe %, _, antislash, virgule et parenthèses avant le motif ILIKE ; * reste un joker (PostgREST le convertit en % même échappé)", async () => {
     await getStudentExplore({ q: "a%b_c,d(e)f*g\\h" })
     expect(arg("ilike", 0)).toBe("title")
-    expect(arg("ilike")).toBe("%a\\%b\\_c\\,d\\(e\\)f\\*g\\\\h%")
+    expect(arg("ilike")).toBe("%a\\%b\\_c\\,d\\(e\\)f*g\\\\h%")
   })
 
   it("une injection de filtre par q reste du texte littéral et n'atteint jamais le .or()", async () => {
