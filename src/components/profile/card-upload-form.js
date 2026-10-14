@@ -77,7 +77,7 @@ export function CardUploadForm({ hasCard }) {
 
       if (uploadError) {
         console.error("[card-upload-form] upload", uploadError)
-        setError("L'envoi de la carte a échoué. Réessaie.")
+        setError("L'envoi de la carte a échoué. Réessayez.")
         return
       }
 

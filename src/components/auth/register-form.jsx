@@ -12,13 +12,13 @@ import { PasswordInput } from "@/components/auth/ui/password-input"
 import { PasswordChecklist } from "@/components/auth/ui/password-checklist"
 import { ChoiceCard } from "@/components/auth/ui/choice-card"
 
-// Textes par public : étudiant tutoyé, client vouvoyé.
+// Textes vouvoyés pour tous les publics ; l'accroche change selon le public choisi.
 export const REGISTER_COPY = {
   student: {
-    title: "Crée ton compte",
+    title: "Créez votre compte",
     lead: "Gratuit, en moins d'une minute.",
-    emailPlaceholder: "toi@exemple.bj",
-    confirmLabel: "Confirme ton mot de passe",
+    emailPlaceholder: "vous@exemple.bj",
+    confirmLabel: "Confirmez votre mot de passe",
   },
   client: {
     title: "Créez votre compte",
@@ -36,7 +36,7 @@ const ROLE_CARDS = [
 /**
  * Formulaire d'inscription (A02). Envoi par action serveur (POST), jamais en GET :
  * le bouton reste inactif tant que la page n'est pas hydratée.
- * Le rôle vient de `?role=` (cartes-liens, fonctionnent sans JavaScript) ; `audience` règle le ton.
+ * Le rôle vient de `?role=` (cartes-liens, fonctionnent sans JavaScript) ; `audience` choisit l'accroche (le ton est le même).
  * @param {{ role?: "student" | "client" | null, audience?: "student" | "client", next?: string | null }} props
  */
 export function RegisterForm({ role: roleProp = null, audience: audienceProp = "student", next = null }) {
@@ -56,7 +56,7 @@ export function RegisterForm({ role: roleProp = null, audience: audienceProp = "
   const formError = !clientErrors && state?.formError
 
   function handleSubmit(event) {
-    const parsed = parseFormData(makeRegisterSchema(audience), new FormData(event.currentTarget))
+    const parsed = parseFormData(makeRegisterSchema(), new FormData(event.currentTarget))
     if (!parsed.ok) {
       event.preventDefault()
       setClientErrors(parsed.fieldErrors)
@@ -67,7 +67,6 @@ export function RegisterForm({ role: roleProp = null, audience: audienceProp = "
 
   return (
     <form className="auth__form" action={formAction} onSubmit={handleSubmit} noValidate>
-      <input type="hidden" name="audience" value={audience} />
       <input type="hidden" name="role" value={role ?? ""} />
       {next && <input type="hidden" name="next" value={next} />}
 
@@ -138,7 +137,6 @@ export function RegisterForm({ role: roleProp = null, audience: audienceProp = "
         <PasswordInput
           id="r-pwd"
           name="password"
-          audience={audience}
           autoComplete="new-password"
           placeholder="8 caractères min."
           value={password}
@@ -157,7 +155,6 @@ export function RegisterForm({ role: roleProp = null, audience: audienceProp = "
         <PasswordInput
           id="r-conf"
           name="confirmPassword"
-          audience={audience}
           autoComplete="new-password"
           placeholder="Le même"
           value={confirm}

@@ -18,26 +18,21 @@ import {
 import { toOwnedAvatarUrl, toOwnedStoragePath } from "@/lib/storage/owned-paths"
 
 const MESSAGES = {
-  student: {
-    unauthenticated: "Ta session a expiré. Connecte-toi pour continuer.",
-    wrong_role: "Cette page est réservée aux étudiants. Reconnecte-toi avec ton compte étudiant.",
-    suspended: "Ton compte est suspendu. Contacte-nous pour en savoir plus.",
-    already_done: "Ton profil est déjà complété.",
-    invalid: "Certaines informations ne sont pas valides. Vérifie les champs signalés.",
-    save_failed: "Nous n'avons pas pu enregistrer ton profil. Réessaie dans un instant.",
+  unauthenticated: "Votre session a expiré. Connectez-vous pour continuer.",
+  wrong_role: {
+    student: "Cette page est réservée aux étudiants. Reconnectez-vous avec votre compte étudiant.",
+    client: "Cette page est réservée aux clients. Reconnectez-vous avec votre compte client.",
   },
-  client: {
-    unauthenticated: "Votre session a expiré. Connectez-vous pour continuer.",
-    wrong_role: "Cette page est réservée aux clients. Reconnectez-vous avec votre compte client.",
-    suspended: "Votre compte est suspendu. Contactez-nous pour en savoir plus.",
-    already_done: "Votre profil est déjà complété.",
-    invalid: "Certaines informations ne sont pas valides. Vérifiez les champs signalés.",
-    save_failed: "Nous n'avons pas pu enregistrer votre profil. Réessayez dans un instant.",
-  },
+  suspended: "Votre compte est suspendu. Contactez-nous pour en savoir plus.",
+  already_done: "Votre profil est déjà complété.",
+  invalid: "Certaines informations ne sont pas valides. Vérifiez les champs signalés.",
+  save_failed: "Nous n'avons pas pu enregistrer votre profil. Réessayez dans un instant.",
 }
 
-function failure(audience, code, extra = {}) {
-  return { ok: false, code, message: MESSAGES[audience][code], ...extra }
+// `expectedRole` ne sert qu'au message de rôle : le ton est le même pour tous.
+function failure(expectedRole, code, extra = {}) {
+  const message = code === "wrong_role" ? MESSAGES.wrong_role[expectedRole] : MESSAGES[code]
+  return { ok: false, code, message, ...extra }
 }
 
 /**
@@ -159,8 +154,8 @@ export async function completeStudentOnboarding(payload) {
   ])
   const avatar = avatarRef(input.avatarUrl, user.id)
   const card = cardRef(input.cardUrl, user.id)
-  if (!avatar.ok) fieldErrors.avatarUrl = "Cette photo n'est pas valide. Envoie-la à nouveau."
-  if (!card.ok) fieldErrors.cardUrl = "Cette carte n'est pas valide. Envoie-la à nouveau."
+  if (!avatar.ok) fieldErrors.avatarUrl = "Cette photo n'est pas valide. Envoyez-la à nouveau."
+  if (!card.ok) fieldErrors.cardUrl = "Cette carte n'est pas valide. Envoyez-la à nouveau."
   if (Object.keys(fieldErrors).length > 0) return failure("student", "invalid", { fieldErrors })
 
   const columns = {

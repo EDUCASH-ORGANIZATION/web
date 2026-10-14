@@ -5,14 +5,14 @@ import { COMMISSION_RATE } from "@/lib/constants/missions"
 
 const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100)
 
-// Contenu du panneau de marque par public. Étudiant tutoyé (panneau bleu),
-// client vouvoyé (panneau encre). Aucun délai d'examen, aucun prestataire de paiement nommé.
+// Contenu du panneau de marque par public. Étudiant (panneau bleu)
+// et client (panneau encre), tous deux vouvoyés. Aucun délai d'examen, aucun prestataire de paiement nommé.
 export const BRAND_PANELS = {
   student: {
-    lines: ["Bosse entre", "deux cours."],
-    highlight: "Encaisse.",
+    lines: ["Travaillez entre", "deux cours."],
+    highlight: "Encaissez.",
     points: [
-      { icon: "i-lock", title: "Paiement garanti.", text: "Le client bloque l'argent avant que tu commences." },
+      { icon: "i-lock", title: "Paiement garanti.", text: "Le client bloque l'argent avant que vous commenciez." },
       { icon: "i-shield", title: "Profils vérifiés.", text: "Carte étudiante contrôlée par l'équipe." },
       { icon: "i-smartphone", title: "Mobile Money.", text: "Retrait sur MTN MoMo, Moov Money ou Celtiis Cash." },
     ],

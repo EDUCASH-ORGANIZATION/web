@@ -14,90 +14,49 @@ import { MailboxLink } from "@/components/auth/ui/mailbox-link"
 
 export const LINK_CAUSES = ["expire", "utilise", "autre-appareil", "invalide"]
 
-// Une explication par cause. Étudiant tutoyé, client vouvoyé. Aucune durée de validité affichée.
+// Une explication par cause, vouvoyée pour tous les publics. Aucune durée de validité affichée.
 export const LINK_EXPIRED_COPY = {
-  student: {
-    expire: {
-      icon: "i-clock",
-      tone: "alerte",
-      title: "Ce lien a expiré",
-      text: "Demande un nouveau lien pour confirmer ton adresse.",
-      recoveryText: "Demande un nouveau lien pour choisir un nouveau mot de passe.",
-    },
-    utilise: {
-      icon: "i-check-circle",
-      tone: "bleu",
-      title: "Ce lien a déjà servi",
-      text: "Ton adresse est sans doute déjà confirmée. Connecte-toi pour continuer. Si ce n'est pas le cas, on t'enverra un nouveau lien.",
-      recoveryText: "Pour des raisons de sécurité, un lien ne sert qu'une fois. Demande un nouveau lien pour changer ton mot de passe.",
-    },
-    "autre-appareil": {
-      icon: "i-smartphone",
-      tone: "lavande",
-      title: "Lien ouvert sur un autre appareil",
-      text: "Par sécurité, le lien doit s'ouvrir sur l'appareil où tu t'es inscrit. Le plus simple : connecte-toi ici, on finira la confirmation.",
-      recoveryText: "Par sécurité, le lien doit s'ouvrir sur l'appareil où tu l'as demandé. Demande un nouveau lien pour changer ton mot de passe depuis cet appareil.",
-    },
-    invalide: {
-      icon: "i-alert-triangle",
-      tone: "alerte",
-      title: "Ce lien n'est pas valide",
-      text: "Il est peut-être incomplet. Demande un nouveau lien pour continuer.",
-      recoveryText: "Il est peut-être incomplet. Demande un nouveau lien pour changer ton mot de passe.",
-    },
-    emailLabel: "Ton adresse email",
-    submit: "Recevoir un nouveau lien",
-    confirmedQuestion: "Ton adresse est déjà confirmée ?",
-    notConfirmedQuestion: "Pas encore confirmé ?",
-    login: "Me connecter",
-    sentTitle: "Nouveau lien envoyé",
-    sentText: "Regarde ta boîte",
-    sentHint: "Ouvre le lien sur cet appareil-ci.",
+  expire: {
+    icon: "i-clock",
+    tone: "alerte",
+    title: "Ce lien a expiré",
+    text: "Demandez un nouveau lien pour confirmer votre adresse.",
+    recoveryText: "Demandez un nouveau lien pour choisir un nouveau mot de passe.",
   },
-  client: {
-    expire: {
-      icon: "i-clock",
-      tone: "alerte",
-      title: "Ce lien a expiré",
-      text: "Demandez un nouveau lien pour confirmer votre adresse.",
-      recoveryText: "Demandez un nouveau lien pour choisir un nouveau mot de passe.",
-    },
-    utilise: {
-      icon: "i-check-circle",
-      tone: "bleu",
-      title: "Ce lien a déjà servi",
-      text: "Votre adresse est sans doute déjà confirmée. Connectez-vous pour continuer. Si ce n'est pas le cas, nous vous enverrons un nouveau lien.",
-      recoveryText: "Pour des raisons de sécurité, un lien ne sert qu'une fois. Demandez un nouveau lien pour changer votre mot de passe.",
-    },
-    "autre-appareil": {
-      icon: "i-smartphone",
-      tone: "lavande",
-      title: "Lien ouvert sur un autre appareil",
-      text: "Par sécurité, le lien doit s'ouvrir sur l'appareil où vous vous êtes inscrit. Le plus simple : connectez-vous ici, nous finirons la confirmation.",
-      recoveryText: "Par sécurité, le lien doit s'ouvrir sur l'appareil où vous l'avez demandé. Demandez un nouveau lien pour changer votre mot de passe depuis cet appareil.",
-    },
-    invalide: {
-      icon: "i-alert-triangle",
-      tone: "alerte",
-      title: "Ce lien n'est pas valide",
-      text: "Il est peut-être incomplet. Demandez un nouveau lien pour continuer.",
-      recoveryText: "Il est peut-être incomplet. Demandez un nouveau lien pour changer votre mot de passe.",
-    },
-    emailLabel: "Votre adresse email",
-    submit: "Recevoir un nouveau lien",
-    confirmedQuestion: "Votre adresse est déjà confirmée ?",
-    notConfirmedQuestion: "Pas encore confirmé ?",
-    login: "Me connecter",
-    sentTitle: "Nouveau lien envoyé",
-    sentText: "Regardez votre boîte",
-    sentHint: "Ouvrez le lien sur cet appareil-ci.",
+  utilise: {
+    icon: "i-check-circle",
+    tone: "bleu",
+    title: "Ce lien a déjà servi",
+    text: "Votre adresse est sans doute déjà confirmée. Connectez-vous pour continuer. Si ce n'est pas le cas, nous vous enverrons un nouveau lien.",
+    recoveryText: "Pour des raisons de sécurité, un lien ne sert qu'une fois. Demandez un nouveau lien pour changer votre mot de passe.",
   },
+  "autre-appareil": {
+    icon: "i-smartphone",
+    tone: "lavande",
+    title: "Lien ouvert sur un autre appareil",
+    text: "Par sécurité, le lien doit s'ouvrir sur l'appareil où vous vous êtes inscrit. Le plus simple : connectez-vous ici, nous finirons la confirmation.",
+    recoveryText: "Par sécurité, le lien doit s'ouvrir sur l'appareil où vous l'avez demandé. Demandez un nouveau lien pour changer votre mot de passe depuis cet appareil.",
+  },
+  invalide: {
+    icon: "i-alert-triangle",
+    tone: "alerte",
+    title: "Ce lien n'est pas valide",
+    text: "Il est peut-être incomplet. Demandez un nouveau lien pour continuer.",
+    recoveryText: "Il est peut-être incomplet. Demandez un nouveau lien pour changer votre mot de passe.",
+  },
+  emailLabel: "Votre adresse email",
+  submit: "Recevoir un nouveau lien",
+  confirmedQuestion: "Votre adresse est déjà confirmée ?",
+  notConfirmedQuestion: "Pas encore confirmé ?",
+  login: "Me connecter",
+  sentTitle: "Nouveau lien envoyé",
+  sentText: "Regardez votre boîte",
+  sentHint: "Ouvrez le lien sur cet appareil-ci.",
 }
 
-function Hidden({ audience, role, next }) {
+function Hidden({ role, next }) {
   return (
     <>
-      <input type="hidden" name="audience" value={audience} />
       {role && <input type="hidden" name="role" value={role} />}
       {next && <input type="hidden" name="next" value={next} />}
     </>
@@ -111,26 +70,24 @@ function Hidden({ audience, role, next }) {
  * @param {{
  *   cause?: string,
  *   flow?: "signup" | "recovery",
- *   audience?: "student" | "client",
  *   role?: "student" | "client" | null,
  *   next?: string | null,
  * }} props
  */
-export function LinkExpiredForm({ cause = "invalide", flow = "signup", audience = "client", role = null, next = null }) {
+export function LinkExpiredForm({ cause = "invalide", flow = "signup", role = null, next = null }) {
   const [state, formAction, pending] = useActionState(resendSignupConfirmation, null)
   const [email, setEmail] = useState("")
   const [clientError, setClientError] = useState(null)
 
-  const copy = LINK_EXPIRED_COPY[audience === "student" ? "student" : "client"]
   const causeKey = LINK_CAUSES.includes(cause) ? cause : "invalide"
-  const entry = copy[causeKey]
+  const entry = LINK_EXPIRED_COPY[causeKey]
   const recovery = flow === "recovery"
   const loginFirst = !recovery && (causeKey === "utilise" || causeKey === "autre-appareil")
   const error = clientError ?? state?.fieldErrors?.email
   const sent = state?.status === "sent" && !clientError
 
   function handleSubmit(event) {
-    const parsed = parseFormData(makeResendSchema(audience), new FormData(event.currentTarget))
+    const parsed = parseFormData(makeResendSchema(), new FormData(event.currentTarget))
     if (!parsed.ok) {
       event.preventDefault()
       setClientError(parsed.fieldErrors.email ?? null)
@@ -142,7 +99,6 @@ export function LinkExpiredForm({ cause = "invalide", flow = "signup", audience 
   async function resendAgain() {
     const formData = new FormData()
     formData.set("email", email)
-    formData.set("audience", audience)
     if (role) formData.set("role", role)
     if (next) formData.set("next", next)
     await resendSignupConfirmation(null, formData)
@@ -151,7 +107,7 @@ export function LinkExpiredForm({ cause = "invalide", flow = "signup", audience 
   const loginLink = (primary) => (
     <Link className={`btn ${primary ? "btn--primary" : "btn--secondary"} btn--lg btn--block`} href={loginHref({ next })}>
       <Icon name="i-arrow-right" />
-      {copy.login}
+      {LINK_EXPIRED_COPY.login}
     </Link>
   )
 
@@ -163,9 +119,9 @@ export function LinkExpiredForm({ cause = "invalide", flow = "signup", audience 
             <Icon name="i-mail" />
           </span>
         </div>
-        <h1 className="ds-h1">{copy.sentTitle}</h1>
+        <h1 className="ds-h1">{LINK_EXPIRED_COPY.sentTitle}</h1>
         <p className="muted">
-          {copy.sentText} <b className="a-strong">{email.trim()}</b>. {copy.sentHint}
+          {LINK_EXPIRED_COPY.sentText} <b className="a-strong">{email.trim()}</b>. {LINK_EXPIRED_COPY.sentHint}
         </p>
         <div className="stack stack--3 a-w-full">
           <MailboxLink email={email} />
@@ -189,7 +145,7 @@ export function LinkExpiredForm({ cause = "invalide", flow = "signup", audience 
         <h1 className="ds-h1">{entry.title}</h1>
         <p className="muted">{entry.recoveryText}</p>
         <Link className="btn btn--primary btn--lg btn--block" href="/auth/forgot-password">
-          {copy.submit}
+          {LINK_EXPIRED_COPY.submit}
         </Link>
         <div className="divider a-w-full" />
         {loginLink(false)}
@@ -199,11 +155,11 @@ export function LinkExpiredForm({ cause = "invalide", flow = "signup", audience 
 
   const resendForm = (
     <form className="stack a-w-full a-block-left" action={formAction} onSubmit={handleSubmit} noValidate>
-      <Hidden audience={audience} role={role} next={next} />
+      <Hidden role={role} next={next} />
       {state?.formError && !clientError && <FormBanner tone="erreur">{state.formError}</FormBanner>}
       <div className="field">
         <label className="field__label" htmlFor="x-e">
-          {copy.emailLabel} <span className="req">*</span>
+          {LINK_EXPIRED_COPY.emailLabel} <span className="req">*</span>
         </label>
         <input
           className={`input${error ? " is-error" : ""}`}
@@ -212,7 +168,7 @@ export function LinkExpiredForm({ cause = "invalide", flow = "signup", audience 
           type="email"
           autoComplete="email"
           inputMode="email"
-          placeholder={audience === "student" ? "toi@exemple.bj" : "vous@exemple.bj"}
+          placeholder="vous@exemple.bj"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           aria-invalid={Boolean(error) || undefined}
@@ -220,7 +176,7 @@ export function LinkExpiredForm({ cause = "invalide", flow = "signup", audience 
         />
         <FieldError id="x-e-e" message={error} />
       </div>
-      <HydratedSubmit pending={pending}>{copy.submit}</HydratedSubmit>
+      <HydratedSubmit pending={pending}>{LINK_EXPIRED_COPY.submit}</HydratedSubmit>
     </form>
   )
 
@@ -237,14 +193,14 @@ export function LinkExpiredForm({ cause = "invalide", flow = "signup", audience 
         <>
           {loginLink(true)}
           <div className="divider a-w-full" />
-          <p className="body-s muted">{copy.notConfirmedQuestion}</p>
+          <p className="body-s muted">{LINK_EXPIRED_COPY.notConfirmedQuestion}</p>
           {resendForm}
         </>
       ) : (
         <>
           {resendForm}
           <div className="divider a-w-full" />
-          <p className="body-s muted">{copy.confirmedQuestion}</p>
+          <p className="body-s muted">{LINK_EXPIRED_COPY.confirmedQuestion}</p>
           {loginLink(false)}
         </>
       )}

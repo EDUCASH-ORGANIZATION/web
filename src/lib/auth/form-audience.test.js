@@ -8,7 +8,8 @@ function form(values) {
 }
 
 describe("formAudience", () => {
-  it("vouvoiement neutre par défaut", () => {
+  // Le public ne règle plus le ton (vouvoiement partout) : il ne sert qu'au panneau visuel et aux parcours.
+  it("client par défaut (l'accueil parle aux clients)", () => {
     expect(formAudience(form({}))).toBe("client")
   })
   it("champ role ou audience explicite", () => {

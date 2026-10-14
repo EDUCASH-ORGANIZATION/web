@@ -33,7 +33,7 @@ export function WelcomeScreen({ fullName, cardSent, destination }) {
           <br />
           <span className="hl-bleu">{firstName ? `${firstName}.` : "à bord."}</span>
         </h1>
-        <p className="muted">Ton profil est prêt.</p>
+        <p className="muted">Votre profil est prêt.</p>
         {cardSent ? (
           <span className="badge badge--alerte">
             <Icon name="i-clock" />
@@ -48,8 +48,8 @@ export function WelcomeScreen({ fullName, cardSent, destination }) {
       </div>
 
       {cardSent ? (
-        <FormBanner tone="info" icon="i-clock" title="Ta carte est en cours d'examen">
-          Nous examinons ta carte, tu recevras un email. Tu peux déjà postuler, le client verra « En cours d&apos;examen ».
+        <FormBanner tone="info" icon="i-clock" title="Votre carte est en cours d'examen">
+          Nous examinons votre carte, vous recevrez un email. Vous pouvez déjà postuler, le client verra « En cours d&apos;examen ».
         </FormBanner>
       ) : (
         <FormBanner
@@ -63,7 +63,7 @@ export function WelcomeScreen({ fullName, cardSent, destination }) {
             </Link>
           }
         >
-          Tu peux tout explorer, mais tu devras l&apos;envoyer pour postuler à une mission.
+          Vous pouvez tout explorer, mais vous devrez l&apos;envoyer pour postuler à une mission.
         </FormBanner>
       )}
 
@@ -76,7 +76,7 @@ export function WelcomeScreen({ fullName, cardSent, destination }) {
       <Link className="btn btn--secondary btn--block" href={DASHBOARD_PATH}>
         Aller à mon tableau de bord
       </Link>
-      <p className="caption a-center">Astuce : complète ta bio et tes disponibilités depuis Mon profil.</p>
+      <p className="caption a-center">Astuce : complétez votre bio et vos disponibilités depuis Mon profil.</p>
     </div>
   )
 }

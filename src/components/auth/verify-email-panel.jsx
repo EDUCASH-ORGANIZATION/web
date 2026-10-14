@@ -13,30 +13,17 @@ import { FormBanner } from "@/components/auth/ui/form-banner"
 import { HydratedSubmit } from "@/components/auth/ui/hydrated-submit"
 import { MailboxLink } from "@/components/auth/ui/mailbox-link"
 
-// Textes par public : étudiant tutoyé, client vouvoyé. Aucune durée de validité affichée.
+// Textes vouvoyés pour tous les publics. Aucune durée de validité affichée.
 export const VERIFY_COPY = {
-  student: {
-    title: "Vérifie ta boîte mail",
-    sentTo: "On a envoyé un lien de confirmation à",
-    sentToUnknown: "On a envoyé un lien de confirmation à ton adresse email.",
-    otherDevice: "Lien ouvert sur un autre appareil ?",
-    otherDeviceAction: "Connecte-toi ici",
-    otherDeviceEnd: "avec ton mot de passe.",
-    noMail: "Rien reçu ? Regarde dans les spams et l'onglet Promotions.",
-    emailLabel: "Ton adresse email",
-    resent: "Email renvoyé.",
-  },
-  client: {
-    title: "Vérifiez votre boîte mail",
-    sentTo: "Nous avons envoyé un lien de confirmation à",
-    sentToUnknown: "Nous avons envoyé un lien de confirmation à votre adresse email.",
-    otherDevice: "Vous avez ouvert le lien sur un autre appareil ?",
-    otherDeviceAction: "Connectez-vous ici",
-    otherDeviceEnd: "avec votre mot de passe.",
-    noMail: "Rien reçu ? Regardez dans les spams et l'onglet Promotions.",
-    emailLabel: "Votre adresse email",
-    resent: "Email renvoyé.",
-  },
+  title: "Vérifiez votre boîte mail",
+  sentTo: "Nous avons envoyé un lien de confirmation à",
+  sentToUnknown: "Nous avons envoyé un lien de confirmation à votre adresse email.",
+  otherDevice: "Vous avez ouvert le lien sur un autre appareil ?",
+  otherDeviceAction: "Connectez-vous ici",
+  otherDeviceEnd: "avec votre mot de passe.",
+  noMail: "Rien reçu ? Regardez dans les spams et l'onglet Promotions.",
+  emailLabel: "Votre adresse email",
+  resent: "Email renvoyé.",
 }
 
 function Burst() {
@@ -47,10 +34,9 @@ function Burst() {
   )
 }
 
-function contextFields({ audience, role, next }) {
+function contextFields({ role, next }) {
   return (
     <>
-      <input type="hidden" name="audience" value={audience} />
       {role && <input type="hidden" name="role" value={role} />}
       {next && <input type="hidden" name="next" value={next} />}
     </>
@@ -58,12 +44,11 @@ function contextFields({ audience, role, next }) {
 }
 
 // Renvoi quand l'adresse est connue (cookie) : l'adresse ne transite jamais par le navigateur.
-function ResendKnownAddress({ email, audience, role, next, copy }) {
+function ResendKnownAddress({ email, role, next, copy }) {
   const [notice, setNotice] = useState(null)
 
   async function resend() {
     const formData = new FormData()
-    formData.set("audience", audience)
     if (role) formData.set("role", role)
     if (next) formData.set("next", next)
     const result = await resendSignupConfirmation(null, formData)
@@ -93,15 +78,15 @@ function ResendKnownAddress({ email, audience, role, next, copy }) {
   )
 }
 
-// Sans cookie : l'adresse est saisie, l'envoi se fait par action serveur (POST).
-function ResendWithField({ audience, role, next, copy }) {
+// Sans cookie : l'adresse est renseignée, l'envoi se fait par action serveur (POST).
+function ResendWithField({ role, next, copy }) {
   const [state, formAction, pending] = useActionState(resendSignupConfirmation, null)
   const [email, setEmail] = useState("")
   const [clientError, setClientError] = useState(null)
   const error = clientError ?? state?.fieldErrors?.email
 
   function handleSubmit(event) {
-    const parsed = parseFormData(makeResendSchema(audience), new FormData(event.currentTarget))
+    const parsed = parseFormData(makeResendSchema(), new FormData(event.currentTarget))
     if (!parsed.ok) {
       event.preventDefault()
       setClientError(parsed.fieldErrors.email ?? null)
@@ -112,7 +97,7 @@ function ResendWithField({ audience, role, next, copy }) {
 
   return (
     <form className="stack stack--3 a-w-full a-block-left" action={formAction} onSubmit={handleSubmit} noValidate>
-      {contextFields({ audience, role, next })}
+      {contextFields({ role, next })}
       {state?.status === "sent" && !clientError && (
         <FormBanner tone="succes">
           <span>{copy.resent}</span>
@@ -147,10 +132,10 @@ function ResendWithField({ audience, role, next, copy }) {
 /**
  * Contenu de l'écran A03 (vérification de l'email). `email` vient du cookie httpOnly lu par la
  * page serveur : jamais de l'URL. Sans adresse, l'écran propose un champ pour renvoyer le lien.
- * @param {{ email?: string | null, audience?: "student" | "client", role?: "student" | "client" | null, next?: string | null }} props
+ * @param {{ email?: string | null, role?: "student" | "client" | null, next?: string | null }} props
  */
-export function VerifyEmailPanel({ email = null, audience = "client", role = null, next = null }) {
-  const copy = VERIFY_COPY[audience === "student" ? "student" : "client"]
+export function VerifyEmailPanel({ email = null, role = null, next = null }) {
+  const copy = VERIFY_COPY
   const known = Boolean(email)
 
   return (
@@ -173,9 +158,9 @@ export function VerifyEmailPanel({ email = null, audience = "client", role = nul
       </p>
 
       {known ? (
-        <ResendKnownAddress email={email} audience={audience} role={role} next={next} copy={copy} />
+        <ResendKnownAddress email={email} role={role} next={next} copy={copy} />
       ) : (
-        <ResendWithField audience={audience} role={role} next={next} copy={copy} />
+        <ResendWithField role={role} next={next} copy={copy} />
       )}
 
       <Link className="link body-s" href={registerHref({ role, next })}>

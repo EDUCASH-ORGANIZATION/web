@@ -18,20 +18,20 @@ const BRAND = {
   lines: ["3 étapes.", "2 minutes."],
   highlight: "C'est parti.",
   points: [
-    { icon: "i-lock", title: "Tes infos restent privées.", text: "Le client voit ton prénom, ta ville et ton badge, jamais ton numéro avant d'être retenu." },
-    { icon: "i-search", title: "Les missions d'abord.", text: "Tu vois toutes les missions dès la fin de l'inscription." },
+    { icon: "i-lock", title: "Vos infos restent privées.", text: "Le client voit votre prénom, votre ville et votre badge, jamais votre numéro avant d'être retenu." },
+    { icon: "i-search", title: "Les missions d'abord.", text: "Vous voyez toutes les missions dès la fin de l'inscription." },
   ],
 }
 
 const BLOCKED = {
-  suspended: { title: "Compte suspendu", text: "Ton compte est suspendu. Contacte-nous pour en savoir plus." },
+  suspended: { title: "Compte suspendu", text: "Votre compte est suspendu. Contactez-nous pour en savoir plus." },
   wrong_role: {
     title: "Session incorrecte",
-    text: "Cette page est réservée aux étudiants. Reconnecte-toi avec ton compte étudiant.",
+    text: "Cette page est réservée aux étudiants. Reconnectez-vous avec votre compte étudiant.",
   },
   error: {
     title: "Profil indisponible",
-    text: "Nous n'avons pas pu charger ton profil. Recharge la page dans un instant.",
+    text: "Nous n'avons pas pu charger votre profil. Rechargez la page dans un instant.",
   },
 }
 

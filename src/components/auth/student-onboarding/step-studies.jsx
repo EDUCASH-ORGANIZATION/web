@@ -59,8 +59,8 @@ export function StepStudies({ values, errors, universities, formError = "", onCh
     <form className="auth__form" method="post" noValidate onSubmit={handleSubmit}>
       <AuthStepper steps={STEP_LABELS} current={2} />
       <div>
-        <h1 className="ds-h1">Tes études et tes talents</h1>
-        <p className="muted a-lead">Pour te proposer les bonnes missions.</p>
+        <h1 className="ds-h1">Vos études et vos talents</h1>
+        <p className="muted a-lead">Pour vous proposer les bonnes missions.</p>
       </div>
       {formError && <FormBanner tone="erreur">{formError}</FormBanner>}
 
@@ -74,7 +74,7 @@ export function StepStudies({ values, errors, universities, formError = "", onCh
           name="school"
           options={schoolOptions}
           value={values.school}
-          placeholder="Choisir ton établissement"
+          placeholder="Choisir votre établissement"
           invalid={Boolean(errors.school)}
           aria-describedby={errors.school ? "o-etab-error" : undefined}
           onChange={(value) => onChange("school", value)}
@@ -83,8 +83,8 @@ export function StepStudies({ values, errors, universities, formError = "", onCh
           <input
             className={`input${errors.school ? " is-error" : ""}`}
             name="schoolOther"
-            placeholder="Nom de ton établissement"
-            aria-label="Nom de ton établissement"
+            placeholder="Nom de votre établissement"
+            aria-label="Nom de votre établissement"
             value={values.schoolOther}
             onChange={(event) => onChange("schoolOther", event.target.value)}
           />
@@ -102,7 +102,7 @@ export function StepStudies({ values, errors, universities, formError = "", onCh
           name="level"
           options={LEVEL_OPTIONS}
           value={values.level}
-          placeholder="Choisir ton niveau"
+          placeholder="Choisir votre niveau"
           invalid={Boolean(errors.level)}
           aria-describedby={errors.level ? "o-niv-error" : undefined}
           onChange={(value) => onChange("level", value)}
@@ -114,7 +114,7 @@ export function StepStudies({ values, errors, universities, formError = "", onCh
         <span className="field__label" id="o-skills-label">
           Compétences <span className="req">*</span>
         </span>
-        <span className="field__help">Choisis au moins une compétence.</span>
+        <span className="field__help">Choisissez au moins une compétence.</span>
         <div className="chips">
           {MISSION_TYPE_OPTIONS.map(({ value, label }) => (
             <Chip
