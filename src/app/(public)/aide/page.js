@@ -22,7 +22,7 @@ export default function AidePage() {
             <div>
               <span className="eyebrow eyebrow--bleu">Le séquestre en clair</span>
               <h2 className="display display--l ds-mt-3">
-                Comment ton argent<br />
+                Comment votre argent<br />
                 <span className="hl-bleu">est protégé.</span>
               </h2>
             </div>
@@ -47,7 +47,7 @@ export default function AidePage() {
           <div className="banner banner--info v07-litige">
             <Icon name="i-scale" />
             <div className="banner__body">
-              <b>Un souci pendant la mission&nbsp;?</b> Contacte l&apos;équipe EduCash depuis la page{" "}
+              <b>Un souci pendant la mission&nbsp;?</b> Contactez l&apos;équipe EduCash depuis la page{" "}
               <Link className="link" href="/contact?sujet=signalement">
                 Contact
               </Link>
@@ -61,11 +61,11 @@ export default function AidePage() {
         <div>
           <h2 className="display display--l">
             Pas trouvé&nbsp;?<br />
-            <span className="hl-citron">Écris-nous.</span>
+            <span className="hl-citron">Écrivez-nous.</span>
           </h2>
           <p className="body-s ds-text-brume ds-mt-3 ds-measure-l">
             Une vraie équipe à Cotonou lit chaque message. Pour un problème sur une mission en cours,
-            précise-le dans ton message pour qu&apos;on intervienne plus vite.
+            précisez-le dans votre message pour que nous intervenions plus vite.
           </p>
         </div>
         <div className="stack stack--3">

@@ -23,32 +23,32 @@ export const AIDE_THEMES = [
     items: [
       {
         id: "paye",
-        question: "Quand est-ce que je suis payé ?",
+        question: "Quand suis-je payé ?",
         answer: [
           "Le client paie à l'avance : son budget est bloqué en séquestre dès la publication de la mission. Il ne bouge plus jusqu'à la fin.",
-          "Une fois la mission faite, le client confirme et ton argent arrive sur ton portefeuille EduCash, d'où tu peux le retirer vers MoMo.",
+          "Une fois la mission faite, le client confirme et votre argent arrive sur votre portefeuille EduCash, d'où vous pouvez le retirer vers MoMo.",
         ],
       },
       {
         id: "achats",
         question: "Mission avec achats : qui paie les achats ?",
         answer: [
-          "Le client, directement au vendeur. Jamais toi, et jamais par EduCash : l'argent des achats ne transite pas par la plateforme, seul le service passe par le séquestre. Tout se passe dans la conversation de la mission.",
-          "Pourquoi ce choix ? Par transparence et par honnêteté. Chaque franc des achats va droit à celui qui vend, le ticket fait foi, et personne n'avance d'argent pour l'autre. L'estimation des achats donnée sur la mission est indicative : elle ne bloque aucun fonds et ne porte aucune commission. Seul ton service passe par le séquestre, et la commission de " +
+          "Le client, directement au vendeur. Jamais vous, et jamais par EduCash : l'argent des achats ne transite pas par la plateforme, seul le service passe par le séquestre. Tout se passe dans la conversation de la mission.",
+          "Pourquoi ce choix ? Par transparence et par honnêteté. Chaque franc des achats va droit à celui qui vend, le ticket fait foi, et personne n'avance d'argent pour l'autre. L'estimation des achats donnée sur la mission est indicative : elle ne bloque aucun fonds et ne porte aucune commission. Seul votre service passe par le séquestre, et la commission de " +
             `${COMMISSION_PCT} % ne porte que sur lui : EduCash ne gagne rien sur les achats.`,
         ],
         steps: [
           {
-            title: "Tu envoies les infos du vendeur",
+            title: "Vous envoyez les infos du vendeur",
             text: "Dans la conversation : la photo du numéro marchand, le montant exact et le ticket.",
           },
           {
             title: "Le client paie le vendeur par MoMo",
-            text: "Directement, hors EduCash. Il t'envoie la capture du SMS.",
+            text: "Directement, hors EduCash. Il vous envoie la capture du SMS.",
           },
           {
-            title: "Tu confirmes le paiement au client",
-            text: "Tu confirmes au client que le vendeur a bien reçu le paiement. Tu n'avances jamais d'argent.",
+            title: "Vous confirmez le paiement au client",
+            text: "Vous confirmez au client que le vendeur a bien reçu le paiement. Vous n'avancez jamais d'argent.",
           },
         ],
         notice: PAYMENT_WARNING,
@@ -57,7 +57,7 @@ export const AIDE_THEMES = [
         id: "commission",
         question: "Combien prend EduCash ?",
         answer: [
-          `Une commission unique de ${COMMISSION_PCT} %, prélevée sur le paiement de l'étudiant. Tu encaisses donc ${NET_PCT} % du budget de la mission : sur 25 000 FCFA, 22 000 FCFA arrivent sur ton portefeuille.`,
+          `Une commission unique de ${COMMISSION_PCT} %, prélevée sur le paiement de l'étudiant. Vous encaissez donc ${NET_PCT} % du budget de la mission : sur 25 000 FCFA, 22 000 FCFA arrivent sur votre portefeuille.`,
           "Le client ne paie aucun frais en plus du budget qu'il a fixé.",
         ],
       },
@@ -65,15 +65,15 @@ export const AIDE_THEMES = [
         id: "annulation",
         question: "Le client peut-il annuler après m'avoir retenu ?",
         answer: [
-          "Si la mission est annulée, le budget bloqué est remboursé au client. Tant que tu n'as pas terminé, rien ne t'est versé et rien ne t'est prélevé.",
-          "En cas de désaccord, contacte l'équipe EduCash depuis la page Contact : nous intervenons en médiation.",
+          "Si la mission est annulée, le budget bloqué est remboursé au client. Tant que vous n'avez pas terminé, rien ne vous est versé et rien ne vous est prélevé.",
+          "En cas de désaccord, contactez l'équipe EduCash depuis la page Contact : nous intervenons en médiation.",
         ],
       },
       {
         id: "litige",
         question: "Que se passe-t-il en cas de problème pendant la mission ?",
         answer: [
-          "Un souci pendant la mission ? Contacte l'équipe EduCash depuis la page Contact : nous intervenons en médiation.",
+          "Un souci pendant la mission ? Contactez l'équipe EduCash depuis la page Contact : nous intervenons en médiation.",
         ],
       },
     ],
@@ -87,20 +87,20 @@ export const AIDE_THEMES = [
         id: "retrait-momo",
         question: "Comment retirer mes gains sur MoMo ?",
         answer: [
-          "Depuis ton portefeuille, choisis « Retirer », saisis le montant et le numéro Mobile Money qui doit recevoir l'argent (MTN MoMo ou Moov Money), puis valide.",
+          "Depuis votre portefeuille, choisissez « Retirer », saisissez le montant et le numéro Mobile Money qui doit recevoir l'argent (MTN MoMo ou Moov Money), puis validez.",
           `Le retrait est possible dès ${MIN_WITHDRAWAL}.`,
         ],
       },
       {
         id: "retrait-minimum",
         question: "Y a-t-il un montant minimum pour retirer ?",
-        answer: [`Oui : ${MIN_WITHDRAWAL}. En dessous, ton gain reste sur ton portefeuille et s'additionne aux suivants.`],
+        answer: [`Oui : ${MIN_WITHDRAWAL}. En dessous, votre gain reste sur votre portefeuille et s'additionne aux suivants.`],
       },
       {
         id: "retrait-echec",
         question: "Mon retrait a échoué, que faire ?",
         answer: [
-          "Vérifie d'abord le numéro saisi. Si un retrait échoue, contacte-nous depuis la page Contact en précisant la date et le montant : l'équipe vérifie l'opération avec notre prestataire de paiement.",
+          "Vérifiez d'abord le numéro saisi. Si un retrait échoue, contactez-nous depuis la page Contact en précisant la date et le montant : l'équipe vérifie l'opération avec notre prestataire de paiement.",
         ],
         links: [{ href: "/contact", label: "Nous contacter" }],
       },
@@ -120,29 +120,29 @@ export const AIDE_THEMES = [
         id: "carte-pourquoi",
         question: "Pourquoi envoyer ma carte étudiante ?",
         answer: [
-          "Pour prouver que tu es bien étudiant. La vérification rassure les clients et te donne le badge « Vérifié » sur ton profil.",
+          "Pour prouver que vous êtes bien étudiant. La vérification rassure les clients et vous donne le badge « Vérifié » sur votre profil.",
         ],
       },
       {
         id: "carte-envoi",
         question: "Comment envoyer ma carte ?",
         answer: [
-          "Depuis ton profil, ouvre la vérification et envoie une photo nette de ta carte, bien éclairée, sans flou, avec toutes les informations lisibles.",
+          "Depuis votre profil, ouvrez la vérification et envoyez une photo nette de votre carte, bien éclairée, sans flou, avec toutes les informations lisibles.",
         ],
       },
       {
         id: "carte-refusee",
         question: "Ma carte a été refusée, que faire ?",
         answer: [
-          "Le motif du refus est indiqué sur ton profil. Reprends une photo plus nette ou plus complète et renvoie-la.",
-          "Si tu penses à une erreur, écris-nous.",
+          "Le motif du refus est indiqué sur votre profil. Reprenez une photo plus nette ou plus complète et renvoyez-la.",
+          "Si vous pensez à une erreur, écrivez-nous.",
         ],
         links: [{ href: "/contact", label: "Nous contacter" }],
       },
       {
         id: "carte-validite",
         question: "Le badge « Vérifié » expire-t-il ?",
-        answer: ["Oui, il est valable un an. Passé ce délai, renvoie ta carte pour le renouveler."],
+        answer: ["Oui, il est valable un an. Passé ce délai, renvoyez votre carte pour le renouveler."],
       },
     ],
   },
@@ -154,14 +154,14 @@ export const AIDE_THEMES = [
       {
         id: "mission-trouver",
         question: "Comment trouver une mission ?",
-        answer: ["Parcours les missions ouvertes, puis filtre par type, ville et budget."],
+        answer: ["Parcourez les missions ouvertes, puis filtrez par type, ville et budget."],
         links: [{ href: "/missions", label: "Voir les missions" }],
       },
       {
         id: "mission-postuler",
         question: "Comment postuler ?",
         answer: [
-          "Ouvre la mission et utilise le bouton « Postuler ». Il faut un compte étudiant, et une carte vérifiée peut t'être demandée.",
+          "Ouvrez la mission et utilisez le bouton « Postuler ». Il faut un compte étudiant, et une carte vérifiée peut vous être demandée.",
         ],
       },
       {
@@ -199,21 +199,21 @@ export const AIDE_THEMES = [
       {
         id: "compte-creer",
         question: "Comment créer un compte ?",
-        answer: ["Inscris-toi en choisissant ton rôle, étudiant ou client, puis confirme ton adresse e-mail."],
+        answer: ["Inscrivez-vous en choisissant votre rôle, étudiant ou client, puis confirmez votre adresse e-mail."],
         links: [{ href: "/auth/register", label: "Créer un compte" }],
       },
       {
         id: "compte-connexion",
         question: "Je n'arrive pas à me connecter",
         answer: [
-          "Vérifie ton adresse e-mail et ton mot de passe, et que tu as bien confirmé ton e-mail à l'inscription. Sinon, écris-nous.",
+          "Vérifiez votre adresse e-mail et votre mot de passe, et que vous avez bien confirmé votre e-mail à l'inscription. Sinon, écrivez-nous.",
         ],
         links: [{ href: "/auth/login", label: "Se connecter" }],
       },
       {
         id: "compte-supprimer",
         question: "Comment supprimer mon compte ?",
-        answer: ["Écris-nous depuis la page de contact, nous traiterons ta demande."],
+        answer: ["Écrivez-nous depuis la page de contact, nous traiterons votre demande."],
         links: [{ href: "/contact", label: "Nous contacter" }],
       },
     ],
@@ -240,12 +240,12 @@ export const ESCROW_STEPS = [
     tone: "bleu",
   },
   {
-    title: "Tu termines, il confirme",
-    text: "Une fois la mission faite, le client confirme et ton argent arrive sur ton portefeuille EduCash.",
+    title: "Vous terminez, il confirme",
+    text: "Une fois la mission faite, le client confirme et votre argent arrive sur votre portefeuille EduCash.",
   },
   {
-    title: `Tu encaisses ${NET_PCT} %`,
-    text: `Les 22 000 FCFA sur 25 000 arrivent sur ton portefeuille. Retrait vers MoMo dès ${MIN_WITHDRAWAL}.`,
+    title: `Vous encaissez ${NET_PCT} %`,
+    text: `Les 22 000 FCFA sur 25 000 arrivent sur votre portefeuille. Retrait vers MoMo dès ${MIN_WITHDRAWAL}.`,
     tone: "citron",
   },
 ]
