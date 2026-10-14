@@ -57,6 +57,12 @@ describe("garde-fou de l'espace étudiant (RD-STUDENT-01)", () => {
     expect(bad).toEqual([])
   })
 
+  it("tout fichier non test de src/app/(student) porte le marqueur, sans exemption", () => {
+    const unmarked = walk("src/app/(student)").filter((f) => !readFileSync(f, "utf8").slice(0, 300).includes(MARKER))
+    expect(unmarked).toEqual([])
+    expect(walk("src/app/(student)").length).toBeGreaterThan(15)
+  })
+
   it("le marqueur est celui de la tâche et les tests ne sont pas scannés", () => {
     expect(MARKER).toBe("@ds-screen RD-STUDENT-01")
     expect(FILES.every((f) => !f.endsWith(".test.js") && !f.endsWith(".test.jsx"))).toBe(true)
