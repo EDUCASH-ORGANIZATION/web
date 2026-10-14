@@ -1,3 +1,7 @@
+-- OBSOLETE, NE PAS EXECUTER EN PRODUCTION (RD-SEC-03, 2026-10-14).
+-- Motif : cree le bucket message-media sans limite de taille ni types MIME et une politique de lecture qui n'existe plus ; rejouer elargit l'acces.
+-- Etat de reference de la base : supabase/schema.sql (regenere depuis la production).
+
 -- ─── Colonnes média sur la table messages ────────────────────────────────────
 alter table public.messages
   add column if not exists type text not null default 'text'
