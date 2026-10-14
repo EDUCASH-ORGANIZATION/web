@@ -30,7 +30,7 @@ function Figure({ value, caption }) {
 }
 
 /**
- * Carte blanche « Tes gains » : les 8 dernières semaines en barres neutres (la semaine en cours en encre)
+ * Carte blanche « Vos gains » : les 8 dernières semaines en barres neutres (la semaine en cours en encre)
  * et le total depuis l'inscription. Vue pure ; `gains` vient de `getStudentWallet` (net de l'étudiant).
  * @param {{ gains: { weeks: Array<{ start: string, total: number }>, eightWeeks: number, total: number } }} props
  */

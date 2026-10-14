@@ -9,7 +9,7 @@ const COMMISSION_PERCENT = Math.round(COMMISSION_RATE * 100)
 export const commissionLabel = () => `Commission EduCash (${COMMISSION_PERCENT} %)`
 
 /**
- * « Ce que tu touches » d'une mission en cours : budget, commission, ta part (escrowSplit), badge « En séquestre ».
+ * « Ce que vous touchez » d'une mission en cours : budget, commission, votre part (escrowSplit), badge « En séquestre ».
  * Mission annulée : une explication, aucun montant.
  * @param {{ split: { total: number, commission: number, student: number }, cancelled: boolean }} props
  */

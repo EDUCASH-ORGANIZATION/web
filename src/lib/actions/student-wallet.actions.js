@@ -7,7 +7,7 @@
 // Plafonds de lecture connus :
 // - l'historique est lu par pages de 20 mouvements (une lecture de 21 pour savoir s'il en reste) ;
 // - les gains (8 semaines, total) viennent des `release` de l'étudiant, lus par pages de 1000 lignes
-//   (plafond PostgREST), 5 pages au plus ; au-delà ou en cas d'erreur la valeur est `null` : la carte « Tes gains »
+//   (plafond PostgREST), 5 pages au plus ; au-delà ou en cas d'erreur la valeur est `null` : la carte « Vos gains »
 //   est alors omise, jamais un faux 0 ;
 // - 100 missions en cours au plus pour « À venir, en séquestre » ;
 // - le retrait « non confirmé » est le dernier retrait débité sans identifiant de virement (faute de statut dans
