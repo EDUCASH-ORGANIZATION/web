@@ -20,6 +20,11 @@
 // - débit : 20 messages par minute et par utilisateur, compté en base (valable entre instances). Le
 //   comptage puis l'insertion ne sont pas atomiques : des envois simultanés peuvent dépasser la limite de
 //   quelques messages, sans autre effet ;
+// - politique RLS des missions (lecture si status = 'open', client, ou étudiant retenu) : un candidat NON retenu ne
+//   lit plus une mission qui n'est plus ouverte. Côté étudiant, `loadStudentPair` ne trouve alors pas la mission : sa
+//   conversation répond 404 et disparaît de la liste (E06). Ce n'est pas une faille (le refus est la valeur par
+//   défaut), mais une limite de comportement. À la migration Neon (sans cette RLS), le comportement attendu doit
+//   être décidé : conserver l'accès en lecture à l'historique, ou le fermer explicitement ;
 // - la taille d'un fichier joint est bornée par le compartiment (10 Mo) et par le navigateur avant l'envoi ;
 //   l'action contrôle le chemin (dossier de l'expéditeur) et le type d'après l'extension.
 
