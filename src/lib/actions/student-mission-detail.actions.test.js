@@ -119,6 +119,24 @@ describe("getStudentMissionDetail : mission ouverte", () => {
     expect(detail.review).toBeNull()
   })
 
+  it("avatar du client : l'URL du projet est gardée, une URL externe (pixel de suivi) devient null", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://proj.supabase.co")
+    try {
+      const own = "https://proj.supabase.co/storage/v1/object/public/avatars/c1/a.png"
+      for (const [raw, expected] of [
+        [own, own],
+        ["https://evil.example/pixel.png", null],
+        ["https://evil.example/storage/v1/object/public/avatars/c1/a.png", null],
+        ["https://proj.supabase.co/storage/v1/object/public/avatars/..%2F..%2Fx", null],
+      ]) {
+        responses.profiles = { data: { full_name: "Mawuli Adjovi", city: "Cotonou", avatar_url: raw }, error: null }
+        expect((await getStudentMissionDetail(MISSION)).client.avatarUrl).toBe(expected)
+      }
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it("ne renvoie aucune colonne privée ni identifiant du client", async () => {
     const detail = await getStudentMissionDetail(MISSION)
     const json = JSON.stringify(detail)

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { requireRole } from "@/lib/auth/require-role"
 import { isUuid } from "@/lib/vitrine/ids"
 import { publicDisplayName } from "@/lib/vitrine/public-name"
+import { toProjectAvatarUrl } from "@/lib/storage/owned-paths"
 
 // Avis du client sur l'étudiant retenu d'une de ses missions terminées (C10).
 // La personne notée est toujours déduite de la mission (selected_student_id), jamais d'un paramètre.
@@ -351,7 +352,7 @@ export async function getStudentReviewPage(missionId) {
     },
     client: {
       name: fullName ? publicDisplayName(fullName) : "Client EduCash",
-      avatarUrl: clientRes.data?.avatar_url ?? null,
+      avatarUrl: toProjectAvatarUrl(clientRes.data?.avatar_url),
       city: clientRes.data?.city ?? null,
     },
     review,

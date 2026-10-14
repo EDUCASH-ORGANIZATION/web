@@ -554,6 +554,24 @@ describe("getStudentReviewPage", () => {
     expect(JSON.stringify(page)).not.toContain(ME)
   })
 
+  it("avatar du client : l'URL du projet est gardée, une URL externe (pixel de suivi) devient null", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://proj.supabase.co")
+    try {
+      const own = "https://proj.supabase.co/storage/v1/object/public/avatars/c1/a.png"
+      for (const [raw, expected] of [
+        [own, own],
+        ["https://evil.example/pixel.png", null],
+        ["https://proj.supabase.co/storage/v1/object/public/avatars/..%2F..%2Fx", null],
+      ]) {
+        const db = makeDb({ missions: [studentMission], profiles: [{ ...clientProfile, avatar_url: raw }] })
+        asStudent(db)
+        expect((await getStudentReviewPage(MISSION)).client.avatarUrl).toBe(expected)
+      }
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it("état « already » : l'avis déjà donné est renvoyé", async () => {
     const db = makeDb({
       missions: [studentMission],

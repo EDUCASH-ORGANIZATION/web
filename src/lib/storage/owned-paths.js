@@ -92,7 +92,10 @@ export function toProjectAvatarUrl(value) {
     if (url.origin !== origin || !/^https?:$/.test(url.protocol)) return null
     const prefix = "/storage/v1/object/public/avatars/"
     if (!url.pathname.startsWith(prefix) || url.pathname.length === prefix.length) return null
-    if (url.pathname.slice(prefix.length).split("/").some((s) => s === "" || s === "." || s === "..")) return null
+    const rest = url.pathname.slice(prefix.length)
+    // Comme isCleanRelativePath : aucun `%` (traversée encodée `..%2F`), antislash ni caractère de contrôle.
+    if (/[\\%\u0000-\u001f\u007f]/.test(rest)) return null
+    if (rest.split("/").some((s) => s === "" || s === "." || s === "..")) return null
     return `${url.origin}${url.pathname}`
   } catch {
     return null

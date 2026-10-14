@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth/require-role"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { isUuid } from "@/lib/vitrine/ids"
 import { publicDisplayName } from "@/lib/vitrine/public-name"
+import { toProjectAvatarUrl } from "@/lib/storage/owned-paths"
 import { notExpiredFilter } from "@/lib/student-space/explore-query"
 import { verificationFromRows } from "@/lib/student-space/verification-status"
 
@@ -86,7 +87,7 @@ function toClient(profile) {
   const hasName = typeof profile?.full_name === "string" && profile.full_name.trim() !== ""
   return {
     name: hasName ? publicDisplayName(profile.full_name) : "Client EduCash",
-    avatarUrl: profile?.avatar_url ?? null,
+    avatarUrl: toProjectAvatarUrl(profile?.avatar_url),
     city: profile?.city ?? null,
     rating: Number(profile?.rating) || 0,
     missionsPublished: Number(profile?.missions_done) || 0,
