@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { sendEmail } from "@/lib/email/index"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
+import { isUuid } from "@/lib/vitrine/ids"
 import { todayInBenin, isPastDeadline } from "@/lib/vitrine/dates"
 import { verificationFromRows } from "@/lib/student-space/verification-status"
 
@@ -95,18 +96,22 @@ export async function apply({ missionId, message }) {
   if (auth.error) return { error: auth.error }
   const { supabase, user } = auth
 
-  if (!missionId) return { error: "Mission introuvable." }
+  if (!isUuid(missionId)) return { error: "Mission introuvable." }
   if (typeof message !== "string" || !message.trim()) return { error: "Le message de candidature est requis." }
   if (message.trim().length > MESSAGE_MAX) {
     return { error: `Le message ne doit pas dépasser ${MESSAGE_MAX} caractères.` }
   }
 
-  const { data: mission } = await supabase
+  const { data: mission, error: missionError } = await supabase
     .from("missions")
     .select("id, title, client_id, status, deadline")
     .eq("id", missionId)
     .maybeSingle()
 
+  if (missionError) {
+    console.error("[apply] mission", missionError.message)
+    return { error: ERR_GENERIC }
+  }
   if (!mission) return { error: "Mission introuvable." }
   if (mission.status !== "open") return { error: "Cette mission n'accepte plus de candidatures." }
   if (isPastDeadline(mission.deadline, todayInBenin())) return { error: ERR_DEADLINE_PASSED }

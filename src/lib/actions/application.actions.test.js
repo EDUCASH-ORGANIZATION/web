@@ -68,13 +68,34 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
 
+const APPLY_MISSION = "11111111-1111-4111-8111-111111111111"
+
 describe("apply", () => {
   const asStudent = () => requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
-  const openMission = { id: "m1", title: "Courses", client_id: "cli-1", status: "open" }
+  const openMission = { id: APPLY_MISSION, title: "Courses", client_id: "cli-1", status: "open" }
+
+  it("identifiant de mission absent ou mal formé : « Mission introuvable », aucune lecture", async () => {
+    asStudent()
+    for (const missionId of [undefined, "", "m1", "1; drop", 42]) {
+      calls.length = 0
+      expect(await apply({ missionId, message: "Bonjour" })).toEqual({ error: "Mission introuvable." })
+      expect(calls).toHaveLength(0)
+    }
+  })
+
+  it("erreur de lecture de la mission : message générique, erreur journalisée sans détail renvoyé", async () => {
+    asStudent()
+    respond = (q) => (q.table === "missions" ? { data: null, error: { message: "relation secrete" } } : { data: null, error: null })
+    const res = await apply({ missionId: APPLY_MISSION, message: "Bonjour" })
+    expect(res).toEqual({ error: "Une erreur est survenue. Réessayez dans un instant." })
+    expect(JSON.stringify(res)).not.toContain("secrete")
+    expect(console.error).toHaveBeenCalledWith("[apply] mission", "relation secrete")
+    expect(calls.some((c) => c.action === "insert")).toBe(false)
+  })
 
   it("refuse un non-étudiant et n'écrit rien", async () => {
     requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: APPLY_MISSION, message: "Bonjour" })
     expect(requireRole).toHaveBeenCalledWith(["student"])
     expect(res.error).toBeTruthy()
     expect(calls).toHaveLength(0)
@@ -83,7 +104,7 @@ describe("apply", () => {
   it("refuse un message trop long ou non textuel sans écrire", async () => {
     asStudent()
     for (const message of ["a".repeat(501), 42, { x: 1 }]) {
-      const res = await apply({ missionId: "m1", message })
+      const res = await apply({ missionId: APPLY_MISSION, message })
       expect(res.error).toBeTruthy()
     }
     expect(calls).toHaveLength(0)
@@ -92,13 +113,13 @@ describe("apply", () => {
   it("accepte un message de 500 caractères", async () => {
     asStudent()
     respond = (q) => (q.table === "missions" ? { data: openMission } : { data: null, error: null })
-    expect((await apply({ missionId: "m1", message: "a".repeat(500) })).success).toBe(true)
+    expect((await apply({ missionId: APPLY_MISSION, message: "a".repeat(500) })).success).toBe(true)
   })
 
   it("refuse de postuler à sa propre mission", async () => {
     asStudent()
     respond = (q) => (q.table === "missions" ? { data: { ...openMission, client_id: "stu-1" } } : { data: null })
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: APPLY_MISSION, message: "Bonjour" })
     expect(res.error).toMatch(/propre mission/)
     expect(writes()).toHaveLength(0)
   })
@@ -106,7 +127,7 @@ describe("apply", () => {
   it("refuse une mission non ouverte", async () => {
     asStudent()
     respond = (q) => (q.table === "missions" ? { data: { ...openMission, status: "in_progress" } } : { data: null })
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: APPLY_MISSION, message: "Bonjour" })
     expect(res.error).toBeTruthy()
     expect(writes()).toHaveLength(0)
   })
@@ -115,7 +136,7 @@ describe("apply", () => {
     asStudent()
     const yesterday = new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10)
     respond = (q) => (q.table === "missions" ? { data: { ...openMission, deadline: yesterday } } : { data: null, error: null })
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: APPLY_MISSION, message: "Bonjour" })
     expect(res).toEqual({ error: "L'échéance de cette mission est dépassée." })
     expect(writes()).toHaveLength(0)
     expect(sendEmail).not.toHaveBeenCalled()
@@ -131,13 +152,13 @@ describe("apply", () => {
         if (q.table === "profiles") return { data: { full_name: "Nom" } }
         return { data: null, error: null }
       }
-      expect(await apply({ missionId: "m1", message: "Bonjour" })).toEqual({ success: true })
+      expect(await apply({ missionId: APPLY_MISSION, message: "Bonjour" })).toEqual({ success: true })
     }
   })
 
   it("refuse une mission inconnue", async () => {
     asStudent()
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: APPLY_MISSION, message: "Bonjour" })
     expect(res.error).toBeTruthy()
     expect(writes()).toHaveLength(0)
   })
@@ -149,7 +170,7 @@ describe("apply", () => {
       if (q.table === "applications") return { data: { id: "a0" } }
       return { data: null }
     }
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: APPLY_MISSION, message: "Bonjour" })
     expect(res.error).toMatch(/déjà postulé/)
     expect(writes()).toHaveLength(0)
   })
@@ -161,17 +182,17 @@ describe("apply", () => {
       if (q.table === "profiles") return { data: { full_name: "Nom" } }
       return { data: null, error: null }
     }
-    const res = await apply({ missionId: "m1", message: " Bonjour " })
+    const res = await apply({ missionId: APPLY_MISSION, message: " Bonjour " })
     expect(res).toEqual({ success: true })
     const insert = writes()[0]
-    expect(insert.values).toEqual({ mission_id: "m1", student_id: "stu-1", message: "Bonjour", status: "pending" })
+    expect(insert.values).toEqual({ mission_id: APPLY_MISSION, student_id: "stu-1", message: "Bonjour", status: "pending" })
     expect(getUserById).toHaveBeenCalledWith("cli-1")
-    expect(sendEmail).toHaveBeenCalledWith("new-application", "dest@example.com", expect.objectContaining({ missionId: "m1" }))
+    expect(sendEmail).toHaveBeenCalledWith("new-application", "dest@example.com", expect.objectContaining({ missionId: APPLY_MISSION }))
   })
 
   describe("décision D2 : contrôle serveur du statut de vérification", () => {
     const plus = (days) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
-    const post = () => apply({ missionId: "m1", message: "Bonjour" })
+    const post = () => apply({ missionId: APPLY_MISSION, message: "Bonjour" })
     beforeEach(() => {
       asStudent()
       respond = (q) => (q.table === "missions" ? { data: openMission } : { data: null, error: null })
@@ -202,7 +223,7 @@ describe("apply", () => {
     })
 
     it("lit le statut par les lectures de la session (aucun paramètre d'identité transmis)", async () => {
-      await apply({ missionId: "m1", message: "Bonjour", userId: "autre", studentId: "autre" })
+      await apply({ missionId: APPLY_MISSION, message: "Bonjour", userId: "autre", studentId: "autre" })
       expect(getMyProfile).toHaveBeenCalledWith()
       expect(getMyStudentProfile).toHaveBeenCalledWith()
     })
@@ -232,7 +253,7 @@ describe("apply", () => {
     asStudent()
     respond = (q) => (q.table === "missions" ? { data: openMission } : { data: null, error: null })
     sendEmail.mockRejectedValue(new Error("boom"))
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: APPLY_MISSION, message: "Bonjour" })
     expect(res).toEqual({ success: true })
   })
 })
@@ -485,11 +506,11 @@ describe("registre des messages : vouvoiement partout (RD-VOUS-01)", () => {
   it("apply vouvoie l'étudiant quand l'insertion échoue", async () => {
     requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
     respond = (q) => {
-      if (q.table === "missions") return { data: { id: "m1", title: "Courses", client_id: "cli-1", status: "open" } }
+      if (q.table === "missions") return { data: { id: APPLY_MISSION, title: "Courses", client_id: "cli-1", status: "open" } }
       if (q.action === "select") return { data: null }
       return { data: null, error: { message: "db" } }
     }
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: APPLY_MISSION, message: "Bonjour" })
     expect(res).toEqual({ error: "Une erreur est survenue. Réessayez dans un instant." })
     expect(res.error).not.toMatch(TUTOIEMENT)
   })

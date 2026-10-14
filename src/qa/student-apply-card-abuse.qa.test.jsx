@@ -65,7 +65,7 @@ function seed(state) {
   ctx.db = {
     profiles: [{ user_id: ME, role: "student", full_name: "Awa K", city: "Cotonou", is_suspended: false, ...s.profile }],
     student_profiles: [{ user_id: ME, card_url: s.card }],
-    missions: [{ id: "m1", title: "Maths", client_id: "cli", status: "open" }],
+    missions: [{ id: "11111111-1111-4111-8111-111111111111", title: "Maths", client_id: "cli", status: "open" }],
     applications: [],
   }
   ctx.writes = []
@@ -80,12 +80,12 @@ beforeEach(() => {
 describe("apply : refus selon le statut de vérification", () => {
   it.each(Object.entries(STATES))("%s", async (state, { ok }) => {
     seed(state)
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })
     const inserts = ctx.writes.filter((w) => w.table === "applications" && w.op === "insert")
     if (ok) {
       expect(res).toEqual({ success: true })
       expect(inserts).toHaveLength(1)
-      expect(inserts[0].payload).toMatchObject({ mission_id: "m1", student_id: ME, status: "pending" })
+      expect(inserts[0].payload).toMatchObject({ mission_id: "11111111-1111-4111-8111-111111111111", student_id: ME, status: "pending" })
     } else {
       expect(res.error).toBeTruthy()
       expect(inserts).toHaveLength(0)
@@ -94,14 +94,14 @@ describe("apply : refus selon le statut de vérification", () => {
 
   it("un statut refusé n'expose pas le motif de refus ni le chemin de la carte dans l'erreur", async () => {
     seed("rejected")
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })
     expect(JSON.stringify(res)).not.toMatch(/floue|stu-me\/c\.jpg/)
   })
 
   it("date d'échéance illisible : traité comme expiré, aucune insertion", async () => {
     seed("verified")
     ctx.db.profiles[0].verified_until = "n'importe quoi"
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })
     expect(res.error).toMatch(/expiré/)
     expect(ctx.writes).toHaveLength(0)
   })
@@ -109,7 +109,7 @@ describe("apply : refus selon le statut de vérification", () => {
   it("profil illisible (absent) : erreur générique, aucune insertion", async () => {
     seed("verified")
     ctx.db.profiles = ctx.db.profiles.map((p) => ({ ...p, user_id: "autre" }))
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })
     expect(res.error).toBeTruthy()
     expect(ctx.writes).toHaveLength(0)
   })
@@ -117,7 +117,7 @@ describe("apply : refus selon le statut de vérification", () => {
   it.each([["client"], ["admin"]])("rôle %s : refusé avant toute lecture de mission", async (role) => {
     seed("verified")
     ctx.db.profiles[0].role = role
-    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    const res = await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })
     expect(res.error).toBeTruthy()
     expect(ctx.writes).toHaveLength(0)
   })
@@ -125,18 +125,18 @@ describe("apply : refus selon le statut de vérification", () => {
   it("étudiant suspendu ou user_metadata forgé : refusé", async () => {
     seed("verified")
     ctx.db.profiles[0].is_suspended = true
-    expect((await apply({ missionId: "m1", message: "Bonjour" })).error).toBeTruthy()
+    expect((await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })).error).toBeTruthy()
     seed("verified")
     ctx.db.profiles[0].role = "client"
     ctx.user = { id: ME, user_metadata: { role: "student" }, app_metadata: { role: "student" } }
-    expect((await apply({ missionId: "m1", message: "Bonjour" })).error).toBeTruthy()
+    expect((await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })).error).toBeTruthy()
     expect(ctx.writes).toHaveLength(0)
   })
 
   it("sans session : refusé", async () => {
     seed("verified")
     ctx.user = null
-    expect((await apply({ missionId: "m1", message: "Bonjour" })).error).toBeTruthy()
+    expect((await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })).error).toBeTruthy()
     expect(ctx.writes).toHaveLength(0)
   })
 })
@@ -156,13 +156,13 @@ describe("saveStudentCardUrl", () => {
 
   it("refus puis renvoi : le statut calculé passe de rejected à pending et canApply devient vrai", async () => {
     seed("rejected")
-    expect((await apply({ missionId: "m1", message: "Bonjour" })).error).toBeTruthy()
+    expect((await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })).error).toBeTruthy()
     await saveStudentCardUrl("stu-me/nouvelle.jpg")
     const reset = ctx.writes.find((w) => w.table === "profiles").payload
     ctx.db.profiles[0] = { ...ctx.db.profiles[0], ...reset }
     ctx.db.student_profiles[0].card_url = "stu-me/nouvelle.jpg"
     ctx.writes = []
-    expect(await apply({ missionId: "m1", message: "Bonjour" })).toEqual({ success: true })
+    expect(await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })).toEqual({ success: true })
   })
 
   it.each([
