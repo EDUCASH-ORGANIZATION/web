@@ -130,6 +130,24 @@ describe("garde-fous de contenu vitrine", () => {
     expect(hits).toEqual([])
   })
 
+  it("vouvoiement : aucun tutoiement dans les textes de la vitrine publique", () => {
+    // Décision RD-VOUS-01 : vouvoiement partout. L'authentification (components/auth, app/auth, auth-shell)
+    // est couverte par ses propres tests ; escrow-note.jsx (hors lot vitrine) reste à convertir.
+    const PENDING = new Set(["src/components/vitrine/auth-shell.jsx", "src/components/vitrine/shared/escrow-note.jsx"])
+    const PRONOUNS = /(^|[^\p{L}-])(?:(?:tu|toi|ton|ta|tes|te)(?![\p{L}-])|t(?:['\u2019]|&rsquo;|&apos;))/iu
+    const COMPOUND = /\p{L}+-(toi|tu|te)(?![\p{L}-])/iu
+    const IMPERATIVES = /(^|[^\p{L}-])(Crée|Encaisse|Postule|Écris|Fais|Trouve|Prouve|Découvre|Retire|Reprends|Réessaie|Vérifie|Envoie|Contacte|Choisis|Parcours|Bosse|Sois|Essaie|Précise|Explique|Laisse|Inscris|Connecte|Reviens|Retrouve|Filtre|Ouvre|Utilise|Renvoie|Élargis|Donne|Passe)(?![\p{L}])/u
+    const hits = []
+    for (const f of files.filter((n) => /\.jsx?$/.test(n) && !/^src\/(components|app)\/auth\//.test(n) && !PENDING.has(n))) {
+      const text = visibleText(f).replace(/(className|href|id|name|type|htmlFor|aria-labelledby|aria-describedby)=("[^"]*"|\{[^}]*\})/g, "")
+      for (const re of [PRONOUNS, COMPOUND, IMPERATIVES]) {
+        const m = text.match(re)
+        if (m) hits.push(`${f}: ${m[0].trim()}`)
+      }
+    }
+    expect(hits).toEqual([])
+  })
+
   it("aucun <select> natif dans l'authentification (Select maison du design system)", () => {
     const hits = files.filter((f) => /^src\/(components|app)\/auth\//.test(f) && /<select[\s>]/.test(read(f)))
     expect(hits).toEqual([])

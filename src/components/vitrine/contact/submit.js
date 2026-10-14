@@ -1,5 +1,5 @@
 export const SEND_FAILED_MESSAGE =
-  "L'envoi a échoué. Ton message est conservé, vérifie ta connexion et réessaie dans un instant."
+  "L'envoi a échoué. Votre message est conservé, vérifiez votre connexion et réessayez dans un instant."
 
 /**
  * Envoie le formulaire via l'action serveur et ramène tout échec technique à un état "error".
