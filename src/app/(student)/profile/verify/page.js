@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft, ShieldCheck } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
-import { getMyStudentProfile } from "@/lib/actions/profile.actions"
+import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
+import { verificationFromRows } from "@/lib/student-space/verification-status"
 import { CardUploadForm } from "@/components/profile/card-upload-form"
 
 export const metadata = { title: "Vérification du compte - EduCash" }
@@ -12,15 +12,11 @@ export default async function ProfileVerifyPage() {
   const user = await getCurrentUser()
   if (!user) redirect("/auth/login")
 
-  const supabase = await createClient()
+  const [{ profile }, { studentProfile }] = await Promise.all([getMyProfile(), getMyStudentProfile()])
 
-  const [{ data: profile }, { studentProfile }] = await Promise.all([
-    supabase.from("profiles").select("is_verified").eq("user_id", user.id).single(),
-    getMyStudentProfile(),
-  ])
-
-  // Déjà vérifié → retour au profil
-  if (profile?.is_verified) redirect("/profile")
+  // Seul un badge valable (« Compte vérifié ») renvoie au profil. Un badge expiré ou à renouveler garde
+  // is_verified à vrai : il doit pouvoir renvoyer sa carte ici. Le statut est calculé sans exposer les colonnes privées.
+  if (verificationFromRows(profile, studentProfile).key === "verified") redirect("/profile")
 
   const hasCard = !!studentProfile?.card_url
 
