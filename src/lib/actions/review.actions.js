@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { requireRole } from "@/lib/auth/require-role"
 import { isUuid } from "@/lib/vitrine/ids"
+import { publicDisplayName } from "@/lib/vitrine/public-name"
 
 // Avis du client sur l'étudiant retenu d'une de ses missions terminées (C10).
 // La personne notée est toujours déduite de la mission (selected_student_id), jamais d'un paramètre.
@@ -21,6 +22,8 @@ const ERR_NO_STUDENT = "Aucun étudiant n'est associé à cette mission."
 const ERR_ALREADY = "Vous avez déjà noté l'étudiant pour cette mission."
 const ERR_SAVE = "Impossible d'enregistrer votre avis. Réessayez dans un instant."
 const ERR_LOAD = "Impossible de charger cette page."
+const ERR_STUDENT_NOT_DONE = "Vous pourrez noter le client une fois la mission terminée."
+const ERR_STUDENT_ALREADY = "Vous avez déjà noté le client pour cette mission."
 
 // Codes de contrôle (sauf tabulation et sauts de ligne) et marques de direction du texte.
 const FORBIDDEN_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F​-‏‪-‮⁦-⁩﻿]/
@@ -200,5 +203,157 @@ export async function getClientReviewPage(missionId) {
     review,
     // Un échec de lecture du nom (décoratif) donne la signature par défaut, sans faire échouer la page.
     authorName: typeof authorRes.data?.full_name === "string" ? authorRes.data.full_name : "",
+  }
+}
+
+/**
+ * Enregistre l'avis de l'étudiant retenu sur le client d'une mission terminée (E13).
+ * `requireRole(["student"])` d'abord. La personne notée est `mission.client_id`, lue en base : jamais un
+ * paramètre ni le formulaire. Refus neutres : mission inexistante, mal formée ou dont l'appelant n'est pas
+ * l'étudiant retenu donnent le même message ; mission non terminée ou déjà notée sont refusées. Le double envoi
+ * simultané est tranché par la contrainte unique (mission, auteur).
+ *
+ * @param {{ missionId: string, rating: number, comment?: string | null }} input
+ * @returns {Promise<{ success: true, review: { rating: number, comment: string | null } } | { error: string }>}
+ */
+export async function createStudentReview(input) {
+  const auth = await requireRole(["student"])
+  if (auth.error) return { error: auth.error }
+  const { supabase, user } = auth
+
+  try {
+    const { missionId, rating, comment } = input && typeof input === "object" ? input : {}
+
+    if (!isUuid(missionId)) return { error: ERR_NOT_FOUND }
+    if (!isValidRating(rating)) return { error: ERR_RATING }
+    const checked = checkComment(comment)
+    if (!checked.ok) return { error: checked.error }
+
+    const { data: mission, error: missionError } = await supabase
+      .from("missions")
+      .select("id, status, client_id")
+      .eq("id", missionId)
+      .eq("selected_student_id", user.id)
+      .maybeSingle()
+    if (missionError) {
+      console.error("[createStudentReview] mission", missionError.message)
+      return { error: ERR_SAVE }
+    }
+    if (!mission || !mission.client_id) return { error: ERR_NOT_FOUND }
+    if (mission.status !== "done") return { error: ERR_STUDENT_NOT_DONE }
+
+    const { data: existing, error: existingError } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("mission_id", mission.id)
+      .eq("reviewer_id", user.id)
+      .maybeSingle()
+    if (existingError) {
+      console.error("[createStudentReview] avis existant", existingError.message)
+      return { error: ERR_SAVE }
+    }
+    if (existing) return { error: ERR_STUDENT_ALREADY }
+
+    const { error: insertError } = await supabase.from("reviews").insert({
+      mission_id: mission.id,
+      reviewer_id: user.id,
+      reviewed_id: mission.client_id,
+      rating,
+      comment: checked.value,
+    })
+    if (insertError) {
+      // Double envoi simultané : la contrainte unique de la base tranche.
+      if (insertError.code === UNIQUE_VIOLATION) return { error: ERR_STUDENT_ALREADY }
+      console.error("[createStudentReview] insert", insertError.message)
+      return { error: ERR_SAVE }
+    }
+
+    // La note moyenne du profil noté est recalculée en base (trigger recompute_profile_rating).
+    revalidatePath(`/student/missions/${mission.id}`)
+    revalidatePath("/applications")
+    revalidatePath("/dashboard")
+    return { success: true, review: { rating, comment: checked.value } }
+  } catch (err) {
+    console.error("[createStudentReview]", err)
+    return { error: ERR_SAVE }
+  }
+}
+
+/**
+ * @typedef {Object} StudentReviewPage Données de la page E13.
+ * @property {"form"|"already"|"not_done"} state
+ * @property {{ id: string, title: string, type: string, budget: number, status: string }} mission
+ * @property {{ name: string, avatarUrl: string|null, city: string|null }} client Profil public : « Prénom I. »
+ * @property {{ rating: number, comment: string|null, createdAt: string }|null} review Avis déjà donné
+ */
+
+/**
+ * Données de la page « Noter le client ». `requireRole(["student"])` d'abord. Une mission inexistante, mal
+ * formée ou dont l'appelant n'est pas l'étudiant retenu donne `null` (la page répond 404). Une lecture en
+ * échec lève une erreur neutre (error.js), jamais un message SQL. Colonnes publiques de `profiles` seulement.
+ *
+ * @param {string} missionId
+ * @returns {Promise<StudentReviewPage | null>}
+ */
+export async function getStudentReviewPage(missionId) {
+  const auth = await requireRole(["student"])
+  if (auth.error) return null
+  if (!isUuid(missionId)) return null
+  const { supabase, user } = auth
+
+  const { data: mission, error } = await supabase
+    .from("missions")
+    .select("id, title, type, budget, status, client_id")
+    .eq("id", missionId)
+    .eq("selected_student_id", user.id)
+    .maybeSingle()
+  if (error) {
+    console.error("[getStudentReviewPage] mission", error.message)
+    throw new Error(ERR_LOAD)
+  }
+  if (!mission) return null
+
+  const [clientRes, reviewRes] = await Promise.all([
+    supabase.from("profiles").select("full_name, avatar_url, city").eq("user_id", mission.client_id).maybeSingle(),
+    supabase
+      .from("reviews")
+      .select("rating, comment, created_at")
+      .eq("mission_id", mission.id)
+      .eq("reviewer_id", user.id)
+      .maybeSingle(),
+  ])
+  if (clientRes.error || reviewRes.error) {
+    console.error("[getStudentReviewPage] lecture", clientRes.error?.message ?? reviewRes.error?.message)
+    throw new Error(ERR_LOAD)
+  }
+
+  const review = reviewRes.data
+    ? {
+        rating: Number(reviewRes.data.rating) || 0,
+        comment: reviewRes.data.comment ?? null,
+        createdAt: reviewRes.data.created_at,
+      }
+    : null
+  const fullName = typeof clientRes.data?.full_name === "string" ? clientRes.data.full_name : ""
+
+  let state = "form"
+  if (review) state = "already"
+  else if (mission.status !== "done") state = "not_done"
+
+  return {
+    state,
+    mission: {
+      id: mission.id,
+      title: mission.title,
+      type: mission.type,
+      budget: Number(mission.budget) || 0,
+      status: mission.status,
+    },
+    client: {
+      name: fullName ? publicDisplayName(fullName) : "Client EduCash",
+      avatarUrl: clientRes.data?.avatar_url ?? null,
+      city: clientRes.data?.city ?? null,
+    },
+    review,
   }
 }

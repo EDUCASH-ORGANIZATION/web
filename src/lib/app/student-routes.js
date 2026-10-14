@@ -78,10 +78,10 @@ export function studentVerifyHref() {
   return "/profile/verify"
 }
 
-/** Écran « Noter le client » : reste sur `/review/<id>` tant que `/student/review` n'existe pas (ST-16). */
+/** Écran « Noter le client » (E13), dans la coquille étudiante. */
 export function studentReviewHref(missionId) {
   if (!hasId(missionId)) return "/applications"
-  return `/review/${encodeURIComponent(missionId)}`
+  return `/student/review/${encodeURIComponent(missionId)}`
 }
 
 /** Profil public d'un étudiant (vitrine). */

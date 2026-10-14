@@ -77,7 +77,7 @@ describe("StudentDashboardView : avec missions en cours", () => {
 
   it("liste « Ensuite » : avis à laisser et mission en cours restante", () => {
     expect(html).toContain("Ensuite")
-    expect(html).toContain('href="/review/d1"')
+    expect(html).toContain('href="/student/review/d1"')
     expect(html).toContain("Traduction")
   })
 

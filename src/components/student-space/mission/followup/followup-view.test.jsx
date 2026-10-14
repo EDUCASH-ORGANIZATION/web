@@ -66,7 +66,7 @@ describe("MissionFollowupView (E05)", () => {
     expect(html).toContain("Payé")
     expect(html).toContain(formatFcfa(22000))
     expect(html).toContain("Noter le client")
-    expect(html).toContain("/review/m1")
+    expect(html).toContain("/student/review/m1")
     expect(html).not.toContain("En séquestre")
     expect(html).not.toContain("Tu as fini")
   })
