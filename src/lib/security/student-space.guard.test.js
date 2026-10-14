@@ -84,6 +84,7 @@ describe("détecteurs étudiants (fixtures en mémoire)", () => {
     ["raw-type", "<span>{mission.type}</span>", "<span>{missionTypeLabel(mission.type)}</span>"],
     ["tutoiement", 'const t = "Ton solde"', 'const t = "Votre solde"'],
     ["tutoiement", "<p>Tu peux postuler</p>", "<p>Vous pouvez postuler</p>"],
+    ["tutoiement", "<p>ne t&apos;est dû</p>", "<p>ne vous est dû</p>"],
     ["tutoiement", 'const t = "Merci pour tes retours"', 'const t = "Merci pour vos retours"'],
     ["tutoiement", 'const t = "Réessaie dans un instant"', 'const t = "Veuillez réessayer"'],
     ["tutoiement", 'const t = "Réessaie plus tard"', 'const t = "Réessayez plus tard"'],

@@ -117,12 +117,18 @@ const TUTOIEMENT = {
     [TUTOIEMENT_PRONOUNS, TUTOIEMENT_ELISION, TUTOIEMENT_TA, TUTOIEMENT_IMPERATIVES].some((re) => re.test(text)),
 }
 
-/** Texte JSX : ce qui se trouve entre une balise et la suivante (hors `=>` et expressions). */
+const APOSTROPHE_ENTITY = /&(?:apos|rsquo|#39|#x27);/gi
+
+/**
+ * Texte JSX : ce qui se trouve entre une balise et la suivante (hors `=>` et expressions).
+ * Les entités d'apostrophe (`&apos;`, `&rsquo;`, `&#39;`) sont remplacées par l'apostrophe : « t&apos;est » est
+ * l'élision « t'est » une fois rendue.
+ */
 export function jsxText(code) {
   const out = []
   const re = /(?<![=-])>([^<>{}]+)</g
   let m
-  while ((m = re.exec(code))) if (/\S/.test(m[1])) out.push(m[1])
+  while ((m = re.exec(code))) if (/\S/.test(m[1])) out.push(m[1].replace(APOSTROPHE_ENTITY, "'"))
   return out
 }
 
