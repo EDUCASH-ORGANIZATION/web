@@ -26,7 +26,7 @@ export default async function VerifyEmailPage({ searchParams }) {
 
   return (
     <AuthShell audience={audience} backHref={registerHref({ role, next })} backLabel="Retour à l'inscription">
-      <VerifyEmailPanel email={email} audience={audience} role={role} next={next} />
+      <VerifyEmailPanel email={email} role={role} next={next} />
     </AuthShell>
   )
 }

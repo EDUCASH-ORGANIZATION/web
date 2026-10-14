@@ -23,12 +23,13 @@ describe("WalletCard, paiements coupés (défaut)", () => {
     expect(text(html)).not.toMatch(/(?<![\p{L}])(ton|ta|tes|tu|toi)(?![\p{L}])/iu)
   })
 
-  it("étudiant : aucun bouton de retrait, message tutoyé", () => {
+  it("étudiant : aucun bouton de retrait, message vouvoyé", () => {
     const html = render({ role: "student" })
     expect(html).not.toMatch(/<button/)
     expect(text(html)).not.toContain("Retirer mes gains")
     expect(text(html)).toContain("Recharge et retrait en cours d'activation")
-    expect(text(html)).toMatch(/Tes gains/)
+    expect(text(html)).toMatch(/Vos gains/)
+    expect(text(html)).not.toMatch(/(?<![\p{L}])(ton|ta|tes|tu|toi)(?![\p{L}])/iu)
   })
 
   it("garde le solde et le lien vers l'historique", () => {

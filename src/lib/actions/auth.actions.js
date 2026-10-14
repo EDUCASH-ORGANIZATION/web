@@ -8,7 +8,6 @@ import { makeLoginSchema, makeRegisterSchema, parseFormData } from "@/lib/auth/s
 import { revokeSession } from "@/lib/auth/revoke-session"
 import { getServerRole } from "@/lib/auth/server-role"
 import { PENDING_EMAIL_COOKIE, pendingEmailCookieOptions } from "@/lib/auth/cookies"
-import { formAudience } from "@/lib/auth/form-audience"
 import { authRedirectUrl, resolvePostAuth, withNext } from "@/lib/auth/destinations"
 import { safeNextPath } from "@/lib/utils/safe-next"
 
@@ -18,7 +17,7 @@ import { safeNextPath } from "@/lib/utils/safe-next"
  *
  * @typedef {object} AuthActionState
  * @property {Record<string, string>} [fieldErrors] message par champ (email, password, role, cgu...)
- * @property {string} [formError] message affichable au-dessus du formulaire, adapté à l'audience
+ * @property {string} [formError] message affichable au-dessus du formulaire
  * @property {string} [code] invalid_credentials | email_not_confirmed | rate_limited | session_expired |
  *   network | email_taken | suspended | unknown
  * @property {string} [contactHref] lien d'aide (code suspended seulement)
@@ -35,21 +34,20 @@ function appUrl() {
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
 /**
- * Connexion. Champs : email, password, next (facultatif), role ou audience (facultatif).
+ * Connexion. Champs : email, password, next (facultatif).
  * @param {AuthActionState | null} _prevState
  * @param {FormData} formData
  * @returns {Promise<AuthActionState>}
  */
 export async function login(_prevState, formData) {
-  const audience = formAudience(formData)
-  const parsed = parseFormData(makeLoginSchema(audience), formData)
+  const parsed = parseFormData(makeLoginSchema(), formData)
   if (!parsed.ok) return { fieldErrors: parsed.fieldErrors }
 
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data)
 
   if (error) {
-    const { code, message } = mapAuthError(error, audience)
+    const { code, message } = mapAuthError(error)
     return { code, formError: message }
   }
 
@@ -59,14 +57,14 @@ export async function login(_prevState, formData) {
   // Lecture du profil impossible : on refuse plutôt que d'accorder un accès sans rôle vérifié.
   if (roleError) {
     await revokeSession(supabase)
-    return { code: "unknown", formError: authErrorMessage("unknown", audience) }
+    return { code: "unknown", formError: authErrorMessage("unknown") }
   }
 
   if (profile?.is_suspended) {
     await revokeSession(supabase)
     return {
       code: "suspended",
-      formError: authErrorMessage("suspended", audience),
+      formError: authErrorMessage("suspended"),
       contactHref: "/contact",
     }
   }
@@ -83,8 +81,7 @@ export async function login(_prevState, formData) {
  * @returns {Promise<AuthActionState>}
  */
 export async function register(_prevState, formData) {
-  const audience = formAudience(formData)
-  const parsed = parseFormData(makeRegisterSchema(audience), formData)
+  const parsed = parseFormData(makeRegisterSchema(), formData)
   if (!parsed.ok) return { fieldErrors: parsed.fieldErrors }
 
   const { email, password, role } = parsed.data
@@ -109,7 +106,7 @@ export async function register(_prevState, formData) {
   })
 
   if (error) {
-    const { code, message } = mapAuthError(error, audience)
+    const { code, message } = mapAuthError(error)
     return code === "email_taken"
       ? { code, fieldErrors: { email: message } }
       : { code, formError: message }
@@ -119,7 +116,7 @@ export async function register(_prevState, formData) {
   if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
     return {
       code: "email_taken",
-      fieldErrors: { email: authErrorMessage("email_taken", audience) },
+      fieldErrors: { email: authErrorMessage("email_taken") },
     }
   }
 

@@ -24,8 +24,8 @@ const LEDGER_MAX_PAGES = 50
 const NAME_MAX = 100
 
 const ERR_SUMMARY = "Impossible de charger votre profil."
-const ERR_AVATAR = "Cette photo n'est pas valide. Envoie-la à nouveau."
-const ERR_CARD = "Cette carte n'est pas valide. Envoie-la à nouveau."
+const ERR_AVATAR = "Cette photo n'est pas valide. Envoyez-la à nouveau."
+const ERR_CARD = "Cette carte n'est pas valide. Envoyez-la à nouveau."
 
 /**
  * Lit la ligne `profiles` de l'utilisateur connecté, colonnes privées comprises.
@@ -46,12 +46,12 @@ export async function getMyProfile() {
 
     if (error) {
       console.error("[getMyProfile]", error.message)
-      return { error: "Impossible de charger ton profil." }
+      return { error: "Impossible de charger votre profil." }
     }
     return { profile: data ?? null }
   } catch (err) {
     console.error("[getMyProfile]", err)
-    return { error: "Impossible de charger ton profil." }
+    return { error: "Impossible de charger votre profil." }
   }
 }
 
@@ -226,12 +226,12 @@ export async function getMyStudentProfile() {
 
     if (error) {
       console.error("[getMyStudentProfile]", error.message)
-      return { error: "Impossible de charger ton profil." }
+      return { error: "Impossible de charger votre profil." }
     }
     return { studentProfile: data ?? null }
   } catch (err) {
     console.error("[getMyStudentProfile]", err)
-    return { error: "Impossible de charger ton profil." }
+    return { error: "Impossible de charger votre profil." }
   }
 }
 
@@ -270,7 +270,7 @@ export async function updateStudentProfile(data) {
 
     if (profileError) {
       console.error("[updateStudentProfile]", profileError.message)
-      return { error: "Impossible d'enregistrer ton profil." }
+      return { error: "Impossible d'enregistrer votre profil." }
     }
 
     const { error: studentError } = await supabase
@@ -288,7 +288,7 @@ export async function updateStudentProfile(data) {
 
     if (studentError) {
       console.error("[updateStudentProfile]", studentError.message)
-      return { error: "Impossible d'enregistrer ton profil." }
+      return { error: "Impossible d'enregistrer votre profil." }
     }
 
     revalidatePath("/profile")
@@ -320,7 +320,7 @@ export async function saveStudentCardUrl(cardUrl) {
 
     if (updateError) {
       console.error("[saveStudentCardUrl]", updateError.message)
-      return { error: "Impossible d'enregistrer ta carte étudiante." }
+      return { error: "Impossible d'enregistrer votre carte étudiante." }
     }
 
     revalidatePath("/profile")
@@ -388,7 +388,7 @@ export async function updateStudentProfileWithCard(data) {
 
     if (profileError) {
       console.error("[updateStudentProfileWithCard]", profileError.message)
-      return { error: "Impossible d'enregistrer ton profil." }
+      return { error: "Impossible d'enregistrer votre profil." }
     }
 
     // Mise à jour du profil académique
@@ -407,7 +407,7 @@ export async function updateStudentProfileWithCard(data) {
 
     if (studentError) {
       console.error("[updateStudentProfileWithCard]", studentError.message)
-      return { error: "Impossible d'enregistrer ton profil." }
+      return { error: "Impossible d'enregistrer votre profil." }
     }
 
     revalidatePath("/profile")

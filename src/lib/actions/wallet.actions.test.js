@@ -202,7 +202,7 @@ describe("filtre par type de mouvement", () => {
   })
 })
 
-describe("messages d'erreur selon le rôle", () => {
+describe("messages d'erreur : vouvoiement pour tous les rôles", () => {
   const failRead = () => {
     single.mockResolvedValue({ data: null, error: { message: "boom" } })
     txResult = { data: null, error: { message: "boom" } }
@@ -217,18 +217,18 @@ describe("messages d'erreur selon le rôle", () => {
     expect((await getWallet("victime")).error).toBe("Vous n'avez pas accès à ce portefeuille.")
   })
 
-  it("l'étudiant garde exactement les messages tutoyés", async () => {
+  it("l'étudiant est vouvoyé comme le client", async () => {
     failRead()
     for (const res of [await getWallet(), await getWalletTransactions(), await getWalletStats()]) {
-      expect(res.error).toBe("Impossible de charger ton portefeuille.")
+      expect(res.error).toBe("Impossible de charger votre portefeuille.")
     }
-    expect((await getWallet("victime")).error).toBe("Tu n'as pas accès à ce portefeuille.")
+    expect((await getWallet("victime")).error).toBe("Vous n'avez pas accès à ce portefeuille.")
   })
 
-  it("un rôle illisible garde le texte étudiant", async () => {
+  it("un rôle illisible reste vouvoyé", async () => {
     getServerRole.mockRejectedValue(new Error("db"))
     failRead()
-    expect((await getWallet()).error).toBe("Impossible de charger ton portefeuille.")
+    expect((await getWallet()).error).toBe("Impossible de charger votre portefeuille.")
   })
 
   it("le client est vouvoyé quand la fonction de paiement échoue", async () => {
@@ -240,11 +240,11 @@ describe("messages d'erreur selon le rôle", () => {
     )
   })
 
-  it("l'étudiant garde les messages tutoyés quand la fonction de paiement échoue", async () => {
+  it("l'étudiant est vouvoyé quand la fonction de paiement échoue", async () => {
     invoke.mockResolvedValue({ data: null, error: { message: "x", context: { status: 500, text: async () => "{}" } } })
-    expect((await initiateDeposit({ amount: 5000 })).error).toBe("Le dépôt n'a pas pu être initié. Réessaie dans un instant.")
+    expect((await initiateDeposit({ amount: 5000 })).error).toBe("Le dépôt n'a pas pu être initié. Réessayez dans un instant.")
     expect((await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })).error).toBe(
-      "Le retrait n'a pas pu être initié. Réessaie dans un instant.",
+      "Le retrait n'a pas pu être initié. Réessayez dans un instant.",
     )
   })
 
@@ -257,10 +257,10 @@ describe("messages d'erreur selon le rôle", () => {
     })
   })
 
-  it("502 après débit : l'étudiant est tutoyé avec le code debit_uncertain", async () => {
+  it("502 après débit : l'étudiant est vouvoyé avec le code debit_uncertain", async () => {
     invoke.mockResolvedValue({ data: null, error: { message: "x", context: { status: 502, text: async () => "{}" } } })
     expect(await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })).toEqual({
-      error: "Ta demande a peut-être été débitée. Contacte l'aide avant toute nouvelle demande.",
+      error: "Votre demande a peut-être été débitée. Contactez l'aide avant toute nouvelle demande.",
       code: "debit_uncertain",
     })
   })
@@ -269,16 +269,16 @@ describe("messages d'erreur selon le rôle", () => {
     for (const status of [400, 403, 500, 503]) {
       invoke.mockResolvedValue({ data: null, error: { message: "x", context: { status, text: async () => "{}" } } })
       const res = await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })
-      expect(res).toEqual({ error: "Le retrait n'a pas pu être initié. Réessaie dans un instant." })
+      expect(res).toEqual({ error: "Le retrait n'a pas pu être initié. Réessayez dans un instant." })
     }
   })
 
   it("un 502 du dépôt reste un échec ordinaire sans code", async () => {
     invoke.mockResolvedValue({ data: null, error: { message: "x", context: { status: 502, text: async () => "{}" } } })
-    expect(await initiateDeposit({ amount: 5000 })).toEqual({ error: "Le dépôt n'a pas pu être initié. Réessaie dans un instant." })
+    expect(await initiateDeposit({ amount: 5000 })).toEqual({ error: "Le dépôt n'a pas pu être initié. Réessayez dans un instant." })
   })
 
-  it("le portefeuille illisible lors d'un retrait suit le rôle", async () => {
+  it("le portefeuille illisible lors d'un retrait est vouvoyé", async () => {
     getServerRole.mockResolvedValue({ role: "client" })
     single.mockResolvedValue({ data: null, error: { message: "boom" } })
     expect((await initiateWithdrawal({ amount: 5000, phone: "0197000000", operator: "mtn" })).error).toBe(

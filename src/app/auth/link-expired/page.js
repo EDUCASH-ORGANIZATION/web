@@ -23,7 +23,7 @@ export default async function LinkExpiredPage({ searchParams }) {
 
   return (
     <AuthShell audience={audience}>
-      <LinkExpiredForm cause={cause} flow={flow} audience={audience} role={role} next={next} />
+      <LinkExpiredForm cause={cause} flow={flow} role={role} next={next} />
     </AuthShell>
   )
 }

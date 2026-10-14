@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUser } from "@/lib/actions/auth.actions"
 import { requireUser } from "@/lib/auth/require-role"
-import { getServerRole } from "@/lib/auth/server-role"
 import { PAYMENTS_PENDING_COPY, paymentsEnabled } from "@/lib/constants/payments"
 import {
   MIN_DEPOSIT_AMOUNT,
@@ -14,33 +13,13 @@ import {
 const MAX_TRANSACTIONS_LIMIT = 50
 const ERR_PAYMENTS_PENDING = PAYMENTS_PENDING_COPY.wallet.title
 
-// Messages d'erreur selon le rôle : le client est vouvoyé, l'étudiant (et tout rôle inconnu) reste tutoyé.
+// Messages d'erreur : un seul registre, vouvoyé, pour tous les rôles.
 const MESSAGES = {
-  student: {
-    read: "Impossible de charger ton portefeuille.",
-    forbidden: "Tu n'as pas accès à ce portefeuille.",
-    deposit: "Le dépôt n'a pas pu être initié. Réessaie dans un instant.",
-    withdrawal: "Le retrait n'a pas pu être initié. Réessaie dans un instant.",
-    debitUncertain: "Ta demande a peut-être été débitée. Contacte l'aide avant toute nouvelle demande.",
-  },
-  client: {
-    read: "Impossible de charger votre portefeuille.",
-    forbidden: "Vous n'avez pas accès à ce portefeuille.",
-    deposit: "Le dépôt n'a pas pu être initié. Réessayez dans un instant.",
-    withdrawal: "Le retrait n'a pas pu être initié. Réessayez dans un instant.",
-    debitUncertain: "Votre demande a peut-être été débitée. Contactez l'aide avant toute nouvelle demande.",
-  },
-}
-
-// Textes du rôle de l'appelant, lus seulement quand une erreur doit être renvoyée. Le rôle vient de
-// `profiles.role` (jamais de `user_metadata`) ; toute lecture impossible donne le texte étudiant inchangé.
-async function messagesFor(supabase, user) {
-  try {
-    const { role } = await getServerRole(supabase, user)
-    return role === "client" ? MESSAGES.client : MESSAGES.student
-  } catch {
-    return MESSAGES.student
-  }
+  read: "Impossible de charger votre portefeuille.",
+  forbidden: "Vous n'avez pas accès à ce portefeuille.",
+  deposit: "Le dépôt n'a pas pu être initié. Réessayez dans un instant.",
+  withdrawal: "Le retrait n'a pas pu être initié. Réessayez dans un instant.",
+  debitUncertain: "Votre demande a peut-être été débitée. Contactez l'aide avant toute nouvelle demande.",
 }
 
 // Détail d'une erreur de fonction Edge, pour le journal serveur seulement.
@@ -78,7 +57,7 @@ async function resolveWalletUser(userId) {
   const auth = await requireUser()
   if (auth.error) return { error: auth.error }
   if (userId !== undefined && userId !== null && userId !== auth.user.id) {
-    return { error: (await messagesFor(auth.supabase, auth.user)).forbidden }
+    return { error: MESSAGES.forbidden }
   }
   return { supabase: auth.supabase, user: auth.user }
 }
@@ -103,7 +82,7 @@ export async function getWallet(userId) {
 
   if (error) {
     console.error("[getWallet]", error.message)
-    return { error: (await messagesFor(auth.supabase, auth.user)).read }
+    return { error: MESSAGES.read }
   }
 
   const available = (wallet.balance ?? 0) - (wallet.reserved ?? 0)
@@ -137,7 +116,7 @@ export async function getWalletTransactions(userId, limit = 20, offset = 0, type
 
   if (error) {
     console.error("[getWalletTransactions]", error.message)
-    return { error: (await messagesFor(auth.supabase, auth.user)).read }
+    return { error: MESSAGES.read }
   }
   return data
 }
@@ -167,7 +146,7 @@ export async function initiateDeposit({ amount }) {
 
   if (error) {
     if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
-    const { message, detail } = await readFnError(error, (await messagesFor(supabase, user)).deposit)
+    const { message, detail } = await readFnError(error, MESSAGES.deposit)
     console.error("[initiateDeposit]", detail)
     return { error: message }
   }
@@ -206,14 +185,13 @@ export async function initiateWithdrawal({ amount, phone, operator }) {
 
   if (error) {
     if (error?.context?.status === 401) return { error: "Session expirée. Reconnectez-vous." }
-    const messages = await messagesFor(supabase, user)
     // 502 : la fonction a déjà débité le portefeuille mais le virement n'a pas démarré (sans recréditer).
     // Aucun nouvel essai n'est proposé : un second clic débiterait une seconde fois.
     if (error?.context?.status === 502) {
       console.error("[initiateWithdrawal] débit possible sans virement (502), réconciliation manuelle")
-      return { error: messages.debitUncertain, code: "debit_uncertain" }
+      return { error: MESSAGES.debitUncertain, code: "debit_uncertain" }
     }
-    const { message, detail } = await readFnError(error, messages.withdrawal)
+    const { message, detail } = await readFnError(error, MESSAGES.withdrawal)
     console.error("[initiateWithdrawal]", detail)
     return { error: message }
   }
@@ -234,7 +212,7 @@ export async function getWalletStats(userId) {
 
   if (error) {
     console.error("[getWalletStats]", error.message)
-    return { error: (await messagesFor(auth.supabase, auth.user)).read }
+    return { error: MESSAGES.read }
   }
 
   const sum = (type) =>
