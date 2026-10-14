@@ -164,7 +164,9 @@
 .e2-kv__row + .e2-kv__row { border-top: 1px solid var(--c-ligne-2); }
 .e2-kv__row > span:first-child { color: var(--c-ardoise); }
 .e2-kv__row > b, .e2-kv__row > span:last-child { font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; text-align: right; }
-.e2-kv__row--total { border-top: 1px solid var(--c-ligne) !important; padding-top: 12px; font-size: 15px; }
+.e2-kv__row--total { padding-top: 12px; font-size: 15px; }
+/* Meme specificite que la bordure de .e2-kv__row + .e2-kv__row, declaree apres : le total garde son trait plus fonce, sans !important. */
+.e2-kv__row + .e2-kv__row--total { border-top: 1px solid var(--c-ligne); }
 .e2-kv__row--total > span:first-child { color: var(--c-encre); font-weight: var(--fw-bold); }
 .e2-kv__row--total > b { font-weight: var(--fw-black); }
 

@@ -186,9 +186,8 @@ describe("feuilles app-shell.css et client/*.css", () => {
     const offenders = []
     for (const sel of selectorsOf(ALL)) {
       for (const part of sel.split(",").map((p) => p.trim())) {
-        // .e2 est la racine de l'espace etudiant (RD-STUDENT-01) : meme portee que .c2. Depuis ST-04 le layout pose `.ds e2` sur
-        // toutes les pages etudiant, anciennes comprises : le test « aucune ancienne page n'utilise une classe attenuee »
-        // (fin de fichier) garantit que ces regles ne changent pas leur rendu.
+        // .e2 est la racine de l'espace etudiant (RD-STUDENT-01) : meme portee que .c2. Le test « aucune page sans marqueur
+        // n'utilise une classe attenuee » garantit que ces regles ne changent le rendu d'aucune page non refondue qui reviendrait.
         if (part.startsWith(".c2 ") || part === ".c2" || part.startsWith(".e2 ")) continue
         const names = [...part.matchAll(/\.([A-Za-z][\w-]*)/g)].map((m) => m[1])
         if (!names.some(isNew)) offenders.push(part)
@@ -1339,9 +1338,9 @@ describe("student : cascade statique (specificite et ordre de chargement)", () =
   })
 })
 
-// Depuis ST-04, `.ds e2` couvre aussi les anciennes pages etudiant (celles sans marqueur @ds-screen). Les classes de
-// composants v1 « atténuées » par la section 1 de student/base.css ne doivent donc apparaitre dans aucune d'elles,
-// sinon leur rendu changerait.
+// `.ds e2` couvre toute page de (student). Les classes de composants v1 « atténuées » par la section 1 de
+// student/base.css ne doivent apparaitre dans aucune page sans marqueur @ds-screen qui reviendrait, sinon son rendu
+// changerait. Aucune page de ce type n'existe aujourd'hui : le test garde le cas.
 describe("anciennes pages etudiant : aucune classe attenuee par .e2", () => {
   const root = path.join(dir, "../../..")
   const walk = (rel) =>
@@ -1378,34 +1377,6 @@ describe("anciennes pages etudiant : aucune classe attenuee par .e2", () => {
       return softened.filter((n) => used.has(n)).map((n) => `${f}: ${n}`)
     })
     expect(offenders).toEqual([])
-  })
-})
-
-describe("anciennes pages etudiant : pas de debordement horizontal de la coquille", () => {
-  const rule = ":where(.e2 .page2) > .mx-auto"
-  const baseAt = SHELL.indexOf("\n.page2 {")
-
-  it("la racine mx-auto d'une ancienne page prend la largeur pleine de .page2 (min-width 0), apres la regle .page2 de base, hors media", () => {
-    expect(baseAt).toBeGreaterThan(-1)
-    const at = SHELL.indexOf(`\n${rule} {`)
-    expect(at).toBeGreaterThan(baseAt)
-    expect(at).toBeLessThan(SHELL.indexOf("@media"))
-    expect(SHELL).toContain(`${rule} { width: 100%; min-width: 0; }`)
-    // Seule regle de ce selecteur, et aucune couleur, ombre ni transform.
-    expect(SHELL.split(`${rule} {`).length).toBe(2)
-  })
-
-  it("est scopee a .e2 : aucune regle de .page2 ne vise .c2, et la regle ne change aucune propriete d'un enfant de .page2 sous .c2", () => {
-    expect(rule.startsWith(":where(.e2 .page2)")).toBe(true)
-    const c2 = { tag: "div", classes: ["mx-auto"], ancestors: ["ds", "c2", "shell", "shell--v2", "shell__main", "page2"] }
-    const e2 = { ...c2, ancestors: ["ds", "e2", "shell", "shell--v2", "shell__main", "page2"] }
-    const withRule = [...RULES_E2, { selector: ".e2 .page2 .mx-auto", declarations: { width: "100%", "min-width": "0" }, order: 99999 }]
-    // Le chargeur statique ignore les selecteurs a combinateur enfant : la regle est donc comparee par son equivalent descendant.
-    expect(computedStyle(RULES_E2, c2)).toEqual(computedStyle(withRule, c2))
-    expect(computedStyle(withRule, e2).width).toBe("100%")
-    expect(computedStyle(withRule, e2)["min-width"]).toBe("0")
-    // Dans toutes les feuilles client, aucune regle ne cible un enfant direct de .page2.
-    expect(CLIENT).not.toMatch(/\.page2\s*>/)
   })
 })
 

@@ -21,8 +21,8 @@ export function reconnectTransition(wasOffline, online) {
 }
 
 // Bandeau encre affiché hors connexion ; au retour du réseau, un toast le confirme.
-// À placer sous ToastProvider. Les textes par défaut (espace client) sont surchargeables par props :
-// un espace qui s'adresse autrement à ses utilisateurs passe les siens.
+// À placer sous ToastProvider. Les textes par défaut, vouvoyés, servent tous les espaces (registre unique) ;
+// les props restent disponibles pour un cas particulier.
 export const OFFLINE_TITLE = "Vous êtes hors connexion"
 export const OFFLINE_TEXT = "Vos actions seront de nouveau disponibles dès le retour du réseau."
 export const RECONNECTED_TEXT = "Connexion rétablie"

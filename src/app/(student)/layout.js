@@ -20,11 +20,7 @@ export default async function StudentLayout({ children }) {
   return (
     <div className="ds e2">
       <ToastProvider>
-        <OfflineBanner
-          title="Vous êtes hors connexion"
-          text="Vos actions seront de nouveau disponibles dès le retour du réseau."
-          reconnectedText="Connexion rétablie"
-        />
+        <OfflineBanner />
         <AppShell nav={STUDENT_NAV} user={{ id: shell.userId, fullName: shell.fullName }} unreadCount={shell.unreadCount}>
           <PwaInstallBannerLoader space="student" />
           {children}

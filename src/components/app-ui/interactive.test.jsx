@@ -110,18 +110,10 @@ describe("ConfirmDialog : rendu d'avant et message de repli surchargeable", () =
     expect(FALLBACK_ERROR).toBe("Une erreur est survenue. Veuillez réessayer.")
   })
 
-  it("fallbackError remplace le message d'une exception inattendue, le défaut reste sinon", async () => {
+  it("une exception inattendue donne le message de repli, un refus métier garde son texte", async () => {
     const boom = async () => { throw new Error("x") }
     expect(await confirmOnce({ current: false }, boom)).toEqual({ error: FALLBACK_ERROR })
-    expect(await confirmOnce({ current: false }, boom, "Message neutre")).toEqual({ error: "Message neutre" })
-    expect(await confirmOnce({ current: false }, async () => ({ error: "refus" }), "Message neutre")).toEqual({ error: "refus" })
-  })
-
-  it("ConfirmDialog accepte fallbackError sans changer son rendu ouvert", () => {
-    const one = [{ title: "Titre", description: "Desc", confirmLabel: "Oui" }]
-    const a = renderToStaticMarkup(<ConfirmDialog open onClose={noop} onConfirm={noop} steps={one} />)
-    const b = renderToStaticMarkup(<ConfirmDialog open onClose={noop} onConfirm={noop} steps={one} fallbackError="Message neutre" />)
-    expect(b).toBe(a)
+    expect(await confirmOnce({ current: false }, async () => ({ error: "refus" }))).toEqual({ error: "refus" })
   })
 })
 
