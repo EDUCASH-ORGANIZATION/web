@@ -1,7 +1,7 @@
 // @ds-screen RD-STUDENT-01
 // Configuration de la coquille de l'espace étudiant. Agenda, Paramètres et cloche restent masqués
 // (aucune page, aucune notification). Chaque lien vise une route existante (routes actuelles, décision D1).
-// Barre mobile (décision D3) : les 4 onglets de RD-NAV-02 ; le portefeuille passe par la carte argent et la sidebar.
+// Barre mobile : 5 onglets (Accueil, Missions, Candidatures, Messages, Portefeuille), sans bouton central.
 // Elle reste visible sur le détail de mission et se masque sur les enfants stricts de /messages (conversation).
 
 export const STUDENT_NAV = {
@@ -41,6 +41,7 @@ export const STUDENT_NAV = {
     { key: "missions", label: "Missions", href: "/student/missions", icon: "i-briefcase" },
     { key: "candidatures", label: "Candidatures", href: "/applications", icon: "i-file" },
     { key: "messages", label: "Messages", href: "/messages", icon: "i-message", badge: "messages" },
+    { key: "portefeuille", label: "Portefeuille", href: "/wallet", icon: "i-wallet" },
   ],
   mobileHideBelow: ["/messages"],
 }
