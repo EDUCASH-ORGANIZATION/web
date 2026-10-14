@@ -197,12 +197,20 @@ describe("envoi complet", () => {
     expect(s.saveCard).not.toHaveBeenCalled()
   })
 
-  it("refus du serveur (chemin, rôle) : message du serveur affiché, fichier retiré", async () => {
+  it("échec de l'enregistrement : message du serveur affiché, fichier conservé (card_url peut déjà pointer dessus)", async () => {
     const s = setup()
-    s.saveCard.mockResolvedValue({ error: "Fichier non autorisé." })
+    s.saveCard.mockResolvedValue({ error: "Impossible d'enregistrer votre carte étudiante." })
     const res = await sendCardFile({ ...s, file: png, unique: "z9" })
-    expect(res).toEqual({ error: "Fichier non autorisé." })
-    expect(s.remove).toHaveBeenCalledWith(["u1/carte-z9.png"])
+    expect(res).toEqual({ error: "Impossible d'enregistrer votre carte étudiante." })
+    expect(s.remove).not.toHaveBeenCalled()
+  })
+
+  it("exception pendant l'enregistrement : message neutre, fichier conservé", async () => {
+    const s = setup()
+    s.saveCard.mockRejectedValue(new TypeError(""))
+    const res = await sendCardFile({ ...s, file: png, unique: "z9" })
+    expect(res.error).toBe("Une erreur inattendue est survenue. Réessayez.")
+    expect(s.remove).not.toHaveBeenCalled()
   })
 
   it("exception inattendue : message neutre, jamais le message technique", async () => {

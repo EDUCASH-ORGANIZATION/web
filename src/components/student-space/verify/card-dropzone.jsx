@@ -59,7 +59,9 @@ const TIPS = CARD_UPLOAD_INSTRUCTIONS.filter((tip) => !/^formats? accept/i.test(
 
 /**
  * Envoi complet : session, dépôt dans `student-cards/<userId>/`, contrôle de lisibilité, enregistrement serveur
- * (qui revalide le chemin). Un fichier déposé mais refusé est retiré du dossier. Ne lève jamais.
+ * (qui revalide le chemin). Un fichier refusé au contrôle de lisibilité est retiré du dossier. Une fois l'enregistrement
+ * lancé, le fichier n'est plus jamais retiré : `saveStudentCardUrl` peut avoir écrit `card_url` avant d'échouer, et
+ * supprimer le fichier laisserait une carte qui pointe dans le vide. Ne lève jamais.
  * @returns {Promise<{ success: true } | { error: string }>}
  */
 export async function sendCardFile({ file, supabase, verifyCard, saveCard, onPhase = () => {}, unique }) {
@@ -83,7 +85,10 @@ export async function sendCardFile({ file, supabase, verifyCard, saveCard, onPha
     if (!ai?.valid) throw new Error(ERR_AI)
 
     onPhase("save")
-    const saved = await saveCard(path)
+    // À partir d'ici le chemin peut être déjà enregistré : plus de nettoyage possible sans risque.
+    const savedPath = path
+    path = null
+    const saved = await saveCard(savedPath)
     if (saved?.error) throw new Error(saved.error)
     return { success: true }
   } catch (err) {
