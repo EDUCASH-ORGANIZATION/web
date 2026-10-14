@@ -96,6 +96,24 @@ describe("STUDENT_NAV", () => {
     expect(activeKey("/wallet/retrait", mobile)).toBe("portefeuille")
   })
 
+  it("Portefeuille : pas d'activation par préfixe partiel, slash final et query string", () => {
+    expect(activeKey("/wallet-xyz", mobile)).toBeNull()
+    expect(activeKey("/wallets", mobile)).toBeNull()
+    expect(activeKey("/wallet/", mobile)).toBe("portefeuille")
+    expect(activeKey("/wallet/retrait/", mobile)).toBe("portefeuille")
+    for (const p of ["/wallet", "/wallet/retrait"]) {
+      expect(mobile.filter((i) => activeKey(p, [i]) === i.key).map((i) => i.key)).toEqual(["portefeuille"])
+    }
+  })
+
+  it("bureau et mobile : portefeuille a le même href et la même icône", () => {
+    const d = desktop.find((i) => i.key === "portefeuille")
+    const m = mobile.find((i) => i.key === "portefeuille")
+    expect(m).toMatchObject({ label: "Portefeuille", href: d.href, icon: d.icon })
+    expect(m.href).toBe("/wallet")
+    expect(m.icon).toBe("i-wallet")
+  })
+
   it("masque la barre mobile sur les enfants de /messages seulement", () => {
     expect(STUDENT_NAV.mobileHideBelow).toEqual(["/messages"])
     const hide = STUDENT_NAV.mobileHideBelow
