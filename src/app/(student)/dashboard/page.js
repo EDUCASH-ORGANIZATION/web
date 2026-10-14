@@ -89,7 +89,7 @@ function DashboardMissionCard({ mission }) {
 
 const APP_STATUS_ACTIVITY = {
   pending:  { dot: "bg-amber-400",  text: (title) => `Candidature envoyée pour "${title}".` },
-  accepted: { dot: "bg-green-500",  text: (title) => `Ta candidature pour "${title}" a été acceptée !` },
+  accepted: { dot: "bg-green-500",  text: (title) => `Votre candidature pour "${title}" a été acceptée !` },
   rejected: { dot: "bg-gray-300",   text: (title) => `Candidature non retenue pour "${title}".` },
 }
 

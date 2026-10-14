@@ -96,7 +96,7 @@ beforeEach(() => {
 
 describe("garde de rôle de /review", () => {
   it("la page exige requireRole(['client','student']) et redirige vers la connexion quand il refuse", async () => {
-    requireRole.mockResolvedValue({ error: "Tu n'as pas les droits pour effectuer cette action." })
+    requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
     await expect(renderPage()).rejects.toThrow("redirect:/auth/login")
     expect(requireRole).toHaveBeenCalledWith(["client", "student"])
   })
@@ -107,9 +107,9 @@ describe("garde de rôle de /review", () => {
     const tree = await renderPage()
     const action = findElements(tree, ReviewForm)[0].props.action
 
-    requireRole.mockResolvedValue({ error: "Tu n'as pas les droits pour effectuer cette action." })
+    requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
     const res = await action(formData({ rating: "5", comment: "Bien" }))
-    expect(res).toEqual({ error: "Tu n'as pas les droits pour effectuer cette action." })
+    expect(res).toEqual({ error: "Vous n'avez pas les droits pour effectuer cette action." })
     expect(requireRole).toHaveBeenLastCalledWith(["client", "student"])
     expect(db.log.inserts).toEqual([])
   })

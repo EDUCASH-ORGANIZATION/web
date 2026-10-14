@@ -34,7 +34,7 @@ export function StudentWithdrawModal({ isOpen, onClose, available = 0, onSuccess
     parsedAmount > 0 && parsedAmount < MIN_WITHDRAWAL_AMOUNT
       ? `Minimum ${fmt(MIN_WITHDRAWAL_AMOUNT)} FCFA`
       : parsedAmount > available
-        ? "Montant supérieur à tes gains disponibles"
+        ? "Montant supérieur à vos gains disponibles"
         : ""
 
   const canSubmit = parsedAmount >= MIN_WITHDRAWAL_AMOUNT && parsedAmount <= available && phone.trim() && !loading
@@ -80,7 +80,7 @@ export function StudentWithdrawModal({ isOpen, onClose, available = 0, onSuccess
               <h2 className="text-base font-black text-gray-900">Retirer mes gains</h2>
             </div>
             <p className="text-xs text-gray-400 mt-1 ml-10">
-              Virement direct vers ton Mobile Money
+              Virement direct vers votre Mobile Money
             </p>
           </div>
           <button
@@ -116,7 +116,7 @@ export function StudentWithdrawModal({ isOpen, onClose, available = 0, onSuccess
                 ? <p className="text-xs text-red-500">{amountError}</p>
                 : parsedAmount >= MIN_WITHDRAWAL_AMOUNT && parsedAmount <= available
                   ? <p className="text-xs text-[#1A6B4A] font-medium">
-                      Tu recevras exactement <strong>{fmt(parsedAmount)} FCFA</strong>
+                      Vous recevrez exactement <strong>{fmt(parsedAmount)} FCFA</strong>
                     </p>
                   : <span />
               }
