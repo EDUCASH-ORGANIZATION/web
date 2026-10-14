@@ -10,6 +10,11 @@ import { COMMON_RULES, TUTOIEMENT_RULE, violations as scanViolations, walk } fro
 // Les dossiers pas encore créés sont ignorés. Mêmes règles que le client, registre de langue compris :
 // ici aussi le tutoiement est interdit et le vouvoiement permis (décision RD-VOUS-01). Les détecteurs sont testés sur des fixtures
 // en mémoire (un vrai positif et un vrai négatif par règle).
+//
+// Couverture du tutoiement hors périmètre : ce garde-fou ne scanne que les dossiers et fichiers marqués ci-dessus.
+// Les actions `src/lib/actions/student-*.actions.js` et les fonctions étudiant de `message.actions.js`,
+// `review.actions.js` et `profile.actions.js` sont couvertes par le garde-fou global `no-tutoiement.guard.test.js`
+// (tout `src/`, hors tests et hors le prompt interne de `verify-card.actions.js`).
 
 const SCAN_DIRS = ["src/components/student-space", "src/lib/student-space"]
 const SCAN_FILES = ["src/lib/app/student-routes.js"]
@@ -91,6 +96,12 @@ describe("détecteurs étudiants (fixtures en mémoire)", () => {
     ["tutoiement", 'const t = "Ton solde"', 'const t = "Votre solde"'],
     ["tutoiement", "<p>Tu peux postuler</p>", "<p>Vous pouvez postuler</p>"],
     ["tutoiement", "<p>ne t&apos;est dû</p>", "<p>ne vous est dû</p>"],
+    ["tutoiement", "<p>Bonjour {name}, tu peux postuler</p>", "<p>Bonjour {name}, vous pouvez postuler</p>"],
+    ["tutoiement", "<p>{count} missions, ton solde</p>", "<p>{count} missions, votre solde</p>"],
+    ["tutoiement", "function f(x) { return 'Tu as gagné' }", "function f(x) { return 'Vous avez gagné' }"],
+    ["tutoiement", "switch (x) { case 'a': return 'Ton solde' }", "switch (x) { case 'a': return 'Votre solde' }"],
+    ["tutoiement", "<p>Je t&lsquo;aide</p>", "<p>L&rsquo;équipe vous aide</p>"],
+    ["tutoiement", "<p>Je t&#39;aide</p>", "<p>Je vous aide</p>"],
     ["tutoiement", 'const t = "Merci pour tes retours"', 'const t = "Merci pour vos retours"'],
     ["tutoiement", 'const t = "Réessaie dans un instant"', 'const t = "Veuillez réessayer"'],
     ["tutoiement", 'const t = "Réessaie plus tard"', 'const t = "Réessayez plus tard"'],

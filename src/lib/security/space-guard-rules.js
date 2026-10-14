@@ -1,5 +1,11 @@
 // Détecteurs purs partagés par les garde-fous d'espace refondu (client-space.guard.test.js et
 // student-space.guard.test.js). Aucun test ici : chaque garde-fou compose ses règles et teste ses détecteurs.
+//
+// Tutoiement : l'autorité est le garde-fou global `no-tutoiement.guard.test.js`, qui scanne tout `src/`. Le scanner
+// (`scan`, `jsxText`, entités d'apostrophe) de ce fichier est aligné sur le sien : texte placé après une expression
+// `{...}`, `return '...'` et `case '...'`, entités `&apos;`, `&rsquo;`, `&lsquo;`, `&#39;`, `&#x27;`. La règle
+// `TUTOIEMENT_RULE` reste ici pour que chaque espace garde ses fixtures et son rapport par fichier.
+// Ce fichier est exclu du garde-fou global : sa liste de verbes (« Vérifie », « Recharge ») est une donnée de détection.
 import { readdirSync, statSync, existsSync } from "node:fs"
 import { join } from "node:path"
 
@@ -9,7 +15,9 @@ export const TEST_FILE = /\.test\.(js|jsx)$/
 // ─── Lecture du source : retire les commentaires, extrait les chaînes ───────────────────────
 
 // Une apostrophe ouvre une chaîne seulement après un de ces caractères (sinon c'est du texte JSX).
+// Les mots-clés `return` et `case` (fin de mot) ouvrent aussi une chaîne : `return 'Tu as gagné'`.
 const STRING_OPENERS = new Set(["(", "[", ",", "=", ":", "?", "{", "+", "|", "&", "!", ";", ">"])
+const KEYWORD_BEFORE_STRING = /(?:^|[^\p{L}\p{N}_$.])(?:return|case)\s*$/u
 
 /**
  * @param {string} source
@@ -43,7 +51,7 @@ export function scan(source, { css = false } = {}) {
       continue
     }
     const opensString =
-      c === '"' || c === "`" || (c === "'" && (css || prev === "" || STRING_OPENERS.has(prev)))
+      c === '"' || c === "`" || (c === "'" && (css || prev === "" || STRING_OPENERS.has(prev) || KEYWORD_BEFORE_STRING.test(code)))
     if (opensString) {
       let j = i + 1
       while (j < source.length && source[j] !== c) {
@@ -117,16 +125,16 @@ const TUTOIEMENT = {
     [TUTOIEMENT_PRONOUNS, TUTOIEMENT_ELISION, TUTOIEMENT_TA, TUTOIEMENT_IMPERATIVES].some((re) => re.test(text)),
 }
 
-const APOSTROPHE_ENTITY = /&(?:apos|rsquo|#39|#x27);/gi
+const APOSTROPHE_ENTITY = /&(?:apos|rsquo|lsquo|#0*39|#x0*27);/gi
 
 /**
- * Texte JSX : ce qui se trouve entre une balise et la suivante (hors `=>` et expressions).
- * Les entités d'apostrophe (`&apos;`, `&rsquo;`, `&#39;`) sont remplacées par l'apostrophe : « t&apos;est » est
- * l'élision « t'est » une fois rendue.
+ * Texte JSX : segments `>...<`, `>...{`, `}...<` et `}...{` (hors `=>`) : le texte placé après une expression
+ * `{...}` est lu aussi. Les entités d'apostrophe (`&apos;`, `&rsquo;`, `&lsquo;`, `&#39;`, `&#x27;`) sont remplacées
+ * par l'apostrophe : « t&apos;est » est l'élision « t'est » une fois rendue.
  */
 export function jsxText(code) {
   const out = []
-  const re = /(?<![=-])>([^<>{}]+)</g
+  const re = /(?<![=-])[>}]([^<>{}]+)(?=[<{])/g
   let m
   while ((m = re.exec(code))) if (/\S/.test(m[1])) out.push(m[1].replace(APOSTROPHE_ENTITY, "'"))
   return out
