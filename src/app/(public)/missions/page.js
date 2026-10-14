@@ -72,10 +72,10 @@ function PublishPromo() {
   )
 }
 
-// Titre du bandeau : « Trouve ta mission. » par défaut, sinon le type et/ou la ville filtrés.
+// Titre du bandeau : « Trouvez votre mission. » par défaut, sinon le type et/ou la ville filtrés.
 function HeroTitle({ type, ville }) {
   if (!type && !ville) {
-    return <>Trouve<br /><span className="hl-citron">ta mission.</span></>
+    return <>Trouvez<br /><span className="hl-citron">votre mission.</span></>
   }
   if (!ville) return <span className="hl-citron">{missionTypeLabel(type)}</span>
   return <>{type ? missionTypeLabel(type) : "Missions"}<br /><span className="hl-citron">à {ville}</span></>
@@ -89,7 +89,7 @@ function noResultText({ q, type, ville, budgetLabel }) {
   if (budgetLabel) parts.push(`au budget « ${budgetLabel} »`)
   if (ville) parts.push(`à ${ville}`)
   const wide = [ville && "la ville", budgetLabel && "le budget"].filter(Boolean).join(" ou ")
-  return `${parts.join(" ")} pour l'instant. ${wide ? `Élargis ${wide}.` : "Essaie d'élargir ta recherche."}`
+  return `${parts.join(" ")} pour l'instant. ${wide ? `Élargissez ${wide}.` : "Essayez d'élargir votre recherche."}`
 }
 
 // Replis du Suspense (useSearchParams) : même cadre que la version interactive, sans interaction.
@@ -257,7 +257,7 @@ export default async function MissionsPage({ searchParams }) {
             <div className="empty empty--erreur">
               <div className="empty__art"><span className="ic-sq"><Icon name="i-alert-triangle" className="ic" /></span></div>
               <div className="empty__title">Impossible de charger les missions</div>
-              <div className="empty__text">Ce n&rsquo;est pas qu&rsquo;il n&rsquo;y a rien : le serveur n&rsquo;a pas répondu. Tes filtres sont conservés.</div>
+              <div className="empty__text">Ce n&rsquo;est pas qu&rsquo;il n&rsquo;y a rien : le serveur n&rsquo;a pas répondu. Vos filtres sont conservés.</div>
               <Link className="btn btn--primary" href={retryHref(filters, page)}><Icon name="i-refresh" className="ic" />Réessayer</Link>
             </div>
           </div>
@@ -271,7 +271,7 @@ export default async function MissionsPage({ searchParams }) {
                 C&rsquo;est calme.<br /><span className="hl-bleu">Pas pour longtemps.</span>
               </h2>
               <p className="muted body-l v02-void__text">
-                Aucune mission n&rsquo;est ouverte en ce moment. Crée ton compte pour être prévenu dès qu&rsquo;une mission est publiée près de chez toi.
+                Aucune mission n&rsquo;est ouverte en ce moment. Créez votre compte pour être prévenu dès qu&rsquo;une mission est publiée près de chez vous.
               </p>
               <div className="row v02-void__actions">
                 <Link className="btn btn--primary btn--lg" href="/auth/register?role=student">Créer mon compte</Link>
@@ -296,7 +296,7 @@ export default async function MissionsPage({ searchParams }) {
               <div className="empty__text">
                 {q || type || ville || budget || urgence
                   ? noResultText({ q, type, ville, budgetLabel })
-                  : "Cette page est vide. Reviens à la première page."}
+                  : "Cette page est vide. Revenez à la première page."}
               </div>
               <div className="empty__actions">
                 <Link className="btn btn--primary" href="/missions">

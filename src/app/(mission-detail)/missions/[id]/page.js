@@ -140,7 +140,7 @@ export default async function MissionDetailPage({ params }) {
   const commission = budget - net
   const commissionPct = Math.round(COMMISSION_RATE * 100)
   const isEmployerView = role === "client" || role === "admin"
-  const netLabel = isEmployerView ? "L'étudiant touche" : "Tu touches"
+  const netLabel = isEmployerView ? "L'étudiant touche" : "Vous touchez"
   const reportHref = `/contact?sujet=signalement&ref=${encodeURIComponent(`/missions/${mission.id}`)}`
   const typeIcon = TYPE_ICON[mission.type] ?? "i-briefcase"
   const urgencyLabel = URGENCY_LABEL[mission.urgency]
@@ -256,7 +256,7 @@ export default async function MissionDetailPage({ params }) {
                     <b>&minus;&#8239;{fmtInt(commission)}&#8239;FCFA</b>
                   </div>
                   <div className="recap__line recap__total">
-                    <span>{isEmployerView ? "Versé à l'étudiant" : "Tu touches"}</span>
+                    <span>{isEmployerView ? "Versé à l'étudiant" : "Vous touchez"}</span>
                     <b>{fmtInt(net)}&#8239;FCFA</b>
                   </div>
                 </div>
