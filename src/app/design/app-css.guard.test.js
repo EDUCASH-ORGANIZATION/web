@@ -1415,8 +1415,8 @@ describe("anciennes pages etudiant : pas de debordement horizontal de la coquill
   it("la page candidatures garde ses onglets dans un conteneur defilant (overflow-x-auto, pleine largeur) : ils defilent au lieu d'elargir la page", () => {
     const tabs = readFileSync(path.join(dir, "..", "..", "components", "student", "applications-tabs.js"), "utf8")
     expect(tabs).toMatch(/className="flex gap-2 w-full overflow-x-auto[^"]*" role="tablist"/)
-    const page = readFileSync(path.join(dir, "..", "(student)", "applications", "page.js"), "utf8")
-    expect(page).toContain("max-w-2xl mx-auto")
+    // La page /applications n'est plus l'ancienne page Tailwind (max-w-2xl) : E04 la remplace par une page mince
+    // (ST-07). Seul l'ancien composant d'onglets, présent jusqu'à ST-17, reste gardé ici.
   })
 
   it("calcul de largeur : les onglets de 461 px (shrink-0) tiennent dans la page de 320, 360 et 390 px avec la largeur pleine", () => {
