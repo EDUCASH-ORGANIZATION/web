@@ -20,7 +20,9 @@ const EXCLUDED = new Set(["src/lib/actions/verify-card.actions.js"])
 // ─── Lecture du source : retire les commentaires, extrait les chaînes ───────────────────────
 
 // Une apostrophe ouvre une chaîne seulement après un de ces caractères (sinon c'est du texte JSX).
+// Les mots-clés `return` et `case` (fin de mot) ouvrent aussi une chaîne : `return 'Tu as gagné'`.
 const STRING_OPENERS = new Set(["(", "[", ",", "=", ":", "?", "{", "+", "|", "&", "!", ";", ">"])
+const KEYWORD_BEFORE_STRING = /(?:^|[^\p{L}\p{N}_$.])(?:return|case)\s*$/u
 
 /** @returns {{ code: string, strings: string[] }} `code` sans commentaires (positions conservées) */
 export function scan(source) {
@@ -45,7 +47,7 @@ export function scan(source) {
       i = stop
       continue
     }
-    const opensString = c === '"' || c === "`" || (c === "'" && (prev === "" || STRING_OPENERS.has(prev)))
+    const opensString = c === '"' || c === "`" || (c === "'" && (prev === "" || STRING_OPENERS.has(prev) || KEYWORD_BEFORE_STRING.test(code)))
     if (opensString) {
       let j = i + 1
       while (j < source.length && source[j] !== c) {
@@ -66,10 +68,10 @@ export function scan(source) {
   return { code, strings }
 }
 
-/** Texte JSX : ce qui se trouve entre une balise et la suivante (hors `=>` et expressions). */
+/** Texte JSX : segments `>...<`, `>...{`, `}...<` et `}...{` (hors `=>`) : le texte placé après une expression `{...}` est lu. */
 function jsxText(code) {
   const out = []
-  const re = /(?<![=-])>([^<>{}]+)</g
+  const re = /(?<![=-])[>}]([^<>{}]+)(?=[<{])/g
   let m
   while ((m = re.exec(code))) if (/\S/.test(m[1])) out.push(m[1])
   return out
@@ -92,11 +94,11 @@ const ELISION = new RegExp(`${START}t(?:['\\u2019]|&rsquo;|&apos;)(?=\\p{L})`, "
 const COMPOUND = new RegExp(`\\p{L}-(?:toi|tu|te)${END}`, "iu")
 // Impératifs de la 2e personne du singulier sans pronom, en début de phrase (majuscule) :
 // « Il publie » reste permis. Liste des lots vitrine, emails et espaces connectés, plus les verbes d'action courants.
-// « Recharge », « Garde » et « Copie » sont aussi des noms (« Recharge confirmée », « Garde d'enfants ») :
+// « Recharge », « Garde », « Copie », « Demande » et « Partage » sont aussi des noms (« Recharge confirmée », « Garde d'enfants », « Partage des données ») :
 // impératif seulement s'ils ne sont ni seuls, ni suivis de de, d', et, en ou confirmé.
-const NOUN_USE = "(?!\\s*$|\\s+(?:de|d['\\u2019]|et|en|confirm))"
+const NOUN_USE = "(?!\\s*$|\\s+(?:de|du|d['\\u2019]|et|en|confirm))"
 const IMPERATIVES = new RegExp(
-  `${START_NO_HYPHEN}(?:Crée|Encaisse|Postule|Écris|Fais|Trouve|Prouve|Découvre|Retire|Reprends|Réessaie|Vérifie|Envoie|Contacte|Choisis|Parcours|Bosse|Sois|Essaie|Précise|Explique|Laisse|Inscris|Connecte|Reviens|Retrouve|Filtre|Ouvre|Utilise|Renvoie|Élargis|Donne|Passe|Reconnecte|Indique|Complète|Décris|Publie|Rafraîchis|Clique|Ajoute|Retourne|Confirme|Renseigne|Annule|Sélectionne|Saisis|Valide|Réinitialise|Ignore|Consulte|Commence|Hésite|Renouvelle|Soumets|Explore)${END}|${START_NO_HYPHEN}(?:Recharge|Garde|Copie)${END}${NOUN_USE}`,
+  `${START_NO_HYPHEN}(?:Crée|Encaisse|Postule|Écris|Fais|Trouve|Prouve|Découvre|Retire|Reprends|Réessaie|Vérifie|Envoie|Contacte|Choisis|Parcours|Bosse|Sois|Essaie|Précise|Explique|Laisse|Inscris|Connecte|Reviens|Retrouve|Filtre|Ouvre|Utilise|Renvoie|Élargis|Donne|Passe|Reconnecte|Indique|Complète|Décris|Publie|Rafraîchis|Clique|Ajoute|Retourne|Confirme|Renseigne|Annule|Sélectionne|Saisis|Valide|Réinitialise|Ignore|Consulte|Commence|Hésite|Renouvelle|Soumets|Explore|Regarde|Rejoins|Gagne|Profite|Pense|Mets|Termine|Accepte|Lance|Supprime|Modifie|Télécharge|Réponds|Préviens)${END}|${START_NO_HYPHEN}(?:Recharge|Garde|Copie|Demande|Partage)${END}${NOUN_USE}`,
   "u",
 )
 
@@ -143,6 +145,35 @@ describe("détecteurs de tutoiement (fixtures)", () => {
     'const t = "Retrouve les missions"',
     'const t = "Recharge le solde"',
     "const t = `Bonjour ${name}, ton solde`",
+    "<p>Merci {name}. Ton message est arrivé</p>",
+    "<p>Bonjour {name}, tu peux publier</p>",
+    "<p>{count} missions, ton solde</p>",
+    "<p>Bonjour {name}, {role} : tu peux publier</p>",
+    "function f(x) { return 'Tu as gagné' }",
+    "switch (x) { case 'a': return 'Ton solde' }",
+    "switch (x) { case 'Ton solde': break }",
+    'const t = "Regarde les missions"',
+    'const t = "Demande un retrait"',
+    'const t = "Rejoins la communauté"',
+    'const t = "Gagne de l\'argent"',
+    'const t = "Profite de l\'offre"',
+    'const t = "Pense à vérifier"',
+    'const t = "Mets à jour le profil"',
+    'const t = "Termine la mission"',
+    'const t = "Accepte la mission"',
+    'const t = "Lance la mission"',
+    'const t = "Supprime la mission"',
+    'const t = "Modifie le profil"',
+    'const t = "Télécharge le reçu"',
+    'const t = "Partage le lien"',
+    'const t = "Réponds au client"',
+    'const t = "Préviens le client"',
+    'const t = "Renouvelle le plan"',
+    'const t = "Ajoute une carte"',
+    'const t = "Confirme le numéro"',
+    'const t = "Valide le dossier"',
+    'const t = "Annule la mission"',
+    'const t = "Sélectionne une ville"',
   ]
   const NEGATIVES = [
     'const t = "Rechargez votre compte"',
@@ -155,12 +186,19 @@ describe("détecteurs de tutoiement (fixtures)", () => {
     'const t = "Recharge"',
     'const t = "Recharge confirmée"',
     'const t = "Garde d\'enfants"',
+    'const t = "Partage des données"',
+    'const t = "Demande de retrait envoyée"',
     'const tone = "chaleureux"; const ton = tone',
     "// Ton chaleureux : tu peux le dire en commentaire\nconst a = 1",
     "/* Tu es un commentaire, ton aussi */\nconst a = 1",
     'const t = "Vous avez eu l\'été et une tournée"',
     'const t = "Il a écrit, rien d\'autre. C\'est tout"',
     "<p>Vérifiez votre solde</p>",
+    "<p>Merci {name}. Votre message est arrivé</p>",
+    "<p>Bonjour {name}, vous pouvez publier</p>",
+    "function f(x) { return 'Vous avez gagné' }",
+    "switch (x) { case 'a': return 'Votre solde' }",
+    'const t = "Mettez à jour, Lancez, Partagez, Téléchargez"',
   ]
 
   it.each(POSITIVES)("détecte : %s", (src) => {
