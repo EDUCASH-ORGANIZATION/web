@@ -1,7 +1,7 @@
 {
   "name": "EduCash - Missions étudiantes",
   "short_name": "EduCash",
-  "description": "Transforme tes compétences en revenu",
+  "description": "Transformez vos compétences en revenu",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F3F5FC",

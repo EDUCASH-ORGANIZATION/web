@@ -6,7 +6,8 @@ import { activeKey } from "../app-shell/nav-model.js"
 
 const APP = path.join(process.cwd(), "src/app")
 const BANNED = /livraison|course|coursier|saisie|bient[oô]t/i
-const VOUVOIEMENT = /\b(vous|votre|vos)\b/i
+// Vouvoiement partout (RD-VOUS-01) : un libelle ne contient aucune forme de tutoiement.
+const TUTOIEMENT = /\b(tu|toi|ton|ta|tes|te)\b|\bt['\u2019]|-(toi|tu)\b/i
 
 function pages(dir, acc = []) {
   for (const name of readdirSync(dir)) {
@@ -41,10 +42,10 @@ describe("ADMIN_MOBILE_NAV", () => {
     for (const { icon } of [...all, mobileMore]) expect(sprite).toContain(`id="${icon}"`)
   })
 
-  it("libellés sans mot banni ni vouvoiement", () => {
+  it("libellés sans mot banni ni tutoiement", () => {
     for (const { label } of [...all, mobileMore]) {
       expect(label).not.toMatch(BANNED)
-      expect(label).not.toMatch(VOUVOIEMENT)
+      expect(label).not.toMatch(TUTOIEMENT)
     }
   })
 

@@ -18,12 +18,12 @@ export default function WelcomeVerified({ name = "Étudiant" }) {
           <Text style={text}>Bonjour {name},</Text>
 
           <Text style={text}>
-            Bonne nouvelle ! Ton profil EduCash a été <strong>vérifié</strong> par notre équipe.
-            Tu peux désormais postuler à toutes les missions disponibles sur la plateforme.
+            Bonne nouvelle ! Votre profil EduCash a été <strong>vérifié</strong> par notre équipe.
+            Vous pouvez désormais postuler à toutes les missions disponibles sur la plateforme.
           </Text>
 
           <Text style={text}>
-            Consulte les missions près de chez toi et commence à gagner de l&apos;argent dès aujourd&apos;hui.
+            Consultez les missions près de chez vous et commencez à gagner de l&apos;argent dès aujourd&apos;hui.
           </Text>
 
           <Button href={APP_URL + "/missions"} style={button}>
