@@ -94,7 +94,7 @@ describe("(student)/layout", () => {
     await expect(render).rejects.toThrow("REDIRECT:/auth/login?suspended=1")
   })
 
-  it("étudiant : racine ds e2, une seule barre mobile à 4 entrées, une seule navigation latérale", async () => {
+  it("étudiant : racine ds e2, une seule barre mobile à 5 entrées, une seule navigation latérale", async () => {
     const html = renderToStaticMarkup(await StudentLayout({ children: <p>contenu</p> }))
     expect(html).toContain('class="ds e2"')
     expect(html.match(/<nav[^>]*aria-label="Navigation mobile"/g)).toHaveLength(1)
@@ -102,7 +102,7 @@ describe("(student)/layout", () => {
     expect(html.match(/<main/g)).toHaveLength(1)
     expect(html.match(/<nav[^>]*aria-label="Navigation principale"/g)).toHaveLength(1)
     const nav = html.slice(html.indexOf('<nav class="bottom-nav'), html.indexOf("</nav>", html.indexOf('<nav class="bottom-nav')))
-    expect(nav.match(/<a [^>]*class="bnav-item/g)).toHaveLength(4)
+    expect(nav.match(/<a [^>]*class="bnav-item/g)).toHaveLength(5)
     expect(nav).toContain('aria-current="page"')
     expect(nav).toContain("Messages, 3 non lus")
     expect(html).toContain("Espace étudiant")

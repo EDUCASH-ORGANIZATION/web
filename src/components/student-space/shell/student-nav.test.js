@@ -42,8 +42,8 @@ describe("STUDENT_NAV", () => {
     expect(new Set(desktop.map((i) => i.key)).size).toBe(desktop.length)
   })
 
-  it("mobile : 4 onglets (décision D3), sans portefeuille ni bouton central", () => {
-    expect(mobile.map((i) => i.key)).toEqual(["accueil", "missions", "candidatures", "messages"])
+  it("mobile : 5 onglets dont Portefeuille en dernier, sans bouton central", () => {
+    expect(mobile.map((i) => i.key)).toEqual(["accueil", "missions", "candidatures", "messages", "portefeuille"])
     expect(mobile.some((i) => i.cta)).toBe(false)
     expect(STUDENT_NAV.mobileMore).toBeUndefined()
   })
@@ -92,7 +92,8 @@ describe("STUDENT_NAV", () => {
     expect(activeKey("/student/missions/abc", mobile)).toBe("missions")
     expect(activeKey("/messages", mobile)).toBe("messages")
     expect(activeKey("/profile", mobile)).toBeNull()
-    expect(activeKey("/wallet", mobile)).toBeNull()
+    expect(activeKey("/wallet", mobile)).toBe("portefeuille")
+    expect(activeKey("/wallet/retrait", mobile)).toBe("portefeuille")
   })
 
   it("masque la barre mobile sur les enfants de /messages seulement", () => {
