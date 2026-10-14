@@ -174,7 +174,7 @@ export function MissionApplyView({ detail, flags }) {
               <GainRecap split={view.split} />
             </div>
           </section>
-          <ClientCard client={client} budget={mission.budget} />
+          <ClientCard client={client} budget={mission.budget} paymentsEnabled={flags?.paymentsEnabled === true} />
           <SimilarMissions missions={similar} type={missionType} />
           <div>
             <Link className="e2-link e2-link--quiet" href={REPORT_HREF}>

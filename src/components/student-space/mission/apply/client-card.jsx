@@ -10,10 +10,10 @@ function ratingText(rating) {
 
 /**
  * Le client, vu de l'étudiant : prénom et initiale seulement (jamais téléphone ni email), ville, note,
- * missions publiées, mention du séquestre. Composant pur.
- * @param {{ client: import("@/lib/actions/student-mission-detail.actions").StudentMissionClient, budget: number }} props
+ * missions publiées, mention du séquestre (seulement si les paiements sont activés). Composant pur.
+ * @param {{ client: import("@/lib/actions/student-mission-detail.actions").StudentMissionClient, budget: number, paymentsEnabled?: boolean }} props
  */
-export function ClientCard({ client, budget }) {
+export function ClientCard({ client, budget, paymentsEnabled = false }) {
   const sub = [client.city, ratingText(client.rating)].filter(Boolean).join(" · ")
   const published = client.missionsPublished
   return (
@@ -38,10 +38,12 @@ export function ClientCard({ client, budget }) {
               {published > 1 ? `${published} missions publiées` : "1 mission publiée"}
             </span>
           ) : null}
-          <span className="badge badge--succes badge--sm">
-            <Icon name="i-shield" />
-            Fonds bloqués en séquestre
-          </span>
+          {paymentsEnabled ? (
+            <span className="badge badge--succes badge--sm">
+              <Icon name="i-shield" />
+              Fonds bloqués en séquestre
+            </span>
+          ) : null}
         </div>
         <p className="e2-03-caption">
           {`Les ${formatAmount(budget)} du budget sont déjà bloqués par EduCash. Ils vous sont versés (${STUDENT_PERCENT} %) quand le client valide la fin de la mission ; rien n'est versé automatiquement.`}
