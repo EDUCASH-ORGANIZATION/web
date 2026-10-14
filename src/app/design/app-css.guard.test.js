@@ -1501,6 +1501,24 @@ describe("E06 et E07 : exception documentee aux composants du systeme (fond, bor
     expect(e07).toContain(".e2-07-composer .composer__field:focus-within { background: var(--c-blanc); border-color: var(--c-bleu); box-shadow: var(--sh-champ-focus); }")
     expect(e07).toContain(".e2-07-composer .composer__send:disabled { background: var(--c-off-bg); color: var(--c-off-txt); }")
   })
+
+  it("l'exception reste limitee a EXACTEMENT trois regles : aucune autre regle d'etat d'un composant du systeme ne pose fond, bordure ou ombre", () => {
+    // Une regle d'exception restyle l'etat d'un composant du systeme (champ ou bouton) : sa cible porte l'etat
+    // :focus-within ou :disabled et elle pose un fond, une bordure ou une ombre. Les regles de mise en page propres a
+    // .e2-06-* et .e2-07-* (cartes, bulles, fenetre) ne portent jamais ces etats.
+    const POSES = /(?:^|;)\s*(?:background(?:-color)?|border(?:-[a-z-]+)?|box-shadow)\s*:/
+    const STATE = /:(?:focus-within|disabled)\b/
+    const rulesOf = (css) => [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({ selector: selector.trim().replace(/\s+/g, " "), body }))
+    const exceptions = [...rulesOf(e06), ...rulesOf(e07)].filter(({ selector, body }) => STATE.test(selector) && POSES.test(body))
+    expect(exceptions.map(({ selector }) => selector)).toEqual([
+      ".e2 .e2-06-search:not(:focus-within)",
+      ".e2-07-composer .composer__field:focus-within",
+      ".e2-07-composer .composer__send:disabled",
+    ])
+    // Le detecteur voit une quatrieme regle du meme type (cas temoin).
+    const witness = rulesOf(".e2-07-composer .composer__field:disabled { background: red; } .e2-07-pane { background: red; }")
+    expect(witness.filter(({ selector, body }) => STATE.test(selector) && POSES.test(body))).toHaveLength(1)
+  })
 })
 
 // RD-FIX-01 : aucun trait au-dessus d'une rangée qui défile horizontalement (défaut mobile signalé sur C14).
