@@ -186,7 +186,9 @@ describe("feuilles app-shell.css et client/*.css", () => {
     const offenders = []
     for (const sel of selectorsOf(ALL)) {
       for (const part of sel.split(",").map((p) => p.trim())) {
-        // .e2 est la racine de l'espace etudiant (RD-STUDENT-01) : meme portee que .c2, aucune page actuelle ne la porte.
+        // .e2 est la racine de l'espace etudiant (RD-STUDENT-01) : meme portee que .c2. Depuis ST-04 le layout pose `.ds e2` sur
+        // toutes les pages etudiant, anciennes comprises : le test « aucune ancienne page n'utilise une classe attenuee »
+        // (fin de fichier) garantit que ces regles ne changent pas leur rendu.
         if (part.startsWith(".c2 ") || part === ".c2" || part.startsWith(".e2 ")) continue
         const names = [...part.matchAll(/\.([A-Za-z][\w-]*)/g)].map((m) => m[1])
         if (!names.some(isNew)) offenders.push(part)
@@ -1334,5 +1336,51 @@ describe("student : cascade statique (specificite et ordre de chargement)", () =
     expect(tabletOf(e07)).toContain(".e2:has(.e2-07-mhead) .mtop2 { display: none; }")
     expect(tabletOf(e07)).toMatch(/\.shell--v2:has\(\.e2-07-pane\) \.shell__main \{ padding-bottom: calc\(var\(--s-2\) \+ env\(safe-area-inset-bottom/)
     expect(tabletOf(e07)).toMatch(/\.e2-07-pane \{ height: calc\(100dvh - var\(--s-2\) - env\(safe-area-inset-bottom/)
+  })
+})
+
+// Depuis ST-04, `.ds e2` couvre aussi les anciennes pages etudiant (celles sans marqueur @ds-screen). Les classes de
+// composants v1 « atténuées » par la section 1 de student/base.css ne doivent donc apparaitre dans aucune d'elles,
+// sinon leur rendu changerait.
+describe("anciennes pages etudiant : aucune classe attenuee par .e2", () => {
+  const root = path.join(dir, "../../..")
+  const walk = (rel) =>
+    readdirSync(path.join(root, rel), { withFileTypes: true }).flatMap((e) => {
+      const child = path.join(rel, e.name)
+      if (e.isDirectory()) return walk(child)
+      return /\.jsx?$/.test(e.name) && !/\.test\./.test(e.name) ? [child] : []
+    })
+
+  const section1 = STUDENT_BASE.slice(0, STUDENT_BASE.indexOf(".e2 .btn-icon {"))
+  const softened = [...new Set([...section1.matchAll(/\.e2 \.([A-Za-z][\w-]*)/g)].map((m) => m[1]))].filter((n) => !n.startsWith("e2-"))
+
+  // Pages anciennes (sans @ds-screen) et composants propres a l'espace etudiant ancien.
+  const legacy = [
+    ...walk("src/app/(student)"),
+    ...walk("src/components/student"),
+    ...walk("src/components/profile"),
+    "src/components/missions/student-apply-form.js",
+  ].filter((f) => !readFileSync(path.join(root, f), "utf8").slice(0, 300).includes("@ds-screen"))
+
+  const classTokens = (source) => {
+    const tokens = new Set()
+    for (const m of source.matchAll(/className=(?:"([^"]*)"|\{"([^"]*)"\}|\{`([^`]*)`\})/g)) {
+      const value = (m[1] ?? m[2] ?? m[3] ?? "").replace(/\$\{[^}]*\}/g, " ")
+      for (const t of value.split(/\s+/)) if (t) tokens.add(t)
+    }
+    return tokens
+  }
+
+  it("la liste des classes attenuees est lue et non vide (card, modal, chip, tab, input...)", () => {
+    expect(softened).toEqual(expect.arrayContaining(["card", "modal", "chip", "tab", "input", "select"]))
+    expect(legacy.length).toBeGreaterThan(5)
+  })
+
+  it("aucune ancienne page ou composant etudiant n'utilise une classe attenuee", () => {
+    const offenders = legacy.flatMap((f) => {
+      const used = classTokens(readFileSync(path.join(root, f), "utf8"))
+      return softened.filter((n) => used.has(n)).map((n) => `${f}: ${n}`)
+    })
+    expect(offenders).toEqual([])
   })
 })
