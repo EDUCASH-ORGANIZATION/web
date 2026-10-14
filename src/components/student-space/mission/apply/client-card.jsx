@@ -45,9 +45,11 @@ export function ClientCard({ client, budget, paymentsEnabled = false }) {
             </span>
           ) : null}
         </div>
-        <p className="e2-03-caption">
-          {`Les ${formatAmount(budget)} du budget sont déjà bloqués par EduCash. Ils vous sont versés (${STUDENT_PERCENT} %) quand le client valide la fin de la mission ; rien n'est versé automatiquement.`}
-        </p>
+        {paymentsEnabled ? (
+          <p className="e2-03-caption">
+            {`Les ${formatAmount(budget)} du budget sont déjà bloqués par EduCash. Ils vous sont versés (${STUDENT_PERCENT} %) quand le client valide la fin de la mission ; rien n'est versé automatiquement.`}
+          </p>
+        ) : null}
       </div>
     </section>
   )

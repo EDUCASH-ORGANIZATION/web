@@ -79,6 +79,7 @@ describe("prêt à postuler", () => {
     const enabled = view(open(), { postuler: false, paymentsEnabled: true })
     expect(enabled).toContain("Mawuli A.")
     expect(enabled).toContain("Fonds bloqués en séquestre")
+    expect(enabled).toContain("du budget sont déjà bloqués par EduCash")
     expect(html).toContain("Mawuli A.")
     expect(html).toContain("5 missions publiées")
     expect(html).toContain("4,7 / 5")
@@ -88,6 +89,8 @@ describe("prêt à postuler", () => {
   it("paiements coupés : la mention « Fonds bloqués en séquestre » est masquée (aucune promesse non tenue)", () => {
     expect(html).not.toContain("Fonds bloqués en séquestre")
     expect(view(open(), { postuler: false }).includes("Fonds bloqués en séquestre")).toBe(false)
+    expect(html).not.toContain("déjà bloqués par EduCash")
+    expect(view(open(), { postuler: false }).includes("déjà bloqués par EduCash")).toBe(false)
     expect(html).toContain("5 missions publiées")
   })
 
