@@ -91,7 +91,7 @@ export function ApplyModal({ missionId, missionTitle, isOpen, onClose, onSuccess
                 Postuler à cette mission
               </Dialog.Title>
               <Dialog.Description className="sr-only">
-                Rédige ton message de motivation pour postuler à {missionTitle}.
+                Rédigez votre message de motivation pour postuler à {missionTitle}.
               </Dialog.Description>
             </div>
             <Dialog.Close
@@ -118,7 +118,7 @@ export function ApplyModal({ missionId, missionTitle, isOpen, onClose, onSuccess
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700">
-                Ton message de motivation
+                Votre message de motivation
               </label>
 
               <textarea
@@ -127,7 +127,7 @@ export function ApplyModal({ missionId, missionTitle, isOpen, onClose, onSuccess
                   setMessage(e.target.value)
                   if (error) setError(null)
                 }}
-                placeholder="Explique pourquoi tu es le bon candidat pour cette mission, tes compétences et ta disponibilité…"
+                placeholder="Expliquez pourquoi vous êtes le bon candidat pour cette mission, vos compétences et votre disponibilité…"
                 rows={5}
                 disabled={isLoading}
                 className={clsx(

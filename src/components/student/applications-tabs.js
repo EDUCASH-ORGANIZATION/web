@@ -112,14 +112,14 @@ const EMPTY_STATES = {
   pending: {
     icon: FileText,
     title: "Aucune candidature en attente",
-    message: "Tes prochaines candidatures apparaîtront ici.",
+    message: "Vos prochaines candidatures apparaîtront ici.",
     href: "/student/missions",
     ctaLabel: "Explorer les missions",
   },
   accepted: {
     icon: CheckCircle,
     title: "Aucune candidature acceptée",
-    message: "Continue à postuler - une opportunité t'attend !",
+    message: "Continuez à postuler - une opportunité vous attend !",
     href: "/student/missions",
     ctaLabel: "Voir les missions",
   },
