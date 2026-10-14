@@ -1,6 +1,7 @@
 /*
  * OBSOLETE, NE PAS EXECUTER : ce fichier crée des politiques basées sur user_metadata (modifiable par l'utilisateur), ce qui donne un accès admin à tout compte qui s'attribue ce rôle.
  * La production est alignée sur RD-02/02-correctif.sql. Ne jamais rejouer ce fichier.
+ * État de référence de la base : supabase/schema.sql (régénéré depuis la production le 2026-10-14).
  */
 -- ─────────────────────────────────────────────────────────────────────────────
 -- FIX : Système de vérification des dossiers étudiants

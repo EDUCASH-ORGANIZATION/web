@@ -1,6 +1,6 @@
 -- OBSOLETE, NE PAS EXECUTER EN PRODUCTION (RD-SEC-03, 2026-10-14).
--- Motif : ecraserait la definition de check_verification_expiry de la production par une version plus ancienne.
--- Etat de reference de la base : supabase/schema.sql (regenere depuis la production).
+-- Motif : recrée check_verification_expiry en SECURITY DEFINER sans search_path (la production fixe search_path) ; le rejouer réintroduit une faille de résolution de noms et écrase la définition de production.
+-- État de référence de la base : supabase/schema.sql (régénéré depuis la production).
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Fonction SQL appelée par la Edge Function check-verifications-expiry

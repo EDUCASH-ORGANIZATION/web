@@ -1,6 +1,6 @@
 -- OBSOLETE, NE PAS EXECUTER EN PRODUCTION (RD-SEC-03, 2026-10-14).
--- Motif : a ne garder que comme donnees de depart (seed) ; la politique de lecture qu'il cree est en doublon des politiques de production.
--- Etat de reference de la base : supabase/schema.sql (regenere depuis la production).
+-- Motif : à ne garder que comme données de départ (seed) ; la politique de lecture qu'il cree est en doublon des politiques de production.
+-- État de référence de la base : supabase/schema.sql (régénéré depuis la production).
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Table : universities — Établissements d'enseignement supérieur au Bénin

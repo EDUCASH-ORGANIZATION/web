@@ -1,6 +1,7 @@
 /*
  * OBSOLETE, NE PAS EXECUTER : ce fichier accepte le rôle admin depuis user_metadata (modifiable par l'utilisateur), ce qui permet une élévation de privilèges.
  * La production est alignée sur RD-02/02-correctif.sql. Ne jamais rejouer ce fichier.
+ * État de référence de la base : supabase/schema.sql (régénéré depuis la production le 2026-10-14).
  */
 -- ─────────────────────────────────────────────────────────────────────────────
 -- FIX : trigger handle_new_user + sync rôle + colonne is_suspended

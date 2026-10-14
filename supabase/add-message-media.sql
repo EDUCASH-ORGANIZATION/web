@@ -1,6 +1,6 @@
 -- OBSOLETE, NE PAS EXECUTER EN PRODUCTION (RD-SEC-03, 2026-10-14).
--- Motif : cree le bucket message-media sans limite de taille ni types MIME et une politique de lecture qui n'existe plus ; rejouer elargit l'acces.
--- Etat de reference de la base : supabase/schema.sql (regenere depuis la production).
+-- Motif : recrée la politique "Read message media" (lecture de tout le bucket par tous) ; sur une base neuve, crée aussi le bucket sans limite de taille ni types MIME.
+-- État de référence de la base : supabase/schema.sql (régénéré depuis la production).
 
 -- ─── Colonnes média sur la table messages ────────────────────────────────────
 alter table public.messages

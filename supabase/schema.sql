@@ -4,13 +4,27 @@
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
 -- propres à Supabase (auth.users, auth.uid(), rôles anon/authenticated/service_role,
--- storage.*). Régénération : voir .agents/tasks/RD-SEC-03 (non versionné) ou refaire
--- les requêtes de catalogue (pg_catalog, information_schema, storage.buckets).
+-- storage.*). Régénération : refaire les lectures de catalogue suivantes :
+-- pg_get_functiondef, pg_get_constraintdef, pg_get_indexdef, pg_get_triggerdef,
+-- pg_policies, information_schema.role_table_grants et column_privileges,
+-- pg_proc.proacl, storage.buckets, pg_publication_tables.
 --
 -- Source : projet Supabase ymdtwtlnenxpfnxdipek, lecture seule du catalogue.
 -- Ordre : extensions, tables, contraintes, index, fonctions, triggers, RLS et
 -- politiques, privilèges, buckets, realtime.
 -- =============================================================================
+-- Garde : le fichier s'arrête si la base contient déjà public.profiles. Il est
+-- exécuté dans une transaction unique (begin ... commit en fin de fichier).
+-- psql : lancer avec -v ON_ERROR_STOP=1
+begin;
+
+do $$
+begin
+  if to_regclass('public.profiles') is not null then
+    raise exception 'schema.sql : base existante detectee, abandon. Ce fichier est une documentation de reference, ne pas l''executer sur une base existante.';
+  end if;
+end
+$$;
 
 -- 1. EXTENSIONS
 
@@ -1975,6 +1989,20 @@ alter publication supabase_realtime add table public.messages;
 --   gérés par Supabase (non repris ici).
 -- - realtime : publication supabase_realtime (table public.messages).
 -- - rôles API : anon, authenticated, service_role et leurs GRANT/REVOKE.
--- - extensions : pg_cron, pg_net, supabase_vault, uuid-ossp et pgcrypto
---   dans le schéma extensions.
+-- - extensions : pg_cron (schéma pg_catalog), pg_net (public), supabase_vault
+--   (vault), pg_stat_statements, uuid-ossp et pgcrypto (extensions).
+-- - search_path : uuid_generate_v4(), REFERENCES profiles(user_id) et is_admin()
+--   dans les politiques supposent le search_path par défaut de Supabase
+--   (public, extensions).
+--
+-- DETTE CONNUE
+-- - 14 fonctions SECURITY DEFINER ont search_path = 'public' et non vide :
+--   check_verification_expiry, handle_mission_done, handle_new_user,
+--   handle_new_wallet, recompute_profile_rating, recompute_rating_for,
+--   sync_role_to_auth, wallet_deposit, wallet_mission_reserved_left,
+--   wallet_refund, wallet_release, wallet_reserve, wallet_withdraw,
+--   wallet_withdraw_reverse.
+-- - message-media est un bucket public (suivi : bucket privé et URL signées).
 -- =============================================================================
+
+commit;
