@@ -229,6 +229,7 @@ describe("messages d'erreur : vouvoiement pour tous les rôles", () => {
     getServerRole.mockRejectedValue(new Error("db"))
     failRead()
     expect((await getWallet()).error).toBe("Impossible de charger votre portefeuille.")
+    expect(getServerRole).not.toHaveBeenCalled()
   })
 
   it("le client est vouvoyé quand la fonction de paiement échoue", async () => {
