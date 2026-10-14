@@ -30,7 +30,7 @@
 
 import { z } from "zod"
 import { requireRole } from "@/lib/auth/require-role"
-import { toOwnedStoragePath } from "@/lib/storage/owned-paths"
+import { toOwnedStoragePath, toProjectAvatarUrl } from "@/lib/storage/owned-paths"
 import { isUuid } from "@/lib/vitrine/ids"
 import { publicDisplayName } from "@/lib/vitrine/public-name"
 import {
@@ -91,6 +91,12 @@ function toStudent(id, profile) {
     name: publicDisplayName(profile?.full_name),
     avatarUrl: typeof profile?.avatar_url === "string" && profile.avatar_url !== "" ? profile.avatar_url : null,
   }
+}
+
+// Côté étudiant, l'interlocuteur est le client : sa colonne avatar_url est écrite par lui (RLS de profils), donc une
+// URL externe est possible (pixel de suivi). Seule une URL du projet Supabase, bucket avatars, est renvoyée.
+function toClientParty(id, profile) {
+  return { ...toStudent(id, profile), avatarUrl: toProjectAvatarUrl(profile?.avatar_url) }
 }
 
 /**
@@ -483,7 +489,7 @@ export async function getStudentConversations() {
   const profiles = new Map((profilesRes.data ?? []).map((p) => [p.user_id, p]))
 
   const conversations = legit.map(({ conv, mission, access }) => {
-    const client = toStudent(mission.clientId, profiles.get(mission.clientId))
+    const client = toClientParty(mission.clientId, profiles.get(mission.clientId))
     return {
       key: conv.key,
       missionId: conv.missionId,
@@ -543,7 +549,7 @@ export async function getStudentConversation({ missionId } = {}) {
       userId: user.id,
       missionId,
       clientId: other,
-      client: toStudent(other, profileRes.data),
+      client: toClientParty(other, profileRes.data),
       mission: { title: pair.mission.title, status: pair.mission.status },
       state: pair.access.state,
       canWrite: pair.access.canWrite,

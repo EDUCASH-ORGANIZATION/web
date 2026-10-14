@@ -762,6 +762,26 @@ describe("espace étudiant", () => {
       expect(mb.conversation.messages.map((m) => m.id)).toEqual(["s3", "s3b"])
     })
 
+    it("avatar du client : seule une URL du projet Supabase (bucket avatars) est renvoyée, une URL externe devient null", async () => {
+      const own = `${ORIGIN}/storage/v1/object/public/avatars/${CLIENT}/a.png`
+      const cases = [
+        [own, own],
+        [`${own}?track=1`, own],
+        ["https://tracker.example.com/pixel.gif", null],
+        [`${ORIGIN}/storage/v1/object/public/student-cards/${CLIENT}/c.png`, null],
+        [`${ORIGIN}/storage/v1/object/public/avatars/`, null],
+        ["javascript:alert(1)", null],
+        [null, null],
+      ]
+      for (const [stored, expected] of cases) {
+        db.profiles.find((p) => p.user_id === CLIENT).avatar_url = stored
+        const one = await getStudentConversation({ missionId: MA })
+        expect(one.conversation.client.avatarUrl).toBe(expected)
+        const list = await getStudentConversations()
+        expect(list.conversations.find((c) => c.missionId === MA).avatarUrl).toBe(expected)
+      }
+    })
+
     it("filtre la lecture par mission et par paire dans la requête, avec des identifiants validés", async () => {
       await getStudentConversation({ missionId: MA })
       const q = reads("messages")[0]
