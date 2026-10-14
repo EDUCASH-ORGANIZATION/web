@@ -14,8 +14,10 @@ describe("robots", () => {
   })
 
   it("drapeau invalide : mode normal", () => {
+    const normal = robots()
     vi.stubEnv("SITE_WAITING_MODE", "TRUE")
-    expect(robots().sitemap).toBeDefined()
+    expect(robots()).toEqual(normal)
+    expect(normal.sitemap).toMatch(/\/sitemap\.xml$/)
   })
 
   it("mode attente : Disallow / et aucun sitemap", () => {

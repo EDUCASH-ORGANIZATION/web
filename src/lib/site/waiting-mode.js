@@ -1,5 +1,9 @@
 // Mode attente (RD-STAGE-01) : module pur, sans directive client, sans import Next ni Supabase.
 // Utilisable depuis le middleware (Edge runtime) : uniquement des API natives.
+//
+// Activer ou désactiver SITE_WAITING_MODE exige un NOUVEAU DÉPLOIEMENT (redeploy), jamais un simple
+// changement de variable : robots.js est statique, le sitemap est en revalidate 3600, l'en-tête
+// X-Robots-Tag est posé au build et les variables d'environnement sont figées par déploiement.
 
 export const WAITING_RETRY_AFTER_SECONDS = 86400
 

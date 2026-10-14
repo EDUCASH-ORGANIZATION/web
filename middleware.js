@@ -62,6 +62,7 @@ function waitingResponse(request) {
       headers: {
         "Content-Type": "application/javascript; charset=utf-8",
         "Cache-Control": "no-store",
+        "X-Robots-Tag": waitingRobotsTag(),
       },
     })
   }
@@ -208,8 +209,15 @@ export async function middleware(request) {
   return response
 }
 
+// Le mode attente repose entièrement sur ce matcher : chaque exclusion est ancrée (slash final ou `$`),
+// sinon une route dynamique terminée par une extension (/missions/abc.png, /api/x.png) échapperait au
+// middleware. Exclus : /_next/static/*, favicon.ico, sitemap.xml, robots.txt (chemins exacts), les
+// images des dossiers public email/, logos/, icons/, images/ et les images à la racine sans sous-dossier
+// (logos de la page d'attente). Un fichier racine absent de /public (/x.png) retombe sur la 404 globale
+// statique, sans données. /attente.css passe par le middleware et y est exempté par comparaison exacte.
+// Hors mode attente, /_next/image passe aussi par le middleware (une invocation de plus, sans Supabase).
 export const config = {
   matcher: [
-    "/((?!_next/static|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)",
+    "/((?!_next/static/|favicon\\.ico$|sitemap\\.xml$|robots\\.txt$|(?:email|logos|icons|images)/.+\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$|[^/]+\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)",
   ],
 }

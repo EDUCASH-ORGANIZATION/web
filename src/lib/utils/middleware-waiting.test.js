@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { NextRequest } from "next/server"
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server"
 
 const createServerClient = vi.fn(() => ({
   auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
@@ -110,14 +111,70 @@ describe("middleware en mode attente", () => {
     expect(res.headers.get("x-middleware-next")).toBe("1")
   })
 
-  it("le matcher couvre les chemins à bloquer et exempte les assets statiques", () => {
-    const re = new RegExp("^" + config.matcher[0] + "$")
-    for (const p of ["/", "/_next/image", "/sw.js", "/manifest.json", "/attente.css", "/api/email", "/offline"]) {
-      expect(re.test(p), p).toBe(true)
-    }
-    for (const p of ["/_next/static/chunks/a.js", "/favicon.ico", "/robots.txt", "/sitemap.xml", "/email/educash-logo-blanc.png", "/logo-horizontal-blanc.svg"]) {
-      expect(re.test(p), p).toBe(false)
-    }
+  it("/sw.js porte aussi X-Robots-Tag", async () => {
+    const res = await run("/sw.js")
+    expect(res.headers.get("x-robots-tag")).toBe("noindex, nofollow, noarchive")
+  })
+
+  it.each(["/missions/abc.png", "/api/x.png"])("%s (extension d'image sur une route) -> 503", async (path) => {
+    const res = await run(path)
+    expectWaiting(res)
+    expect(createServerClient).not.toHaveBeenCalled()
+  })
+
+  it("POST d'une server action sur /client/messages/x.png -> 503", async () => {
+    const res = await middleware(
+      new NextRequest("http://localhost/client/messages/x.png", {
+        method: "POST",
+        headers: { "next-action": "abc" },
+        body: "x",
+      }),
+    )
+    expectWaiting(res)
+    expect(createServerClient).not.toHaveBeenCalled()
+  })
+})
+
+// Matcher compilé par Next lui-même (getMiddlewareMatchers + path-to-regexp), pas une RegExp maison.
+describe("config.matcher tel que Next le compile", () => {
+  const matches = (url) => unstable_doesMiddlewareMatch({ config, url })
+
+  it.each([
+    "/",
+    "/missions/abc.png",
+    "/talents/x.svg",
+    "/client/messages/x.png",
+    "/api/x.png",
+    "/admin/x.png",
+    "/auth/login.png",
+    "/robots.txtx",
+    "/sitemap.xml/foo",
+    "/favicon.icon",
+    "/_next/staticfoo",
+    "/x.PNG",
+    "/attente.css",
+    "/_next/image",
+    "/sw.js",
+    "/manifest.json",
+    "/api/email",
+    "/offline",
+  ])("%s passe par le middleware", (url) => {
+    expect(matches(url)).toBe(true)
+  })
+
+  it.each([
+    "/_next/static/chunks/a.js",
+    "/favicon.ico",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/logo-horizontal-blanc.svg",
+    "/favicon.svg",
+    "/email/educash-logo-blanc.png",
+    "/logos/operators/mtn.png",
+    "/icons/icon-192.png",
+    "/images/hero/portrait-hero.webp",
+  ])("%s reste exclu du middleware", (url) => {
+    expect(matches(url)).toBe(false)
   })
 })
 
