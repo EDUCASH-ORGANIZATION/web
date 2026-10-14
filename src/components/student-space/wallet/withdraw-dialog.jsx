@@ -60,8 +60,8 @@ export function createSendGuard() {
 }
 
 const TITLES = {
-  form: { title: "Retirer sur Mobile Money", description: "Vers ton compte Mobile Money, chez ton opérateur." },
-  review: { title: "Vérifie avant d'envoyer", description: "Étape 2 sur 2" },
+  form: { title: "Retirer sur Mobile Money", description: "Vers votre compte Mobile Money, chez votre opérateur." },
+  review: { title: "Vérifiez avant d'envoyer", description: "Étape 2 sur 2" },
   done: { title: "Demande de retrait envoyée", description: undefined },
 }
 
@@ -139,7 +139,7 @@ function FormStep({ available, amount, phone, operator, prefilled, errors, onAmo
           />
         </div>
         <div id={phoneHelpId} className="field__help">
-          <span>{prefilled ? "Prérempli depuis ton profil. 10 chiffres, commence par 01." : "10 chiffres, commence par 01."}</span>
+          <span>{prefilled ? "Prérempli depuis votre profil. 10 chiffres, commence par 01." : "10 chiffres, commence par 01."}</span>
         </div>
         {errors.phone ? (
           <div id={phoneErrorId} className="field__error" role="alert">
@@ -174,7 +174,7 @@ function ErrorBanner({ error, errorCode }) {
       <div className="banner__body">
         <div className="banner__title">Le retrait n&apos;a pas pu être lancé</div>
         {error}
-        {uncertain ? null : " Ton disponible a été actualisé : vérifie-le sur la page avant de réessayer."}
+        {uncertain ? null : " Votre disponible a été actualisé : vérifiez-le sur la page avant de réessayer."}
         <div className="banner__actions">
           <Link className="link2" href={HELP_HREF}>
             Contacter l&apos;aide
@@ -191,12 +191,12 @@ function ReviewStep({ available, amount, phone, operator, error, errorCode }) {
       <Stepper step="review" />
       <ErrorBanner error={error} errorCode={errorCode} />
       <p className="e2-09-sentence">
-        Tu vas recevoir <b>{formatAmount(amount)}</b> sur le <b>{maskLocalPhoneLastTwo(phone)}</b>, {operatorLabel(operator)}.
+        Vous allez recevoir <b>{formatAmount(amount)}</b> sur le <b>{maskLocalPhoneLastTwo(phone)}</b>, {operatorLabel(operator)}.
       </p>
       <Lines rows={[{ label: "Montant du retrait", value: amount }]} />
       <Lines rows={[{ label: "Disponible après retrait", value: available - amount }]} />
       <ul className="checklist">
-        <li className="is-ok">Le montant est débité de ton disponible dès l&apos;envoi de la demande.</li>
+        <li className="is-ok">Le montant est débité de votre disponible dès l&apos;envoi de la demande.</li>
         <li className="is-ok">Si le virement ne part pas, contacte l&apos;aide avant de refaire une demande.</li>
       </ul>
     </>
@@ -212,7 +212,7 @@ function DoneStep({ snapshot }) {
       <Lines rows={[{ label: "Nouveau disponible", value: snapshot.availableAfter }]} />
       <p className="note2">
         <Icon name="i-info" />
-        <span>Le délai d&apos;arrivée dépend de ton opérateur. Ton disponible est déjà mis à jour.</span>
+        <span>Le délai d&apos;arrivée dépend de votre opérateur. Votre disponible est déjà mis à jour.</span>
       </p>
     </>
   )

@@ -34,7 +34,7 @@ function availableNote({ paymentsEnabled, available }) {
   if (available < MIN_WITHDRAWAL_AMOUNT) {
     return (
       <>
-        <b>Il te manque {formatAmount(MIN_WITHDRAWAL_AMOUNT - available)}</b> pour retirer : le minimum est de {formatAmount(MIN_WITHDRAWAL_AMOUNT)}.
+        <b>Il vous manque {formatAmount(MIN_WITHDRAWAL_AMOUNT - available)}</b> pour retirer : le minimum est de {formatAmount(MIN_WITHDRAWAL_AMOUNT)}.
       </>
     )
   }
@@ -59,14 +59,14 @@ function ToComeList({ toCome }) {
       <div className="list2__head">
         <h2 className="list2__title">
           À venir, en séquestre
-          {toCome.missions.length > 0 ? <span>{`${total.text} ${total.unit} pour toi`}</span> : null}
+          {toCome.missions.length > 0 ? <span>{`${total.text} ${total.unit} pour vous`}</span> : null}
         </h2>
         {toCome.missions.length > 0 ? (
-          <span className="caption muted">Versé quand le client valide la fin de mission · ta part nette, après {COMMISSION_PERCENT} % de commission</span>
+          <span className="caption muted">Versé quand le client valide la fin de mission · votre part nette, après {COMMISSION_PERCENT} % de commission</span>
         ) : null}
       </div>
       {toCome.missions.length === 0 ? (
-        <EmptyState compact icon="i-lock" title="Rien en séquestre pour le moment" text="Quand un client te retient pour une mission, ta part apparaît ici jusqu'à sa validation." />
+        <EmptyState compact icon="i-lock" title="Rien en séquestre pour le moment" text="Quand un client vous retient pour une mission, votre part apparaît ici jusqu'à sa validation." />
       ) : (
         <div role="list">
           {toCome.missions.map((m) => {
@@ -123,7 +123,7 @@ export function WalletView({ data, error, paymentsEnabled, prefill = { phone: ""
   if (error || !data) {
     return (
       <div className="page2">
-        <ErrorState titleAs="h1" title="Impossible de charger ton portefeuille" text="Le chargement a échoué. Ton argent n'est pas touché." />
+        <ErrorState titleAs="h1" title="Impossible de charger votre portefeuille" text="Le chargement a échoué. Votre argent n'est pas touché." />
       </div>
     )
   }
@@ -144,9 +144,9 @@ export function WalletView({ data, error, paymentsEnabled, prefill = { phone: ""
 
   return (
     <div className="page2">
-      <PageHead date="Tes gains et tes retraits" title="Portefeuille" />
+      <PageHead date="Vos gains et vos retraits" title="Portefeuille" />
       <div className={gains ? "e2-08-top" : "e2-08-top e2-08-top--solo"}>
-        <MoneyCard label="Disponible sur ton portefeuille" amount={available} note={note} action={action} />
+        <MoneyCard label="Disponible sur votre portefeuille" amount={available} note={note} action={action} />
         {gains ? <EarningsChart gains={gains} /> : null}
       </div>
       {toCome ? <ToComeList toCome={toCome} /> : null}

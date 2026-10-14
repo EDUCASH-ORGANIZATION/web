@@ -38,11 +38,11 @@ export function EarningsChart({ gains }) {
   const max = Math.max(0, ...gains.weeks.map((w) => w.total))
   const last = gains.weeks.length - 1
   return (
-    <section className="card2" aria-label="Tes gains">
-      <h2 className="e2-08-title">Tes gains</h2>
+    <section className="card2" aria-label="Vos gains">
+      <h2 className="e2-08-title">Vos gains</h2>
       <div className="e2-08-figures">
         <Figure value={gains.eightWeeks} caption="gagnés ces 8 dernières semaines" />
-        <Figure value={gains.total} caption="au total depuis ton inscription" />
+        <Figure value={gains.total} caption="au total depuis votre inscription" />
       </div>
       <div className="e2-08-bars" role="img" aria-label={`Gains des 8 dernières semaines : ${splitAmount(gains.eightWeeks).text} FCFA au total`}>
         {gains.weeks.map((w, i) => (

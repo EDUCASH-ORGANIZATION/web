@@ -1,14 +1,14 @@
 import { describe, it, expect } from "vitest"
 import { readFileSync } from "node:fs"
-import { COMMON_RULES, VOUVOIEMENT_RULE, violations as scanViolations, walk } from "./space-guard-rules.js"
+import { COMMON_RULES, TUTOIEMENT_RULE, violations as scanViolations, walk } from "./space-guard-rules.js"
 
 // Garde-fou de transition RD-STUDENT-01 : l'espace étudiant refondu n'utilise que les classes du
-// système de design, le tutoiement, le vocabulaire autorisé et des modules purs.
+// système de design, le vouvoiement, le vocabulaire autorisé et des modules purs.
 // Périmètre : src/components/student-space, src/lib/student-space, src/lib/app/student-routes.js,
 // plus les fichiers de src/app/(student), src/app/review et src/app/design/student qui portent le
 // marqueur `@ds-screen RD-STUDENT-01` (les pages pas encore portées n'en ont pas : elles sont ignorées).
-// Les dossiers pas encore créés sont ignorés. Mêmes règles que le client, sauf le registre de langue :
-// ici le vouvoiement est interdit et le tutoiement permis. Les détecteurs sont testés sur des fixtures
+// Les dossiers pas encore créés sont ignorés. Mêmes règles que le client, registre de langue compris :
+// ici aussi le tutoiement est interdit et le vouvoiement permis (décision RD-VOUS-01). Les détecteurs sont testés sur des fixtures
 // en mémoire (un vrai positif et un vrai négatif par règle).
 
 const SCAN_DIRS = ["src/components/student-space", "src/lib/student-space"]
@@ -16,8 +16,8 @@ const SCAN_FILES = ["src/lib/app/student-routes.js"]
 const MARKED_DIRS = ["src/app/(student)", "src/app/review", "src/app/design/student"]
 const MARKER = "@ds-screen RD-STUDENT-01"
 
-// Registre étudiant : le vouvoiement est interdit.
-const RULES = [...COMMON_RULES, VOUVOIEMENT_RULE]
+// Registre unique de la plateforme (RD-VOUS-01) : le tutoiement est interdit, le vouvoiement est permis.
+const RULES = [...COMMON_RULES, TUTOIEMENT_RULE]
 
 /**
  * @param {string} file Chemin relatif au dépôt
@@ -82,16 +82,16 @@ describe("détecteurs étudiants (fixtures en mémoire)", () => {
     ["banned-words", "<p>Paiement via FedaPay</p>", "<p>Paiement sécurisé</p>"],
     ["banned-words", 'const t = "Badge bientôt expiré"', 'const t = "Badge à renouveler"'],
     ["raw-type", "<span>{mission.type}</span>", "<span>{missionTypeLabel(mission.type)}</span>"],
-    ["vouvoiement", 'const t = "Votre solde"', 'const t = "Ton solde"'],
-    ["vouvoiement", "<p>Vous pouvez postuler</p>", "<p>Tu peux postuler</p>"],
-    ["vouvoiement", 'const t = "Merci pour vos retours"', 'const t = "Merci pour tes retours"'],
-    ["vouvoiement", 'const t = "Veuillez réessayer"', 'const t = "Réessaie dans un instant"'],
-    ["vouvoiement", 'const t = "Réessayez plus tard"', 'const t = "Réessaie plus tard"'],
-    ["vouvoiement", "<p>Vérifiez votre carte</p>", "<p>Vérifie ta carte</p>"],
-    ["vouvoiement", 'const t = "Contactez le support"', 'const t = "Contacte le support"'],
-    ["vouvoiement", 'const t = "Envoyez votre carte"', 'const t = "Envoie ta carte"'],
-    ["vouvoiement", 'const t = "Recharger votre compte"', 'const t = "Recharger ton compte"'],
-    ["vouvoiement", 'const t = "Connectez-vous"', 'const t = "Connecte-toi"'],
+    ["tutoiement", 'const t = "Ton solde"', 'const t = "Votre solde"'],
+    ["tutoiement", "<p>Tu peux postuler</p>", "<p>Vous pouvez postuler</p>"],
+    ["tutoiement", 'const t = "Merci pour tes retours"', 'const t = "Merci pour vos retours"'],
+    ["tutoiement", 'const t = "Réessaie dans un instant"', 'const t = "Veuillez réessayer"'],
+    ["tutoiement", 'const t = "Réessaie plus tard"', 'const t = "Réessayez plus tard"'],
+    ["tutoiement", "<p>Vérifie ta carte</p>", "<p>Vérifiez votre carte</p>"],
+    ["tutoiement", 'const t = "Contacte le support"', 'const t = "Contactez le support"'],
+    ["tutoiement", 'const t = "Envoie ta carte"', 'const t = "Envoyez votre carte"'],
+    ["tutoiement", 'const t = "Recharger ton compte"', 'const t = "Recharger votre compte"'],
+    ["tutoiement", 'const t = "Connecte-toi"', 'const t = "Connectez-vous"'],
   ]
 
   for (const [rule, positive, negative] of CASES) {
@@ -101,13 +101,21 @@ describe("détecteurs étudiants (fixtures en mémoire)", () => {
     })
   }
 
-  it("le tutoiement est permis (aucune règle ne le signale)", () => {
-    expect(ids('const t = "Ton argent est en sécurité, tu peux retirer"')).toEqual([])
-    expect(ids("<p>Envoie ta carte pour postuler</p>")).toEqual([])
+  it("le vouvoiement est permis (aucune règle ne le signale)", () => {
+    expect(ids('const t = "Votre argent est en sécurité, vous pouvez retirer"')).toEqual([])
+    expect(ids("<p>Envoyez votre carte pour postuler</p>")).toEqual([])
   })
 
-  it("le vouvoiement n'est pas détecté dans un commentaire ni dans un identifiant", () => {
-    expect(ids("// Votre carte\nconst votreCarte = 1")).toEqual([])
+  it("le tutoiement n'est pas détecté dans un commentaire ni dans un identifiant", () => {
+    expect(ids("// Ta carte\nconst taCarte = 1")).toEqual([])
+  })
+
+  it("le tutoiement est signalé aussi pour les impératifs sans pronom de la liste fermée", () => {
+    for (const t of ["Retrouve tes missions", "Découvre les missions", "Postule maintenant", "Crée ton compte", "Renvoie ta carte", "Retire tes gains", "Reconnecte-toi"]) {
+      expect(ids(`const t = "${t}"`)).toContain("tutoiement")
+    }
+    expect(ids('const t = "Retrouvez vos missions. Postulez maintenant. Reconnectez-vous"')).toEqual([])
+    expect(ids('const t = "La tonalité du texte"')).not.toContain("tutoiement")
   })
 
   it("l'exception de src/hooks vaut pour l'import Supabase", () => {

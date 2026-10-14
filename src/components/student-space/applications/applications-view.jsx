@@ -31,19 +31,19 @@ const EMPTY = {
   "en-attente": {
     icon: "i-clock",
     title: "Aucune candidature en attente",
-    text: "Parcours les missions ouvertes et postule à celles qui te conviennent.",
+    text: "Parcourez les missions ouvertes et postulez à celles qui vous conviennent.",
     action: EXPLORE,
   },
   "en-cours": {
     icon: "i-briefcase",
     title: "Aucune mission en cours",
-    text: "Quand un client retient ta candidature, la mission apparaît ici avec l'argent bloqué pour toi.",
+    text: "Quand un client retient votre candidature, la mission apparaît ici avec l'argent bloqué pour vous.",
     action: EXPLORE,
   },
   terminees: {
     icon: "i-check-circle",
     title: "Aucune mission terminée",
-    text: "Tes missions terminées, ce que tu as gagné et les avis à laisser apparaîtront ici.",
+    text: "Vos missions terminées, ce que vous avez gagné et les avis à laisser apparaîtront ici.",
   },
   "non-retenues": {
     icon: "i-inbox",
@@ -137,7 +137,7 @@ function Row({ row, tab }) {
             {money.text}
             <small>{money.unit}</small>
           </span>
-          <span>{`${GAIN_NOTE[tab] ?? "ta part"} · budget ${splitAmount(row.budget).text}`}</span>
+          <span>{`${GAIN_NOTE[tab] ?? "votre part"} · budget ${splitAmount(row.budget).text}`}</span>
         </div>
       ) : (
         <span />
@@ -163,7 +163,7 @@ function Highlight({ highlight }) {
   const text = [
     `${highlight.title}${where}.`,
     date ? `Avant le ${date}${date.endsWith(".") ? "" : "."}` : "",
-    `${formatAmount(highlight.net)} sont bloqués pour toi en séquestre (ta part, commission de ${COMMISSION_PERCENT} déduite).`,
+    `${formatAmount(highlight.net)} sont bloqués pour vous en séquestre (votre part, commission de ${COMMISSION_PERCENT} déduite).`,
   ]
     .filter(Boolean)
     .join(" ")
@@ -175,7 +175,7 @@ function Highlight({ highlight }) {
           {`Retenue le ${formatShortDate(highlight.acceptedAt)}`}
         </span>
         <h2 className="hero2__title">
-          {highlight.clientFirst ? `${highlight.clientFirst} a retenu ta candidature` : "Un client a retenu ta candidature"}
+          {highlight.clientFirst ? `${highlight.clientFirst} a retenu votre candidature` : "Un client a retenu votre candidature"}
         </h2>
         <p className="hero2__text">{text}</p>
       </div>
@@ -198,9 +198,9 @@ function EscrowNote({ escrow }) {
       <Icon name="i-lock" />
       <div className="e2-note__body">
         <b>{formatAmount(escrow.total)}</b>
-        {` bloqués pour toi en séquestre sur ${plural(escrow.count, "mission", "missions")} (ta part, commission de ${COMMISSION_PERCENT} déduite). `}
+        {` bloqués pour vous en séquestre sur ${plural(escrow.count, "mission", "missions")} (votre part, commission de ${COMMISSION_PERCENT} déduite). `}
         <span className="e2-note__text">
-          Chaque montant est versé sur ton portefeuille quand le client valide la fin de la mission, jamais automatiquement.
+          Chaque montant est versé sur votre portefeuille quand le client valide la fin de la mission, jamais automatiquement.
         </span>
       </div>
     </div>
@@ -236,8 +236,8 @@ export function StudentApplicationsView({ result }) {
       <div className="page2">
         <ErrorState
           titleAs="h1"
-          title="Impossible de charger tes candidatures"
-          text="Le chargement a échoué. Tes candidatures et ton argent ne sont pas touchés."
+          title="Impossible de charger vos candidatures"
+          text="Le chargement a échoué. Vos candidatures et votre argent ne sont pas touchés."
         />
       </div>
     )

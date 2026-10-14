@@ -36,10 +36,10 @@ function verificationDecision(verification) {
     return {
       ...base,
       icon: "i-upload",
-      title: "Envoie ta carte étudiante",
-      text: "Les clients font confiance aux comptes vérifiés. Tant que ta carte n'est pas envoyée, tu ne peux pas postuler.",
+      title: "Envoyez votre carte étudiante",
+      text: "Les clients font confiance aux comptes vérifiés. Tant que votre carte n'est pas envoyée, vous ne pouvez pas postuler.",
       badge: { label: verification.label, tone: "alerte" },
-      subtitle: "Sans carte envoyée, tu ne peux pas postuler",
+      subtitle: "Sans carte envoyée, vous ne pouvez pas postuler",
       due: true,
     }
   }
@@ -47,10 +47,10 @@ function verificationDecision(verification) {
     return {
       ...base,
       icon: "i-alert-circle",
-      title: "Renvoie ta carte étudiante",
-      text: "Ta carte a été refusée. Le motif est indiqué dans ta vérification. Tant qu'elle n'est pas validée, tu ne peux pas postuler.",
+      title: "Renvoyez votre carte étudiante",
+      text: "Votre carte a été refusée. Le motif est indiqué dans votre vérification. Tant qu'elle n'est pas validée, vous ne pouvez pas postuler.",
       badge: { label: verification.label, tone: "erreur" },
-      subtitle: "Tant qu'elle n'est pas validée, tu ne peux pas postuler",
+      subtitle: "Tant qu'elle n'est pas validée, vous ne pouvez pas postuler",
       due: true,
     }
   }
@@ -58,10 +58,10 @@ function verificationDecision(verification) {
     return {
       ...base,
       icon: "i-shield",
-      title: "Ton badge a expiré",
-      text: "Envoie ta carte étudiante de l'année en cours pour postuler à nouveau. Tes missions en cours ne sont pas touchées.",
+      title: "Votre badge a expiré",
+      text: "Envoyez votre carte étudiante de l'année en cours pour postuler à nouveau. Vos missions en cours ne sont pas touchées.",
       badge: { label: verification.label, tone: "erreur" },
-      subtitle: "Envoie ta carte de l'année en cours pour postuler à nouveau",
+      subtitle: "Envoyez votre carte de l'année en cours pour postuler à nouveau",
       due: true,
     }
   }
@@ -70,8 +70,8 @@ function verificationDecision(verification) {
   return {
     ...base,
     icon: "i-shield",
-    title: "Renouvelle ton badge vérifié",
-    text: `Il expire ${when}. Envoie ta carte de l'année en cours pour le garder un an de plus.`,
+    title: "Renouvelez votre badge vérifié",
+    text: `Il expire ${when}. Envoyez votre carte de l'année en cours pour le garder un an de plus.`,
     badge: { label: `Expire ${when}`, tone: "alerte" },
     subtitle: `Il expire ${when}`,
     due: true,
@@ -84,8 +84,8 @@ function unreadDecision(u) {
     kind: "unread",
     key: `unread-${u.missionId}`,
     icon: "i-message",
-    title: `Réponds à ${u.clientName}`,
-    text: `${u.clientName} t'a écrit à propos de « ${u.title} » (${n} ${plural(n, "nouveau message", "nouveaux messages")}).`,
+    title: `Répondez à ${u.clientName}`,
+    text: `${u.clientName} vous a écrit à propos de « ${u.title} » (${n} ${plural(n, "nouveau message", "nouveaux messages")}).`,
     listTitle: u.title,
     subtitle: `${u.clientName} · ${n} ${plural(n, "nouveau message", "nouveaux messages")}`,
     action: { label: `Répondre à ${u.clientName}`, href: studentConversationHref(u.missionId), icon: "i-message" },
@@ -100,8 +100,8 @@ function reviewDecision(m) {
     kind: "review",
     key: `review-${m.id}`,
     icon: "i-star",
-    title: `Note ${m.clientName}`,
-    text: `« ${m.title} » est terminée. Ton avis aide les autres étudiants à choisir leurs missions.`,
+    title: `Notez ${m.clientName}`,
+    text: `« ${m.title} » est terminée. Votre avis aide les autres étudiants à choisir leurs missions.`,
     listTitle: m.title,
     subtitle: `${m.clientName} · terminée, laisse un avis`,
     action: { label: "Noter le client", href: studentReviewHref(m.id), icon: "i-star" },
@@ -117,10 +117,10 @@ function inProgressDecision(m) {
     kind: "in_progress",
     key: `in_progress-${m.id}`,
     icon: "i-check-circle",
-    title: `Préviens ${m.clientName} quand c'est fini`,
-    text: `« ${m.title} » est en cours. Quand le travail est fait, préviens ${m.clientName} dans la messagerie : le client confirme la fin et ta part de ${student} est versée sur ton portefeuille.`,
+    title: `Prévenez ${m.clientName} quand c'est fini`,
+    text: `« ${m.title} » est en cours. Quand le travail est fait, prévenez ${m.clientName} dans la messagerie : le client confirme la fin et votre part de ${student} est versée sur votre portefeuille.`,
     listTitle: m.title,
-    subtitle: `${m.clientName} · ta part : ${student}`,
+    subtitle: `${m.clientName} · votre part : ${student}`,
     action: { label: `Écrire à ${m.clientName}`, href: studentConversationHref(m.id), icon: "i-message" },
     listAction: { label: "Voir", href: studentMissionHref(m.id) },
     secondary: { label: "Voir la mission", href: studentMissionHref(m.id) },
@@ -153,7 +153,7 @@ function moneyNote(data) {
   if (escrowToCome > 0) {
     lines.push({
       strong: formatAmount(escrowToCome),
-      text: `à venir, en séquestre (ta part, commission de ${commissionPct()} % déduite)`,
+      text: `à venir, en séquestre (votre part, commission de ${commissionPct()} % déduite)`,
     })
   }
   return lines
@@ -163,10 +163,10 @@ function newHero(verification) {
   const pending = verification.key === "pending"
   return {
     flag: { label: "À faire maintenant", icon: "i-sparkles", due: false },
-    title: "Trouve ta première mission",
+    title: "Trouvez votre première mission",
     text: pending
-      ? "Ta carte est en cours d'examen : tu peux déjà postuler aux missions ouvertes."
-      : "Parcours les missions ouvertes à Cotonou, Porto-Novo et Abomey-Calavi, et postule à celle qui te plaît.",
+      ? "Votre carte est en cours d'examen : vous pouvez déjà postuler aux missions ouvertes."
+      : "Parcourez les missions ouvertes à Cotonou, Porto-Novo et Abomey-Calavi, et postulez à celle qui vous plaît.",
     badge: null,
     action: { label: "Explorer les missions", href: studentMissionsHref() },
     secondary: null,
@@ -179,8 +179,8 @@ function upToDateHero(verification) {
     flag: { label: "Rien d'urgent", icon: "i-check", due: false },
     title: "Tout est à jour",
     text: pending
-      ? "Ta carte est en cours d'examen : tu peux déjà postuler. Profites-en pour regarder les nouvelles missions."
-      : "Profites-en pour regarder les nouvelles missions.",
+      ? "Votre carte est en cours d'examen : vous pouvez déjà postuler. Profitez-en pour regarder les nouvelles missions."
+      : "Profitez-en pour regarder les nouvelles missions.",
     badge: null,
     action: null,
     secondary: { label: "Explorer les missions", href: studentMissionsHref() },
@@ -207,15 +207,15 @@ function firstSteps(data) {
       {
         key: "carte",
         done: sent,
-        title: "Envoyer ta carte étudiante",
-        subtitle: "Demandée pour que les clients te fassent confiance",
+        title: "Envoyer votre carte étudiante",
+        subtitle: "Demandée pour que les clients vous fassent confiance",
         action: sent ? null : data.verification.action,
       },
       {
         key: "postuler",
         done: false,
         title: "Postuler à une mission",
-        subtitle: "Le client voit ton profil",
+        subtitle: "Le client voit votre profil",
         action: { label: "Explorer", href: studentMissionsHref() },
       },
     ],
@@ -269,10 +269,10 @@ export function buildDashboardModel(data, { today, paymentsEnabled }) {
     state,
     hero,
     money: {
-      label: "Disponible sur ton portefeuille",
-      title: "Ton argent",
+      label: "Disponible sur votre portefeuille",
+      title: "Votre argent",
       amount: available,
-      noteLines: noteLines.length > 0 ? noteLines : [{ strong: null, text: "Tes gains arriveront ici après ta première mission." }],
+      noteLines: noteLines.length > 0 ? noteLines : [{ strong: null, text: "Vos gains arriveront ici après votre première mission." }],
       action: paymentsEnabled ? { label: "Retirer sur Mobile Money", href: studentWalletHref({ retrait: true }), icon: "i-arrow-down" } : null,
       secondaryAction: { label: "Historique", href: studentWalletHref() },
       hint: paymentsEnabled ? null : PAYMENTS_PENDING_COPY.wallet.student,
@@ -289,7 +289,7 @@ export function buildDashboardModel(data, { today, paymentsEnabled }) {
         sub: pendingApplications.lastAt ? `dernière envoyée le ${formatShortDate(pendingApplications.lastAt)}` : "aucune en attente",
       },
       rating: {
-        label: "Ta note",
+        label: "Votre note",
         hasRating: rating.reviewsCount > 0,
         value: rating.value,
         sub: `${rating.reviewsCount} avis${verified ? " · compte vérifié" : ""}`,

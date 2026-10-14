@@ -111,7 +111,7 @@ describe("refus hors étudiant : aucune donnée lue", () => {
   it("profil illisible", async () => {
     ctx.failures.profiles = "boom"
     const res = await getStudentDashboard()
-    expect(res.error).toBe("Impossible de charger ton tableau de bord.")
+    expect(res.error).toBe("Impossible de charger votre tableau de bord.")
     expect(res.error).not.toMatch(/boom/)
   })
 })
@@ -260,13 +260,13 @@ describe("erreurs de lecture : erreur neutre, aucun détail de base", () => {
   it.each(["missions", "applications", "reviews", "messages", "wallets"])("table %s en erreur", async (table) => {
     ctx.failures[table] = "relation \"secret_table\" does not exist"
     const res = await getStudentDashboard()
-    expect(res).toEqual({ error: "Impossible de charger ton tableau de bord." })
+    expect(res).toEqual({ error: "Impossible de charger votre tableau de bord." })
   })
 
   it("lecture privée du profil (service role) en erreur : erreur neutre, rien de partiel", async () => {
     ctx.failures.profiles = (q) => (q.columns?.includes("phone") ? "service down" : null)
     const res = await getStudentDashboard()
-    expect(res).toEqual({ error: "Impossible de charger ton tableau de bord." })
+    expect(res).toEqual({ error: "Impossible de charger votre tableau de bord." })
   })
 
   it("solde illisible : erreur (jamais 0 FCFA inventé)", async () => {

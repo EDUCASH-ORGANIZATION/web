@@ -79,12 +79,12 @@ beforeEach(() => {
 
 describe("getStudentDashboard", () => {
   it("exige le rôle étudiant avant toute lecture", async () => {
-    requireRole.mockResolvedValue({ error: "Tu n'as pas les droits pour effectuer cette action." })
+    requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
     const res = await getStudentDashboard()
     expect(requireRole).toHaveBeenCalledWith(["student"])
     expect(calls).toEqual([])
     expect(getWallet).not.toHaveBeenCalled()
-    expect(res).toEqual({ error: "Impossible de charger ton tableau de bord." })
+    expect(res).toEqual({ error: "Impossible de charger votre tableau de bord." })
   })
 
   it("agrège portefeuille, missions en cours, messages, candidatures, note et avis à laisser", async () => {
@@ -180,23 +180,23 @@ describe("getStudentDashboard", () => {
   })
 
   it("lecture du profil privé en erreur : message neutre", async () => {
-    getMyProfile.mockResolvedValue({ error: "Impossible de charger ton profil." })
-    expect(await getStudentDashboard()).toEqual({ error: "Impossible de charger ton tableau de bord." })
+    getMyProfile.mockResolvedValue({ error: "Impossible de charger votre profil." })
+    expect(await getStudentDashboard()).toEqual({ error: "Impossible de charger votre tableau de bord." })
   })
 
-  it("erreur de lecture : message neutre tutoyé, sans détail technique", async () => {
+  it("erreur de lecture : message neutre vouvoyé, sans détail technique", async () => {
     respond = (q) => (q.table === "messages" ? { data: null, error: { message: "relation secrète" } } : defaultRespond(q))
     const res = await getStudentDashboard()
-    expect(res).toEqual({ error: "Impossible de charger ton tableau de bord." })
+    expect(res).toEqual({ error: "Impossible de charger votre tableau de bord." })
   })
 
   it("solde illisible : erreur plutôt qu'un faux 0", async () => {
-    getWallet.mockResolvedValue({ error: "Impossible de lire ton portefeuille." })
-    expect(await getStudentDashboard()).toEqual({ error: "Impossible de charger ton tableau de bord." })
+    getWallet.mockResolvedValue({ error: "Impossible de lire votre portefeuille." })
+    expect(await getStudentDashboard()).toEqual({ error: "Impossible de charger votre tableau de bord." })
   })
 
   it("exception inattendue : erreur neutre", async () => {
     requireRole.mockRejectedValue(new Error("crash"))
-    expect(await getStudentDashboard()).toEqual({ error: "Impossible de charger ton tableau de bord." })
+    expect(await getStudentDashboard()).toEqual({ error: "Impossible de charger votre tableau de bord." })
   })
 })

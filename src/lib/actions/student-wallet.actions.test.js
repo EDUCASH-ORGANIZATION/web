@@ -84,13 +84,13 @@ afterEach(() => {
 
 describe("getStudentWallet", () => {
   it("exige le rôle étudiant avant toute lecture", async () => {
-    requireRole.mockResolvedValue({ error: "Tu n'as pas les droits pour effectuer cette action." })
+    requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
     const res = await getStudentWallet()
     expect(requireRole).toHaveBeenCalledWith(["student"])
     expect(calls).toEqual([])
     expect(getWallet).not.toHaveBeenCalled()
     expect(getWalletTransactions).not.toHaveBeenCalled()
-    expect(res).toEqual({ error: "Impossible de charger ton portefeuille." })
+    expect(res).toEqual({ error: "Impossible de charger votre portefeuille." })
   })
 
   it("ne lit jamais la table historique `transactions` : seul le grand livre est utilisé", async () => {
@@ -250,17 +250,17 @@ describe("getStudentWallet", () => {
     })
   })
 
-  it("solde ou historique illisible : erreur tutoyée, jamais un zéro", async () => {
-    getWallet.mockResolvedValue({ error: "Impossible de charger ton portefeuille." })
-    expect(await getStudentWallet()).toEqual({ error: "Impossible de charger ton portefeuille." })
+  it("solde ou historique illisible : erreur vouvoyée, jamais un zéro", async () => {
+    getWallet.mockResolvedValue({ error: "Impossible de charger votre portefeuille." })
+    expect(await getStudentWallet()).toEqual({ error: "Impossible de charger votre portefeuille." })
     getWallet.mockResolvedValue({ wallet: { balance: 1, reserved: 0 }, available: 1 })
-    getWalletTransactions.mockResolvedValue({ error: "Impossible de charger ton portefeuille." })
-    expect(await getStudentWallet()).toEqual({ error: "Impossible de charger ton portefeuille." })
+    getWalletTransactions.mockResolvedValue({ error: "Impossible de charger votre portefeuille." })
+    expect(await getStudentWallet()).toEqual({ error: "Impossible de charger votre portefeuille." })
   })
 
   it("une exception inattendue donne une erreur neutre", async () => {
     getWallet.mockRejectedValue(new Error("boom"))
-    expect(await getStudentWallet()).toEqual({ error: "Impossible de charger ton portefeuille." })
+    expect(await getStudentWallet()).toEqual({ error: "Impossible de charger votre portefeuille." })
   })
 
   it("ne renvoie aucun numéro de téléphone", async () => {
@@ -296,7 +296,7 @@ describe("getStudentWalletMore", () => {
 describe("getStudentWithdrawPrefill", () => {
   it("exige le rôle étudiant avant de lire le profil", async () => {
     requireRole.mockResolvedValue({ error: "non" })
-    expect(await getStudentWithdrawPrefill()).toEqual({ error: "Impossible de lire ton numéro." })
+    expect(await getStudentWithdrawPrefill()).toEqual({ error: "Impossible de lire votre numéro." })
     expect(requireRole).toHaveBeenCalledWith(["student"])
     expect(getMyProfile).not.toHaveBeenCalled()
   })
@@ -323,7 +323,7 @@ describe("getStudentWithdrawPrefill", () => {
 
   it("une exception inattendue ne journalise pas le numéro", async () => {
     getMyProfile.mockRejectedValue(new Error("boom"))
-    expect(await getStudentWithdrawPrefill()).toEqual({ error: "Impossible de lire ton numéro." })
+    expect(await getStudentWithdrawPrefill()).toEqual({ error: "Impossible de lire votre numéro." })
     expect(JSON.stringify(console.error.mock.calls)).not.toMatch(/0197|22901/)
   })
 })

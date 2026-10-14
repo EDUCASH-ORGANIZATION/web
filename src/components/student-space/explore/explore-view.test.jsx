@@ -130,21 +130,21 @@ describe("StudentExploreView : états", () => {
     expect(html.match(/<h1/g)).toHaveLength(1)
   })
 
-  it("étudiant non vérifié : note « Envoie ta carte pour postuler » avec lien, missions toujours listées", () => {
+  it("étudiant non vérifié : note « Envoyez votre carte pour postuler » avec lien, missions toujours listées", () => {
     const html = render({
       verification: { key: "not_submitted", label: "Carte à envoyer", canApply: false, action: { label: "Envoyer ma carte", href: "/profile/verify" } },
     })
-    expect(html).toContain("Envoie ta carte pour postuler")
+    expect(html).toContain("Envoyez votre carte pour postuler")
     expect(html).toContain('href="/profile/verify"')
     expect(html).toContain("e2-mcard")
   })
 
   it("carte refusée et badge expiré : note ferme avec badge d'état ; vérifié ou en examen : pas de note", () => {
     const refused = render({ verification: { key: "rejected", label: "Carte refusée", canApply: false, action: { label: "Renvoyer ma carte", href: "/profile/verify" } } })
-    expect(refused).toContain("Renvoie ta carte pour postuler")
+    expect(refused).toContain("Renvoyez votre carte pour postuler")
     expect(refused).toContain("Carte refusée")
     const expired = render({ verification: { key: "expired", label: "Badge expiré", canApply: false, action: { label: "Renouveler mon badge", href: "/profile/verify" } } })
-    expect(expired).toContain("Renouvelle ton badge pour postuler")
+    expect(expired).toContain("Renouvelez votre badge pour postuler")
     expect(render({ verification: { key: "pending", label: "Carte en cours d'examen", canApply: true, action: null } })).not.toContain("e2-note")
     expect(render({ verification: null })).not.toContain("e2-note")
     expect(render()).not.toContain("e2-note")
@@ -178,8 +178,8 @@ describe("FiltersSheetView : feuille de filtres", () => {
   })
 })
 
-describe("tutoiement et vocabulaire", () => {
-  it("aucun vouvoiement ni mot banni dans le rendu", () => {
+describe("vouvoiement et vocabulaire", () => {
+  it("aucun tutoiement ni mot banni dans le rendu", () => {
     const html = [
       render(),
       render({ total: 0, missions: [], verification: { key: "not_submitted", label: "x", canApply: false, action: null } }),
@@ -187,7 +187,8 @@ describe("tutoiement et vocabulaire", () => {
     ]
       .join(" ")
       .replace(/href="[^"]*"/g, "")
-    expect(html).not.toMatch(/\b(vous|votre|vos|Veuillez)\b/i)
+    // Registre unique (RD-VOUS-01) : le tutoiement est interdit.
+    expect(html).not.toMatch(/(?<![\p{L}])(tu|toi|ton|ta|tes)(?![\p{L}])/iu)
     expect(html).not.toMatch(/livraison|course|saisie|Bientôt/i)
     expect(html).not.toMatch(/[\u2013\u2014]/)
   })

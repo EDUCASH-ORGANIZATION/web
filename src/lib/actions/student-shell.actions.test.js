@@ -113,6 +113,6 @@ describe("getStudentShellData", () => {
       throw new Error("boom")
     }
     const res = await getStudentShellData()
-    expect(res).toEqual({ error: "Impossible de charger ton espace.", redirectTo: "/" })
+    expect(res).toEqual({ error: "Impossible de charger votre espace.", redirectTo: "/" })
   })
 })

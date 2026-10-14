@@ -15,7 +15,7 @@ import { escrowSplit } from "@/lib/app/money"
 import { publicDisplayName, firstName } from "@/lib/vitrine/public-name"
 import { APPLICATION_TABS, applicationTab, defaultApplicationTab } from "@/lib/student-space/applications-tabs"
 
-const ERR_APPLICATIONS = "Impossible de charger tes candidatures."
+const ERR_APPLICATIONS = "Impossible de charger vos candidatures."
 
 const PAGE_SIZE = 1000
 const MAX_PAGES = 5

@@ -64,6 +64,6 @@ export async function getStudentShellData() {
   } catch (err) {
     unstable_rethrow(err)
     console.error("[getStudentShellData]", err)
-    return { error: "Impossible de charger ton espace.", redirectTo: "/" }
+    return { error: "Impossible de charger votre espace.", redirectTo: "/" }
   }
 }

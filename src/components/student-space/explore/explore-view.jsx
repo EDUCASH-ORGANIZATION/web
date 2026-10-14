@@ -21,18 +21,18 @@ const NET_PERCENT = Math.round((1 - COMMISSION_RATE) * 100)
 // badge expiré). Les missions restent consultables.
 const VERIFICATION_NOTES = {
   not_submitted: {
-    title: "Envoie ta carte pour postuler",
-    text: "Tu peux consulter toutes les missions. Pour postuler, ta carte étudiante doit d'abord être envoyée.",
+    title: "Envoyez votre carte pour postuler",
+    text: "Vous pouvez consulter toutes les missions. Pour postuler, votre carte étudiante doit d'abord être envoyée.",
     blanc: false,
   },
   rejected: {
-    title: "Renvoie ta carte pour postuler",
-    text: "Ta carte a été refusée. Tu peux toujours consulter les missions : envoie-en une nouvelle pour postuler.",
+    title: "Renvoyez votre carte pour postuler",
+    text: "Votre carte a été refusée. Vous pouvez toujours consulter les missions : envoyez-en une nouvelle pour postuler.",
     blanc: true,
   },
   expired: {
-    title: "Renouvelle ton badge pour postuler",
-    text: "Ton badge a pris fin. Tu peux toujours consulter les missions.",
+    title: "Renouvelez votre badge pour postuler",
+    text: "Votre badge a pris fin. Vous pouvez toujours consulter les missions.",
     blanc: true,
   },
 }
@@ -164,7 +164,7 @@ function MobileSearch({ filters }) {
 function Lead() {
   return (
     <p className="e2-lead">
-      {`Le montant en gras est ce que tu touches : ${NET_PERCENT}${NBSP}% du budget du client. Les missions dont l'échéance est passée sont masquées.`}
+      {`Le montant en gras est ce que vous touchez : ${NET_PERCENT}${NBSP}% du budget du client. Les missions dont l'échéance est passée sont masquées.`}
     </p>
   )
 }
@@ -186,7 +186,7 @@ function EmptyBlock({ filters, hasFilter }) {
       <EmptyState
         icon="i-search"
         title={filters.q ? `Aucune mission pour « ${filters.q} »` : "Aucune mission ne correspond"}
-        text="Essaie un autre mot, une autre ville ou retire un filtre."
+        text="Essayez un autre mot, une autre ville ou retirez un filtre."
         action={{ label: "Effacer les filtres", href: studentMissionsHref() }}
       />
     )
@@ -195,7 +195,7 @@ function EmptyBlock({ filters, hasFilter }) {
       <EmptyState
         icon="i-briefcase"
         title="Aucune mission ouverte pour l'instant"
-        text="Reviens un peu plus tard : les clients publient de nouvelles missions chaque jour."
+        text="Revenez un peu plus tard : les clients publient de nouvelles missions chaque jour."
       />
     )
   }
@@ -235,7 +235,7 @@ export function StudentExploreView({ result }) {
         <section className="e2-sec" aria-label="Erreur">
           <ErrorState
             title="Impossible de charger les missions"
-            text="La liste n'a pas pu être récupérée. Vérifie ta connexion : tes filtres sont conservés."
+            text="La liste n'a pas pu être récupérée. Vérifiez votre connexion : vos filtres sont conservés."
           />
         </section>
       </>

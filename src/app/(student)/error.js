@@ -19,7 +19,7 @@ export default function StudentError({ error, reset }) {
       </div>
       <h1 className="empty__title">Une erreur est survenue</h1>
       <div className="empty__text">
-        Cette page n&apos;a pas pu s&apos;afficher. Ton argent est en sécurité.
+        Cette page n&apos;a pas pu s&apos;afficher. Votre argent est en sécurité.
       </div>
       <div className="empty__actions">
         <button type="button" className="btn btn--primary btn--sm" onClick={() => reset()}>

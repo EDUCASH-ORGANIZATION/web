@@ -32,7 +32,7 @@ const text = (html) => html.replace(/<[^>]+>/g, " ")
 const release = [{ type: "release", amount: 22000, createdAt: "2026-10-20T10:00:00Z" }]
 
 describe("MissionFollowupView (E05)", () => {
-  it("en cours : suivi neutre, anneau sur l'etape en cours, ta part par escrowSplit, badge en sequestre", () => {
+  it("en cours : suivi neutre, anneau sur l'etape en cours, votre part par escrowSplit, badge en sequestre", () => {
     const html = render(detail("in_progress"))
     const split = escrowSplit(25000)
     expect((html.match(/<h1[\s>]/g) ?? []).length).toBe(1)
@@ -45,7 +45,7 @@ describe("MissionFollowupView (E05)", () => {
     expect(html).toContain(formatFcfa(split.total))
     expect(html).toContain(formatFcfa(split.commission))
     expect(html).toContain(formatFcfa(split.student))
-    expect(html).toContain("Quand c&#x27;est fini, préviens le client dans la messagerie : il confirme la fin et ta part est versée sur ton portefeuille.")
+    expect(html).toContain("Quand c&#x27;est fini, prévenez le client dans la messagerie : il confirme la fin et votre part est versée sur votre portefeuille.")
   })
 
   it("en cours : ecrire au client, signaler un probleme, aucun bouton J'ai terminé, pas de citron ni de carte bleue", () => {
@@ -83,7 +83,7 @@ describe("MissionFollowupView (E05)", () => {
     expect(html).toContain("Paiement en cours de traitement")
     expect(html).not.toContain(formatFcfa(escrowSplit(25000).student))
     expect(html).not.toContain("Payé")
-    expect(html).not.toContain("Versé sur ton portefeuille")
+    expect(html).not.toContain("Versé sur votre portefeuille")
   })
 
   it("annulee : explication, aucun montant, ni ecrire ni signaler", () => {
@@ -107,11 +107,11 @@ describe("MissionFollowupView (E05)", () => {
     expect(html).not.toMatch(/@|\+229|phone|email/i)
   })
 
-  it("aucune mention d'achats, de 72 h, de liberation automatique, d'avis croises differes ni de vouvoiement", () => {
+  it("aucune mention d'achats, de 72 h, de liberation automatique, d'avis croises differes ni de tutoiement", () => {
     for (const d of [detail("in_progress"), detail("done", { ledger: release }), detail("cancelled")]) {
       const t = text(render(d))
       expect(t).not.toMatch(/achat|72 ?h|automatique|croisé|séance|À confirmer/i)
-      expect(t).not.toMatch(/\b(vous|votre|vos)\b|Veuillez/i)
+      expect(t).not.toMatch(/(?<![\p{L}])(tu|toi|ton|ta|tes)(?![\p{L}])/iu)
       expect(t).not.toMatch(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`))
     }
   })

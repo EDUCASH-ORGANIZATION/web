@@ -80,7 +80,7 @@ describe("paiements coupés (défaut)", () => {
   it("garde le solde, les gains, l'à venir et l'historique", () => {
     expect(html).toContain("Portefeuille")
     expect(html).toContain(nb("47 600"))
-    expect(html).toContain('aria-label="Tes gains"')
+    expect(html).toContain('aria-label="Vos gains"')
     expect(html).toContain("À venir, en séquestre")
     expect(html).toContain("Historique")
   })
@@ -115,9 +115,9 @@ describe("paiements ouverts", () => {
 })
 
 describe("carte « Disponible »", () => {
-  it("0 FCFA, paiements ouverts : « Il te manque 2 000 FCFA », aucun bouton", () => {
+  it("0 FCFA, paiements ouverts : « Il vous manque 2 000 FCFA », aucun bouton", () => {
     const h = view({ paymentsEnabled: true, data: { ...baseData, wallet: { available: 0 }, gains: null, toCome: { total: 0, missions: [] }, transactions: [] } })
-    expect(h).toContain(`Il te manque ${f(2000)}`)
+    expect(h).toContain(`Il vous manque ${f(2000)}`)
     expect(h).not.toContain("Retirer sur Mobile Money")
     expect(h).not.toContain('role="dialog"')
     expect(h).toContain("Aucun mouvement pour le moment")
@@ -126,14 +126,14 @@ describe("carte « Disponible »", () => {
 
   it("sous le minimum : le manque exact est indiqué", () => {
     const h = view({ paymentsEnabled: true, data: { ...baseData, wallet: { available: 1500 } } })
-    expect(h).toContain(`Il te manque ${f(500)}`)
+    expect(h).toContain(`Il vous manque ${f(500)}`)
     expect(h).not.toContain("Retirer sur Mobile Money")
   })
 
   it("solde positif : montant, bouton, aucune mention du manque", () => {
     const h = view({ paymentsEnabled: true })
     expect(h).toContain(nb("47 600"))
-    expect(h).not.toContain("Il te manque")
+    expect(h).not.toContain("Il vous manque")
   })
 
   it("retrait non confirmé : rappel sur la carte avec lien d'aide, jamais « en cours », sans promettre de délai", () => {
@@ -169,13 +169,13 @@ describe("carte « Disponible »", () => {
 describe("gains et à venir", () => {
   const html = view()
 
-  it("« Tes gains » : 8 semaines en barres neutres, la semaine en cours en encre, total depuis l'inscription", () => {
+  it("« Vos gains » : 8 semaines en barres neutres, la semaine en cours en encre, total depuis l'inscription", () => {
     expect(html.match(/<i data-h=/g)).toHaveLength(8)
     expect(html).toMatch(/<i data-h="\d+" class="is-now">/)
     expect(html).toContain(nb("38 600"))
     expect(html).toContain(nb("318 720"))
     expect(html).toContain("gagnés ces 8 dernières semaines")
-    expect(html).toContain("au total depuis ton inscription")
+    expect(html).toContain("au total depuis votre inscription")
     expect(html).toContain("Cette semaine")
     expect(html).toContain("<span>24 août</span>")
     expect(html).not.toContain("style=")
@@ -183,13 +183,13 @@ describe("gains et à venir", () => {
 
   it("lecture des gains en échec : la carte est omise, jamais un faux 0", () => {
     const h = view({ data: { ...baseData, gains: null } })
-    expect(h).not.toContain('aria-label="Tes gains"')
+    expect(h).not.toContain('aria-label="Vos gains"')
     expect(h).toContain("e2-08-top e2-08-top--solo")
     expect(h).toContain(nb("47 600"))
   })
 
-  it("« À venir » : part nette de chaque mission, budget bloqué, lien vers la mission, total pour toi", () => {
-    expect(html).toContain(`${nb("35 200")} FCFA pour toi`)
+  it("« À venir » : part nette de chaque mission, budget bloqué, lien vers la mission, total pour vous", () => {
+    expect(html).toContain(`${nb("35 200")} FCFA pour vous`)
     expect(html).toContain("+22 000")
     expect(html).toContain(`sur ${f(25000)} bloqués`)
     expect(html).toContain('href="/student/missions/m1"')
@@ -246,13 +246,13 @@ describe("historique", () => {
     expect(retraits).toMatch(/aria-checked="true"[^>]*>Retraits</)
   })
 
-  it("historique vide : message général puis message propre à un filtre (tutoyé)", () => {
+  it("historique vide : message général puis message propre à un filtre (vouvoyé)", () => {
     const general = view({ data: { ...baseData, transactions: [] } })
     expect(general).toContain("Aucun mouvement pour le moment")
-    expect(general).toContain("Tes paiements reçus et tes retraits apparaîtront ici.")
+    expect(general).toContain("Vos paiements reçus et vos retraits apparaîtront ici.")
     const filtered = view({ data: { ...baseData, filter: "remboursements", transactions: [] } })
     expect(filtered).toContain("Aucun mouvement pour ce filtre")
-    expect(filtered).toContain("Essaie un autre filtre")
+    expect(filtered).toContain("Essayez un autre filtre")
   })
 
   it("« Voir plus » n'apparaît que s'il reste des mouvements", () => {
@@ -278,10 +278,10 @@ describe("historique", () => {
 })
 
 describe("erreur de chargement", () => {
-  it("un seul h1, tutoyé, sans modale", () => {
+  it("un seul h1, vouvoyé, sans modale", () => {
     const h = renderToStaticMarkup(<WalletView error="x" paymentsEnabled />)
     expect(h.match(/<h1/g)).toHaveLength(1)
-    expect(h).toContain("Impossible de charger ton portefeuille")
+    expect(h).toContain("Impossible de charger votre portefeuille")
     expect(h).not.toContain('role="dialog"')
   })
 
@@ -306,7 +306,7 @@ describe("modale de retrait (E09)", () => {
     for (const n of ["2 000", "5 000", "10 000"]) expect(h).toContain(n)
     expect(h).toContain("Tout retirer · 47 600")
     expect(h).toContain('value="01 97 45 21 08"')
-    expect(h).toContain("Prérempli depuis ton profil")
+    expect(h).toContain("Prérempli depuis votre profil")
     expect(h).toContain("+229")
     expect(h).toContain("MTN MoMo")
     expect(h).toContain("Moov Money")
@@ -358,9 +358,9 @@ describe("modale de retrait (E09)", () => {
 
   it("étape 2 : récapitulatif en phrase, numéro masqué sauf 2 derniers chiffres, jamais le numéro complet", () => {
     const h = render({ step: "review" })
-    expect(h).toContain("Vérifie avant d&#x27;envoyer")
+    expect(h).toContain("Vérifiez avant d&#x27;envoyer")
     expect(h).toContain('aria-label="Étape 2 sur 2"')
-    expect(h).toContain(`Tu vas recevoir <b>${f(10000)}</b> sur le <b>•• •• •• •• 08</b>, MTN MoMo.`)
+    expect(h).toContain(`Vous allez recevoir <b>${f(10000)}</b> sur le <b>•• •• •• •• 08</b>, MTN MoMo.`)
     expect(h).not.toContain("01 97 45 21 08")
     expect(h).toContain("Disponible après retrait")
     expect(h).toContain(f(37600))
@@ -375,11 +375,11 @@ describe("modale de retrait (E09)", () => {
     expect(h.match(/disabled=""/g)?.length).toBeGreaterThanOrEqual(2)
   })
 
-  it("échec : la modale reste ouverte, message tutoyé, Réessayer et Modifier, saisie conservée", () => {
-    const h = render({ step: "review", error: "Le retrait n'a pas pu être initié. Réessaie dans un instant." })
+  it("échec : la modale reste ouverte, message vouvoyé, Réessayer et Modifier, saisie conservée", () => {
+    const h = render({ step: "review", error: "Le retrait n'a pas pu être initié. Réessayez dans un instant." })
     expect(h).toContain('role="dialog"')
-    expect(h).toContain("Le retrait n&#x27;a pas pu être initié. Réessaie dans un instant.")
-    expect(h).toContain("Ton disponible a été actualisé")
+    expect(h).toContain("Le retrait n&#x27;a pas pu être initié. Réessayez dans un instant.")
+    expect(h).toContain("Votre disponible a été actualisé")
     expect(h).toContain("Réessayer")
     expect(h).toContain("Modifier")
     expect(h).toContain("•• •• •• •• 08")
@@ -396,12 +396,12 @@ describe("modale de retrait (E09)", () => {
   })
 
   it("debit_uncertain : ni Réessayer ni Modifier, lien d'aide, bouton Fermer", () => {
-    const h = render({ step: "review", error: "Ta demande a peut-être été débitée. Contacte l'aide avant toute nouvelle demande.", errorCode: "debit_uncertain" })
-    expect(h).toContain("Ta demande a peut-être été débitée")
+    const h = render({ step: "review", error: "Votre demande a peut-être été débitée. Contactez l'aide avant toute nouvelle demande.", errorCode: "debit_uncertain" })
+    expect(h).toContain("Votre demande a peut-être été débitée")
     expect(h).not.toContain("Réessayer")
     expect(h).not.toContain("Modifier")
     expect(h).not.toContain(`Retirer ${f(10000)}`)
-    expect(h).not.toContain("Ton disponible a été actualisé")
+    expect(h).not.toContain("Votre disponible a été actualisé")
     expect(h).toContain('href="/contact?sujet=question"')
     expect(h).toContain("Fermer")
   })

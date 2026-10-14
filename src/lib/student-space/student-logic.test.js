@@ -95,7 +95,7 @@ describe("verificationView", () => {
     expect(verificationFromRows({ is_verified: true, verified_until: "2999-01-01" }, null).key).toBe("verified")
   })
 
-  it("les 6 statuts existent, canApply suit la décision D2 et les libellés sont tutoyables", () => {
+  it("les 6 statuts existent, canApply suit la décision D2 et les libellés sont neutres", () => {
     const states = [
       [{}, "not_submitted", false],
       [{ hasCard: true }, "pending", true],

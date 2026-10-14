@@ -27,9 +27,9 @@ import { firstName } from "@/lib/vitrine/public-name"
 import { parseStudentWalletFilter, studentWalletFilterTypes } from "@/lib/student-space/student-wallet-tx"
 import { formatLocalPhone, maskLocalPhoneLastTwo } from "@/lib/client-space/withdraw-schema"
 
-const ERR_WALLET = "Impossible de charger ton portefeuille."
+const ERR_WALLET = "Impossible de charger votre portefeuille."
 const ERR_MORE = "Impossible de charger les mouvements suivants."
-const ERR_PREFILL = "Impossible de lire ton numéro."
+const ERR_PREFILL = "Impossible de lire votre numéro."
 
 const PAGE_SIZE = 20
 const MAX_OFFSET = 100000
@@ -128,7 +128,7 @@ async function readToCome(supabase, userId) {
   const missions = rows.map((m) => ({
     id: m.id,
     title: m.title,
-    clientName: firstName(names.get(m.client_id), { fallback: "ton client" }),
+    clientName: firstName(names.get(m.client_id), { fallback: "votre client" }),
     budget: Math.round(Number(m.budget) || 0),
     net: escrowSplit(m.budget).student,
   }))

@@ -106,7 +106,7 @@ const TUTOIEMENT_ELISION = new RegExp(`${WORD_START}t['’](?=\\p{L})`, "iu")
 const TUTOIEMENT_TA = new RegExp(`${WORD_START_NO_HYPHEN}[Tt]a${WORD_END}`, "u")
 // Impératifs courants du tutoiement, en début de phrase (majuscule) : "Il publie" reste permis.
 const TUTOIEMENT_IMPERATIVES = new RegExp(
-  `${WORD_START_NO_HYPHEN}(?:Vérifie|Publie|Rafraîchis|Réessaie|Envoie|Clique|Choisis|Ajoute|Retourne|Recharge|Confirme|Renseigne|Contacte|Annule|Sélectionne|Saisis|Indique|Valide)${WORD_END}`,
+  `${WORD_START_NO_HYPHEN}(?:Vérifie|Publie|Rafraîchis|Réessaie|Envoie|Clique|Choisis|Ajoute|Retourne|Recharge|Confirme|Renseigne|Contacte|Annule|Sélectionne|Saisis|Indique|Valide|Retrouve|Découvre|Postule|Crée|Renvoie|Retire|Renouvelle|Reprends)${WORD_END}`,
   "u",
 )
 // « Recharge » seul est le libellé nominal d'un type d'opération (portefeuille), pas un impératif.
@@ -161,29 +161,10 @@ export const COMMON_RULES = [
   },
 ]
 
-/** Registre client : le tutoiement est interdit. */
+/** Registre unique (vouvoiement partout) : le tutoiement est interdit, côté client comme côté étudiant. */
 export const TUTOIEMENT_RULE = {
   id: "tutoiement",
   run: ({ strings, code }) => [...strings, ...jsxText(code)].filter((t) => TUTOIEMENT.test(t)),
-}
-
-// ─── Registre étudiant : le vouvoiement est interdit, le tutoiement est permis ──────────────
-
-// Pronoms et possessifs de politesse (toute casse). Le trait d'union n'est PAS une borne : "Connectez-vous".
-const VOUVOIEMENT_PRONOUNS = new RegExp(`${WORD_START}(?:vous|votre|vos)${WORD_END}`, "iu")
-// Impératifs en -ez d'une liste fermée, en plus de « Veuillez ».
-const VOUVOIEMENT_IMPERATIVES = new RegExp(
-  `${WORD_START_NO_HYPHEN}(?:Veuillez|Réessayez|Vérifiez|Contactez|Envoyez|Publiez|Cliquez|Choisissez|Ajoutez|Retournez|Confirmez|Renseignez|Indiquez|Sélectionnez|Validez|Annulez|Rechargez)${WORD_END}`,
-  "iu",
-)
-const VOUVOIEMENT = {
-  test: (text) => [VOUVOIEMENT_PRONOUNS, VOUVOIEMENT_IMPERATIVES].some((re) => re.test(text)),
-}
-
-/** Registre étudiant : le vouvoiement est interdit. */
-export const VOUVOIEMENT_RULE = {
-  id: "vouvoiement",
-  run: ({ strings, code }) => [...strings, ...jsxText(code)].filter((t) => VOUVOIEMENT.test(t)),
 }
 
 /**

@@ -59,12 +59,12 @@ export function MissionFollowupView({ detail }) {
           {mission.status === "in_progress" ? (
             <section className="e2-sec" aria-label="Fin de mission">
               <div className="e2-sec__head">
-                <h2 className="e2-sec__title">Tu as fini ?</h2>
+                <h2 className="e2-sec__title">Vous avez fini ?</h2>
               </div>
               <div className="e2-sec__body">
                 <p className="e2-05-caption">
-                  Quand c&apos;est fini, préviens le client dans la messagerie : il confirme la fin et ta part est
-                  versée sur ton portefeuille.
+                  Quand c&apos;est fini, prévenez le client dans la messagerie : il confirme la fin et votre part est
+                  versée sur votre portefeuille.
                 </p>
                 {actions.reportProblem ? (
                   <Link className="e2-link e2-link--quiet" href={REPORT_HREF}>

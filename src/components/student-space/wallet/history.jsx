@@ -82,8 +82,8 @@ export function HistoryView({ filter, rows, hasMore, loading, error, onMore }) {
           title={filter === "tout" ? "Aucun mouvement pour le moment" : "Aucun mouvement pour ce filtre"}
           text={
             filter === "tout"
-              ? "Tes paiements reçus et tes retraits apparaîtront ici."
-              : "Essaie un autre filtre pour voir le reste de ton historique."
+              ? "Vos paiements reçus et vos retraits apparaîtront ici."
+              : "Essayez un autre filtre pour voir le reste de votre historique."
           }
         />
       ) : (

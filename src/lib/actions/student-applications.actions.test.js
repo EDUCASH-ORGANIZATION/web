@@ -75,16 +75,16 @@ afterEach(() => vi.useRealTimers())
 
 describe("getStudentApplicationsView", () => {
   it("exige le rôle étudiant avant toute lecture", async () => {
-    requireRole.mockResolvedValue({ error: "Tu n'as pas les droits pour effectuer cette action." })
+    requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
     const res = await getStudentApplicationsView()
     expect(requireRole).toHaveBeenCalledWith(["student"])
     expect(calls).toEqual([])
-    expect(res).toEqual({ error: "Impossible de charger tes candidatures." })
+    expect(res).toEqual({ error: "Impossible de charger vos candidatures." })
   })
 
   it("refus de rôle levé par requireRole : erreur neutre", async () => {
     requireRole.mockRejectedValue(new Error("db secret"))
-    expect(await getStudentApplicationsView()).toEqual({ error: "Impossible de charger tes candidatures." })
+    expect(await getStudentApplicationsView()).toEqual({ error: "Impossible de charger vos candidatures." })
   })
 
   it("compteurs exacts par onglet, mission illisible comptée dans Non retenues", async () => {
@@ -151,7 +151,7 @@ describe("getStudentApplicationsView", () => {
     expect(data.rows).toEqual([])
   })
 
-  it("ta part par escrowSplit, séquestre total des missions retenues en cours", async () => {
+  it("votre part par escrowSplit, séquestre total des missions retenues en cours", async () => {
     const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
     expect(data.rows.map((r) => r.net)).toEqual([13200, 8800])
     expect(data.escrow).toEqual({ total: 22000, count: 2 })
@@ -185,7 +185,7 @@ describe("getStudentApplicationsView", () => {
     for (const table of ["applications", "profiles", "reviews"]) {
       failTable = table
       const res = await getStudentApplicationsView({ onglet: table === "reviews" ? "terminees" : "en-attente" })
-      expect(res).toEqual({ error: "Impossible de charger tes candidatures." })
+      expect(res).toEqual({ error: "Impossible de charger vos candidatures." })
     }
   })
 

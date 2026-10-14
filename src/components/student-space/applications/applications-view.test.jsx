@@ -24,13 +24,14 @@ describe("StudentApplicationsView : onglets vides", () => {
     "non-retenues": "Aucune candidature non retenue",
   }
   for (const [tab, title] of Object.entries(cases)) {
-    it(`${tab} : texte dédié tutoyé, un seul h1, quatre onglets`, () => {
+    it(`${tab} : texte dédié vouvoyé, un seul h1, quatre onglets`, () => {
       const html = render(data({ tab }))
       expect(h1s(html)).toHaveLength(1)
       expect(html).toContain(title)
       expect(html.match(/class="tab( is-active)?"/g)).toHaveLength(4)
       expect(html).toContain('aria-current="page"')
-      expect(html).not.toMatch(/\bvotre\b|\bvos\b|\bvous\b/i)
+      // Registre unique (RD-VOUS-01) : le tutoiement est interdit.
+      expect(html).not.toMatch(/(?<![\p{L}])(tu|toi|ton|ta|tes)(?![\p{L}])/iu)
     })
   }
 
@@ -46,10 +47,10 @@ describe("StudentApplicationsView : en attente", () => {
     data({ counts: { ...COUNTS, "en-attente": 1 }, total: 1, rows: [row()] }),
   )
 
-  it("ligne : type par libellé, client public, ta part, budget, statut", () => {
+  it("ligne : type par libellé, client public, votre part, budget, statut", () => {
     expect(html).toContain("Cours et aide aux devoirs · Rosine H. · Cotonou")
     expect(html).toContain("22 000")
-    expect(html).toContain("ta part · budget 25 000")
+    expect(html).toContain("votre part · budget 25 000")
     expect(html).toContain("En attente")
     expect(html).toContain("Postulée le")
   })
@@ -76,7 +77,7 @@ describe("StudentApplicationsView : retenue récente", () => {
 
   it("carte blanche avec l'étiquette citron et un seul bouton encre", () => {
     const html = render(attente)
-    expect(html).toContain("Nadège a retenu ta candidature")
+    expect(html).toContain("Nadège a retenu votre candidature")
     expect(html.match(/class="flag2"/g)).toHaveLength(1)
     expect(html.match(/btn btn--dark/g)).toHaveLength(1)
     expect(html).toContain("Écrire à Nadège")
@@ -87,12 +88,12 @@ describe("StudentApplicationsView : retenue récente", () => {
 
   it("pas de doublon dans l'onglet En cours", () => {
     const html = render({ ...attente, tab: "en-cours", rows: [row({ status: "accepted", missionStatus: "in_progress" })] })
-    expect(html).not.toContain("a retenu ta candidature")
+    expect(html).not.toContain("a retenu votre candidature")
   })
 
   it("nom du client absent : formulation neutre", () => {
     const html = render({ ...attente, highlight: { ...highlight, clientName: "", clientFirst: "" } })
-    expect(html).toContain("Un client a retenu ta candidature")
+    expect(html).toContain("Un client a retenu votre candidature")
     expect(html).toContain("Écrire au client")
   })
 })
@@ -157,11 +158,11 @@ describe("StudentApplicationsView : actions par statut", () => {
 })
 
 describe("StudentApplicationsView : erreur et chargement", () => {
-  it("erreur : alerte tutoyée, un seul h1, aucune ligne", () => {
+  it("erreur : alerte vouvoyée, un seul h1, aucune ligne", () => {
     const html = renderToStaticMarkup(<StudentApplicationsView result={{ error: "x" }} />)
     expect(html).toContain('role="alert"')
     expect(h1s(html)).toHaveLength(1)
-    expect(html).toContain("Impossible de charger tes candidatures")
+    expect(html).toContain("Impossible de charger vos candidatures")
     expect(html).not.toContain("e2-04-row")
   })
 

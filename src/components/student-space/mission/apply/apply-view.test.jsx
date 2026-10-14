@@ -236,10 +236,10 @@ describe("validation et envoi", () => {
   })
 
   it("erreur de l'action : renvoyée telle quelle, verrou rendu pour réessayer", async () => {
-    const send = vi.fn().mockResolvedValue({ error: "Ta carte a été refusée, renvoie-la pour pouvoir postuler." })
+    const send = vi.fn().mockResolvedValue({ error: "Votre carte a été refusée, renvoyez-la pour pouvoir postuler." })
     const guard = { current: false }
     expect(await submitApplication(guard, { missionId: "m1", message: "Bonjour", send })).toEqual({
-      error: "Ta carte a été refusée, renvoie-la pour pouvoir postuler.",
+      error: "Votre carte a été refusée, renvoyez-la pour pouvoir postuler.",
     })
     expect(guard.current).toBe(false)
   })
@@ -276,9 +276,9 @@ describe("états du bloc de candidature", () => {
   })
 
   it("erreur serveur : affichée telle quelle, motivation conservée", () => {
-    const html = panel({ serverError: "Tu as déjà postulé à cette mission.", message: "Ma motivation conservée" })
+    const html = panel({ serverError: "Vous avez déjà postulé à cette mission.", message: "Ma motivation conservée" })
     expect(html).toContain('role="alert"')
-    expect(html).toContain("Tu as déjà postulé à cette mission.")
+    expect(html).toContain("Vous avez déjà postulé à cette mission.")
     expect(html).toContain("Ma motivation conservée")
   })
 

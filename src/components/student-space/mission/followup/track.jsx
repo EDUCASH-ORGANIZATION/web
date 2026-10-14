@@ -17,20 +17,20 @@ export function trackSteps(timeline, { status, hasLedger }) {
       case "applied":
         return { ...step, title: "Candidature envoyée", sub: date }
       case "selected":
-        return { ...step, title: "Ta candidature a été retenue", sub: date }
+        return { ...step, title: "Votre candidature a été retenue", sub: date }
       case "paid":
         if (status === "done" && !hasLedger) {
           return { ...step, state: "now", title: "Paiement en cours de traitement", sub: "" }
         }
         return {
           ...step,
-          title: step.state === "done" ? "Ta part est versée" : "Paiement sur ton portefeuille",
+          title: step.state === "done" ? "Votre part est versée" : "Paiement sur votre portefeuille",
           sub: step.state === "done" ? date : "Quand le client confirme la fin de la mission",
         }
       default:
         return {
           ...step,
-          title: "Ton avis sur le client",
+          title: "Votre avis sur le client",
           sub: step.state === "done" ? date : step.state === "now" ? "À donner" : "Après la fin de la mission",
         }
     }

@@ -17,7 +17,7 @@ import { todayInBenin } from "@/lib/app/format"
 import { firstName } from "@/lib/vitrine/public-name"
 import { verificationView } from "@/lib/student-space/verification-status"
 
-const ERR_DASHBOARD = "Impossible de charger ton tableau de bord."
+const ERR_DASHBOARD = "Impossible de charger votre tableau de bord."
 
 const ACTIVE_LIMIT = 100
 const DONE_LIMIT = 20
@@ -154,7 +154,7 @@ export async function getStudentDashboard() {
     }
 
     const names = new Map((namesRes.data ?? []).map((p) => [p.user_id, p.full_name]))
-    const clientName = (id) => firstName(names.get(id), { fallback: "ton client" })
+    const clientName = (id) => firstName(names.get(id), { fallback: "votre client" })
     const reviewed = new Set((reviewedRes.data ?? []).map((r) => r.mission_id))
 
     // Messages non lus rattachés à une mission en cours de l'étudiant : une entrée par mission, la plus récente d'abord.

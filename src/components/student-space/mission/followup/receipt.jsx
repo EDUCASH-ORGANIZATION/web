@@ -35,7 +35,7 @@ export function Receipt({ split, receipt }) {
                 <b>{`− ${formatFcfa(split.commission)}`}</b>
               </div>
               <div className="e2-kv__row e2-kv__row--total">
-                <span>Versé sur ton portefeuille</span>
+                <span>Versé sur votre portefeuille</span>
                 <b>{formatFcfa(receipt.net)}</b>
               </div>
             </div>

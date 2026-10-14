@@ -130,8 +130,8 @@ export function StudentDashboardView({ data, error, today, paymentsEnabled }) {
       <div className="page2">
         <ErrorState
           titleAs="h1"
-          title="Impossible de charger ton tableau de bord"
-          text="Le chargement a échoué. Ton argent et tes missions ne sont pas touchés."
+          title="Impossible de charger votre tableau de bord"
+          text="Le chargement a échoué. Votre argent et vos missions ne sont pas touchés."
         />
       </div>
     )

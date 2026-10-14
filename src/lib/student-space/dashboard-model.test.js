@@ -56,13 +56,13 @@ describe("buildDecisions : priorités", () => {
 })
 
 describe("buildDashboardModel : états", () => {
-  it("nouvel inscrit : 0 FCFA, trouve ta première mission, premiers pas, aucune étiquette citron", () => {
+  it("nouvel inscrit : 0 FCFA, trouve votre première mission, premiers pas, aucune étiquette citron", () => {
     const m = buildDashboardModel(data({ hasActivity: false, verification: VERIFS.pending }), opts)
     expect(m.state).toBe("new")
-    expect(m.hero.title).toBe("Trouve ta première mission")
+    expect(m.hero.title).toBe("Trouvez votre première mission")
     expect(m.hero.flag.due).toBe(false)
     expect(m.hero.text).toContain("en cours d'examen")
-    expect(m.money.noteLines).toEqual([{ strong: null, text: "Tes gains arriveront ici après ta première mission." }])
+    expect(m.money.noteLines).toEqual([{ strong: null, text: "Vos gains arriveront ici après votre première mission." }])
     expect(m.list.kind).toBe("steps")
     expect(m.list.steps[0].done).toBe(true)
   })
@@ -70,16 +70,16 @@ describe("buildDashboardModel : états", () => {
   it("nouvel inscrit sans carte : la vérification est l'action prioritaire (citron)", () => {
     const m = buildDashboardModel(data({ hasActivity: false, verification: VERIFS.not_submitted }), opts)
     expect(m.state).toBe("todo")
-    expect(m.hero.title).toBe("Envoie ta carte étudiante")
+    expect(m.hero.title).toBe("Envoyez votre carte étudiante")
     expect(m.hero.flag.due).toBe(true)
     expect(m.hero.action.href).toBe("/profile/verify")
   })
 
   it.each([
-    ["not_submitted", "Envoie ta carte étudiante", "Carte à envoyer"],
-    ["rejected", "Renvoie ta carte étudiante", "Carte refusée"],
-    ["expired", "Ton badge a expiré", "Badge expiré"],
-    ["expiring", "Renouvelle ton badge vérifié", "Expire dans 12 jours"],
+    ["not_submitted", "Envoyez votre carte étudiante", "Carte à envoyer"],
+    ["rejected", "Renvoyez votre carte étudiante", "Carte refusée"],
+    ["expired", "Votre badge a expiré", "Badge expiré"],
+    ["expiring", "Renouvelez votre badge vérifié", "Expire dans 12 jours"],
   ])("statut %s : action due avec bouton vers la vérification", (key, title, badge) => {
     const m = buildDashboardModel(data({ verification: VERIFS[key] }), opts)
     expect(m.hero.title).toBe(title)
@@ -100,14 +100,14 @@ describe("buildDashboardModel : états", () => {
       data({ unread: [{ missionId: "m1", title: "Cours de maths", clientName: "Rosine", count: 1 }], inProgress: [mission()] }),
       opts,
     )
-    expect(m.hero.title).toBe("Réponds à Rosine")
+    expect(m.hero.title).toBe("Répondez à Rosine")
     expect(m.hero.action.href).toBe("/messages/m1")
     expect(m.hero.flag.due).toBe(true)
   })
 
-  it("mission en cours seule : préviens le client, ta part par escrowSplit, étiquette neutre", () => {
+  it("mission en cours seule : prévenez le client, votre part par escrowSplit, étiquette neutre", () => {
     const m = buildDashboardModel(data({ inProgress: [mission({ budget: 15000 })] }), opts)
-    expect(m.hero.title).toBe("Préviens Rosine quand c'est fini")
+    expect(m.hero.title).toBe("Prévenez Rosine quand c'est fini")
     expect(m.hero.text).toContain(formatAmount(escrowSplit(15000).student))
     expect(m.hero.text).not.toMatch(/livré|à confirmer/i)
     expect(m.hero.flag.due).toBe(false)
@@ -116,7 +116,7 @@ describe("buildDashboardModel : états", () => {
   it("liste « Ensuite » : les autres actions, au plus 5, la première étant dans la carte", () => {
     const toReview = Array.from({ length: 8 }, (_, i) => ({ id: `d${i}`, title: `Mission ${i}`, clientName: "Koffi" }))
     const m = buildDashboardModel(data({ toReview }), opts)
-    expect(m.hero.title).toBe("Note Koffi")
+    expect(m.hero.title).toBe("Notez Koffi")
     expect(m.list.count).toBe(7)
     expect(m.list.items).toHaveLength(5)
     expect(m.list.items[0].action.href).toBe("/review/d1")
@@ -143,10 +143,10 @@ describe("buildDashboardModel : argent et indicateurs", () => {
     expect(m.money.hint).toBeNull()
   })
 
-  it("paiements coupés : aucun bouton Retirer, note d'activation tutoyée", () => {
+  it("paiements coupés : aucun bouton Retirer, note d'activation vouvoyée", () => {
     const m = buildDashboardModel(data(), { today: TODAY, paymentsEnabled: false })
     expect(m.money.action).toBeNull()
-    expect(m.money.hint).toContain("Tes gains restent en sécurité")
+    expect(m.money.hint).toContain("Vos gains restent en sécurité")
   })
 
   it("indicateurs : en cours, candidatures, note et avis", () => {

@@ -21,8 +21,8 @@ export default async function StudentLayout({ children }) {
     <div className="ds e2">
       <ToastProvider>
         <OfflineBanner
-          title="Tu es hors connexion"
-          text="Tes actions seront de nouveau disponibles dès le retour du réseau."
+          title="Vous êtes hors connexion"
+          text="Vos actions seront de nouveau disponibles dès le retour du réseau."
           reconnectedText="Connexion rétablie"
         />
         <AppShell nav={STUDENT_NAV} user={{ id: shell.userId, fullName: shell.fullName }} unreadCount={shell.unreadCount}>

@@ -15,9 +15,9 @@ export const commissionLabel = () => `Commission EduCash (${COMMISSION_PERCENT} 
  */
 export function EarningLines({ split, cancelled }) {
   return (
-    <section className="e2-sec e2-05-lines" aria-label="Ce que tu touches">
+    <section className="e2-sec e2-05-lines" aria-label="Ce que vous touchez">
       <div className="e2-sec__head">
-        <h2 className="e2-sec__title">Ce que tu touches</h2>
+        <h2 className="e2-sec__title">Ce que vous touchez</h2>
         {cancelled ? null : (
           <span className="badge badge--neutre badge--sm">
             <Icon name="i-lock" />
@@ -40,12 +40,12 @@ export function EarningLines({ split, cancelled }) {
                 <b>{`− ${formatFcfa(split.commission)}`}</b>
               </div>
               <div className="e2-kv__row e2-kv__row--total">
-                <span>{`Ta part (${100 - COMMISSION_PERCENT} %)`}</span>
+                <span>{`Votre part (${100 - COMMISSION_PERCENT} %)`}</span>
                 <b>{formatFcfa(split.student)}</b>
               </div>
             </div>
             <p className="e2-05-caption">
-              Le budget est bloqué en séquestre. Ta part arrive sur ton portefeuille quand le client confirme la fin
+              Le budget est bloqué en séquestre. Votre part arrive sur votre portefeuille quand le client confirme la fin
               de la mission.
             </p>
           </>
