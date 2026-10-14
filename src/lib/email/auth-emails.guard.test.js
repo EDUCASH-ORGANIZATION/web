@@ -31,6 +31,14 @@ const TUTOIEMENT = new RegExp(
 // Retire les commentaires HTML (consignes d'application) pour ne scanner que le texte envoye
 const withoutComments = (src) => src.replace(/<!--[\s\S]*?-->/g, "")
 
+// Texte visible : sans commentaires (HTML, bloc, ligne), balises ni attributs, pour que le detecteur
+// ne s'applique pas au code (noms de props, classes, URL).
+const visibleText = (src) =>
+  withoutComments(src)
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1")
+    .replace(/<[^<>]*>/g, " ")
+
 describe("emails d'auth", () => {
   it("les deux gabarits Supabase existent", () => {
     expect(SUPABASE.map((f) => f.split("/").pop()).sort()).toEqual(["confirm-signup.html", "reset-password.html"])
@@ -116,8 +124,15 @@ describe("emails d'auth", () => {
     for (const v of vouvoyes) expect(v, v).not.toMatch(TUTOIEMENT)
   })
 
+  it("le texte visible ignore balises, attributs et commentaires mais garde le texte", () => {
+    const code = '<a href="https://x.fr/ton" data-te="1">Ton lien</a> {/* tu es ici */} // tu aussi\n<!-- ton -->'
+    expect(visibleText(code)).toMatch(TUTOIEMENT)
+    expect(visibleText('<a href="https://x.fr/ton" data-te="1">Votre lien</a> {/* tu es ici */}')).not.toMatch(TUTOIEMENT)
+    expect(visibleText("const a = 1 // tu peux\nconst b = 2")).not.toMatch(TUTOIEMENT)
+  })
+
   it("vouvoiement partout : aucune forme de tutoiement dans les gabarits ni les objets d'email", () => {
-    const hits = [...ALL_RESEND, ...SUPABASE, INDEX].filter((f) => TUTOIEMENT.test(read(f)))
+    const hits = [...ALL_RESEND, ...SUPABASE, INDEX].filter((f) => TUTOIEMENT.test(visibleText(read(f))))
     expect(hits).toEqual([])
   })
 })
