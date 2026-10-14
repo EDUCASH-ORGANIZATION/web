@@ -8,7 +8,7 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
 - Source de vérité du design : `~/Desktop/EDUCASH/design-rebrand/maquettes/`
   (`INVENTAIRE.md` définit les écrans cibles, `_system/` le système de design,
   un `STATUS.md` par espace détaille l'avancement des planches).
-- Préfixe UX : étudiant tutoie, client vouvoie, admin se tutoie entre collègues.
+- Langue : vouvoiement partout (clients, étudiants, admin, emails, vitrine).
 - Décisions produit : voir `INVENTAIRE.md` section « Décisions produit prises ».
 
 ## Fondation technique (faite)
@@ -72,8 +72,9 @@ du thème vert/ambre ni des composants Tailwind de l'ancienne version.
 
 ## Cohabitation pendant la transition
 
-- Les espaces connectés restent en Tailwind avec parité stricte avec `main`
-  (Inter, fond blanc, mode sombre) tant qu'un écran n'est pas porté. Les
+- L'espace admin reste en Tailwind avec parité stricte avec `main`
+  (Inter, fond blanc, mode sombre) tant qu'un écran n'est pas porté ; les espaces
+  client et étudiant sont portés. Les
   écrans connectés déjà portés utilisent Anton et Figtree sous `.ds` ; Inter ne
   reste que pour les écrans pas encore portés, et la charte ne change pas les
   polices du site.
@@ -196,19 +197,20 @@ authentification A01 à A08 faite (RD-02) ; tout le reste à faire.
 ### Étudiant (E01 à E13)
 | Écran | Titre | État |
 |---|---|---|
-| E01 | Tableau de bord étudiant | à faire |
-| E02 | Explorer les missions | à faire |
-| E03 | Détail de mission et candidature | à faire |
-| E04 | Mes candidatures | à faire |
-| E05 | Mission retenue (suivi) | à faire |
-| E06 | Messages | à faire |
-| E07 | Conversation | à faire |
-| E08 | Portefeuille | à faire |
-| E09 | Retrait | à faire |
-| E10 | Mon profil | à faire |
-| E11 | Modifier le profil | à faire |
-| E12 | Vérification | à faire |
-| E13 | Noter le client | à faire |
+| E01 | Tableau de bord étudiant | fait (RD-STUDENT-01) |
+| E02 | Explorer les missions | fait (RD-STUDENT-01) |
+| E03 | Détail de mission et candidature | fait (RD-STUDENT-01) |
+| E04 | Mes candidatures | fait (RD-STUDENT-01) |
+| E05 | Mission retenue (suivi) | fait (RD-STUDENT-01) |
+| E06 | Messages | fait (RD-STUDENT-01) |
+| E07 | Conversation | fait (RD-STUDENT-01) |
+| E08 | Portefeuille | fait (RD-STUDENT-01) |
+| E09 | Retrait | fait (RD-STUDENT-01) |
+| E10 | Mon profil | fait (RD-STUDENT-01) |
+| E11 | Modifier le profil | fait (RD-STUDENT-01) |
+| E12 | Vérification | fait (RD-STUDENT-01) |
+| E13 | Noter le client | fait (RD-STUDENT-01) |
+| E14 | Agenda | hors périmètre (aucun backend), non affiché |
 
 ### Client (C01 à C17)
 | Écran | Titre | État |
@@ -369,3 +371,17 @@ Les 17 écrans C01 à C17 (hors C06) sont portés sur le système de design, d'a
 - Hors périmètre (RD-CLIENT-02) : C06 modification, annulation d'une mission en cours par demande, état « travail livré », achats et demandes de paiement, brouillons, invitation, motif de refus, avis croisés différés, Agenda, notifications, paramètres, signalement, type de client.
 - Écarts connus avec les planches : fil d'Ariane, puces « Urgent » et « Avant le… », référence de mission, compteur de vues, « Total dépensé » du portefeuille, boutons « Exporter » et « Toutes les dates », libellés « versé à <nom> » du reçu (le grand livre client est brut), logo de la coquille ; C03 sans brouillon, quartier ni achats, description de 50 caractères minimum et date limite obligatoire ; C12 et C13 en routes séparées, localisation en lien, sans demande de paiement ; C10 et C17 sans type de client, badge « Email vérifié » ni quartier, 10 avis les plus récents ; C05 sans état « en cours d'examen ».
 - Limites connues : `getWalletTransactions` plafonné à 50 par appel ; `getClientDashboard` borné (100 missions actives, 20 terminées récentes, 1000 candidatures) ; `confirmMission` non idempotente si le statut final échoue après la libération ; messagerie (débit non atomique, `messages_insert` permissive, bucket `message-media` public) à traiter avec la migration Neon ; C17 entre 1024 et 1100 px : colonne d'identité étroite à corriger.
+
+## Espace étudiant (RD-STUDENT-01)
+
+Les 13 écrans E01 à E13 sont portés sur le système de design, d'après les planches v2.1 (décision 25 de `INVENTAIRE.md`). E14 (Agenda) est hors périmètre.
+
+- Racine : le layout étudiant pose `<div className="ds e2">` ; feuilles `src/app/design/student/{base,e01..e13}.css` sous `.e2` (portée de `v2-etudiant.css`, avec le responsive à 1024, 768, 480). Coquille : `src/components/app-shell/` configurée par `src/components/student-space/shell/student-nav.js` (bureau : 5 entrées puis Compte ; mobile : 4 onglets, barre masquée sur les enfants de `/messages`). Données de la coquille : `getStudentShellData()` (`requireRole(["student"])`, refus d'un compte suspendu).
+- Structure : pages minces dans `src/app/(student)` (marqueur `@ds-screen RD-STUDENT-01`), vues pures `src/components/student-space/<écran>/`, modèles purs `src/lib/student-space/`, fabriques d'URL `src/lib/app/student-routes.js`, actions `src/lib/actions/student-*.actions.js` plus les fonctions étudiant de `message.actions.js` et `review.actions.js`. Routes inchangées (`/dashboard`, `/applications`, `/messages`, `/wallet`, `/profile`, `/student/missions`, `/student/review/[missionId]`) ; le déménagement complet sous `/student/` reste au lot RD-STUDENT-02.
+- Contrats d'URL : `/student/missions?q=&type=&cities=&urgency=&budget=&sort=&page=`, `/student/missions/[id]?postuler=1`, `/applications?onglet=en-attente|en-cours|terminees|non-retenues`, `/wallet?filtre=tout|paiements|retraits|remboursements&retrait=1`, `/messages/[missionId]`, `/student/review/[missionId]`. Les drapeaux n'exécutent jamais d'action : ils ouvrent une feuille ou une modale. `/review/[missionId]` redirige selon le rôle.
+- Règles : vouvoiement partout (erreurs des actions comprises) ; commission par `escrowSplit()` (aucun 0.88 ni 0.12 hors `database.constants.js`) ; paiements coupés : aucun bouton ni modale de retrait, texte `PAYMENTS_PENDING_COPY` ; aucun délai d'examen de carte affiché ; pas de `loading.js` sur un segment qui appelle `notFound()` ni sur ses parents (`messages/`, `student/missions/`, `student/review/` : squelettes par `<Suspense>`), avec un `not-found.js` dans la coquille pour `messages/[missionId]`, `student/missions/[id]` et `student/review/[missionId]`.
+- Garde-fous : `student-space.guard.test.js` (style, vocabulaire, vouvoiement, modules purs ; tout fichier non test de `src/app/(student)` porte le marqueur, sans exemption), `src/app/(student)/structure.test.js` (aucun `loading.js` sur ou au-dessus d'un segment qui appelle `notFound()`, `not-found.js` présent), `app-css.guard.test.js`, `no-legacy-palette.guard.test.js` (aucun fichier étudiant exempté du vert, plafond de 14 exemptions : admin, vitrine, composants partagés non portés), `payments-disabled`, `role-authority`, `mission-type-display`.
+- Code hérité supprimé : `src/components/student/*`, `missions/student-apply-form.js`, `messages/*`, `review/*`, `profile/{card-upload-form,profile-edit-form}.js`, `shared/{sidebar.jsx,student-header.js,wallet-card.js,scroll-to-results.jsx}`, modules `legacy-green/student-*`. Conservés : `shared/{verified-avatar,mission-card,toaster}` (admin, vitrine, racine), `auth/card-upload-zone.js` (onboarding étudiant), PWA (`install-prompt-logic`, `pwa-install-banner`). Le client (`src/app/(client)`, `src/components/client-space`) et l'admin sont inchangés par ce lot.
+- Hors périmètre : E14 Agenda, achats et demandes de paiement, « J'ai terminé » et état « À confirmer », annulation demandée par le client, litige, retrait de candidature, notifications, paramètres, signalement (le lien mène à `/contact?sujet=question`), avis croisés différés, réputation détaillée, Celtiis Cash au retrait, déménagement des routes sous `/student/` (RD-STUDENT-02).
+- Écarts connus avec les planches (chacun justifié par l'absence de support backend ou par une règle du dépôt) : pas de séances ni d'agenda (aucune donnée) ; pas d'achats ni de « Demande de paiement » (décision 24) ; pas de « Retirer ma candidature » ni de bouton « J'ai terminé » (aucune action serveur) ; le total gagné vient du grand livre des versements (jamais de l'ancienne table `transactions`, vide) ; pas de délai d'examen de carte (« 24 à 48 h » interdit) ; pas de cloche, de paramètres ni de réputation détaillée ; filtres du portefeuille limités à Tout, Paiements reçus, Retraits et Remboursements (la commission figure dans chaque paiement) ; « Signaler » vers le formulaire de contact ; Celtiis Cash absent du retrait (MTN et Moov seulement, selon `process-withdrawal`).
+- Limites connues et dette de sécurité : candidature et édition du profil écrivent directement dans `applications` et `profiles` : les politiques RLS sont à vérifier en production ; débit des messages non atomique ; bucket `student-cards` sans suppression des anciennes cartes ; retrait « non confirmé » (`debit_uncertain`) sans suivi automatique, seulement un rappel avec lien d'aide ; `confirmMission` non idempotente (lot sécurité séparé). Ces points sont à traiter avec la migration Neon.
