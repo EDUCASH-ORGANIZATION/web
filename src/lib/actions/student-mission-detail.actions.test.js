@@ -182,12 +182,25 @@ describe("getStudentMissionDetail : mission non ouverte", () => {
     }
   })
 
-  it("étudiant non retenu : une seule lecture minimale, ni grand livre ni client ni candidature", async () => {
+  it("étudiant non retenu : une seule lecture de la mission, ni grand livre ni client ni candidature", async () => {
     responses.missions = { data: { ...baseMission, status: "done", selected_student_id: OTHER }, error: null }
     await getStudentMissionDetail(MISSION)
     expect(calls.map((c) => c.table)).toEqual(["missions"])
-    expect(calls[0].columns).toBe("id, status, selected_student_id")
+    for (const col of ["id", "status", "selected_student_id"]) expect(calls[0].columns.split(", ")).toContain(col)
+    expect(calls[0].columns).not.toContain("*")
     expect(getMyProfile).not.toHaveBeenCalled()
+  })
+
+  it("une seule lecture de la mission : le même état décide closed et le détail (pas de fenêtre de course)", async () => {
+    let reads = 0
+    responses.missions = (state) => {
+      if (state.filters.some(([, c]) => c === "type")) return { data: [], error: null }
+      reads += 1
+      return { data: reads === 1 ? { ...baseMission, status: "in_progress", selected_student_id: OTHER } : baseMission, error: null }
+    }
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(reads).toBe(1)
+    expect(detail).toEqual({ state: "closed", mission: { id: MISSION } })
   })
 
   it("mission annulée sans retenu : état plus ouverte", async () => {

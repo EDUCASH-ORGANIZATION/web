@@ -11,8 +11,8 @@ import { verificationFromRows } from "@/lib/student-space/verification-status"
 const ERR_LOAD = "Impossible de charger la mission."
 const SIMILAR_LIMIT = 4
 
-// Colonnes explicites seulement (jamais toutes les colonnes). Aucune colonne privée (téléphone, carte, motif de refus...).
-const GATE_COLUMNS = "id, status, selected_student_id"
+// Colonnes explicites seulement (jamais toutes les colonnes), dont id, status et selected_student_id pour décider de
+// l'affichage. Aucune colonne privée (téléphone, carte, motif de refus...).
 const MISSION_COLUMNS =
   "id, title, description, type, city, budget, urgency, deadline, status, created_at, client_id, selected_student_id"
 const APPLICATION_COLUMNS = "id, status, message, created_at, updated_at"
@@ -99,6 +99,9 @@ function toClient(profile) {
  * Mission inexistante, identifiant mal formé ou appelant refusé : `null` (la page répond 404).
  * Une mission non ouverte dont l'étudiant n'est pas le retenu renvoie SEULEMENT `{ state: "closed", mission: { id } }`.
  * Pour l'étudiant retenu seulement : lignes du grand livre sous son `user_id` et avis déjà donné.
+ * Politique RLS des missions (status = 'open', ou client, ou selected_student_id) : un étudiant non retenu ne voit pas
+ * une mission qui n'est plus ouverte, il reçoit donc en pratique `null` (404) plutôt que « closed ». L'état `closed`
+ * reste le filet de sécurité si la RLS change (notamment à la migration Neon) : il ne renvoie alors que l'identifiant.
  * Une lecture en échec lève une erreur neutre (error.js), jamais un message SQL.
  *
  * @param {string} id
@@ -110,25 +113,18 @@ export async function getStudentMissionDetail(id) {
   if (!isUuid(id)) return null
   const { supabase, user } = auth
 
-  // Première lecture minimale : suffit à décider si le détail peut être montré.
-  const gate = await supabase.from("missions").select(GATE_COLUMNS).eq("id", id).maybeSingle()
-  if (gate.error) {
-    console.error("[getStudentMissionDetail] mission", gate.error.message)
-    throw new Error(ERR_LOAD)
-  }
-  if (!gate.data) return null
-
-  const isOpen = gate.data.status === "open"
-  const isSelected = gate.data.selected_student_id === user.id
-  if (!isOpen && !isSelected) return { state: "closed", mission: { id: gate.data.id } }
-
-  const missionRes = await supabase.from("missions").select(MISSION_COLUMNS).eq("id", gate.data.id).maybeSingle()
+  // UNE seule lecture : `closed`, `open` et `selected` sont calculés sur la même ligne (aucune fenêtre de course).
+  const missionRes = await supabase.from("missions").select(MISSION_COLUMNS).eq("id", id).maybeSingle()
   if (missionRes.error) {
     console.error("[getStudentMissionDetail] mission", missionRes.error.message)
     throw new Error(ERR_LOAD)
   }
   const mission = missionRes.data
   if (!mission) return null
+
+  const isOpen = mission.status === "open"
+  const isSelected = mission.selected_student_id === user.id
+  if (!isOpen && !isSelected) return { state: "closed", mission: { id: mission.id } }
 
   const followed = !isOpen && isSelected
   const [applicationRes, clientRes, similarRes, ledgerRes, reviewRes, verification] = await Promise.all([
