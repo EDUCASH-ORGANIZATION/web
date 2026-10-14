@@ -19,7 +19,7 @@ import {
   operatorLabel,
   validateWithdraw,
   withdrawQuickAmounts,
-  maskLocalPhone,
+  maskLocalPhoneLastTwo,
 } from "@/lib/client-space/withdraw-schema"
 
 const ERR_UNEXPECTED = "Le retrait n'a pas pu être lancé."
@@ -191,7 +191,7 @@ function ReviewStep({ available, amount, phone, operator, error, errorCode }) {
       <Stepper step="review" />
       <ErrorBanner error={error} errorCode={errorCode} />
       <p className="e2-09-sentence">
-        Tu vas recevoir <b>{formatAmount(amount)}</b> sur le <b>{maskLocalPhone(phone)}</b>, {operatorLabel(operator)}.
+        Tu vas recevoir <b>{formatAmount(amount)}</b> sur le <b>{maskLocalPhoneLastTwo(phone)}</b>, {operatorLabel(operator)}.
       </p>
       <Lines rows={[{ label: "Montant du retrait", value: amount }]} />
       <Lines rows={[{ label: "Disponible après retrait", value: available - amount }]} />
@@ -207,7 +207,7 @@ function DoneStep({ snapshot }) {
   return (
     <>
       <p className="e2-09-sentence">
-        <b>{formatAmount(snapshot.amount)}</b> vont être virés sur le <b>{maskLocalPhone(snapshot.phone)}</b> ({operatorLabel(snapshot.operator)}) par notre prestataire de paiement agréé.
+        <b>{formatAmount(snapshot.amount)}</b> vont être virés sur le <b>{maskLocalPhoneLastTwo(snapshot.phone)}</b> ({operatorLabel(snapshot.operator)}) par notre prestataire de paiement agréé.
       </p>
       <Lines rows={[{ label: "Nouveau disponible", value: snapshot.availableAfter }]} />
       <p className="note2">

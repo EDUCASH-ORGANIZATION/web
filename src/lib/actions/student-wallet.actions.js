@@ -24,7 +24,7 @@ import { paymentsEnabled } from "@/lib/constants/payments"
 import { escrowSplit } from "@/lib/app/money"
 import { firstName } from "@/lib/vitrine/public-name"
 import { parseStudentWalletFilter, studentWalletFilterTypes } from "@/lib/student-space/student-wallet-tx"
-import { formatLocalPhone, maskLocalPhone } from "@/lib/client-space/withdraw-schema"
+import { formatLocalPhone, maskLocalPhoneLastTwo } from "@/lib/client-space/withdraw-schema"
 
 const ERR_WALLET = "Impossible de charger ton portefeuille."
 const ERR_MORE = "Impossible de charger les mouvements suivants."
@@ -235,7 +235,7 @@ export async function getStudentWalletMore({ filtre, offset } = {}) {
 
 /**
  * Numéro du profil de l'étudiant pour préremplir le retrait. Paiements coupés : rien n'est lu.
- * `phone` (« 01 97 45 21 08 ») ne sert qu'à préremplir le champ ; `masked` (« 01 97 •• •• 08 ») est le seul
+ * `phone` (« 01 97 45 21 08 ») ne sert qu'à préremplir le champ ; `masked` (« •• •• •• •• 08 ») est le seul
  * format d'affichage. "" quand le numéro est absent ou invalide.
  * @returns {Promise<{ phone: string, masked: string } | { error: string }>}
  */
@@ -247,7 +247,7 @@ export async function getStudentWithdrawPrefill() {
     const res = await getMyProfile()
     if (res.error) return { phone: "", masked: "" }
     const raw = res.profile?.phone
-    return { phone: formatLocalPhone(raw), masked: maskLocalPhone(raw) }
+    return { phone: formatLocalPhone(raw), masked: maskLocalPhoneLastTwo(raw) }
   } catch (err) {
     unstable_rethrow(err)
     console.error("[getStudentWithdrawPrefill]", err)

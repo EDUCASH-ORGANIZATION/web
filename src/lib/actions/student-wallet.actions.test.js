@@ -40,6 +40,7 @@ vi.mock("@/lib/constants/payments", async (importOriginal) => ({
   paymentsEnabled: () => paymentsEnabled(),
 }))
 
+const { maskLocalPhoneLastTwo, maskLocalPhone } = await import("@/lib/client-space/withdraw-schema")
 const { getStudentWallet, getStudentWalletMore, getStudentWithdrawPrefill } = await import("./student-wallet.actions")
 
 const isLedger = (q, type) => q.table === "wallet_transactions" && q.filters.some(([, c, v]) => c === "type" && v === type)
@@ -260,7 +261,7 @@ describe("getStudentWithdrawPrefill", () => {
 
   it("numéro complet pour le champ, version masquée (deux derniers chiffres) pour l'affichage", async () => {
     getMyProfile.mockResolvedValue({ profile: { phone: "+2290197452108" } })
-    expect(await getStudentWithdrawPrefill()).toEqual({ phone: "01 97 45 21 08", masked: "01 97 •• •• 08" })
+    expect(await getStudentWithdrawPrefill()).toEqual({ phone: "01 97 45 21 08", masked: "•• •• •• •• 08" })
   })
 
   it("numéro absent, invalide ou profil illisible : vides, jamais une erreur", async () => {
@@ -276,5 +277,15 @@ describe("getStudentWithdrawPrefill", () => {
     getMyProfile.mockRejectedValue(new Error("boom"))
     expect(await getStudentWithdrawPrefill()).toEqual({ error: "Impossible de lire ton numéro." })
     expect(JSON.stringify(console.error.mock.calls)).not.toMatch(/0197|22901/)
+  })
+})
+
+describe("masque du numéro étudiant", () => {
+  it("ne montre que les 2 derniers chiffres ; le masque client reste inchangé", () => {
+    expect(maskLocalPhoneLastTwo("01 97 45 21 08")).toBe("•• •• •• •• 08")
+    expect(maskLocalPhoneLastTwo("+2290197452108")).toBe("•• •• •• •• 08")
+    expect(maskLocalPhoneLastTwo("12")).toBe("")
+    expect(maskLocalPhoneLastTwo(null)).toBe("")
+    expect(maskLocalPhone("0197452108")).toBe("01 97 •• •• 08")
   })
 })
