@@ -32,12 +32,14 @@ function pick(value, allowed) {
 }
 
 /**
- * Échappe les caractères spéciaux d'un motif LIKE (\, %, _, *) ainsi que la virgule et les parenthèses,
+ * Échappe les caractères spéciaux d'un motif LIKE (\, %, _) ainsi que la virgule et les parenthèses,
  * pour une recherche littérale. Le résultat sert de valeur à `.ilike("title", `%${…}%`)`.
+ * `*` n'est volontairement pas échappé : PostgREST le convertit en `%` même précédé d'une barre oblique
+ * inverse, c'est un joker accepté et non une faille (il ne peut pas sortir du filtre sur le titre).
  * @param {string} value
  */
 export function escapeLike(value) {
-  return String(value).replace(/[\\%_*,()]/g, (c) => `\\${c}`)
+  return String(value).replace(/[\\%_,()]/g, (c) => `\\${c}`)
 }
 
 /**

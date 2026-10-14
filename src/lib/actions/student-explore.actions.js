@@ -43,7 +43,7 @@ async function readVerification() {
 /**
  * Missions ouvertes et non expirées pour l'explorateur de l'étudiant (E02).
  * `requireRole(["student"])` d'abord. Les paramètres de l'URL passent par `parseExploreParams` : toute valeur
- * hors liste est ignorée, la recherche est échappée (%, _, *, \, virgule, parenthèses) avant le motif ILIKE.
+ * hors liste est ignorée, la recherche est échappée (%, _, \, virgule, parenthèses ; `*` reste un joker accepté) avant le motif ILIKE.
  *
  * @param {Record<string, string | string[] | undefined>} [params] valeurs brutes de l'URL
  * @returns {Promise<
