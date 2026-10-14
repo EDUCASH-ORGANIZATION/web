@@ -16,6 +16,7 @@ const { HistoryView, txDate } = await import("./history")
 const { WithdrawDialogView, submitWithdrawal, createSendGuard } = await import("./withdraw-dialog")
 const { EarningsChart, barLevel, weekLabel } = await import("./earnings-chart")
 const { formatAmount } = await import("@/lib/app/format")
+const { validateWithdraw } = await import("@/lib/client-space/withdraw-schema")
 const { PAYMENTS_PENDING_COPY } = await import("@/lib/constants/payments")
 
 const noop = () => {}
@@ -329,13 +330,24 @@ describe("modale de retrait (E09)", () => {
     expect(h).toContain("10 chiffres, commence par 01")
   })
 
-  it("erreurs de champ affichées et annoncées", () => {
-    const h = render({
-      amount: 60000, operator: null,
-      errors: { amount: `Le montant dépasse votre disponible (${f(47600)}).`, phone: "Le numéro béninois commence par 01.", operator: "Choisissez votre opérateur Mobile Money." },
-    })
+  it("erreurs de champ affichées et annoncées, issues de la vraie validation, vouvoyées", () => {
+    const checked = validateWithdraw({ amount: 60000, phone: "12", operator: null }, 47600)
+    expect(checked.ok).toBe(false)
+    expect(Object.keys(checked.errors).sort()).toEqual(["amount", "operator", "phone"])
+    const h = render({ amount: 60000, operator: null, errors: checked.errors })
     expect(h.match(/role="alert"/g)?.length).toBeGreaterThanOrEqual(3)
     expect(h).toContain('aria-invalid="true"')
+    for (const message of Object.values(checked.errors)) {
+      expect(message).not.toMatch(/\b(ton|ta|tes|toi|tu)\b|Indique |Choisis /i)
+    }
+    expect(checked.errors.amount).toBe(`Le montant dépasse votre disponible (${f(47600)}).`)
+    expect(checked.errors.operator).toBe("Choisissez votre opérateur Mobile Money.")
+    const empty = validateWithdraw({ amount: null, phone: "", operator: "mtn" }, 47600)
+    expect(empty.errors.amount).toBe("Indiquez le montant à retirer.")
+    expect(empty.errors.phone).toBe("Indiquez votre numéro de téléphone.")
+    for (const message of Object.values(empty.errors)) {
+      expect(message).not.toMatch(/\b(ton|ta|tes|toi|tu)\b|Indique |Choisis /i)
+    }
   })
 
   it("disponible sous le minimum : pas de montants rapides", () => {
