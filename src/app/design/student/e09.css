@@ -14,8 +14,7 @@
   /* Cibles de 44 px : montants rapides et liens des bannières (la fermeture de la fenêtre est dans base.css) */
   .e2-09-chips .chip { min-height: 44px; }
   .e2 .modal__body .banner__actions .link2 { min-height: 44px; }
-  .e2 .modal__body .banner { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; }
-  .e2 .modal__body .banner__actions { grid-column: 2; margin: 6px 0 0; }
+  .e2 .modal__body .banner__actions { margin: 6px 0 0; }
 }
 @media (max-width: 480px) {
   .e2-09-chips .chips--scroll { gap: 6px; }

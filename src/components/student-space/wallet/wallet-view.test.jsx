@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+import { readFileSync } from "node:fs"
 import { renderToStaticMarkup } from "react-dom/server"
 
 vi.mock("next/link", () => ({
@@ -384,6 +385,14 @@ describe("modale de retrait (E09)", () => {
     expect(h).toContain("•• •• •• •• 08")
     expect(h).toContain(`<b>${f(10000)}</b>`)
     expect(h).toContain('href="/contact?sujet=question"')
+  })
+
+  it("bannière d'erreur : les actions sont dans le corps de la bannière, et la feuille e09 ne les place pas en grille", () => {
+    const h = render({ step: "review", error: "Échec." })
+    expect(h).toMatch(/<div class="banner banner--erreur"[^>]*><svg[^>]*>.*<\/svg><div class="banner__body">.*<div class="banner__actions">.*<\/div><\/div><\/div>/s)
+    const css = readFileSync("src/app/design/student/e09.css", "utf8")
+    expect(css).not.toMatch(/grid-column/)
+    expect(css).not.toMatch(/\.banner\s*\{[^}]*display:\s*grid/)
   })
 
   it("debit_uncertain : ni Réessayer ni Modifier, lien d'aide, bouton Fermer", () => {
