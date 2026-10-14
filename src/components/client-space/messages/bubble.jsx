@@ -8,19 +8,20 @@ function placeHref(lat, lng) {
   return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`
 }
 
-function Body({ message }) {
+function Body({ message, onMediaError }) {
   if (message.type === "image") {
-    // Pas de lien vers l'objet brut : le compartiment public servirait un fichier HTML déguisé sur l'origine du stockage.
+    // Pas de lien vers l'objet brut : il servirait un fichier HTML déguisé sur l'origine du stockage. L'adresse
+    // affichée est toujours une adresse signée ; sur erreur de chargement la vue la renouvelle une fois.
     return message.mediaUrl ? (
       // eslint-disable-next-line @next/next/no-img-element
-      <img className="bubble__photo2" src={message.mediaUrl} alt="Image envoyée" loading="lazy" />
+      <img className="bubble__photo2" src={message.mediaUrl} alt="Image envoyée" loading="lazy" onError={() => onMediaError?.(message.id)} />
     ) : (
       <span className="bubble__text2">Image indisponible</span>
     )
   }
   if (message.type === "voice") {
     return message.mediaUrl ? (
-      <audio className="bubble__audio2" src={message.mediaUrl} controls preload="metadata" aria-label="Message vocal" />
+      <audio className="bubble__audio2" src={message.mediaUrl} controls preload="metadata" aria-label="Message vocal" onError={() => onMediaError?.(message.id)} />
     ) : (
       <span className="bubble__text2">Message vocal indisponible</span>
     )
@@ -59,7 +60,7 @@ function Meta({ message, status, error }) {
  * Bulle de message. `status` : "sent" (défaut), "sending" ou "failed" (message de l'utilisateur pas encore
  * livré : `error` en méta, « Réessayer » et « Supprimer » sous la bulle).
  */
-export function Bubble({ message, senderName, status = "sent", error, onRetry, onDismiss }) {
+export function Bubble({ message, senderName, status = "sent", error, onRetry, onDismiss, onMediaError }) {
   return (
     <div
       className={cx(
@@ -71,7 +72,7 @@ export function Bubble({ message, senderName, status = "sent", error, onRetry, o
       )}
     >
       <span className="sr-only">{message.mine ? "Vous" : senderName} : </span>
-      <Body message={message} />
+      <Body message={message} onMediaError={onMediaError} />
       <Meta message={message} status={status} error={error} />
       {status === "failed" ? (
         <div className="bubble__actions2">
