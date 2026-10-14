@@ -10,15 +10,18 @@ export const commissionLabel = () => `Commission EduCash (${COMMISSION_PERCENT} 
 
 /**
  * « Ce que vous touchez » d'une mission en cours : budget, commission, votre part (escrowSplit), badge « En séquestre ».
+ * Le badge et la phrase sur le séquestre n'apparaissent que si les paiements sont ouverts (`paymentsEnabled`) :
+ * sinon un texte neutre, sans promesse de fonds bloqués.
  * Mission annulée : une explication, aucun montant.
- * @param {{ split: { total: number, commission: number, student: number }, cancelled: boolean }} props
+ * @param {{ split: { total: number, commission: number, student: number }, cancelled: boolean,
+ *   paymentsEnabled?: boolean }} props
  */
-export function EarningLines({ split, cancelled }) {
+export function EarningLines({ split, cancelled, paymentsEnabled = false }) {
   return (
     <section className="e2-sec e2-05-lines" aria-label="Ce que vous touchez">
       <div className="e2-sec__head">
         <h2 className="e2-sec__title">Ce que vous touchez</h2>
-        {cancelled ? null : (
+        {cancelled || !paymentsEnabled ? null : (
           <span className="badge badge--neutre badge--sm">
             <Icon name="i-lock" />
             En séquestre
@@ -27,7 +30,7 @@ export function EarningLines({ split, cancelled }) {
       </div>
       <div className="e2-sec__body">
         {cancelled ? (
-          <p className="e2-05-caption">Cette mission a été annulée : aucun montant ne t&apos;est dû.</p>
+          <p className="e2-05-caption">Cette mission a été annulée : aucun montant ne vous est dû.</p>
         ) : (
           <>
             <div className="e2-kv">
@@ -45,8 +48,9 @@ export function EarningLines({ split, cancelled }) {
               </div>
             </div>
             <p className="e2-05-caption">
-              Le budget est bloqué en séquestre. Votre part arrive sur votre portefeuille quand le client confirme la fin
-              de la mission.
+              {paymentsEnabled
+                ? "Le budget est bloqué en séquestre. Votre part arrive sur votre portefeuille quand le client confirme la fin de la mission."
+                : "Ces montants sont indicatifs : les paiements ne sont pas encore ouverts sur la plateforme."}
             </p>
           </>
         )}

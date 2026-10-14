@@ -27,7 +27,8 @@ const detail = (status, over = {}, missionOver = {}) => ({
   similar: [],
   ...over,
 })
-const render = (d) => renderToStaticMarkup(<MissionFollowupView detail={d} flags={flags} />)
+const render = (d, f = flags) => renderToStaticMarkup(<MissionFollowupView detail={d} flags={f} />)
+const paymentsOn = { postuler: false, paymentsEnabled: true }
 const text = (html) => html.replace(/<[^>]+>/g, " ")
 const release = [{ type: "release", amount: 22000, createdAt: "2026-10-20T10:00:00Z" }]
 
@@ -40,12 +41,34 @@ describe("MissionFollowupView (E05)", () => {
     expect(html).toContain("e2-step--now")
     expect(html).toContain('aria-current="step"')
     expect(html).toContain("Candidature envoy")
-    expect(html).toContain("En séquestre")
+    expect(html).not.toContain("En séquestre")
+    expect(html).not.toContain("bloqué en séquestre")
     expect(html).toContain("Commission EduCash (12 %)")
     expect(html).toContain(formatFcfa(split.total))
     expect(html).toContain(formatFcfa(split.commission))
     expect(html).toContain(formatFcfa(split.student))
     expect(html).toContain("Quand c&#x27;est fini, prévenez le client dans la messagerie : il confirme la fin et votre part est versée sur votre portefeuille.")
+  })
+
+  it("en cours, paiements ouverts : badge et phrase du sequestre", () => {
+    const html = render(detail("in_progress"), paymentsOn)
+    expect(html).toContain("En séquestre")
+    expect(html).toContain("Le budget est bloqué en séquestre.")
+    expect(html).not.toContain("indicatifs")
+  })
+
+  it("en cours, paiements coupes : texte neutre, aucune promesse de fonds bloques", () => {
+    const html = render(detail("in_progress"), flags)
+    expect(html).toContain("Ces montants sont indicatifs")
+    expect(html).not.toMatch(/séquestre/)
+  })
+
+  it("annulee : vouvoiement, aucun montant, quel que soit le drapeau", () => {
+    for (const f of [flags, paymentsOn]) {
+      const html = render(detail("cancelled"), f)
+      expect(html).toContain("aucun montant ne vous est dû")
+      expect(html).not.toContain("En séquestre")
+    }
   })
 
   it("en cours : ecrire au client, signaler un probleme, aucun bouton J'ai terminé, pas de citron ni de carte bleue", () => {

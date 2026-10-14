@@ -20,12 +20,13 @@ const REPORT_HREF = "/contact?sujet=question"
  * Les calculs viennent de `missionDetailView(detail)` : statut, escrowSplit, actions, chronologie, reçu.
  * Aucun bouton « J'ai terminé », aucun état « À confirmer » (aucune donnée en base), aucune séance.
  *
- * `flags` = { postuler, paymentsEnabled } : sans objet ici (la signature est commune aux deux vues).
+ * `flags` = { postuler, paymentsEnabled } : `paymentsEnabled` décide si le badge et la phrase « séquestre » s'affichent
+ * (paiements coupés : texte neutre, aucune promesse de fonds bloqués).
  *
  * @param {{ detail: import("@/lib/actions/student-mission-detail.actions").StudentMissionDetailOpen,
  *   flags: { postuler: boolean, paymentsEnabled: boolean } }} props
  */
-export function MissionFollowupView({ detail }) {
+export function MissionFollowupView({ detail, flags }) {
   const view = missionDetailView(detail)
   const { mission, client } = detail
   const { actions, split, receipt } = view
@@ -54,7 +55,11 @@ export function MissionFollowupView({ detail }) {
           {mission.status === "done" ? (
             <Receipt split={split} receipt={receipt} />
           ) : (
-            <EarningLines split={split} cancelled={mission.status === "cancelled"} />
+            <EarningLines
+              split={split}
+              cancelled={mission.status === "cancelled"}
+              paymentsEnabled={flags?.paymentsEnabled === true}
+            />
           )}
           {mission.status === "in_progress" ? (
             <section className="e2-sec" aria-label="Fin de mission">
