@@ -6,11 +6,13 @@ import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { sendEmail } from "@/lib/email/index"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
+import { todayInBenin, isPastDeadline } from "@/lib/vitrine/dates"
 import { verificationFromRows } from "@/lib/student-space/verification-status"
 
 // Un seul registre, vouvoyé, pour tous les rôles.
 const ERR_GENERIC = "Une erreur est survenue. Réessayez dans un instant."
 const ERR_FORBIDDEN = "Vous n'avez pas les droits pour effectuer cette action."
+const ERR_DEADLINE_PASSED = "L'échéance de cette mission est dépassée."
 const ERR_LOAD = "Impossible de charger les candidatures."
 const MESSAGE_MAX = 500
 // Décision D2 : refus de candidature selon le statut de vérification (espace étudiant).
@@ -101,12 +103,13 @@ export async function apply({ missionId, message }) {
 
   const { data: mission } = await supabase
     .from("missions")
-    .select("id, title, client_id, status")
+    .select("id, title, client_id, status, deadline")
     .eq("id", missionId)
     .maybeSingle()
 
   if (!mission) return { error: "Mission introuvable." }
   if (mission.status !== "open") return { error: "Cette mission n'accepte plus de candidatures." }
+  if (isPastDeadline(mission.deadline, todayInBenin())) return { error: ERR_DEADLINE_PASSED }
   if (mission.client_id === user.id) return { error: "Vous ne pouvez pas postuler à votre propre mission." }
 
   // Vérifie qu'aucune candidature n'existe déjà

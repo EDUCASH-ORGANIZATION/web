@@ -111,6 +111,30 @@ describe("apply", () => {
     expect(writes()).toHaveLength(0)
   })
 
+  it("refuse une mission dont l'échéance est dépassée, sans insertion ni notification", async () => {
+    asStudent()
+    const yesterday = new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10)
+    respond = (q) => (q.table === "missions" ? { data: { ...openMission, deadline: yesterday } } : { data: null, error: null })
+    const res = await apply({ missionId: "m1", message: "Bonjour" })
+    expect(res).toEqual({ error: "L'échéance de cette mission est dépassée." })
+    expect(writes()).toHaveLength(0)
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it("accepte une échéance aujourd'hui, future ou absente", async () => {
+    asStudent()
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Porto-Novo" })
+    const tomorrow = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10)
+    for (const deadline of [today, tomorrow, null]) {
+      respond = (q) => {
+        if (q.table === "missions") return { data: { ...openMission, deadline } }
+        if (q.table === "profiles") return { data: { full_name: "Nom" } }
+        return { data: null, error: null }
+      }
+      expect(await apply({ missionId: "m1", message: "Bonjour" })).toEqual({ success: true })
+    }
+  })
+
   it("refuse une mission inconnue", async () => {
     asStudent()
     const res = await apply({ missionId: "m1", message: "Bonjour" })
