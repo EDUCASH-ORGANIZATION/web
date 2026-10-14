@@ -63,7 +63,7 @@ describe("(student)/layout", () => {
 
   it("rôle introuvable : retour à l'accueil", async () => {
     state.role = null
-    await expect(StudentLayout({ children: null })).rejects.toThrow("REDIRECT:/")
+    await expect(StudentLayout({ children: null })).rejects.toThrow(/^REDIRECT:\/$/)
   })
 
   it.each([
