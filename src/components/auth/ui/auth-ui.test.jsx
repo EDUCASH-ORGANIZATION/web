@@ -23,27 +23,28 @@ const RULES = [
 
 describe("FieldError", () => {
   it("rend le message avec role alert, rien sans message", () => {
-    const html = renderToStaticMarkup(<FieldError id="e-err" message="Saisis ton email." />)
+    const html = renderToStaticMarkup(<FieldError id="e-err" message="Saisissez votre email." />)
     expect(html).toContain('class="field__error"')
     expect(html).toContain('id="e-err"')
     expect(html).toContain('role="alert"')
-    expect(html).toContain("Saisis ton email.")
+    expect(html).toContain("Saisissez votre email.")
     expect(renderToStaticMarkup(<FieldError message="" />)).toBe("")
   })
 })
 
 describe("PasswordInput", () => {
-  it("masque le mot de passe, relie le bouton au champ et tutoie l'étudiant", () => {
+  it("masque le mot de passe, relie le bouton au champ et vouvoie par défaut", () => {
     const html = renderToStaticMarkup(<PasswordInput id="pw" name="password" />)
     expect(html).toContain('type="password"')
     expect(html).toContain('aria-controls="pw"')
-    expect(html).toContain('aria-label="Afficher ton mot de passe"')
+    expect(html).toContain('aria-label="Afficher votre mot de passe"')
     expect(html).not.toContain("is-error")
   })
 
-  it("vouvoie le client et marque l'erreur", () => {
-    const html = renderToStaticMarkup(<PasswordInput id="pw" audience="client" invalid aria-describedby="pw-e" />)
+  it("marque l'erreur et garde le libellé vouvoyé, sans prop audience", () => {
+    const html = renderToStaticMarkup(<PasswordInput id="pw" invalid aria-describedby="pw-e" />)
     expect(html).toContain('aria-label="Afficher votre mot de passe"')
+    expect(html).not.toContain("audience")
     expect(html).toContain("control is-error")
     expect(html).toContain('aria-invalid="true"')
     expect(html).toContain('aria-describedby="pw-e"')

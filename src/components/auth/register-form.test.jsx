@@ -29,23 +29,26 @@ describe("RegisterForm", () => {
     expect(html).toContain("Créer mon compte")
   })
 
-  it("sans rôle : aucune carte cochée, champ rôle vide, ton étudiant par défaut", () => {
+  it("sans rôle : aucune carte cochée, champ rôle vide, vouvoiement par défaut", () => {
     const html = renderToStaticMarkup(<RegisterForm />)
     expect(html).not.toContain("is-selected")
     expect(html).toContain('name="role" value=""')
-    expect(html).toContain("Crée ton compte")
+    expect(html).toContain("Créez votre compte")
+    expect(text(html)).not.toMatch(TU_FORMS)
     expect(html).not.toContain('name="next"')
   })
 
-  it("rôle étudiant : carte cochée, tutoiement, champ audience", () => {
+  it("rôle étudiant : carte cochée, vouvoiement, aucun champ audience", () => {
     const html = renderToStaticMarkup(<RegisterForm role="student" audience="student" />)
     expect(html.match(/is-selected/g)).toHaveLength(1)
     expect(html).toContain('aria-checked="true"')
-    expect(html).toContain('name="audience" value="student"')
+    expect(html).not.toContain('name="audience"')
     expect(html).toContain('name="role" value="student"')
     const body = text(html)
-    expect(body).toContain("Confirme ton mot de passe")
-    expect(body).not.toMatch(/\bvous\b|\bvotre\b/i)
+    expect(body).toContain("Confirmez votre mot de passe")
+    expect(body).toContain("Créez votre compte")
+    expect(body).not.toMatch(TU_FORMS)
+    expect(html).toContain('placeholder="vous@exemple.bj"')
   })
 
   it("rôle client : vouvoiement, next conservé en champ caché", () => {

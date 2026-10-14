@@ -49,13 +49,14 @@ describe("LoginForm", () => {
     expect(html).toContain('href="/auth/register"')
   })
 
-  it("tutoie l'étudiant connu, avec le champ caché audience=student", () => {
+  it("vouvoie l'étudiant connu, sans champ audience, et conserve role et next", () => {
     const html = renderToStaticMarkup(<LoginForm role="student" next="/dashboard" />)
-    expect(html).toContain("Content de te revoir")
-    expect(html).toContain('type="hidden" name="audience" value="student"')
+    expect(html).toContain("Content de vous revoir")
+    expect(html).not.toContain('name="audience"')
     expect(html).toContain('type="hidden" name="next" value="/dashboard"')
     expect(html).toContain('href="/auth/register?role=student&amp;next=%2Fdashboard"')
-    expect(html).toContain("Tu reviens juste après")
+    expect(html).toContain("Vous reviendrez juste après")
+    expect(text(html)).not.toMatch(/(?<!\p{L})(tu|ton|ta|tes|toi)(?!\p{L})/iu)
   })
 
   it("vouvoie le client et conserve next (champ caché et lien d'inscription)", () => {

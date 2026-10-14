@@ -15,7 +15,7 @@ export const CARD_TYPES = ["image/jpeg", "image/png", "application/pdf"]
 const TIPS = [
   "Les 4 coins de la carte sont visibles.",
   "La photo est nette, sans reflet.",
-  "Ton nom et l'année en cours sont lisibles.",
+  "Votre nom et l'année en cours sont lisibles.",
   "JPG, PNG ou PDF, 10 Mo maximum.",
 ]
 
@@ -28,16 +28,16 @@ function megabytes(size) {
  * @param {{ type: string, size: number }} file
  * @param {string[]} accepted types MIME acceptés
  * @param {"photo" | "carte"} kind
- * @returns {string} message d'erreur tutoyé, ou "" si le fichier est valide
+ * @returns {string} message d'erreur vouvoyé, ou "" si le fichier est valide
  */
 export function validateUpload(file, accepted, kind) {
   if (!accepted.includes(file.type)) {
     return kind === "photo"
-      ? "Format non accepté. Envoie une photo JPG ou PNG."
-      : "Format non accepté. Envoie une photo JPG, PNG ou un PDF."
+      ? "Format non accepté. Envoyez une photo JPG ou PNG."
+      : "Format non accepté. Envoyez une photo JPG, PNG ou un PDF."
   }
   if (file.size > MAX_UPLOAD_BYTES) {
-    return `Fichier trop lourd (${megabytes(file.size)}). 10 Mo maximum. Réduis la photo ou envoie un PDF.`
+    return `Fichier trop lourd (${megabytes(file.size)}). 10 Mo maximum. Réduisez la photo ou envoyez un PDF.`
   }
   return ""
 }
@@ -72,13 +72,13 @@ export function StepCard({ card, cardError = "", formError = "", pending, onPick
     <form className="auth__form" method="post" noValidate onSubmit={handleSubmit}>
       <AuthStepper steps={STEP_LABELS} current={3} />
       <div>
-        <h1 className="ds-h1">Ta carte étudiante</h1>
-        <p className="muted a-lead">Elle prouve que tu es étudiant. Seule l&apos;équipe EduCash la voit.</p>
+        <h1 className="ds-h1">Votre carte étudiante</h1>
+        <p className="muted a-lead">Elle prouve que vous êtes étudiant. Seule l&apos;équipe EduCash la voit.</p>
       </div>
       {formError && <FormBanner tone="erreur">{formError}</FormBanner>}
       <FormBanner tone="info" title="Facultatif à ce stade">
-        Tu pourras postuler dès l&apos;envoi : le client verra « En cours d&apos;examen ». Nous examinons ta carte, tu recevras
-        un email.
+        Vous pourrez postuler dès l&apos;envoi : le client verra « En cours d&apos;examen ». Nous examinons votre carte, vous
+        recevrez un email.
       </FormBanner>
 
       <div className="field">
@@ -91,7 +91,7 @@ export function StepCard({ card, cardError = "", formError = "", pending, onPick
           type="file"
           accept="image/jpeg,image/png,application/pdf"
           tabIndex={-1}
-          aria-label="Choisir ta carte étudiante"
+          aria-label="Choisir votre carte étudiante"
           onChange={(event) => {
             onPickCard(event.target.files?.[0] ?? null)
             event.target.value = ""
@@ -126,9 +126,9 @@ export function StepCard({ card, cardError = "", formError = "", pending, onPick
             <span className={`ic-sq ic-sq--lg${cardError ? " ic-sq--erreur" : ""}`}>
               <Icon name={cardError ? "i-alert-triangle" : "i-id-card"} />
             </span>
-            <span className="upload__title">Dépose ta carte étudiante</span>
+            <span className="upload__title">Déposez votre carte étudiante</span>
             <span className="upload__hint">
-              ou <span className="link">choisis un fichier</span> · JPG, PNG, PDF · 10 Mo max
+              ou <span className="link">choisissez un fichier</span> · JPG, PNG, PDF · 10 Mo max
             </span>
           </div>
         )}
@@ -148,7 +148,7 @@ export function StepCard({ card, cardError = "", formError = "", pending, onPick
         {confirmSkip && card && (
           <FormBanner
             tone="alerte"
-            title="Ta carte ne sera pas envoyée"
+            title="Votre carte ne sera pas envoyée"
             actions={
               <>
                 <button className="btn btn--secondary btn--sm" type="button" disabled={pending} onClick={onSubmit}>
@@ -160,7 +160,7 @@ export function StepCard({ card, cardError = "", formError = "", pending, onPick
               </>
             }
           >
-            {`Tu as choisi « ${card.name} ». Si tu continues sans l'envoyer, elle ne sera pas enregistrée.`}
+            {`Vous avez choisi « ${card.name} ». Si vous continuez sans l'envoyer, elle ne sera pas enregistrée.`}
           </FormBanner>
         )}
         <HydratedSubmit className="btn btn--primary btn--block" pending={pending}>

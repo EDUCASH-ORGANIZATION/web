@@ -11,9 +11,6 @@ import { HydratedSubmit } from "@/components/auth/ui/hydrated-submit"
 import { PasswordChecklist } from "@/components/auth/ui/password-checklist"
 import { PasswordInput } from "@/components/auth/ui/password-input"
 
-// Écran neutre : vouvoiement.
-const AUDIENCE = "client"
-
 /** Lien de récupération expiré, déjà utilisé ou absent : retour vers A05. */
 export function ResetLinkExpired() {
   return (
@@ -84,7 +81,7 @@ export function ResetPasswordForm({ email = "" }) {
   const showRuleErrors = Boolean(errors.password)
 
   function handleSubmit(event) {
-    const parsed = parseFormData(makeResetSchema(AUDIENCE), new FormData(event.currentTarget))
+    const parsed = parseFormData(makeResetSchema(), new FormData(event.currentTarget))
     if (parsed.ok) {
       setClientErrors(null)
       return
@@ -113,7 +110,6 @@ export function ResetPasswordForm({ email = "" }) {
         <PasswordInput
           id="reset-password"
           name="password"
-          audience={AUDIENCE}
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
@@ -131,7 +127,6 @@ export function ResetPasswordForm({ email = "" }) {
         <PasswordInput
           id="reset-confirm"
           name="confirmPassword"
-          audience={AUDIENCE}
           autoComplete="new-password"
           placeholder="Le même"
           value={confirm}

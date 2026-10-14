@@ -11,22 +11,12 @@ import { HydratedSubmit } from "@/components/auth/ui/hydrated-submit"
 import { MailboxLink } from "@/components/auth/ui/mailbox-link"
 
 const COPY = {
-  student: {
-    lead: "Saisis l'adresse de ton compte. Nous t'envoyons un lien pour en choisir un nouveau.",
-    placeholder: "toi@exemple.bj",
-    sentTitle: "Regarde ta boîte mail",
-    sentLead: "Si un compte existe pour",
-    sentEnd: ", tu vas recevoir un lien pour choisir un nouveau mot de passe.",
-    hint: "Rien reçu ? Regarde dans les spams, ou vérifie l'adresse indiquée.",
-  },
-  client: {
-    lead: "Saisissez l'adresse de votre compte. Nous vous envoyons un lien pour en choisir un nouveau.",
-    placeholder: "vous@exemple.bj",
-    sentTitle: "Regardez votre boîte mail",
-    sentLead: "Si un compte existe pour",
-    sentEnd: ", vous allez recevoir un lien pour choisir un nouveau mot de passe.",
-    hint: "Rien reçu ? Regardez dans les spams, ou vérifiez l'adresse indiquée.",
-  },
+  lead: "Saisissez l'adresse de votre compte. Nous vous envoyons un lien pour en choisir un nouveau.",
+  placeholder: "vous@exemple.bj",
+  sentTitle: "Regardez votre boîte mail",
+  sentLead: "Si un compte existe pour",
+  sentEnd: ", vous allez recevoir un lien pour choisir un nouveau mot de passe.",
+  hint: "Rien reçu ? Regardez dans les spams, ou vérifiez l'adresse indiquée.",
 }
 
 const BANNERS = {
@@ -37,11 +27,9 @@ const BANNERS = {
 /**
  * Mot de passe oublié (A05). Action serveur `requestPasswordReset` : même réponse que le compte
  * existe ou non. L'adresse est gardée en état client (jamais dans l'URL).
- * @param {{ role?: "student" | "client" | null }} props
  */
-export function ForgotPasswordForm({ role = null }) {
-  const audience = role === "student" ? "student" : "client"
-  const copy = COPY[audience]
+export function ForgotPasswordForm() {
+  const copy = COPY
   const [state, formAction, pending] = useActionState(requestPasswordReset, null)
   const [clientErrors, setClientErrors] = useState(null)
   const [email, setEmail] = useState("")
@@ -51,7 +39,7 @@ export function ForgotPasswordForm({ role = null }) {
   const banner = state?.formError && !clientErrors ? BANNERS[state.code] ?? { tone: "erreur" } : null
 
   function handleSubmit(event) {
-    const parsed = parseFormData(makeForgotSchema(audience), new FormData(event.currentTarget))
+    const parsed = parseFormData(makeForgotSchema(), new FormData(event.currentTarget))
     if (parsed.ok) {
       setClientErrors(null)
       return
@@ -63,7 +51,6 @@ export function ForgotPasswordForm({ role = null }) {
   async function resend() {
     const data = new FormData()
     data.set("email", email)
-    data.set("audience", audience)
     const result = await requestPasswordReset(null, data)
     setResendError(result?.formError ?? "")
   }
@@ -122,8 +109,6 @@ export function ForgotPasswordForm({ role = null }) {
         />
         <FieldError id="forgot-email-error" message={errors.email} />
       </div>
-
-      {role === "student" && <input type="hidden" name="audience" value="student" />}
 
       <HydratedSubmit pending={pending}>Recevoir le lien</HydratedSubmit>
     </form>
