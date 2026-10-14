@@ -1,7 +1,7 @@
 /* @ds-screen RD-STUDENT-01 */
 /* E01 Tableau de bord : la planche n'utilise que la coquille (app-shell.css) et le
    systeme (money2, flag2, stats2, list2). Seule exception, bornee par le garde-fou :
-   le bouton de la carte « A faire maintenant » est pleine largeur sur mobile. */
-@media (max-width: 767.98px) {
+   le bouton de la carte « A faire maintenant » est pleine largeur sous 1024 px (la capsule mobile est affichee jusqu'a 1023,98 px). */
+@media (max-width: 1023.98px) {
   .e2 .dash2 .card2 .hero2__actions > .btn { width: 100%; }
 }

@@ -297,7 +297,8 @@
   .e2 .mtop2 > a.av2::after { inset: -7px; }
   /* Liens-texte des rangées et des cartes */
   .e2 .item2__action, .e2 .hero2__link, .e2 .list2__more { display: inline-flex; align-items: center; min-height: 44px; }
-  .e2 .stat2__sub, .e2 .money2 .stat2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
+  /* Sous-lignes de rangee (ex. « Aucune mission en cours, aucun avis a laisser » a 320 px) : retour a la ligne au lieu de l'ellipse */
+  .e2 .stat2__sub, .e2 .money2 .stat2__sub, .e2 .item2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
 }
 
 /* ---------- Responsive : 768 ---------- */

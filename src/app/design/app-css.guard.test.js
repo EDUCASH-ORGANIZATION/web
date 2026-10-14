@@ -1146,17 +1146,17 @@ describe("feuilles student.css et student/*.css", () => {
 
   // Exception explicite et limitee : E01 n'a aucune regle propre, sauf le bouton pleine largeur
   // de la carte « A faire maintenant » sur mobile (planche : classe btn--block). Rien d'autre.
-  const E01_ALLOWED = "@media (max-width: 767.98px) {\n  .e2 .dash2 .card2 .hero2__actions > .btn { width: 100%; }\n}"
+  const E01_ALLOWED = "@media (max-width: 1023.98px) {\n  .e2 .dash2 .card2 .hero2__actions > .btn { width: 100%; }\n}"
   const E01_RULE = ".e2 .dash2 .card2 .hero2__actions > .btn"
 
   it("E01 n'a aucune regle propre hors l'exception unique du bouton pleine largeur mobile", () => {
     expect(read("student/e01.css").replace(/\/\*[\s\S]*?\*\//g, "").trim()).toBe(E01_ALLOWED)
   })
 
-  it("E01 : la regle autorisee est dans le media 767.98 et ne pose que width: 100%, sans ecraser couleur, ombre ni transform", () => {
+  it("E01 : la regle autorisee est dans le media 1023.98 (aussi large que la capsule mobile) et ne pose que width: 100%, sans ecraser couleur, ombre ni transform", () => {
     const css = stripComments(read("student/e01.css"))
     expect(css.match(/\{/g)).toHaveLength(2)
-    expect(css).toContain(`@media (max-width: 767.98px) {\n  ${E01_RULE} { width: 100%; }`)
+    expect(css).toContain(`@media (max-width: 1023.98px) {\n  ${E01_RULE} { width: 100%; }`)
     const body = css.slice(css.indexOf(E01_RULE) + E01_RULE.length).match(/\{([^}]*)\}/)[1]
     expect(body.split(";").map((d) => d.trim()).filter(Boolean)).toEqual(["width: 100%"])
     expect(body).not.toMatch(/color|background|shadow|transform|border/)
@@ -1469,5 +1469,41 @@ describe("E02 : pied de la feuille de filtres et cibles tactiles sous 1024 px", 
   it("le bureau garde les tailles du systeme (aucune regle de 44 px hors media)", () => {
     const base = E02.slice(0, E02.indexOf("@media"))
     expect(base).not.toMatch(/page-btn|select--sm/)
+  })
+})
+
+describe("E01 et E02 : champ de recherche mobile blanc au repos, sous-lignes sans ellipse", () => {
+  const sel = ".e2 .e2-02-msearch:not(:focus-within)"
+
+  it("le champ de recherche mobile est blanc bordé au repos par tokens, sans viser le focus", () => {
+    const e02 = stripComments(read("student/e02.css"))
+    expect(e02).toContain(`${sel} { background: var(--c-blanc); border-color: var(--c-ligne); }`)
+    expect(e02.indexOf(sel)).toBeLessThan(e02.indexOf("@media"))
+  })
+
+  it("la regle gagne contre .shell--v2 .search2 (givre) au repos et laisse le focus bleu a .shell--v2 .search2:focus-within", () => {
+    // Specificite reelle : .e2 + .e2-02-msearch + :focus-within (argument de :not) = (0,3,0), contre (0,2,0) pour .shell--v2 .search2.
+    // (Le compteur statique du fichier ne gere pas :not(), d'ou le calcul ici.)
+    expect(3).toBeGreaterThan(specificity(".shell--v2 .search2")[1])
+    // Au focus, :not(:focus-within) ne correspond plus : seules .search2:focus-within (bleu) restent.
+    expect(sel).toContain(":not(:focus-within)")
+    const shell = SHELL.match(/\.shell--v2 \.search2:focus-within, \.shell--v2 \.search2\.is-focus \{ border-color: var\(--c-bleu\); \}/)
+    expect(shell).not.toBeNull()
+  })
+
+  it("la regle ne vise que l'espace etudiant : aucune regle client ou coquille ne change", () => {
+    expect(sel.startsWith(".e2 ")).toBe(true)
+    expect(CLIENT).not.toContain("e2-02-msearch")
+    expect(SHELL).toContain(".shell--v2 .search2 { background: var(--c-givre); border-color: var(--c-givre); }")
+  })
+
+  it("les sous-lignes de rangee (item2__sub) passent a la ligne sous 1024 px dans .e2, sans toucher .c2", () => {
+    const tablet = STUDENT_BASE.slice(STUDENT_BASE.indexOf("@media (max-width: 1023.98px)"), STUDENT_BASE.indexOf("@media (max-width: 767.98px)"))
+    expect(tablet).toContain(".e2 .stat2__sub, .e2 .money2 .stat2__sub, .e2 .item2__sub { white-space: normal; overflow: visible; text-overflow: clip; }")
+    expect(SHELL).not.toMatch(/\.c2 \.item2__sub/)
+    // Le bureau garde l'ellipse (la regle est sous media, hors du chargeur de cascade statique).
+    expect(computedStyle(RULES_E2, { tag: "div", classes: ["item2__sub"], ancestors: ["ds", "e2"] })["white-space"]).toBe("nowrap")
+    // Calcul : « Aucune mission en cours, aucun avis a laisser » (264 px de texte) ne tient pas sur 206 px (320) ni 246 px (360) : retour a la ligne.
+    for (const room of [206, 246]) expect(264).toBeGreaterThan(room)
   })
 })

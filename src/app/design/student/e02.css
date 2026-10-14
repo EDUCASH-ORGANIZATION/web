@@ -13,6 +13,8 @@
 .e2-02-sort .select { width: auto; }
 .e2-pill.e2-02-tag { height: 32px; padding: 0 10px 0 12px; font-size: var(--t-caption); position: relative; }
 .e2-02-msearch { width: 100%; }
+/* Champ de recherche mobile : blanc bordé au repos (.shell--v2 .search2 le donne givre, invisible sur fond givre) ; le focus garde son filet bleu */
+.e2 .e2-02-msearch:not(:focus-within) { background: var(--c-blanc); border-color: var(--c-ligne); }
 /* Pied de la feuille : la Modal pose .modal__foot, ce bloc range les deux boutons sur une ligne */
 .e2-02-sfoot { display: flex; align-items: center; gap: var(--s-3); width: 100%; padding-bottom: env(safe-area-inset-bottom, 0px); }
 .sheet .e2-02-sfoot .btn { width: auto; flex: none; }
