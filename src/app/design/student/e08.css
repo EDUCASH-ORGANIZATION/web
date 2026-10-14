@@ -1,14 +1,39 @@
 /* @ds-screen RD-STUDENT-01 */
-/* E08 Portefeuille : gains des 8 dernières semaines, « à venir » sur la carte argent. */
-.e2-08-bars { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; align-items: end; height: 92px; margin-top: var(--s-3); }
+/* E08 Portefeuille : gains des 8 dernières semaines, retrait en cours sur la carte argent, lignes d'opération. */
+.e2-08-top { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5); align-items: stretch; }
+.e2-08-top--solo { grid-template-columns: minmax(0, 1fr); }
+.e2-08-title { font-size: var(--t-body-s); font-weight: var(--fw-bold); color: var(--c-ardoise); }
+.e2-08-figures { display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-8); margin-top: var(--s-2); }
+.e2-08-bars { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; align-items: end; height: 92px; margin-top: var(--s-3); }
 .e2-08-bars i { display: block; border-radius: 6px 6px 2px 2px; background: var(--c-ligne); min-height: 4px; }
 .e2-08-bars i.is-now { background: var(--c-encre); }
-.e2-08-axis { display: flex; justify-content: space-between; font-size: var(--t-micro); color: var(--c-ardoise); margin-top: 6px; }
+.e2-08-bars i[data-h="1"] { height: 10%; }
+.e2-08-bars i[data-h="2"] { height: 20%; }
+.e2-08-bars i[data-h="3"] { height: 30%; }
+.e2-08-bars i[data-h="4"] { height: 40%; }
+.e2-08-bars i[data-h="5"] { height: 50%; }
+.e2-08-bars i[data-h="6"] { height: 60%; }
+.e2-08-bars i[data-h="7"] { height: 70%; }
+.e2-08-bars i[data-h="8"] { height: 80%; }
+.e2-08-bars i[data-h="9"] { height: 90%; }
+.e2-08-bars i[data-h="10"] { height: 100%; }
+.e2-08-axis { display: flex; justify-content: space-between; gap: var(--s-2); font-size: var(--t-micro); color: var(--c-ardoise); margin-top: 6px; }
+.e2-08-axis span { min-width: 0; }
 .e2 .money2 .e2-08-pending { margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid color-mix(in srgb, var(--c-blanc) 22%, transparent); font-size: var(--t-caption); color: var(--c-bleu-100); display: flex; align-items: flex-start; gap: 8px; line-height: 1.45; }
 .e2 .money2 .e2-08-pending .ic { width: 16px; height: 16px; flex: none; margin-top: 1px; color: var(--c-blanc); }
 .e2 .money2 .e2-08-pending b { color: var(--c-blanc); }
 .e2 .money2 .btn:disabled, .e2 .money2 .btn.is-disabled { background: color-mix(in srgb, var(--c-blanc) 18%, transparent); color: var(--c-bleu-100); }
+/* Ligne d'opération sans colonne de pastille : icône, texte, montant (montants de 10 chiffres sans débordement) */
+.e2-08-op { grid-template-columns: 36px minmax(0, 1fr) auto; }
+.e2-08-op .e2-op__amount { min-width: 0; }
+/* Filtres de l'historique : les 4 puces passent à la ligne, jamais de défilement horizontal */
+.e2 .list2__filters .chips--scroll { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 
+@media (max-width: 1023.98px) {
+  .e2-08-top { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+  .e2-08-op { grid-template-columns: 32px minmax(0, 1fr) auto; }
+}
 @media (max-width: 480px) {
   .e2-08-bars { gap: 6px; }
+  .e2-08-axis span:nth-child(2), .e2-08-axis span:nth-child(4) { display: none; }
 }
