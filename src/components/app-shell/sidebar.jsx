@@ -10,11 +10,11 @@ import { initialsOf } from "@/lib/app/format"
 
 // Sidebar encre du bureau (masquée sous 1024 par la feuille de la coquille). Les compteurs de messages
 // suivent le temps réel via UnreadProvider (un seul abonnement pour la coquille).
-export function Sidebar({ nav, fullName }) {
+export function Sidebar({ nav, fullName, counts: extraCounts = {} }) {
   const pathname = usePathname()
   const unread = useUnread()
   const active = activeKey(pathname, nav.groups.flatMap((group) => group.items))
-  const counts = { messages: unread }
+  const counts = { messages: unread, ...extraCounts }
 
   return (
     <aside className="sidebar">
@@ -64,7 +64,7 @@ function GroupItems({ group, active, counts }) {
             href={item.href}
             className={isActive ? "nav-item is-active" : "nav-item"}
             aria-current={isActive ? "page" : undefined}
-            aria-label={count ? countLabel(item.label, counts[item.badge]) : undefined}
+            aria-label={count ? countLabel(item.label, counts[item.badge], item.badgeUnit ?? "non lus") : undefined}
           >
             <Icon name={item.icon} />
             {item.label}
