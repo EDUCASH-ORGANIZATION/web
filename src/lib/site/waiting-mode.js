@@ -47,7 +47,7 @@ export function waitingPageHtml() {
 </head>
 <body>
 <main class="attente">
-<img class="attente__logo" src="/logo-horizontal-blanc.svg" alt="EduCash" width="180">
+<img class="attente__logo" src="/logo-horizontal-blanc.svg" alt="EduCash" width="180" height="44">
 <h1 class="attente__titre">EduCash ouvre bientôt</h1>
 <p class="attente__texte">Nous préparons l'ouverture du service. Merci de votre patience, revenez très prochainement.</p>
 <p class="attente__texte"><a class="attente__lien" href="mailto:contact@educash.bj">contact@educash.bj</a></p>

@@ -49,7 +49,7 @@ describe("waitingPageHtml", () => {
     expect(html).toContain("<title>EduCash</title>")
     expect(html).toContain('href="/attente.css"')
     expect(html).toContain('src="/logo-horizontal-blanc.svg"')
-    expect(html).toContain('width="180"')
+    expect(html).toContain('width="180" height="44"')
     expect(html).toContain("mailto:contact@educash.bj")
   })
   it("ne contient ni script, ni manifest, ni style en ligne, ni tiret cadratin", () => {
@@ -57,8 +57,8 @@ describe("waitingPageHtml", () => {
     expect(html).not.toMatch(/manifest/i)
     expect(html).not.toMatch(/style=/i)
     expect(html).not.toMatch(/<style/i)
-    expect(html).not.toContain("—")
-    expect(html).not.toContain("–")
+    expect(html).not.toContain(String.fromCharCode(0x2014))
+    expect(html).not.toContain(String.fromCharCode(0x2013))
     expect(html).not.toMatch(/https?:\/\//)
   })
   it("vouvoie", () => {

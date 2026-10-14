@@ -1,21 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 const limit = vi.fn()
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: () => ({
-    from: () => ({
-      select: () => ({ eq: () => ({ or: () => ({ limit }) }) }),
-    }),
+const createClient = vi.fn(() => ({
+  from: () => ({
+    select: () => ({ eq: () => ({ or: () => ({ limit }) }) }),
   }),
+}))
+
+vi.mock("@supabase/supabase-js", () => ({
+  createClient: (...args) => createClient(...args),
 }))
 
 import sitemap from "./sitemap.js"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.educash.bj"
 
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
 beforeEach(() => {
   limit.mockReset()
+  createClient.mockClear()
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
 
@@ -42,5 +49,12 @@ describe("sitemap", () => {
     expect(urls).toContain(`${APP_URL}/etudiants`)
     expect(urls).not.toContain(`${APP_URL}/clients`)
     expect(urls.some((u) => u.includes("/missions/"))).toBe(false)
+  })
+
+  it("mode attente : liste vide sans appel Supabase", async () => {
+    vi.stubEnv("SITE_WAITING_MODE", "true")
+    expect(await sitemap()).toEqual([])
+    expect(createClient).not.toHaveBeenCalled()
+    expect(limit).not.toHaveBeenCalled()
   })
 })

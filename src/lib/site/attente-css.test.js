@@ -35,6 +35,6 @@ describe("public/attente.css", () => {
   })
 
   it("n'a pas de tiret cadratin", () => {
-    expect(css).not.toContain("—")
+    expect(css).not.toContain(String.fromCharCode(0x2014))
   })
 })
