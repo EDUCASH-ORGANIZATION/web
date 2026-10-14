@@ -30,7 +30,7 @@ export function useRealtimeMessages({ missionId, studentId, userId, initialMessa
   useEffect(() => {
     if (!missionId || !studentId || !userId) return undefined
     const channel = supabase
-      .channel(`client_conversation:${missionId}:${studentId}`)
+      .channel(`conversation:${missionId}:${studentId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `mission_id=eq.${missionId}` },
