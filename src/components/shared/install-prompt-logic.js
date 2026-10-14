@@ -17,9 +17,9 @@ export const EMPTY_INSTALL_STATE = {
 
 const COPY = {
   student: {
-    title: "Installe EduCash",
-    native: "Retrouve tes missions depuis ton écran d'accueil.",
-    ios: "Ajoute EduCash à ton écran d'accueil : touche Partager, puis « Sur l'écran d'accueil ».",
+    title: "Installez EduCash",
+    native: "Retrouvez vos missions depuis votre écran d'accueil.",
+    ios: "Ajoutez EduCash à votre écran d'accueil : touchez Partager, puis « Sur l'écran d'accueil ».",
     install: "Installer",
     later: "Plus tard",
     close: "Fermer et ne plus afficher",
