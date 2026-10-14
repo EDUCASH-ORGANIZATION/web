@@ -323,7 +323,24 @@ export async function saveStudentCardUrl(cardUrl) {
       return { error: "Impossible d'enregistrer ta carte étudiante." }
     }
 
+    // Une nouvelle carte repasse en attente de vérification (comme updateStudentProfileWithCard) : liste blanche
+    // de colonnes, jamais role, is_suspended ni verified_until.
+    const { error: resetError } = await supabase
+      .from("profiles")
+      .update({
+        is_verified: false,
+        rejection_reason: null,
+        verification_submitted_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id)
+
+    if (resetError) {
+      console.error("[saveStudentCardUrl]", resetError.message)
+      return { error: "Impossible d'enregistrer ta carte étudiante." }
+    }
+
     revalidatePath("/profile")
+    revalidatePath("/student/profile")
     return { success: true }
   } catch (err) {
     console.error("[saveStudentCardUrl]", err)

@@ -10,6 +10,7 @@ vi.mock("@/lib/auth/require-role", () => ({ requireUser: vi.fn(), requireRole: v
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireUser, requireRole } from "@/lib/auth/require-role"
 import { createClient } from "@/lib/supabase/server"
+import { verificationFromRows } from "@/lib/student-space/verification-status"
 import {
   getMyProfile,
   getMyStudentProfile,
@@ -134,7 +135,8 @@ describe("écritures de profil", () => {
   const cases = [
     ["updateStudentProfile (profil)", () => updateStudentProfile(input), "profiles"],
     ["updateStudentProfile (étudiant)", () => updateStudentProfile(input), "student_profiles"],
-    ["saveStudentCardUrl", () => saveStudentCardUrl("u1/c.jpg"), "student_profiles"],
+    ["saveStudentCardUrl (carte)", () => saveStudentCardUrl("u1/c.jpg"), "student_profiles"],
+    ["saveStudentCardUrl (remise en attente)", () => saveStudentCardUrl("u1/c.jpg"), "profiles"],
     ["updateStudentProfileWithCard (profil)", () => updateStudentProfileWithCard(input), "profiles"],
     ["updateStudentProfileWithCard (étudiant)", () => updateStudentProfileWithCard(input), "student_profiles"],
     ["updateClientProfile", () => updateClientProfile(input), "profiles"],
@@ -220,6 +222,39 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     expect(res).toEqual({ success: true })
     expect(captured2.student_profiles.card_url).toBe(expected)
     expect(captured2.profiles.is_verified).toBe(false)
+  })
+
+  it("saveStudentCardUrl remet le dossier en attente : liste blanche, jamais role, is_suspended ni verified_until", async () => {
+    const captured = {}
+    asRole(session({ captured }))
+    expect(await saveStudentCardUrl("u1/card.jpg")).toEqual({ success: true })
+    expect(Object.keys(captured.profiles).sort()).toEqual(["is_verified", "rejection_reason", "verification_submitted_at"])
+    expect(captured.profiles).toMatchObject({ is_verified: false, rejection_reason: null })
+    expect(Date.parse(captured.profiles.verification_submitted_at)).not.toBeNaN()
+    for (const col of ["role", "is_suspended", "verified_until"]) {
+      expect(captured.profiles).not.toHaveProperty(col)
+      expect(captured.student_profiles).not.toHaveProperty(col)
+    }
+    expect(Object.keys(captured.student_profiles).sort()).toEqual(["card_url", "user_id"])
+  })
+
+  it("carte refusée puis renvoyée : le statut calculé repasse de rejected à pending", async () => {
+    const rejected = { is_verified: false, rejection_reason: "floue" }
+    expect(verificationFromRows(rejected, { card_url: "u1/old.jpg" }).key).toBe("rejected")
+    const captured = {}
+    asRole(session({ captured }))
+    await saveStudentCardUrl("u1/new.jpg")
+    const after = { ...rejected, ...captured.profiles }
+    expect(verificationFromRows(after, captured.student_profiles).key).toBe("pending")
+    // L'onglet admin « en attente » filtre sur !rejection_reason : la carte y réapparaît.
+    expect(after.rejection_reason).toBeNull()
+  })
+
+  it("saveStudentCardUrl : un chemin refusé n'écrit rien, ni carte ni remise en attente", async () => {
+    const captured = {}
+    asRole(session({ captured }))
+    await saveStudentCardUrl("u2/card.jpg")
+    expect(captured).toEqual({})
   })
 
   it("updateStudentProfileWithCard sans carte ne touche pas à la vérification", async () => {
