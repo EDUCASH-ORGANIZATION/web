@@ -16,7 +16,6 @@ import {
   getMyStudentProfile,
   updateStudentProfile,
   saveStudentCardUrl,
-  updateStudentProfileWithCard,
   updateClientProfile,
   getClientProfileSummary,
 } from "./profile.actions"
@@ -131,14 +130,12 @@ beforeEach(() => {
 })
 
 describe("écritures de profil", () => {
-  const input = { fullName: "Awa", city: "Cotonou" }
+  const input = { fullName: "Awa", city: "Cotonou", phone: "01 97 45 21 08" }
   const cases = [
     ["updateStudentProfile (profil)", () => updateStudentProfile(input), "profiles"],
     ["updateStudentProfile (étudiant)", () => updateStudentProfile(input), "student_profiles"],
     ["saveStudentCardUrl (carte)", () => saveStudentCardUrl("u1/c.jpg"), "student_profiles"],
     ["saveStudentCardUrl (remise en attente)", () => saveStudentCardUrl("u1/c.jpg"), "profiles"],
-    ["updateStudentProfileWithCard (profil)", () => updateStudentProfileWithCard(input), "profiles"],
-    ["updateStudentProfileWithCard (étudiant)", () => updateStudentProfileWithCard(input), "student_profiles"],
     ["updateClientProfile", () => updateClientProfile(input), "profiles"],
   ]
 
@@ -157,13 +154,61 @@ describe("écritures de profil", () => {
     for (const call of [
       () => updateStudentProfile({ fullName: "A", city: "C" }),
       () => saveStudentCardUrl("u1/c.jpg"),
-      () => updateStudentProfileWithCard({ fullName: "A", city: "C" }),
       () => updateClientProfile({ fullName: "A", city: "C" }),
     ]) {
       expect(await call()).toEqual({ error: "refus" })
     }
-    expect(requireRole.mock.calls.map((c) => c[0][0])).toEqual(["student", "student", "student", "client"])
+    expect(requireRole.mock.calls.map((c) => c[0][0])).toEqual(["student", "student", "client"])
     expect(write).not.toHaveBeenCalled()
+  })
+})
+
+describe("updateStudentProfile : validation dans la fonction elle-même, aucun appelant de confiance", () => {
+  const ok = { fullName: "Awa", city: "Cotonou", phone: "01 97 45 21 08", bio: "Étudiante", school: "UAC", level: "Licence 2", skills: ["Excel"] }
+  const abusive = [
+    ["50 000 compétences", { skills: Array.from({ length: 50_000 }, (_, i) => `c${i}`) }],
+    ["9 compétences", { skills: Array.from({ length: 9 }, (_, i) => `c${i}`) }],
+    ["compétence trop longue", { skills: ["x".repeat(51)] }],
+    ["compétence non texte", { skills: [{ a: 1 }] }],
+    ["compétences non tableau", { skills: "Excel" }],
+    ["bio de 3 Mo", { bio: "a".repeat(3 * 1024 * 1024) }],
+    ["téléphone hostile (script)", { phone: "<script>alert(1)</script>" }],
+    ["téléphone hostile (injection)", { phone: "0197452108'; drop table profiles;--" }],
+    ["téléphone étranger", { phone: "+33612345678" }],
+    ["téléphone absent", { phone: "" }],
+    ["ville hors liste", { city: "Atlantis" }],
+    ["ville non texte", { city: { $ne: null } }],
+    ["nom de 5 000 caractères", { fullName: "n".repeat(5000) }],
+    ["nom non texte", { fullName: 42 }],
+    ["niveau hors liste", { level: "Professeur" }],
+    ["établissement de 3 Mo", { school: "e".repeat(3 * 1024 * 1024) }],
+    ["disponibilités démesurées", { availability: "d".repeat(10_000) }],
+  ]
+
+  it.each(abusive)("refuse sans écrire : %s", async (_l, patch) => {
+    const captured = {}
+    asRole(session({ captured }))
+    const res = await updateStudentProfile({ ...ok, ...patch })
+    expect(res.error).toBe("Certains champs sont à corriger avant d'enregistrer.")
+    expect(Object.keys(res.errors).length).toBeGreaterThan(0)
+    expect(captured).toEqual({})
+  })
+
+  it.each([["null", null], ["chaîne", "x"], ["tableau", []]])("corps non objet (%s) : refusé sans écrire", async (_l, value) => {
+    const captured = {}
+    asRole(session({ captured }))
+    const res = await updateStudentProfile(value)
+    expect(res.error).toBeTruthy()
+    expect(captured).toEqual({})
+  })
+
+  it("accepte un profil valide, enregistre le téléphone au format +229 et des compétences distinctes", async () => {
+    const captured = {}
+    asRole(session({ captured }))
+    const res = await updateStudentProfile({ ...ok, skills: ["Excel", " Excel ", "AutoCAD"] })
+    expect(res).toEqual({ success: true })
+    expect(captured.profiles.phone).toBe("+2290197452108")
+    expect(captured.student_profiles.skills).toEqual(["Excel", "AutoCAD"])
   })
 })
 
@@ -198,14 +243,6 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     expect(captured).toEqual({})
   })
 
-  it.each(abusive.filter(([, v]) => v !== "" ))("updateStudentProfileWithCard refuse : %s", async (_l, value) => {
-    const captured = {}
-    asRole(session({ captured }))
-    const res = await updateStudentProfileWithCard({ fullName: "Awa", city: "Cotonou", cardUrl: value })
-    expect(res.error).toBe("Cette carte n'est pas valide. Envoyez-la à nouveau.")
-    expect(captured).toEqual({})
-  })
-
   it.each([
     ["chemin", "u1/card.jpg", "u1/card.jpg"],
     ["URL publique", publicUrl("u1/card.png"), "u1/card.png"],
@@ -215,13 +252,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     asRole(session({ captured }))
     expect(await saveStudentCardUrl(value)).toEqual({ success: true })
     expect(captured.student_profiles).toEqual({ user_id: "u1", card_url: expected })
-
-    const captured2 = {}
-    asRole(session({ captured: captured2 }))
-    const res = await updateStudentProfileWithCard({ fullName: "Awa", city: "Cotonou", cardUrl: value })
-    expect(res).toEqual({ success: true })
-    expect(captured2.student_profiles.card_url).toBe(expected)
-    expect(captured2.profiles.is_verified).toBe(false)
+    expect(captured.profiles.is_verified).toBe(false)
   })
 
   it("saveStudentCardUrl remet le dossier en attente : liste blanche, jamais role, is_suspended ni verified_until", async () => {
@@ -289,12 +320,16 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     expect(captured).toEqual({})
   })
 
-  it("updateStudentProfileWithCard sans carte ne touche pas à la vérification", async () => {
+  it("updateStudentProfile n'écrit jamais la carte ni la vérification, même si le corps en porte", async () => {
     const captured = {}
     asRole(session({ captured }))
-    expect(await updateStudentProfileWithCard({ fullName: "Awa", city: "Cotonou", cardUrl: "" })).toEqual({ success: true })
-    expect(captured.profiles).not.toHaveProperty("is_verified")
+    const body = { fullName: "Awa", city: "Cotonou", phone: "0197452108", cardUrl: "u1/c.jpg", card_url: "u1/c.jpg", is_verified: true, role: "admin" }
+    expect(await updateStudentProfile(body)).toEqual({ success: true })
+    for (const col of ["is_verified", "rejection_reason", "verification_submitted_at", "role", "is_suspended", "verified_until"]) {
+      expect(captured.profiles).not.toHaveProperty(col)
+    }
     expect(captured.student_profiles).not.toHaveProperty("card_url")
+    expect(Object.keys(captured.student_profiles).sort()).toEqual(["availability", "level", "school", "skills", "user_id"])
   })
 })
 
@@ -311,8 +346,7 @@ describe("avatar : URL publique du bucket avatars sous le dossier de l'utilisate
     ["non-chaîne", 42],
   ]
   const calls = [
-    ["updateStudentProfile", (avatarUrl) => updateStudentProfile({ fullName: "Awa", city: "Cotonou", avatarUrl })],
-    ["updateStudentProfileWithCard", (avatarUrl) => updateStudentProfileWithCard({ fullName: "Awa", city: "Cotonou", avatarUrl })],
+    ["updateStudentProfile", (avatarUrl) => updateStudentProfile({ fullName: "Awa", city: "Cotonou", phone: "0197452108", avatarUrl })],
     ["updateClientProfile", (avatarUrl) => updateClientProfile({ fullName: "Awa", city: "Cotonou", avatarUrl })],
   ]
 
