@@ -21,6 +21,7 @@
 /* Barre fixe : le montant peut passer à la ligne au lieu de recouvrir le bouton */
 .e2-03-info .e2-amount { white-space: normal; overflow-wrap: anywhere; }
 .e2-03-ta .input { min-height: 140px; }
+.e2-03-ta .field__count, .e2-03-ta--s .field__count { white-space: nowrap; flex: none; }
 .e2-03-ta--s .input { min-height: 112px; }
 .e2-03-gain { font-size: var(--t-caption); color: var(--c-ardoise); }
 .e2-03-gain .e2-amount { display: block; font-size: var(--t-amount-s); color: var(--c-encre); }
