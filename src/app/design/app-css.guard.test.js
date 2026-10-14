@@ -1384,3 +1384,49 @@ describe("anciennes pages etudiant : aucune classe attenuee par .e2", () => {
     expect(offenders).toEqual([])
   })
 })
+
+describe("anciennes pages etudiant : pas de debordement horizontal de la coquille", () => {
+  const rule = ":where(.e2 .page2) > .mx-auto"
+  const baseAt = SHELL.indexOf("\n.page2 {")
+
+  it("la racine mx-auto d'une ancienne page prend la largeur pleine de .page2 (min-width 0), apres la regle .page2 de base, hors media", () => {
+    expect(baseAt).toBeGreaterThan(-1)
+    const at = SHELL.indexOf(`\n${rule} {`)
+    expect(at).toBeGreaterThan(baseAt)
+    expect(at).toBeLessThan(SHELL.indexOf("@media"))
+    expect(SHELL).toContain(`${rule} { width: 100%; min-width: 0; }`)
+    // Seule regle de ce selecteur, et aucune couleur, ombre ni transform.
+    expect(SHELL.split(`${rule} {`).length).toBe(2)
+  })
+
+  it("est scopee a .e2 : aucune regle de .page2 ne vise .c2, et la regle ne change aucune propriete d'un enfant de .page2 sous .c2", () => {
+    expect(rule.startsWith(":where(.e2 .page2)")).toBe(true)
+    const c2 = { tag: "div", classes: ["mx-auto"], ancestors: ["ds", "c2", "shell", "shell--v2", "shell__main", "page2"] }
+    const e2 = { ...c2, ancestors: ["ds", "e2", "shell", "shell--v2", "shell__main", "page2"] }
+    const withRule = [...RULES_E2, { selector: ".e2 .page2 .mx-auto", declarations: { width: "100%", "min-width": "0" }, order: 99999 }]
+    // Le chargeur statique ignore les selecteurs a combinateur enfant : la regle est donc comparee par son equivalent descendant.
+    expect(computedStyle(RULES_E2, c2)).toEqual(computedStyle(withRule, c2))
+    expect(computedStyle(withRule, e2).width).toBe("100%")
+    expect(computedStyle(withRule, e2)["min-width"]).toBe("0")
+    // Dans toutes les feuilles client, aucune regle ne cible un enfant direct de .page2.
+    expect(CLIENT).not.toMatch(/\.page2\s*>/)
+  })
+
+  it("la page candidatures garde ses onglets dans un conteneur defilant (overflow-x-auto, pleine largeur) : ils defilent au lieu d'elargir la page", () => {
+    const tabs = readFileSync(path.join(dir, "..", "..", "components", "student", "applications-tabs.js"), "utf8")
+    expect(tabs).toMatch(/className="flex gap-2 w-full overflow-x-auto[^"]*" role="tablist"/)
+    const page = readFileSync(path.join(dir, "..", "(student)", "applications", "page.js"), "utf8")
+    expect(page).toContain("max-w-2xl mx-auto")
+  })
+
+  it("calcul de largeur : les onglets de 461 px (shrink-0) tiennent dans la page de 320, 360 et 390 px avec la largeur pleine", () => {
+    const tabsMin = 461
+    for (const screen of [320, 360, 390]) {
+      const pad = 16 * 2 // px-4 de la page ancienne
+      const page = Math.min(screen, 672) // max-w-2xl
+      const content = page - pad
+      expect(content).toBeLessThan(tabsMin) // trop etroit : l'ancien rendu debordait (scrollWidth 477)
+      expect(page).toBeLessThanOrEqual(screen) // la page ne depasse plus l'ecran
+    }
+  })
+})

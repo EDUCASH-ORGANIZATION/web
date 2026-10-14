@@ -72,6 +72,11 @@
 
 /* Contenu : une seule colonne alignée sur la grille, largeur de lecture */
 .page2 { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-6); padding: var(--s-2) var(--s-12) var(--s-12); }
+/* Anciennes pages etudiant (Tailwind) : leur racine (mx-auto + max-w) est un enfant direct de ce flex en colonne. Les marges auto
+   empechent l'etirement : la boite prend sa largeur fit-content (au moins son min-content, ex. onglets shrink-0 de 461 px) et
+   deborde de l'ecran. Largeur pleine (le max-w de la page la plafonne toujours) : les onglets defilent DANS leur conteneur.
+   Portee .e2 + .mx-auto (les utilitaires Tailwind w-* et max-w-* gardent la main) : aucun enfant d'une page client (.c2) ni d'un ecran refondu ne change. */
+:where(.e2 .page2) > .mx-auto { width: 100%; min-width: 0; }
 
 /* En-tête de page : date + le seul titre en Anton de l'écran */
 .head2 { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-6); }
