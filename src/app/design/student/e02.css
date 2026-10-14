@@ -27,5 +27,17 @@
   .e2 .e2-02-cols { grid-template-columns: minmax(0, 1fr); }
   /* Étiquette de filtre retirable : hauteur visuelle conservée, zone tactile de 44 px par pseudo-élément */
   .e2-pill.e2-02-tag { min-height: 0; }
-  .e2-pill.e2-02-tag::after { content: ""; position: absolute; inset: -6px 0; }
+  /* inset se calcule depuis la boite de remplissage (bordure de 1 px) : 30 + 2 x 7 = 44 px. Ecart de rangee de 12 px : zones voisines sans chevauchement. */
+  .e2-pill.e2-02-tag::after { content: ""; position: absolute; inset: -7px 0; }
+  .e2 .e2-02-tags { row-gap: 12px; }
+  /* Pagination et tri : cibles de 44 px (40 px au bureau) */
+  .e2 .pagination .page-btn { min-width: 44px; height: 44px; }
+  .e2 .e2-02-sort .select--sm { height: 44px; }
+}
+
+/* Feuille de filtres sous 480 px : le pied tient dans la feuille (278 px a 320, 318 px a 360 ; les deux boutons cote a cote
+   demandent 136 + 12 + 199 = 347 px) : colonne, boutons pleine largeur, sans rogner le bouton principal */
+@media (max-width: 480px) {
+  .e2-02-sfoot { flex-direction: column; align-items: stretch; }
+  .sheet .e2-02-sfoot .btn, .sheet .e2-02-sfoot .btn--dark { width: 100%; min-width: 0; flex: none; }
 }

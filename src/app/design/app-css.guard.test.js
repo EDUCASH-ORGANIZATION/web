@@ -1430,3 +1430,44 @@ describe("anciennes pages etudiant : pas de debordement horizontal de la coquill
     }
   })
 })
+
+describe("E02 : pied de la feuille de filtres et cibles tactiles sous 1024 px", () => {
+  const E02 = stripComments(read("student/e02.css"))
+  const narrow = E02.slice(E02.indexOf("@media (max-width: 480px)"))
+  const tablet = E02.slice(E02.indexOf("@media (max-width: 1023.98px)"), E02.indexOf("@media (max-width: 480px)"))
+
+  it("le pied passe en colonne sous 480 px, boutons pleine largeur avec min-width 0 (le bouton principal n'est plus rogne)", () => {
+    expect(narrow).toMatch(/\.e2-02-sfoot \{ flex-direction: column; align-items: stretch; \}/)
+    expect(narrow).toMatch(/\.sheet \.e2-02-sfoot \.btn, \.sheet \.e2-02-sfoot \.btn--dark \{ width: 100%; min-width: 0; flex: none; \}/)
+    // Ordre : la regle mobile suit la regle de base `.sheet .e2-02-sfoot .btn--dark { flex: 1 }` (meme specificite).
+    expect(E02.indexOf(".sheet .e2-02-sfoot .btn--dark { flex: 1; }")).toBeLessThan(E02.indexOf("@media (max-width: 480px)"))
+  })
+
+  it("calcul de largeur : cote a cote le pied demande 347 px, plus que 278 px (320) et 318 px (360), donc la colonne est necessaire", () => {
+    const clear = 136
+    const primary = 199
+    const gap = 12
+    const sideBySide = clear + gap + primary
+    expect(sideBySide).toBe(347)
+    for (const foot of [278, 318]) expect(sideBySide).toBeGreaterThan(foot)
+    // En colonne chaque bouton prend la largeur du pied : plus de depassement.
+    for (const foot of [278, 318]) expect(Math.max(clear, primary)).toBeLessThanOrEqual(foot)
+    // Au-dessus de 480 px la feuille (>= 439 px de pied) garde la ligne.
+    expect(sideBySide).toBeLessThanOrEqual(439)
+  })
+
+  it("pagination, tri et pastille retirable atteignent 44 px sous 1024 px (zone de 44 px, ecart de rangee de 12 px)", () => {
+    expect(tablet).toMatch(/\.e2 \.pagination \.page-btn \{ min-width: 44px; height: 44px; \}/)
+    expect(tablet).toMatch(/\.e2 \.e2-02-sort \.select--sm \{ height: 44px; \}/)
+    expect(tablet).toMatch(/\.e2-pill\.e2-02-tag::after \{ content: ""; position: absolute; inset: -7px 0; \}/)
+    expect(tablet).toMatch(/\.e2 \.e2-02-tags \{ row-gap: 12px; \}/)
+    // Pastille : 32 px de bordure a bordure, 30 px de remplissage + 2 x 7 = 44 px ; deux zones voisines (2 x 6 px de debord hors bordure) tiennent dans 12 px d'ecart.
+    expect(32 - 2 + 2 * 7).toBe(44)
+    expect(2 * (7 - 1)).toBeLessThanOrEqual(12)
+  })
+
+  it("le bureau garde les tailles du systeme (aucune regle de 44 px hors media)", () => {
+    const base = E02.slice(0, E02.indexOf("@media"))
+    expect(base).not.toMatch(/page-btn|select--sm/)
+  })
+})
