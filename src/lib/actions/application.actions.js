@@ -9,7 +9,6 @@ import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions
 import { verificationFromRows } from "@/lib/student-space/verification-status"
 
 const ERR_GENERIC = "Une erreur est survenue. Réessaie dans un instant."
-const ERR_FORBIDDEN = "Tu n'as pas les droits pour effectuer cette action."
 // Espace client : vouvoiement
 const ERR_GENERIC_CLIENT = "Une erreur est survenue. Réessayez dans un instant."
 const ERR_FORBIDDEN_CLIENT = "Vous n'avez pas les droits pour effectuer cette action."
@@ -164,35 +163,6 @@ export async function apply({ missionId, message }) {
   revalidatePath("/missions/" + missionId)
 
   return { success: true }
-}
-
-/**
- * Retourne les candidatures de l'étudiant connecté avec les missions jointes.
- * L'identité vient de la session : un identifiant différent est refusé.
- *
- * @param {string} [studentId] doit égaler l'utilisateur connecté s'il est fourni
- * @param {{ limit?: number }} [options]
- * @returns {Promise<Array>}
- */
-export async function getStudentApplications(studentId, { limit } = {}) {
-  const auth = await requireRole(["student"])
-  if (auth.error) throw new Error(auth.error)
-  const { supabase, user } = auth
-
-  if (studentId !== undefined && studentId !== user.id) throw new Error(ERR_FORBIDDEN)
-
-  const { data, error } = await supabase
-    .from("applications")
-    .select("*, missions(title, type, city, budget, status)")
-    .eq("student_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(boundedLimit(limit))
-
-  if (error) {
-    console.error("[getStudentApplications]", error.message)
-    throw new Error(ERR_LOAD)
-  }
-  return data ?? []
 }
 
 /**

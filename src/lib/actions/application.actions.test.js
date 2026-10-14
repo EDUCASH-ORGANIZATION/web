@@ -48,7 +48,7 @@ vi.mock("@/lib/actions/profile.actions", () => ({
 }))
 vi.mock("@/lib/email/index", () => ({ sendEmail: (...a) => sendEmail(...a) }))
 
-import { apply, acceptApplication, rejectApplication, getStudentApplications, getMissionApplications } from "./application.actions"
+import { apply, acceptApplication, rejectApplication, getMissionApplications } from "./application.actions"
 
 const filterOf = (q, col) => q.filters.find((f) => f[1] === col)?.[2]
 const writes = () => calls.filter((q) => q.action !== "select")
@@ -398,35 +398,6 @@ describe("rejectApplication", () => {
   })
 })
 
-describe("getStudentApplications", () => {
-  const asStudent = () => requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
-
-  it("exige le rôle étudiant et ne lit rien sinon", async () => {
-    requireRole.mockResolvedValue({ error: "refus" })
-    await expect(getStudentApplications("stu-1")).rejects.toThrow("refus")
-    expect(requireRole).toHaveBeenCalledWith(["student"])
-    expect(calls).toHaveLength(0)
-  })
-
-  it("refuse l'identifiant d'un autre étudiant sans lire", async () => {
-    asStudent()
-    await expect(getStudentApplications("stu-2")).rejects.toThrow()
-    expect(calls).toHaveLength(0)
-  })
-
-  it("filtre sur l'utilisateur de la session et borne la limite", async () => {
-    asStudent()
-    respond = () => ({ data: [{ id: "a1" }], error: null })
-    expect(await getStudentApplications("stu-1")).toEqual([{ id: "a1" }])
-    expect(filterOf(calls[0], "student_id")).toBe("stu-1")
-    expect(calls[0].limit).toBe(100)
-    calls.length = 0
-    await getStudentApplications(undefined, { limit: 100000 })
-    expect(filterOf(calls[0], "student_id")).toBe("stu-1")
-    expect(calls[0].limit).toBe(200)
-  })
-})
-
 describe("getMissionApplications", () => {
   const asClient = () => requireRole.mockResolvedValue({ supabase, user: { id: "cli-1" }, role: "client" })
 
@@ -457,13 +428,6 @@ describe("getMissionApplications", () => {
 
 describe("lectures de candidatures : erreurs neutres", () => {
   const SECRET = 'column "x" of relation "applications" does not exist'
-
-  it("getStudentApplications masque le détail et le journalise", async () => {
-    requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
-    respond = () => ({ data: null, error: { message: SECRET } })
-    await expect(getStudentApplications("stu-1")).rejects.toThrow("Impossible de charger les candidatures.")
-    expect(console.error).toHaveBeenCalledWith("[getStudentApplications]", SECRET)
-  })
 
   it("getMissionApplications masque le détail et le journalise", async () => {
     requireRole.mockResolvedValue({ supabase, user: { id: "cli-1" }, role: "client" })
@@ -503,10 +467,5 @@ describe("registre des messages : vouvoiement client, tutoiement étudiant", () 
     }
     const res = await apply({ missionId: "m1", message: "Bonjour" })
     expect(res).toEqual({ error: "Une erreur est survenue. Réessaie dans un instant." })
-  })
-
-  it("getStudentApplications tutoie l'étudiant qui lit l'identifiant d'un autre", async () => {
-    requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
-    await expect(getStudentApplications("stu-2")).rejects.toThrow("Tu n'as pas les droits pour effectuer cette action.")
   })
 })
