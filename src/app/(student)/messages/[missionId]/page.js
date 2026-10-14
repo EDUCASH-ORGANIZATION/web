@@ -1,49 +1,21 @@
-import { redirect, notFound } from "next/navigation"
-import { getCurrentUser } from "@/lib/actions/auth.actions"
-import { createClient } from "@/lib/supabase/server"
-import { ConversationView } from "@/components/messages/conversation-view"
+// @ds-screen RD-STUDENT-01
+import { notFound } from "next/navigation"
+import { getStudentConversation } from "@/lib/actions/message.actions"
+import { StudentConversationView } from "@/components/student-space/messages/conversation-view"
+import { ErrorState } from "@/components/app-ui/state-block"
 
 export const metadata = { title: "Conversation - EduCash" }
 
+// Pas de Suspense autour de la lecture : notFound() doit répondre 404 avant l'envoi de la page, et ce
+// segment ne porte aucun loading.js (ni son parent messages : il transformerait le 404 en 200).
+// L'interlocuteur est toujours le client de la mission, lu par l'action : jamais pris dans l'adresse.
 export default async function StudentConversationPage({ params }) {
   const { missionId } = await params
-  const user = await getCurrentUser()
-  if (!user) redirect("/auth/login")
 
-  const supabase = await createClient()
-
-  const [{ data: messages }, { data: mission }] = await Promise.all([
-    supabase
-      .from("messages")
-      .select("*")
-      .eq("mission_id", missionId)
-      .order("created_at", { ascending: true }),
-
-    supabase
-      .from("missions")
-      .select("title, status, client_id")
-      .eq("id", missionId)
-      .single(),
-  ])
-
-  if (!mission) notFound()
-
-  // L'interlocuteur de l'étudiant = le client de la mission
-  const { data: interlocuteur } = await supabase
-    .from("profiles")
-    .select("user_id, full_name, avatar_url")
-    .eq("user_id", mission.client_id)
-    .single()
-
-  return (
-    <ConversationView
-      initialMessages={messages ?? []}
-      missionId={missionId}
-      currentUserId={user.id}
-      interlocuteur={interlocuteur ?? { user_id: mission.client_id, full_name: "Client", avatar_url: null }}
-      missionTitle={mission.title}
-      missionStatus={mission.status}
-      userRole="student"
-    />
-  )
+  const result = await getStudentConversation({ missionId })
+  if (result.notFound) notFound()
+  if (result.error || !result.conversation) {
+    return <ErrorState titleAs="h1" title="Conversation indisponible" text={result.error ?? "Le chargement a échoué. Veuillez réessayer."} />
+  }
+  return <StudentConversationView conversation={result.conversation} now={new Date().toISOString()} />
 }

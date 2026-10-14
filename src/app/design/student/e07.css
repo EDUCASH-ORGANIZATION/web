@@ -2,13 +2,16 @@
 /* E07 Conversation : volet de discussion, bandeau de statut, fil, compositeur.
    Les règles .e2-07-achat / .e2-07-shot / .e2-07-form / .e2-07-map habillent des cartes que le backend
    ne fournit pas encore (achats) : conservées pour la parité de la planche, sans effet tant qu'aucun écran ne les rend. */
-.e2-07-pane { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.e2-07-pane { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); display: flex; flex-direction: column; overflow: hidden; min-height: 0; height: max(420px, calc(100dvh - 180px)); }
 .e2-07-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; border-bottom: 1px solid var(--c-ligne); }
+.e2-07-head { flex: none; }
 .e2-07-head .e2-who { flex: 1; }
+.e2-07-who { min-width: 0; line-height: 1.25; }
+.e2-07-name { margin: 0; font-family: var(--f-text); font-size: 15px; font-weight: var(--fw-bold); text-transform: none; letter-spacing: normal; line-height: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .e2-07-mhead { background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne-2); }
 .e2-07-mhead .e2-who { flex: 1; gap: 10px; }
 /* Bandeau de statut de mission : blanc, texte ardoise, le seul bouton encre de l'écran */
-.e2-07-status { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne); font-size: var(--t-caption); color: var(--c-ardoise); }
+.e2-07-status { flex: none; flex-wrap: wrap; display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne); font-size: var(--t-caption); color: var(--c-ardoise); }
 .e2-07-status b { color: var(--c-encre); font-weight: var(--fw-bold); }
 .e2-07-status__text { min-width: 0; line-height: 1.35; }
 .e2-07-status .btn { margin-left: auto; flex: none; }
@@ -22,9 +25,24 @@
 .e2-07-chat .bubble__play, .e2-07-chat .bubble--them .bubble__play { background: var(--c-encre); color: var(--c-blanc); }
 .e2-07-chat .bubble--media .bubble__img { background: var(--c-encre-700); color: var(--c-brume); }
 .e2-07-chat .bubble--location .bubble__map { background: var(--c-givre) repeating-linear-gradient(45deg, var(--c-ligne) 0 2px, transparent 2px 14px); color: var(--c-encre); }
-.e2-07-chat .bubble.is-sending { opacity: .6; }
+.e2-07-chat { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.e2-07-chat > :first-child { margin-top: auto; }
+.e2-07-chat .bubble.is-sending { opacity: 1; }
+.e2-07-chat .bubble--me.is-failed { background: var(--c-erreur-bg); color: var(--c-encre); border: 1px solid var(--c-erreur); }
+.e2-07-chat .bubble--me.is-failed .bubble__meta { color: var(--c-erreur); }
+.e2-07-text { display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
+.e2-07-photo { display: block; max-width: 220px; max-height: 220px; border-radius: 16px; object-fit: cover; }
+.e2-07-audio { display: block; width: 240px; max-width: 100%; }
+.e2-07-place { display: flex; align-items: center; gap: 8px; color: inherit; font-weight: var(--fw-bold); text-decoration: underline; text-underline-offset: 3px; border-radius: 6px; }
+.e2-07-place .ic { width: 18px; height: 18px; flex: none; }
+.e2-07-place:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+.e2-07-dismiss { color: var(--c-ardoise); }
 .e2-07-fail { align-self: flex-end; display: flex; align-items: center; gap: 10px; margin-top: -2px; }
+.e2-07-bar { flex: none; background: var(--c-blanc); }
 .e2-07-composer { border-top: 1px solid var(--c-ligne); align-items: center; }
+.e2-07-composer .iconbtn2, .e2-07-composer .composer__send { width: 44px; height: 44px; }
+.e2-07-composer .composer__field:focus-within { background: var(--c-blanc); border-color: var(--c-bleu); box-shadow: var(--sh-champ-focus); }
+.e2-07-composer .composer__send:disabled { background: var(--c-off-bg); color: var(--c-off-txt); }
 .e2-07-composer .composer__send { border-radius: 12px; background: var(--c-encre); }
 .e2-07-composer.is-recording .composer__field { background: var(--c-givre); color: var(--c-encre); }
 /* Carte « Demande de paiement » (décision 24) : blanche, filet 1 px, statut en petit badge, sans bande colorée */
@@ -49,5 +67,17 @@
      (bas de page : marge et safe-area seulement, la barre du bas est masquée sur /messages/<id>), le compositeur reste visible. */
   .e2:has(.e2-07-mhead) .mtop2 { display: none; }
   .shell--v2:has(.e2-07-pane) .shell__main { padding-bottom: calc(var(--s-2) + env(safe-area-inset-bottom, 0px)); }
-  .e2-07-pane { height: calc(100dvh - var(--s-2) - env(safe-area-inset-bottom, 0px)); }
+  .e2:has(.e2-07-pane) .page2 { padding-bottom: 0; }
+  .e2-07-pane { height: calc(100dvh - var(--s-2) - env(safe-area-inset-bottom, 0px)); border-radius: var(--r-m); }
+  .e2-07-status .btn, .e2-07-fail .btn { min-height: 44px; }
+  .e2-07-place { min-height: 44px; }
+}
+
+@media (max-width: 480px) {
+  /* Écran étroit : les trois outils passent sur leur propre ligne, le champ et l'envoi gardent toute la largeur restante. */
+  .e2-07-composer { flex-wrap: wrap; row-gap: 0; }
+  .e2-07-composer .composer__tools { flex: 1 1 100%; }
+  .e2-07-composer .composer__field { min-width: 0; }
+  .e2-07-composer.is-locked { flex-wrap: nowrap; gap: 8px; text-align: left; }
+  .e2-07-composer.is-locked .ic { flex: none; }
 }
