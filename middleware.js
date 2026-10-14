@@ -4,6 +4,14 @@ import { matchesRoutePrefix } from "@/lib/utils/route-match"
 import { safeNextPath, isNextAllowedForRole } from "@/lib/utils/safe-next"
 import { dashboardFor } from "@/lib/auth/destinations"
 import { getServerRole } from "@/lib/auth/server-role"
+import {
+  waitingModeEnabled,
+  waitingHeaders,
+  waitingPageHtml,
+  waitingRobotsTag,
+  isWaitingPassthrough,
+  killSwitchServiceWorker,
+} from "@/lib/site/waiting-mode"
 
 // Pages /auth/* accessibles même si l'utilisateur est déjà connecté
 // (onboarding, retour des liens d'email, réinitialisation, lien expiré)
@@ -43,7 +51,40 @@ function suspendedRedirect(request) {
   return NextResponse.redirect(new URL("/auth/login?suspended=1", request.url))
 }
 
+// Mode attente (RD-STAGE-01) : répond sans aucun appel Supabase. Toutes les méthodes sont couvertes
+// (GET, HEAD, POST des server actions). Les assets statiques exclus par le matcher restent servis.
+function waitingResponse(request) {
+  const { pathname } = request.nextUrl
+  if (isWaitingPassthrough(pathname)) return NextResponse.next()
+  if (pathname === "/sw.js") {
+    return new NextResponse(killSwitchServiceWorker(), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    })
+  }
+  if (pathname === "/manifest.json") {
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: { "Cache-Control": "no-store", "X-Robots-Tag": waitingRobotsTag() },
+    })
+  }
+  if (pathname === "/api" || pathname.startsWith("/api/")) {
+    return new NextResponse(JSON.stringify({ error: "Service momentanément indisponible." }), {
+      status: 503,
+      headers: { ...waitingHeaders(), "Content-Type": "application/json; charset=utf-8" },
+    })
+  }
+  return new NextResponse(waitingPageHtml(), { status: 503, headers: waitingHeaders() })
+}
+
 export async function middleware(request) {
+  // Toute première instruction : mode attente, puis proxy d'images sans coût (ni session Supabase).
+  if (waitingModeEnabled()) return waitingResponse(request)
+  if (request.nextUrl.pathname === "/_next/image") return NextResponse.next()
+
   // /clients n'existe plus : les liens déjà partagés arrivent sur l'accueil (requête conservée).
   // Placé avant l'appel Supabase : aucune session à rafraîchir pour une redirection publique.
   if (request.nextUrl.pathname === "/clients") {
@@ -169,6 +210,6 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)",
+    "/((?!_next/static|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)",
   ],
 }
