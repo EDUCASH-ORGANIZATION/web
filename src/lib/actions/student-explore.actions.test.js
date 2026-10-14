@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 let user
 let profileResult
 let missionsResult
+let headResult
 let applicationsResult
 let serviceProfile
 let serviceCard
@@ -10,14 +11,16 @@ let calls
 
 function table(name) {
   const b = {}
+  let head = false
   const record = (method) => (...args) => {
     calls.push({ table: name, method, args })
+    if (method === "select" && args[1]?.head) head = true
     return b
   }
   const result = () => {
     if (name === "profiles") return profileResult
     if (name === "applications") return applicationsResult
-    return missionsResult
+    return head ? headResult : missionsResult
   }
   for (const method of ["select", "eq", "or", "ilike", "in", "gte", "lte", "order", "range"]) b[method] = record(method)
   b.maybeSingle = () => Promise.resolve(result())
@@ -57,6 +60,7 @@ beforeEach(() => {
   user = { id: "student-1", user_metadata: { role: "admin" } }
   profileResult = { data: { role: "student", is_suspended: false }, error: null }
   missionsResult = { data: [row()], count: 1, error: null }
+  headResult = { data: null, count: 0, error: null }
   applicationsResult = { data: [], error: null }
   serviceProfile = { profile: { is_verified: true, verified_until: "2999-01-01", rejection_reason: null } }
   serviceCard = { studentProfile: { card_url: "uid/card.jpg" } }
@@ -233,12 +237,31 @@ describe("getStudentExplore : résultat", () => {
     expect(res.missions).toHaveLength(1)
   })
 
-  it("page au-delà du dernier résultat : liste vide, pas d'erreur", async () => {
+  it("page au-delà du dernier résultat : liste vide, pas d'erreur, vrai total par une requête de comptage aux mêmes filtres", async () => {
     missionsResult = { data: null, count: null, error: { code: "PGRST103", message: "Requested range not satisfiable" } }
+    headResult = { data: null, count: 20, error: null }
+    const res = await getStudentExplore({ page: "99", q: "maths", type: "Cours particuliers" })
+    expect(res.error).toBeUndefined()
+    expect(res.missions).toEqual([])
+    expect(res.total).toBe(20)
+    const selects = missionCalls("select")
+    expect(selects).toHaveLength(2)
+    expect(selects[1].args).toEqual(["id", { count: "exact", head: true }])
+    // Mêmes filtres que la liste, sans tri ni plage.
+    const filterCalls = (from) => calls.filter((c) => c.table === "missions").slice(from).filter((c) => ["eq", "or", "ilike"].includes(c.method)).map((c) => `${c.method}:${c.args.join("|")}`)
+    const second = calls.filter((c) => c.table === "missions").findIndex((c, i) => i > 0 && c.method === "select")
+    expect(filterCalls(second)).toEqual(filterCalls(0).slice(0, filterCalls(second).length))
+    expect(calls.filter((c) => c.table === "missions").slice(second).some((c) => ["order", "range"].includes(c.method))).toBe(false)
+  })
+
+  it("page hors borne et comptage en échec : liste vide servie, total 0, erreur journalisée sans fuite", async () => {
+    missionsResult = { data: null, count: null, error: { code: "PGRST103", message: "Requested range not satisfiable" } }
+    headResult = { data: null, count: null, error: { message: "secret_table down" } }
     const res = await getStudentExplore({ page: "99" })
     expect(res.error).toBeUndefined()
     expect(res.missions).toEqual([])
     expect(res.total).toBe(0)
+    expect(JSON.stringify(res)).not.toContain("secret_table")
   })
 
   it("erreur de lecture : message neutre, sans détail technique", async () => {

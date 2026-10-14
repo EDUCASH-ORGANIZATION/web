@@ -313,20 +313,25 @@ describe("pagination bornée", () => {
     expect(res.error).toBeUndefined()
     expect(res.missions).toEqual([])
   })
-  it("CONSTAT (mineur, assumé) : page hors borne -> total 0 ; en-tête « 0 mission ouverte » mais corps « Cette page est vide » avec lien de retour", async () => {
-    // Défaut de production connu et non corrigé : sur PGRST103 l'action force total = 0 au lieu de garder le total réel (20).
-    // Effet visible : l'en-tête annonce « 0 mission ouverte » alors que 20 existent, et la pagination disparaît. Le corps reste
-    // honnête (« Cette page est vide » + lien « Revenir à la première page »), donc l'utilisateur n'est pas bloqué.
-    // Attendu idéal : res.total === 20. Si le produit est corrigé, ce test doit être inversé.
+  it("page hors borne : le total reste le vrai (20), l'en-tête l'annonce, le corps dit « Cette page est vide » avec le lien de retour", async () => {
     seed(many(20))
     const res = await getStudentExplore({ page: "50" })
-    expect(res.total).toBe(0)
+    expect(res.error).toBeUndefined()
+    expect(res.missions).toEqual([])
+    expect(res.total).toBe(20)
     const html = renderToStaticMarkup(<StudentExploreView result={res} />)
     expect(html).toContain("Cette page est vide")
     expect(html).toContain("Revenir à la première page")
     expect(html).not.toContain("Aucune mission ne correspond")
     expect(html).not.toContain('aria-label="Pagination"')
-    expect(html).toMatch(/0\u00a0mission ouverte/)
+    expect(html).toMatch(/20\u00a0missions ouvertes/)
+    expect(html).not.toMatch(/0\u00a0mission ouverte/)
+  })
+  it("page hors borne avec filtres : le total compté respecte les mêmes filtres", async () => {
+    seed([...many(20), mission(99, { type: "Livraison" })])
+    const res = await getStudentExplore({ page: "50", type: "Livraison" })
+    expect(res.total).toBe(1)
+    expect(res.missions).toEqual([])
   })
   it("erreur de base : message neutre sans détail", async () => {
     ctx.failures.missions = "relation secret"

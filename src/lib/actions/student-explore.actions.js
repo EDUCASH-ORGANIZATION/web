@@ -64,22 +64,22 @@ export async function getStudentExplore(params = {}) {
 
     const query = parseExploreParams(params)
 
-    let builder = supabase
-      .from("missions")
-      .select(MISSION_COLUMNS, { count: "exact" })
-      .eq("status", "open")
-      .or(notExpiredFilter())
-
-    if (query.likePattern) builder = builder.ilike("title", query.likePattern)
-    if (query.type) builder = builder.eq("type", query.type)
-    if (query.cities.length === 1) builder = builder.eq("city", query.cities[0])
-    else if (query.cities.length > 1) builder = builder.in("city", query.cities)
-    if (query.urgencyValue) builder = builder.eq("urgency", query.urgencyValue)
-    if (query.budgetRange) {
-      builder = builder.gte("budget", query.budgetRange.min)
-      if (query.budgetRange.max !== undefined) builder = builder.lte("budget", query.budgetRange.max)
+    // Mêmes filtres pour la liste et pour le total d'une page hors borne.
+    const withFilters = (builder) => {
+      builder = builder.eq("status", "open").or(notExpiredFilter())
+      if (query.likePattern) builder = builder.ilike("title", query.likePattern)
+      if (query.type) builder = builder.eq("type", query.type)
+      if (query.cities.length === 1) builder = builder.eq("city", query.cities[0])
+      else if (query.cities.length > 1) builder = builder.in("city", query.cities)
+      if (query.urgencyValue) builder = builder.eq("urgency", query.urgencyValue)
+      if (query.budgetRange) {
+        builder = builder.gte("budget", query.budgetRange.min)
+        if (query.budgetRange.max !== undefined) builder = builder.lte("budget", query.budgetRange.max)
+      }
+      return builder
     }
-    builder = builder
+
+    const builder = withFilters(supabase.from("missions").select(MISSION_COLUMNS, { count: "exact" }))
       .order(query.order.column, { ascending: query.order.ascending })
       .order("created_at", { ascending: false })
       .range(query.range.from, query.range.to)
@@ -92,6 +92,15 @@ export async function getStudentExplore(params = {}) {
     }
 
     const rows = outOfRange || !Array.isArray(listRes.data) ? [] : listRes.data
+
+    // Page hors borne : PostgREST ne renvoie pas le total. Une requête de comptage (sans ligne) avec les mêmes filtres le donne,
+    // pour que l'en-tête garde le vrai nombre de missions pendant que le corps annonce « Cette page est vide ».
+    let total = Number(listRes.count) || 0
+    if (outOfRange) {
+      const countRes = await withFilters(supabase.from("missions").select("id", { count: "exact", head: true }))
+      if (countRes.error) console.error("[getStudentExplore] total", countRes.error.message)
+      total = Number(countRes.count) || 0
+    }
 
     // Candidatures de l'étudiant sur les missions de la page : une carte déjà postulée garde sa place avec son statut.
     const applied = new Map()
@@ -116,7 +125,7 @@ export async function getStudentExplore(params = {}) {
         page: query.page,
       },
       hasFilter: query.hasFilter,
-      total: outOfRange ? 0 : Number(listRes.count) || 0,
+      total,
       pageSize: MISSIONS_PAGE_SIZE,
       verification,
       missions: rows.map((row) => ({
