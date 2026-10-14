@@ -524,6 +524,7 @@ export function StudentProfileForm({ form }) {
           <Section title="Études" sub="Indiquez l'établissement où vous étudiez.">
             <div className="e2-form">
               <SelectField
+                className="e2-span"
                 label="Établissement"
                 optional
                 name="school"

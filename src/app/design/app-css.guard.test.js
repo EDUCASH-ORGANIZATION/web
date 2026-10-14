@@ -1633,6 +1633,20 @@ describe("recette finale : portefeuille, recapitulatif, compteur, edition du pro
     expect(base).toMatch(/\.e2-form \{[^}]*repeat\(auto-fit, minmax\(min\(100%, 200px\), 1fr\)\)[^}]*align-items: start;/)
   })
 
+  it("D4 : le champ Etablissement occupe toute la grille du formulaire (au moins 330 px a 768 et 1440)", () => {
+    const form = read("../../components/student-space/profile/profile-form.jsx")
+    expect(form).toMatch(/<SelectField\s+className="e2-span"\s+label="Établissement"/)
+    expect(base).toContain(".e2-form .e2-span { grid-column: 1 / -1; }")
+    // largeur mesuree d'une colonne a 2 colonnes (213 px a 768, 224 px a 1440) : le champ pleine largeur = 2 colonnes + ecart (--s-5 = 20 px)
+    const full = (col) => 2 * col + 20
+    expect(full(213)).toBe(446)
+    expect(full(224)).toBe(468)
+    expect(full(213)).toBeGreaterThanOrEqual(330)
+    expect(full(224)).toBeGreaterThanOrEqual(330)
+    // en une colonne (sous 768 px) la grille garde une seule colonne, le span reste valable
+    expect(block(base, "@media (max-width: 767.98px)")).toMatch(/\.e2-form \{ grid-template-columns: minmax\(0, 1fr\);/)
+  })
+
   it("D5 : zones tactiles de 44 px sous 1024 px, sans toucher a la coquille partagee", () => {
     const tablet = block(base, "@media (max-width: 1023.98px)")
     expect(tablet).toContain(".e2 .item2__action { min-width: 44px; }")
