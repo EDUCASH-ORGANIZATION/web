@@ -91,6 +91,11 @@
 .e2 .av2 { overflow: hidden; }
 .e2 .av2 img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
+/* Anneau systeme (3 px) sur les liens de cartes et de listes, et sortie visible des champs sans anneau propre.
+   Seules les cibles sans anneau propre sont visees : aucun composant du systeme (couleur, ombre, transform) n'est ecrase. */
+.e2 .link:focus-visible, .e2 .list2__more:focus-visible, .e2 .hero2__link:focus-visible, .e2 .list2__head a:focus-visible, .e2 .item2__action:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
+.e2 input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(.input):not(.composer__input2):focus-visible, .e2 textarea:not(.input):not(.composer__input2):focus-visible, .e2 select:not(.select):focus-visible { outline: 2px solid var(--c-bleu); outline-offset: 2px; }
+
 /* Focus visible des éléments propres à l'espace étudiant (bleu sur clair, bleu et citron sur encre) */
 .e2 .e2-tab:focus-visible, .e2 .e2-pill:focus-visible, .e2 .e2-link:focus-visible, .e2 .e2-back:focus-visible,
 .e2 .e2-06-convo:focus-visible, .e2 .e2-10-links > a:focus-visible, .e2 .e2-04-row:focus-visible { outline: none; box-shadow: var(--sh-focus); }
@@ -164,6 +169,8 @@
 .e2-kv__row + .e2-kv__row { border-top: 1px solid var(--c-ligne-2); }
 .e2-kv__row > span:first-child { color: var(--c-ardoise); }
 .e2-kv__row > b, .e2-kv__row > span:last-child { font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; text-align: right; }
+/* Valeur sans espace (titre de mission d'un seul mot) : coupee au lieu de deborder (a 320 px : +276 px) */
+.e2-kv__row > b, .e2-kv__row > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .e2-kv__row--total { padding-top: 12px; font-size: 15px; }
 /* Meme specificite que la bordure de .e2-kv__row + .e2-kv__row, declaree apres : le total garde son trait plus fonce, sans !important. */
 .e2-kv__row + .e2-kv__row--total { border-top: 1px solid var(--c-ligne); }
@@ -232,7 +239,8 @@
 .e2-mbar--stack { flex-direction: column; align-items: stretch; }
 
 /* Champ de formulaire dans une carte : grille 2 colonnes */
-.e2-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5) var(--s-5); }
+/* Deux colonnes seulement quand chacune garde 200 px : a 1024 px la colonne du formulaire (~270 px utiles) tronquait la ville et decalait les champs. */
+.e2-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: var(--s-5) var(--s-5); align-items: start; }
 .e2-form .e2-span { grid-column: 1 / -1; }
 .e2-form--1 { grid-template-columns: 1fr; }
 
@@ -299,6 +307,11 @@
   .e2 .mtop2 > a.av2::after { inset: -7px; }
   /* Liens-texte des rangées et des cartes */
   .e2 .item2__action, .e2 .hero2__link, .e2 .list2__more { display: inline-flex; align-items: center; min-height: 44px; }
+  /* « Voir » (candidatures en cours) : 27 px de large, zone portee a 44 px */
+  .e2 .item2__action { min-width: 44px; }
+  /* Liens-titres des lignes d'operation (historique, a venir) : zone de 44 px de haut, mise en page inchangee */
+  .e2-op .item2__title .link { position: relative; }
+  .e2-op .item2__title .link::after { content: ""; position: absolute; inset: -12px 0; }
   /* Sous-lignes de rangee (ex. « Aucune mission en cours, aucun avis a laisser » a 320 px) : retour a la ligne au lieu de l'ellipse */
   .e2 .stat2__sub, .e2 .money2 .stat2__sub, .e2 .item2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
 }

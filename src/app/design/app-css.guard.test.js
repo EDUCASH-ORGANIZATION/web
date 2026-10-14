@@ -1578,3 +1578,77 @@ describe("rangees defilantes : pas de trait au-dessus", () => {
     expect(components).not.toMatch(/\n\.chips--scroll \{[^}]*border/)
   })
 })
+
+// Recette finale RD-STUDENT-01 (D1 a D7) : garde de structure des correctifs mesures a 320, 360, 390, 768 et 1024 px.
+describe("recette finale : portefeuille, recapitulatif, compteur, edition du profil, cibles et focus", () => {
+  const e03 = stripComments(read("student/e03.css"))
+  const e07 = stripComments(read("student/e07.css"))
+  const e08 = stripComments(read("student/e08.css"))
+  const e11 = stripComments(read("student/e11.css"))
+  const base = stripComments(read("student/base.css"))
+  const block = (css, query) => {
+    const start = css.indexOf(query)
+    expect(start, query).toBeGreaterThan(-1)
+    const open = css.indexOf("{", start)
+    let depth = 0
+    for (let i = open; i < css.length; i++) {
+      if (css[i] === "{") depth++
+      else if (css[i] === "}" && --depth === 0) return css.slice(start, i + 1)
+    }
+    return css.slice(start)
+  }
+
+  it("D1 : le titre d'une ligne d'operation passe a la ligne sous 1024 px et le montant s'empile sous 480 px (seuils existants)", () => {
+    const tablet = block(e08, "@media (max-width: 1023.98px)")
+    expect(tablet).toMatch(/\.e2-08-op \.item2__title \{ white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; \}/)
+    const phone = block(e08, "@media (max-width: 480px)")
+    expect(phone).toMatch(/\.e2-08-op \.e2-op__amount \{ grid-column: 2 \/ -1;[^}]*flex-direction: row;[^}]*flex-wrap: wrap;/)
+    expect(phone).toMatch(/\.e2-08-op \.e2-op__amount small \{ white-space: normal; \}/)
+    expect(e08).toMatch(/\.e2-08-op > div:nth-child\(2\) \{ min-width: 0; \}/)
+    // Aucun nouveau seuil : seuls 1023.98 et 480 apparaissent.
+    expect([...new Set([...e08.matchAll(/@media \(max-width: ([\d.]+)px\)/g)].map((m) => m[1]))].sort()).toEqual(["1023.98", "480"])
+  })
+
+  it("D1 : calcul de la colonne texte (320 et 390 px) une fois le montant empile", () => {
+    // largeur ecran - 2 x 16 (page2) - 2 x 16 (ligne) - 32 (icone) - 12 (espace) ; le montant n'occupe plus la colonne
+    const text = (screen) => screen - 32 - 32 - 32 - 12
+    expect(text(320)).toBe(212)
+    expect(text(390)).toBe(282)
+    // avant : colonne montant ~ 110 px ("sur 25 000 FCFA bloques") et espace de 12 px, soit moins de 121 px a 390 px
+    expect(text(390) - 110 - 12).toBeLessThan(170)
+    expect(text(320)).toBeGreaterThan(160)
+  })
+
+  it("D2 : les valeurs du recapitulatif coupent un mot sans espace au lieu de deborder", () => {
+    expect(base).toMatch(/\.e2-kv__row > b, \.e2-kv__row > span:last-child \{ min-width: 0; overflow-wrap: anywhere; \}/)
+  })
+
+  it("D3 : le compteur de caracteres de la motivation ne se coupe jamais sur deux lignes", () => {
+    expect(e03).toMatch(/\.e2-03-ta \.field__count, \.e2-03-ta--s \.field__count \{ white-space: nowrap; flex: none; \}/)
+  })
+
+  it("D4 : la barre d'enregistrement passe a la ligne au lieu d'ecraser le message, le formulaire garde 200 px par colonne", () => {
+    expect(e11).toMatch(/\.e2-11-save \{[^}]*flex-wrap: wrap;/)
+    expect(e11).toMatch(/\.e2-11-save__info \{ flex: 1 1 180px; min-width: 0;/)
+    expect(base).toMatch(/\.e2-form \{[^}]*repeat\(auto-fit, minmax\(min\(100%, 200px\), 1fr\)\)[^}]*align-items: start;/)
+  })
+
+  it("D5 : zones tactiles de 44 px sous 1024 px, sans toucher a la coquille partagee", () => {
+    const tablet = block(base, "@media (max-width: 1023.98px)")
+    expect(tablet).toContain(".e2 .item2__action { min-width: 44px; }")
+    expect(tablet).toMatch(/\.e2-op \.item2__title \.link::after \{ content: ""; position: absolute; inset: -12px 0; \}/)
+    expect(e07).toContain(".e2-07-composer .composer__input2 { min-height: 44px; box-sizing: border-box; }")
+    // la zone des pastilles de filtres actives est elargie par ::after (inset -7px 0 sur 32 px = 46 px)
+    expect(stripComments(read("student/e02.css"))).toMatch(/\.e2-pill\.e2-02-tag::after \{ content: ""; position: absolute; inset: -7px 0; \}/)
+    // le logo et l'avatar de la barre du haut (coquille partagee) gardent leur regle existante
+    expect(tablet).toContain(".e2 .mtop2 > a::after { content: \"\"; position: absolute; inset: -6px; }")
+  })
+
+  it("D7 : anneau systeme sur les liens de cartes et sortie visible des champs, par des regles .e2", () => {
+    expect(base).toMatch(/\.e2 \.link:focus-visible, \.e2 \.list2__more:focus-visible[^{]*\{ outline: none; box-shadow: var\(--sh-focus\);/)
+    expect(base).toMatch(/\.e2 textarea:not\(\.input\):not\(\.composer__input2\):focus-visible[^{]*\{ outline: 2px solid var\(--c-bleu\);/)
+    // aucune regle ne vise la coquille partagee (.nav2, .bnav2, .shell)
+    const rule = base.slice(base.indexOf(".e2 .link:focus-visible"), base.indexOf("/* Focus visible des"))
+    expect(rule).not.toMatch(/nav2|bnav2|shell/)
+  })
+})

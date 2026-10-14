@@ -42,6 +42,7 @@
 .e2-07-composer { border-top: 1px solid var(--c-ligne); align-items: center; }
 .e2-07-composer .iconbtn2, .e2-07-composer .composer__send { width: 44px; height: 44px; }
 .e2-07-composer .composer__field:focus-within { background: var(--c-blanc); border-color: var(--c-bleu); box-shadow: var(--sh-champ-focus); }
+.e2-07-composer .composer__input2 { min-height: 44px; box-sizing: border-box; }
 .e2-07-composer .composer__send:disabled { background: var(--c-off-bg); color: var(--c-off-txt); }
 .e2-07-composer .composer__send { border-radius: 12px; background: var(--c-encre); }
 .e2-07-composer.is-recording .composer__field { background: var(--c-givre); color: var(--c-encre); }

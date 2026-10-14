@@ -6,8 +6,9 @@
 .e2-11-days { display: flex; flex-direction: column; gap: 10px; }
 .e2-11-day { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; }
 .e2-11-day > b { font-size: var(--t-body-s); font-weight: var(--fw-bold); }
-.e2-11-save { position: sticky; bottom: 0; z-index: var(--z-sticky); display: flex; align-items: center; gap: var(--s-4); padding: var(--s-4) var(--s-6); }
-.e2-11-save__info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; font-size: var(--t-body-s); }
+.e2-11-save { position: sticky; bottom: 0; z-index: var(--z-sticky); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); padding: var(--s-4) var(--s-6); }
+/* Le message garde 180 px au moins : sinon il passe sur sa propre ligne au lieu d'etre ecrase par les boutons (768 a 1024 px). */
+.e2-11-save__info { flex: 1 1 180px; min-width: 0; display: flex; align-items: center; gap: 10px; font-size: var(--t-body-s); }
 .e2-11-save__info .ic { width: 18px; height: 18px; color: var(--c-ardoise); flex: none; }
 .e2-11-save__info small { display: block; font-size: var(--t-caption); color: var(--c-ardoise); }
 .e2-11-carte { padding-top: 12px; }
@@ -18,7 +19,7 @@
   /* Le retour est porté par l'en-tête de sous-page (.e2-mtop) */
   .e2-11-top .e2-back { display: none; }
   .e2-11-photo .av2 { width: 80px; height: 80px; font-size: 28px; }
-  .e2-11-save { padding: var(--s-3) var(--s-4); gap: var(--s-3); flex-wrap: wrap; }
+  .e2-11-save { padding: var(--s-3) var(--s-4); gap: var(--s-3); }
 }
 
 @media (max-width: 480px) {
