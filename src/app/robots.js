@@ -1,4 +1,9 @@
+import { waitingModeEnabled } from "@/lib/site/waiting-mode"
+
 export default function robots() {
+  if (waitingModeEnabled()) {
+    return { rules: [{ userAgent: "*", disallow: "/" }] }
+  }
   return {
     rules: [
       {

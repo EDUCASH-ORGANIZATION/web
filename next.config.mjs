@@ -20,7 +20,18 @@ const nextConfig = {
     },
   },
   async headers() {
+    // Mode attente posé au build : noindex aussi sur les fichiers statiques hors middleware.
+    const waiting =
+      process.env.SITE_WAITING_MODE === "true"
+        ? [
+            {
+              source: "/:path*",
+              headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+            },
+          ]
+        : []
     return [
+      ...waiting,
       {
         source: "/sprite.svg",
         headers: [
