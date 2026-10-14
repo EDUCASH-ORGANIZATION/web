@@ -173,12 +173,12 @@ describe("getClientFundedMissions", () => {
   })
 })
 
-describe("wallet.actions : messages selon le rôle", () => {
-  it("étudiant : textes tutoyés d'origine (forbidden, read)", async () => {
+describe("wallet.actions : messages vouvoyés pour tous les rôles", () => {
+  it("étudiant : textes vouvoyés (forbidden, read)", async () => {
     profile = roleOf("student")
-    expect((await w.getWallet(OTHER)).error).toBe("Tu n'as pas accès à ce portefeuille.")
+    expect((await w.getWallet(OTHER)).error).toBe("Vous n'avez pas accès à ce portefeuille.")
     wallet = { data: null, error: { message: "x" } }
-    expect((await w.getWallet()).error).toBe("Impossible de charger ton portefeuille.")
+    expect((await w.getWallet()).error).toBe("Impossible de charger votre portefeuille.")
     expect((await w.getWalletTransactions(ME, 5, 0)).error).toBeUndefined()
   })
   it("client : vouvoiement", async () => {
@@ -187,21 +187,21 @@ describe("wallet.actions : messages selon le rôle", () => {
     expect((await w.getWallet()).error).toBe("Impossible de charger votre portefeuille.")
   })
   for (const [name, p] of Object.entries({ "rôle illisible": { data: null, error: { message: "x" } }, "rôle inconnu": roleOf("root"), "profil absent": { data: null, error: null }, admin: roleOf("admin") })) {
-    it(`${name} : texte étudiant`, async () => {
+    it(`${name} : texte vouvoyé`, async () => {
       profile = p
-      expect((await w.getWallet(OTHER)).error).toBe("Tu n'as pas accès à ce portefeuille.")
+      expect((await w.getWallet(OTHER)).error).toBe("Vous n'avez pas accès à ce portefeuille.")
     })
   }
-  it("user_metadata client avec profil étudiant : texte étudiant", async () => {
+  it("user_metadata client avec profil étudiant : texte vouvoyé", async () => {
     profile = roleOf("student")
     session = { id: ME, user_metadata: { role: "client" } }
-    expect((await w.getWallet(OTHER)).error).toMatch(/^Tu /)
+    expect((await w.getWallet(OTHER)).error).toMatch(/^Vous /)
   })
-  it("échec d'invoke : message d'initiation par rôle, détail jamais relayé", async () => {
+  it("échec d'invoke : message d'initiation vouvoyé, détail jamais relayé", async () => {
     invoke = vi.fn(async () => ({ data: null, error: { message: "secret detail", context: { status: 500, text: async () => JSON.stringify({ error: "Stripe down 0.88" }) } } }))
     profile = roleOf("student")
-    expect((await w.initiateDeposit({ amount: 5000 })).error).toBe("Le dépôt n'a pas pu être initié. Réessaie dans un instant.")
-    expect((await w.initiateWithdrawal({ amount: 5000, phone: "0197452108", operator: "mtn" })).error).toBe("Le retrait n'a pas pu être initié. Réessaie dans un instant.")
+    expect((await w.initiateDeposit({ amount: 5000 })).error).toBe("Le dépôt n'a pas pu être initié. Réessayez dans un instant.")
+    expect((await w.initiateWithdrawal({ amount: 5000, phone: "0197452108", operator: "mtn" })).error).toBe("Le retrait n'a pas pu être initié. Réessayez dans un instant.")
     profile = roleOf("client")
     expect((await w.initiateDeposit({ amount: 5000 })).error).toBe("Le dépôt n'a pas pu être initié. Réessayez dans un instant.")
     expect((await w.initiateWithdrawal({ amount: 5000, phone: "0197452108", operator: "mtn" })).error).toBe("Le retrait n'a pas pu être initié. Réessayez dans un instant.")

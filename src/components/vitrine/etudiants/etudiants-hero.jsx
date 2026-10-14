@@ -63,18 +63,18 @@ export function EtudiantsHero({ live, openMissions, role }) {
         <div>
           {chip}
           <h1 className="display display--xxl v01-hero-h1">
-            Bosse entre<br />deux cours.<br />
+            Bossez entre<br />deux cours.<br />
             <span className="underline-scribble hl-citron">
-              Encaisse.
+              Encaissez.
               <svg className="scribble" viewBox="0 0 240 24" preserveAspectRatio="none" aria-hidden="true">
                 <use href={`${SPRITE}#sc-underline`} />
               </svg>
             </span>
           </h1>
           <p className="body-l v01-hero-lead">
-            Des petites missions près de ta fac&nbsp;: cours à domicile, marché pour une famille, travaux sur
-            ordinateur, garde d&rsquo;enfants. Le client bloque l&rsquo;argent avant que tu commences, tu le retires sur
-            ton MTN MoMo, ton Moov Money ou ton Celtiis Cash.
+            Des petites missions près de votre fac&nbsp;: cours à domicile, marché pour une famille, travaux sur
+            ordinateur, garde d&rsquo;enfants. Le client bloque l&rsquo;argent avant que vous commenciez, vous le retirez sur
+            votre MTN MoMo, votre Moov Money ou votre Celtiis Cash.
           </p>
 
           <form className="search search--hero v01-hero-search ds-desk-only" role="search" action="/missions" method="get">
@@ -141,7 +141,7 @@ export function EtudiantsHero({ live, openMissions, role }) {
             <div>
               <div className="push__app">EduCash · exemple</div>
               <div className="push__title">Paiement reçu : {formatFcfa(netAmount(EXAMPLE_BUDGET))}</div>
-              <div className="caption">Versé sur ton portefeuille</div>
+              <div className="caption">Versé sur votre portefeuille</div>
             </div>
           </div>
           <div className="v-hero__card">

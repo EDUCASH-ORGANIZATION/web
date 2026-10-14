@@ -24,11 +24,11 @@ describe("authErrorCode", () => {
 })
 
 describe("mapAuthError", () => {
-  it("tutoie l'étudiant et vouvoie le client", () => {
-    const s = mapAuthError({ code: "over_request_rate_limit" }, "student")
-    const c = mapAuthError({ code: "over_request_rate_limit" }, "client")
-    expect(s).toEqual({ code: "rate_limited", message: "Trop de tentatives. Réessaie dans quelques minutes." })
-    expect(c.message).toBe("Trop de tentatives. Réessayez dans quelques minutes.")
+  it("vouvoie tous les publics : l'argument audience n'a plus d'effet sur le ton", () => {
+    const expected = { code: "rate_limited", message: "Trop de tentatives. Réessayez dans quelques minutes." }
+    expect(mapAuthError({ code: "over_request_rate_limit" })).toEqual(expected)
+    expect(mapAuthError({ code: "over_request_rate_limit" }, "student")).toEqual(expected)
+    expect(mapAuthError({ code: "over_request_rate_limit" }, "client")).toEqual(expected)
   })
 
   it("ne renvoie jamais le message anglais brut", () => {
@@ -37,17 +37,16 @@ describe("mapAuthError", () => {
     expect(r.message).not.toMatch(/database/i)
   })
 
-  it("couvre chaque code pour les deux audiences, sans tiret cadratin", () => {
+  it("couvre chaque code, vouvoyé et sans tiret cadratin", () => {
     const codes = [
       "invalid_credentials", "email_not_confirmed", "rate_limited", "session_expired",
       "network", "email_taken", "suspended", "same_password", "weak_password", "unknown",
     ]
-    for (const audience of ["student", "client"]) {
-      for (const code of codes) {
-        const message = authErrorMessage(code, audience)
-        expect(message.length).toBeGreaterThan(5)
-        expect(message).not.toContain(String.fromCharCode(0x2014))
-      }
+    for (const code of codes) {
+      const message = authErrorMessage(code)
+      expect(message.length).toBeGreaterThan(5)
+      expect(message).not.toContain(String.fromCharCode(0x2014))
+      expect(message).not.toMatch(/(?<!\p{L})(tu|ton|ta|tes|toi)(?!\p{L})|[a-zé]+-toi/iu)
     }
   })
 })

@@ -9,7 +9,7 @@ function fmt(n) {
   return new Intl.NumberFormat("fr-FR").format(n ?? 0)
 }
 
-// Remplace les boutons de recharge et de retrait tant que les paiements sont coupés (tu/vous selon l'espace).
+// Remplace les boutons de recharge et de retrait tant que les paiements sont coupés (vouvoiement pour tous les espaces).
 export function PaymentsPendingNotice({ role }) {
   const copy = PAYMENTS_PENDING_COPY.wallet
   return (

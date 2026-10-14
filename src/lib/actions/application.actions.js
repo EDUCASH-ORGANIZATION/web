@@ -6,11 +6,8 @@ import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { sendEmail } from "@/lib/email/index"
 
-const ERR_GENERIC = "Une erreur est survenue. Réessaie dans un instant."
-const ERR_FORBIDDEN = "Tu n'as pas les droits pour effectuer cette action."
-// Espace client : vouvoiement
-const ERR_GENERIC_CLIENT = "Une erreur est survenue. Réessayez dans un instant."
-const ERR_FORBIDDEN_CLIENT = "Vous n'avez pas les droits pour effectuer cette action."
+const ERR_GENERIC = "Une erreur est survenue. Réessayez dans un instant."
+const ERR_FORBIDDEN = "Vous n'avez pas les droits pour effectuer cette action."
 const ERR_LOAD = "Impossible de charger les candidatures."
 const MESSAGE_MAX = 500
 
@@ -79,7 +76,7 @@ export async function apply({ missionId, message }) {
 
   if (!mission) return { error: "Mission introuvable." }
   if (mission.status !== "open") return { error: "Cette mission n'accepte plus de candidatures." }
-  if (mission.client_id === user.id) return { error: "Tu ne peux pas postuler à ta propre mission." }
+  if (mission.client_id === user.id) return { error: "Vous ne pouvez pas postuler à votre propre mission." }
 
   // Vérifie qu'aucune candidature n'existe déjà
   const { data: existing } = await supabase
@@ -89,7 +86,7 @@ export async function apply({ missionId, message }) {
     .eq("student_id", user.id)
     .maybeSingle()
 
-  if (existing) return { error: "Tu as déjà postulé à cette mission." }
+  if (existing) return { error: "Vous avez déjà postulé à cette mission." }
 
   const { error: insertError } = await supabase
     .from("applications")
@@ -180,7 +177,7 @@ export async function getMissionApplications(missionId, { limit } = {}) {
     .eq("id", missionId)
     .eq("client_id", user.id)
     .maybeSingle()
-  if (!mission) throw new Error(ERR_FORBIDDEN_CLIENT)
+  if (!mission) throw new Error(ERR_FORBIDDEN)
 
   const { data, error } = await supabase
     .from("applications")
@@ -234,7 +231,7 @@ export async function acceptApplication({ applicationId, studentId, missionId })
 
   if (acceptError) {
     console.error("[acceptApplication] Acceptation refusée:", acceptError.message)
-    return { error: ERR_GENERIC_CLIENT }
+    return { error: ERR_GENERIC }
   }
   if (!accepted?.length) return { error: "Cette candidature n'est plus disponible." }
 
@@ -360,7 +357,7 @@ export async function rejectApplication(applicationId) {
 
   if (error) {
     console.error("[rejectApplication] Rejet refusé:", error.message)
-    return { error: ERR_GENERIC_CLIENT }
+    return { error: ERR_GENERIC }
   }
   if (!rejected?.length) return { error: "Cette candidature n'est plus en attente." }
 

@@ -32,14 +32,14 @@ export default function VerificationExpired({
           </Section>
 
           {/* ── Titre ─────────────────────────────────────────────── */}
-          <Heading style={h1}>Ton badge EduCash a expiré</Heading>
+          <Heading style={h1}>Votre badge EduCash a expiré</Heading>
 
           {/* ── Corps ─────────────────────────────────────────────── */}
           <Text style={text}>Bonjour {firstName},</Text>
 
           <Text style={text}>
-            Ton badge de vérification EduCash a expiré. Pour continuer à postuler
-            aux missions et maintenir ta crédibilité auprès des clients, tu dois
+            Votre badge de vérification EduCash a expiré. Pour continuer à postuler
+            aux missions et maintenir votre crédibilité auprès des clients, vous devez
             soumettre une nouvelle carte étudiante.
           </Text>
 
@@ -50,7 +50,7 @@ export default function VerificationExpired({
                 <Text style={boxLabel}>Pourquoi renouveler ?</Text>
                 <Text style={boxValue}>
                   Les étudiants vérifiés sont <strong>3× plus souvent choisis</strong> par les clients.
-                  Garde ton avantage compétitif.
+                  Gardez votre avantage compétitif.
                 </Text>
               </Column>
             </Row>

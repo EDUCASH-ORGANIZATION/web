@@ -25,7 +25,7 @@ vi.mock("@/lib/actions/auth.actions", () => ({ logout: vi.fn() }))
 const wizard = await import("./onboarding-wizard")
 const { StepIdentity } = await import("./step-identity")
 const { StepStudies } = await import("./step-studies")
-const { StepCard, validateUpload } = await import("./step-card")
+const { StepCard, validateUpload, AVATAR_TYPES } = await import("./step-card")
 const { WelcomeScreen, firstNameOf } = await import("./welcome-screen")
 const { getOnboardingState } = await import("@/lib/actions/onboarding.actions")
 const { default: StudentOnboardingPage } = await import("@/app/auth/register/student/page")
@@ -104,10 +104,10 @@ describe("étape 1 Identité", () => {
     )
     expect(html).toContain('method="post"')
     expect(html).toContain("Étape 1 sur 3")
-    expect(html).toContain("Qui es-tu ?")
+    expect(html).toContain("Qui êtes-vous ?")
     expect(html).toContain("+229")
     expect(html).toContain("0 / 200")
-    expect(html).toContain("Choisir ta ville")
+    expect(html).toContain("Choisir votre ville")
     expect(html).not.toContain("<select")
     expect(html).toContain('role="combobox"')
     expect(html).toContain('id="o-ville"')
@@ -141,7 +141,7 @@ describe("étape 2 Études", () => {
     expect(html).not.toContain("<select")
     expect(html).toContain('type="hidden" name="school"')
     expect(html).toContain('type="hidden" name="level"')
-    expect(html).toContain("Choisir ton niveau")
+    expect(html).toContain("Choisir votre niveau")
     expect(html).toContain("Licence 2")
     expect(html).toContain("Marché et achats")
     expect(html).not.toContain(">Livraison<")
@@ -178,10 +178,10 @@ describe("étape 3 Carte", () => {
   it("rend la zone de dépôt, le report et aucun délai d'examen", () => {
     const html = renderToStaticMarkup(<StepCard card={null} {...props} />)
     expect(html).toContain("Étape 3 sur 3")
-    expect(html).toContain("Dépose ta carte étudiante")
+    expect(html).toContain("Déposez votre carte étudiante")
     expect(html).toContain("Plus tard")
     expect(html).toContain("Terminer")
-    expect(html).toContain("Nous examinons ta carte, tu recevras un email.")
+    expect(html).toContain("Nous examinons votre carte, vous recevrez un email.")
     expect(html).not.toMatch(/24|48/)
   })
 
@@ -215,7 +215,7 @@ describe("écran Bienvenue", () => {
     const html = renderToStaticMarkup(<WelcomeScreen fullName="Sèna Agossou" cardSent destination="/dashboard" />)
     expect(html).toContain("Sèna.")
     expect(html).toContain("En cours d&#x27;examen")
-    expect(html).toContain("Nous examinons ta carte, tu recevras un email.")
+    expect(html).toContain("Nous examinons votre carte, vous recevrez un email.")
     expect(html).not.toMatch(/24|48/)
     expect(html).toContain('href="/student/missions"')
     expect(html).toContain('href="/dashboard"')
@@ -225,7 +225,7 @@ describe("écran Bienvenue", () => {
   it("carte reportée : rappel de l'envoi et lien vers le profil", () => {
     const html = renderToStaticMarkup(<WelcomeScreen fullName="Sèna" cardSent={false} destination="/dashboard" />)
     expect(html).toContain("Non vérifié")
-    expect(html).toContain("tu devras l&#x27;envoyer pour postuler")
+    expect(html).toContain("vous devrez l&#x27;envoyer pour postuler")
     expect(html).toContain('href="/profile/edit"')
     expect(html).not.toContain("En cours d&#x27;examen")
   })
@@ -257,7 +257,7 @@ describe("assistant", () => {
     query = "etape=3"
     const html = renderToStaticMarkup(<OnboardingWizard userId="u1" universities={UNIVERSITIES} />)
     expect(html).toContain("Étape 1 sur 3")
-    expect(html).not.toContain("Ta carte étudiante")
+    expect(html).not.toContain("Votre carte étudiante")
   })
 
   it("?etape=3 avec des étapes valides affiche la carte", () => {
@@ -339,6 +339,22 @@ describe("règles de l'écran", () => {
   const files = ["onboarding-wizard", "step-identity", "step-studies", "step-card", "welcome-screen"].map((name) =>
     readFileSync(new URL(`./${name}.jsx`, import.meta.url), "utf8")
   )
+
+  it("vouvoie : aucune forme du tutoiement dans les étapes ni dans l'écran Bienvenue", () => {
+    const TU_FORMS = /(?<!\p{L})(tu|ton|ta|tes|toi|[a-zé]+-toi)(?!\p{L})/iu
+    const filled = { ...EMPTY_VALUES, school: "__other__", skills: [MISSION_TYPES[0]] }
+    const screens = [
+      <StepIdentity key="1" values={EMPTY_VALUES} errors={{}} avatar={null} onChange={noop} onPickAvatar={noop} onSubmit={noop} />,
+      <StepStudies key="2" values={filled} errors={{}} universities={UNIVERSITIES} onChange={noop} onBack={noop} onSubmit={noop} />,
+      <StepCard key="3" card={null} pending={false} onPickCard={noop} onBack={noop} onSubmit={noop} onSkip={noop} />,
+      <WelcomeScreen key="w1" fullName="Sèna" cardSent destination="/dashboard" />,
+      <WelcomeScreen key="w2" fullName="Sèna" cardSent={false} destination="/dashboard" />,
+    ]
+    for (const screen of screens) {
+      expect(renderToStaticMarkup(screen).replace(/<[^>]+>/g, " ")).not.toMatch(TU_FORMS)
+    }
+    expect(validateUpload({ type: "image/gif", size: 1 }, AVATAR_TYPES, "photo")).toBe("Format non accepté. Envoyez une photo JPG ou PNG.")
+  })
 
   it("n'écrit jamais profiles depuis le navigateur et n'utilise ni MUI, ni style en ligne", () => {
     for (const source of files) {

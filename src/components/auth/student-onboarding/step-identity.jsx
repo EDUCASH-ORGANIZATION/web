@@ -45,7 +45,7 @@ export function StepIdentity({ values, errors, avatar, avatarError = "", formErr
     <form className="auth__form" method="post" noValidate onSubmit={handleSubmit}>
       <AuthStepper steps={STEP_LABELS} current={1} />
       <div>
-        <h1 className="ds-h1">Qui es-tu ?</h1>
+        <h1 className="ds-h1">Qui êtes-vous ?</h1>
         <p className="muted a-lead">
           Les champs marqués <span className="a-err-text">*</span> sont obligatoires.
         </p>
@@ -60,7 +60,7 @@ export function StepIdentity({ values, errors, avatar, avatarError = "", formErr
           <span className="avatar avatar--xl avatar--empty">
             {avatar?.previewUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img className="h-full w-full rounded-full object-cover" src={avatar.previewUrl} alt="Aperçu de ta photo" />
+              <img className="h-full w-full rounded-full object-cover" src={avatar.previewUrl} alt="Aperçu de votre photo" />
             ) : (
               <Icon name="i-user" className="ic ic--32" />
             )}
@@ -116,7 +116,7 @@ export function StepIdentity({ values, errors, avatar, avatarError = "", formErr
           name="city"
           options={CITY_OPTIONS}
           value={values.city}
-          placeholder="Choisir ta ville"
+          placeholder="Choisir votre ville"
           invalid={Boolean(errors.city)}
           aria-describedby={describedBy("o-ville", errors, "city")}
           onChange={(value) => onChange("city", value)}
@@ -153,7 +153,7 @@ export function StepIdentity({ values, errors, avatar, avatarError = "", formErr
           id="o-bio"
           name="bio"
           maxLength={BIO_MAX}
-          placeholder="Ce que tu sais faire, en une ou deux phrases"
+          placeholder="Ce que vous savez faire, en une ou deux phrases"
           value={values.bio}
           aria-invalid={errors.bio ? true : undefined}
           aria-describedby={describedBy("o-bio", errors, "bio")}

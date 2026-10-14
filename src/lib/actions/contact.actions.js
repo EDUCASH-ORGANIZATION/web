@@ -32,7 +32,7 @@ export async function sendContactMessage(formData) {
 
   if (result?.error) {
     console.error("[contact] send failed", { code: "send_error" })
-    return { status: "error", message: "L'envoi a échoué. Ton message est conservé, réessaie dans un instant." }
+    return { status: "error", message: "L'envoi a échoué. Votre message est conservé, réessayez dans un instant." }
   }
 
   return { status: "success" }

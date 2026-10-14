@@ -21,7 +21,7 @@ export function CardUploadZone({ onFileSelect, file }) {
 
   function validate(f) {
     if (!ACCEPTED_TYPES.includes(f.type)) {
-      return "Format non accepté. Utilise JPG, PNG ou PDF."
+      return "Format non accepté. Utilisez JPG, PNG ou PDF."
     }
     if (f.size > MAX_SIZE_BYTES) {
       return `Fichier trop lourd (${(f.size / 1024 / 1024).toFixed(1)} MB). Maximum : 10 MB.`
@@ -106,13 +106,13 @@ export function CardUploadZone({ onFileSelect, file }) {
             <Upload size={24} className="text-[#1A6B4A]" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-bold text-gray-700">Uploade ta carte étudiante</p>
+            <p className="text-sm font-bold text-gray-700">Déposez votre carte étudiante</p>
             <p className="text-xs text-gray-400 mt-0.5">
               Photo ou scan - JPG, PNG, PDF - max 10 MB
             </p>
           </div>
           <p className="text-xs text-[#1A6B4A] font-semibold">
-            {dragging ? "Relâche ici" : "Clique ou glisse-dépose"}
+            {dragging ? "Relâchez ici" : "Cliquez ou glissez-déposez"}
           </p>
         </button>
       ) : (

@@ -76,7 +76,7 @@ export default async function StudentMessagesPage() {
         currentUserId={user.id}
         role="student"
         emptyTitle="Aucune conversation"
-        emptyMessage="Tes échanges avec les clients apparaîtront ici une fois qu'une mission sera en cours."
+        emptyMessage="Vos échanges avec les clients apparaîtront ici une fois qu'une mission sera en cours."
         emptyCtaLabel="Explorer les missions"
         emptyCtaHref="/student/missions"
       />

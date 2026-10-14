@@ -32,13 +32,13 @@ export function PromoCard() {
 
         <div className="px-6 py-5 flex flex-col gap-4">
           <p className="text-sm text-gray-600 leading-relaxed">
-            La certification EduCash valide ton identité et ton statut étudiant. Elle augmente
-            considérablement ta visibilité auprès des clients.
+            La certification EduCash valide votre identité et votre statut étudiant. Elle augmente
+            considérablement votre visibilité auprès des clients.
           </p>
           <div className="flex flex-col gap-3">
             {[
               { icon: TrendingUp, color: "text-[#1A6B4A]", bg: "bg-green-50", title: "3× plus de sélections", desc: "Les profils certifiés sont prioritaires dans les résultats de recherche." },
-              { icon: BadgeCheck, color: "text-blue-600",   bg: "bg-blue-50",  title: "Badge de confiance",   desc: "Un badge visible sur ton profil rassure les clients sur ta sérieux." },
+              { icon: BadgeCheck, color: "text-blue-600",   bg: "bg-blue-50",  title: "Badge de confiance",   desc: "Un badge visible sur votre profil rassure les clients sur votre sérieux." },
               { icon: Star,       color: "text-amber-500", bg: "bg-amber-50", title: "Accès aux missions premium", desc: "Certaines missions à fort budget sont réservées aux étudiants vérifiés." },
             ].map(({ icon: Icon, color, bg, title, desc }) => (
               <div key={title} className="flex items-start gap-3">
@@ -55,7 +55,7 @@ export function PromoCard() {
           <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 flex items-center gap-2.5 mt-1">
             <span className="text-lg">🎓</span>
             <p className="text-xs text-amber-800 font-medium leading-relaxed">
-              Il te suffit de fournir une <strong>carte étudiante valide</strong> lors de la configuration de ton profil.
+              Il vous suffit de fournir une <strong>carte étudiante valide</strong> lors de la configuration de votre profil.
             </p>
           </div>
         </div>

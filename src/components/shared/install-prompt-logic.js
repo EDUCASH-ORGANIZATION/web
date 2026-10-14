@@ -15,27 +15,18 @@ export const EMPTY_INSTALL_STATE = {
   installed: false,
 }
 
+// Même texte pour les deux espaces : un seul objet.
 const COPY = {
-  student: {
-    title: "Installe EduCash",
-    native: "Retrouve tes missions depuis ton écran d'accueil.",
-    ios: "Ajoute EduCash à ton écran d'accueil : touche Partager, puis « Sur l'écran d'accueil ».",
-    install: "Installer",
-    later: "Plus tard",
-    close: "Fermer et ne plus afficher",
-  },
-  client: {
-    title: "Installez EduCash",
-    native: "Retrouvez vos missions depuis votre écran d'accueil.",
-    ios: "Ajoutez EduCash à votre écran d'accueil : touchez Partager, puis « Sur l'écran d'accueil ».",
-    install: "Installer",
-    later: "Plus tard",
-    close: "Fermer et ne plus afficher",
-  },
+  title: "Installez EduCash",
+  native: "Retrouvez vos missions depuis votre écran d'accueil.",
+  ios: "Ajoutez EduCash à votre écran d'accueil : touchez Partager, puis « Sur l'écran d'accueil ».",
+  install: "Installer",
+  later: "Plus tard",
+  close: "Fermer et ne plus afficher",
 }
 
 export function installCopy(space) {
-  return COPY[space] ?? null
+  return INSTALL_SPACES.includes(space) ? COPY : null
 }
 
 // Retourne { show, mode } avec mode "native" (beforeinstallprompt) ou "ios".

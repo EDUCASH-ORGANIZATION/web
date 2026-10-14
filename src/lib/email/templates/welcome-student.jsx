@@ -18,12 +18,12 @@ export default function WelcomeStudent({ name = "Étudiant" }) {
           <Text style={text}>Bonjour {name},</Text>
 
           <Text style={text}>
-            Bienvenue sur EduCash ! Ton profil est en cours de vérification.
-            Nous examinons ta carte, tu recevras un email.
+            Bienvenue sur EduCash ! Votre profil est en cours de vérification.
+            Nous examinons votre carte, vous recevrez un email.
           </Text>
 
           <Text style={text}>
-            Une fois vérifié, tu pourras postuler à toutes les missions disponibles
+            Une fois vérifié, vous pourrez postuler à toutes les missions disponibles
             et commencer à gagner de l&apos;argent.
           </Text>
 

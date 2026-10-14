@@ -3,19 +3,15 @@
 import { useState } from "react"
 import { Icon } from "@/components/design/icon"
 
-const LABELS = {
-  student: { show: "Afficher ton mot de passe", hide: "Masquer ton mot de passe" },
-  client: { show: "Afficher votre mot de passe", hide: "Masquer votre mot de passe" },
-}
+const LABELS = { show: "Afficher votre mot de passe", hide: "Masquer votre mot de passe" }
 
 /**
  * Champ mot de passe avec bouton œil (`.control`). Les props restantes vont sur l'<input>
  * (compatible `register()` de react-hook-form, `ref` inclus).
- * @param {{ id: string, audience?: "student" | "client", invalid?: boolean, disabled?: boolean } & React.InputHTMLAttributes<HTMLInputElement>} props
+ * @param {{ id: string, invalid?: boolean, disabled?: boolean } & React.InputHTMLAttributes<HTMLInputElement>} props
  */
-export function PasswordInput({ id, audience = "student", invalid = false, disabled = false, className = "", ...rest }) {
+export function PasswordInput({ id, invalid = false, disabled = false, className = "", ...rest }) {
   const [visible, setVisible] = useState(false)
-  const labels = LABELS[audience === "client" ? "client" : "student"]
 
   return (
     <div className={`control${invalid ? " is-error" : ""}${disabled ? " is-disabled" : ""}${className ? ` ${className}` : ""}`}>
@@ -30,7 +26,7 @@ export function PasswordInput({ id, audience = "student", invalid = false, disab
       <button
         className="control__btn"
         type="button"
-        aria-label={visible ? labels.hide : labels.show}
+        aria-label={visible ? LABELS.hide : LABELS.show}
         aria-controls={id}
         aria-pressed={visible}
         disabled={disabled}

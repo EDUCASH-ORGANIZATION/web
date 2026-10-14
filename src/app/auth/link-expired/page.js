@@ -18,12 +18,12 @@ export default async function LinkExpiredPage({ searchParams }) {
   const rawRole = first(params?.role)
   const role = SIGNUP_ROLES.includes(rawRole) ? rawRole : null
   const next = safeNextPath(first(params?.next))
-  // Page neutre : vouvoiement par défaut (l'accueil parle aux clients), tutoiement si le rôle étudiant est connu.
+  // Page neutre : le public (panneau visuel et parcours) vient du rôle connu, sinon de `next` (client par défaut).
   const audience = role ?? audienceFor({ next }, "client")
 
   return (
     <AuthShell audience={audience}>
-      <LinkExpiredForm cause={cause} flow={flow} audience={audience} role={role} next={next} />
+      <LinkExpiredForm cause={cause} flow={flow} role={role} next={next} />
     </AuthShell>
   )
 }

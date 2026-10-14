@@ -22,8 +22,8 @@ export function primaryButtonClass(kind, { large = true } = {}) {
 export function VerifyHint() {
   return (
     <p className="caption">
-      Ton compte n&apos;est pas encore vérifié.{" "}
-      <Link className="link" href="/profile/verify">Envoie ta carte pour postuler</Link>
+      Votre compte n&apos;est pas encore vérifié.{" "}
+      <Link className="link" href="/profile/verify">Envoyez votre carte pour postuler</Link>
     </p>
   )
 }

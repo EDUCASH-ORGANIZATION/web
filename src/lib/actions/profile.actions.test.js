@@ -63,7 +63,7 @@ describe("getMyProfile", () => {
   it("renvoie une erreur neutre si la lecture échoue", async () => {
     requireUser.mockResolvedValue({ user: { id: "u1" } })
     createServiceClient.mockReturnValue(makeService({ data: null, error: { message: "boom" } }).client)
-    expect(await getMyProfile()).toEqual({ error: "Impossible de charger ton profil." })
+    expect(await getMyProfile()).toEqual({ error: "Impossible de charger votre profil." })
   })
 })
 
@@ -97,7 +97,7 @@ describe("getMyStudentProfile", () => {
   it("renvoie une erreur neutre si la lecture échoue", async () => {
     requireUser.mockResolvedValue({ user: { id: "u2" } })
     createServiceClient.mockReturnValue(makeService({ data: null, error: { message: "boom" } }).client)
-    expect(await getMyStudentProfile()).toEqual({ error: "Impossible de charger ton profil." })
+    expect(await getMyStudentProfile()).toEqual({ error: "Impossible de charger votre profil." })
   })
 })
 
@@ -192,7 +192,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     const captured = {}
     asRole(session({ captured }))
     const res = await saveStudentCardUrl(value)
-    expect(res).toEqual({ error: "Cette carte n'est pas valide. Envoie-la à nouveau." })
+    expect(res).toEqual({ error: "Cette carte n'est pas valide. Envoyez-la à nouveau." })
     expect(captured).toEqual({})
   })
 
@@ -200,7 +200,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     const captured = {}
     asRole(session({ captured }))
     const res = await updateStudentProfileWithCard({ fullName: "Awa", city: "Cotonou", cardUrl: value })
-    expect(res.error).toBe("Cette carte n'est pas valide. Envoie-la à nouveau.")
+    expect(res.error).toBe("Cette carte n'est pas valide. Envoyez-la à nouveau.")
     expect(captured).toEqual({})
   })
 

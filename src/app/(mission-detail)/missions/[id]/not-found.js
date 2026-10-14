@@ -5,7 +5,7 @@ export default function MissionNotFound() {
     <VitrineNotFound
       audience="etudiants"
       title="Mission introuvable"
-      text="Cette mission n'existe pas, ou elle a été retirée. Retrouve les missions ouvertes en ce moment."
+      text="Cette mission n'existe pas, ou elle a été retirée. Retrouvez les missions ouvertes en ce moment."
       backHref="/missions"
       backLabel="Voir les missions"
     />

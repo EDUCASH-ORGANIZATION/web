@@ -17,7 +17,7 @@ export default async function VerifyEmailPage({ searchParams }) {
   const rawRole = first(params?.role)
   const role = SIGNUP_ROLES.includes(rawRole) ? rawRole : null
   const next = safeNextPath(first(params?.next))
-  // Page neutre sans rôle connu : vouvoiement (l'accueil parle aux clients).
+  // Page neutre : le public (panneau visuel et parcours) vient du rôle connu, sinon de `next` (client par défaut).
   const audience = role ?? audienceFor({ next }, "client")
 
   const cookieStore = await cookies()
@@ -26,7 +26,7 @@ export default async function VerifyEmailPage({ searchParams }) {
 
   return (
     <AuthShell audience={audience} backHref={registerHref({ role, next })} backLabel="Retour à l'inscription">
-      <VerifyEmailPanel email={email} audience={audience} role={role} next={next} />
+      <VerifyEmailPanel email={email} role={role} next={next} />
     </AuthShell>
   )
 }

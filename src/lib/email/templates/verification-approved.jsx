@@ -45,8 +45,8 @@ export default function VerificationApproved({
 
           {/* ── Corps ─────────────────────────────────────────────── */}
           <Text style={text}>
-            Ton profil EduCash a été <strong>vérifié par notre équipe</strong>.
-            Tu peux maintenant postuler à toutes les missions disponibles sur la plateforme.
+            Votre profil EduCash a été <strong>vérifié par notre équipe</strong>.
+            Vous pouvez maintenant postuler à toutes les missions disponibles sur la plateforme.
           </Text>
 
           {/* ── Encadré vert ──────────────────────────────────────── */}
@@ -70,7 +70,7 @@ export default function VerificationApproved({
           </Section>
 
           <Text style={text}>
-            Ce badge renforce ta crédibilité auprès des clients et augmente tes chances
+            Ce badge renforce votre crédibilité auprès des clients et augmente vos chances
             d&apos;être sélectionné(e). Les étudiants vérifiés sont <strong>3× plus souvent choisis</strong>.
           </Text>
 
@@ -85,8 +85,8 @@ export default function VerificationApproved({
 
           {/* ── Note expiration ───────────────────────────────────── */}
           <Text style={note}>
-            Ton badge de vérification est valable 1 an.
-            Tu recevras un rappel avant son expiration.
+            Votre badge de vérification est valable 1 an.
+            Vous recevrez un rappel avant son expiration.
           </Text>
 
           <Text style={footer}>

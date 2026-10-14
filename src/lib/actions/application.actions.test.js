@@ -56,7 +56,7 @@ describe("apply", () => {
   const openMission = { id: "m1", title: "Courses", client_id: "cli-1", status: "open" }
 
   it("refuse un non-étudiant et n'écrit rien", async () => {
-    requireRole.mockResolvedValue({ error: "Tu n'as pas les droits pour effectuer cette action." })
+    requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
     const res = await apply({ missionId: "m1", message: "Bonjour" })
     expect(requireRole).toHaveBeenCalledWith(["student"])
     expect(res.error).toBeTruthy()
@@ -397,7 +397,7 @@ describe("lectures de candidatures : erreurs neutres", () => {
   })
 })
 
-describe("registre des messages : vouvoiement client, tutoiement étudiant", () => {
+describe("registre des messages : vouvoiement pour tous les rôles", () => {
   const TUTOIEMENT = /\b(tu|ton|ta|tes)\b|Réessaie\b/i
 
   it("rejectApplication vouvoie le client quand l'écriture échoue", async () => {
@@ -418,7 +418,7 @@ describe("registre des messages : vouvoiement client, tutoiement étudiant", () 
     await expect(getMissionApplications("m1")).rejects.toThrow("Vous n'avez pas les droits pour effectuer cette action.")
   })
 
-  it("apply tutoie l'étudiant quand l'insertion échoue", async () => {
+  it("apply vouvoie l'étudiant quand l'insertion échoue", async () => {
     requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
     respond = (q) => {
       if (q.table === "missions") return { data: { id: "m1", title: "Courses", client_id: "cli-1", status: "open" } }
@@ -426,11 +426,12 @@ describe("registre des messages : vouvoiement client, tutoiement étudiant", () 
       return { data: null, error: { message: "db" } }
     }
     const res = await apply({ missionId: "m1", message: "Bonjour" })
-    expect(res).toEqual({ error: "Une erreur est survenue. Réessaie dans un instant." })
+    expect(res).toEqual({ error: "Une erreur est survenue. Réessayez dans un instant." })
+    expect(res.error).not.toMatch(TUTOIEMENT)
   })
 
-  it("getStudentApplications tutoie l'étudiant qui lit l'identifiant d'un autre", async () => {
+  it("getStudentApplications vouvoie l'étudiant qui lit l'identifiant d'un autre", async () => {
     requireRole.mockResolvedValue({ supabase, user: { id: "stu-1" }, role: "student" })
-    await expect(getStudentApplications("stu-2")).rejects.toThrow("Tu n'as pas les droits pour effectuer cette action.")
+    await expect(getStudentApplications("stu-2")).rejects.toThrow("Vous n'avez pas les droits pour effectuer cette action.")
   })
 })

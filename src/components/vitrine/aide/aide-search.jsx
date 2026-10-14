@@ -91,7 +91,7 @@ export function AideSearch({ themes }) {
       <PageHead
         eyebrow="Aide et FAQ"
         size="xxl"
-        title={<>Une question&nbsp;?<br /><span className="hl-citron">On t&apos;aide.</span></>}
+        title={<>Une question&nbsp;?<br /><span className="hl-citron">On vous aide.</span></>}
       >
         <Icon name="sc-squiggle" className="scribble v-pagehead__scribble v07-scribble--a" />
         <Icon name="sc-burst" className="scribble v-pagehead__scribble v07-scribble--b" />
@@ -142,7 +142,7 @@ export function AideSearch({ themes }) {
           {visible.length === 0 ? (
             <StateBlock
               title="Aucun résultat"
-              text="Aucune question ne correspond à ta recherche. Essaie un autre mot, ou écris-nous."
+              text="Aucune question ne correspond à votre recherche. Essayez un autre mot, ou écrivez-nous."
               actions={[{ href: "/contact", label: "Nous contacter" }]}
             />
           ) : (

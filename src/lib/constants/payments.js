@@ -8,12 +8,12 @@ export function paymentsEnabled() {
   return process.env.PAYMENTS_ENABLED === "true"
 }
 
-/** Libellés partagés de l'état « en cours d'activation » (une version par tonalité). */
+/** Libellés partagés de l'état « en cours d'activation » (vouvoiement pour tous les publics). */
 export const PAYMENTS_PENDING_COPY = {
   wallet: {
     title: "Recharge et retrait en cours d'activation",
     client: "Vos fonds restent en sécurité sur votre portefeuille EduCash. Vous pourrez recharger et retirer dès l'ouverture.",
-    student: "Tes gains restent en sécurité sur ton portefeuille EduCash. Tu pourras retirer dès l'ouverture.",
+    student: "Vos gains restent en sécurité sur votre portefeuille EduCash. Vous pourrez retirer dès l'ouverture.",
   },
   publish: {
     title: "Publication en cours d'activation",

@@ -14,25 +14,15 @@ import { HydratedSubmit } from "@/components/auth/ui/hydrated-submit"
 import { PasswordInput } from "@/components/auth/ui/password-input"
 
 const COPY = {
-  student: {
-    title: "Content de te revoir",
-    lead: "Connecte-toi pour retrouver tes missions et ton portefeuille.",
-    next: "Connecte-toi pour continuer. Tu reviens juste après sur la page demandée.",
-    emailPlaceholder: "toi@exemple.bj",
-    passwordPlaceholder: "Ton mot de passe",
-    resent: "Email renvoyé. Regarde ta boîte de réception et tes spams.",
-  },
-  client: {
-    title: "Content de vous revoir",
-    lead: "Connectez-vous pour retrouver vos missions et votre portefeuille.",
-    next: "Connectez-vous pour continuer. Vous reviendrez juste après sur la page demandée.",
-    emailPlaceholder: "vous@exemple.bj",
-    passwordPlaceholder: "Votre mot de passe",
-    resent: "Email renvoyé. Regardez votre boîte de réception et vos spams.",
-  },
+  title: "Content de vous revoir",
+  lead: "Connectez-vous pour retrouver vos missions et votre portefeuille.",
+  next: "Connectez-vous pour continuer. Vous reviendrez juste après sur la page demandée.",
+  emailPlaceholder: "vous@exemple.bj",
+  passwordPlaceholder: "Votre mot de passe",
+  resent: "Email renvoyé. Regardez votre boîte de réception et vos spams.",
 }
 
-// Bannière selon le code renvoyé par l'action (le message est déjà adapté à l'audience).
+// Bannière selon le code renvoyé par l'action (le message est déjà rédigé par l'action).
 const BANNERS = {
   email_not_confirmed: { tone: "alerte", icon: "i-mail" },
   rate_limited: { tone: "alerte", icon: "i-clock", title: "Trop de tentatives" },
@@ -48,12 +38,10 @@ const BANNERS = {
  *   next?: string | null,
  *   forgotHref?: string,
  *   suspended?: boolean,
- * }} props `role` : public connu (student tutoyé, client vouvoyé) ; sans lui, vouvoiement neutre.
- * `student` ajoute le champ caché `audience=student`. `next` est un chemin déjà validé.
+ * }} props `role` : public connu, pour le lien d'inscription. `next` est un chemin déjà validé.
  */
 export function LoginForm({ role = null, next = null, forgotHref = "/auth/forgot-password", suspended = false }) {
-  const audience = role === "student" ? "student" : "client"
-  const copy = COPY[audience]
+  const copy = COPY
   const [state, formAction, pending] = useActionState(login, null)
   const [clientErrors, setClientErrors] = useState(null)
   const [email, setEmail] = useState("")
@@ -62,11 +50,11 @@ export function LoginForm({ role = null, next = null, forgotHref = "/auth/forgot
 
   const errors = clientErrors ?? state?.fieldErrors ?? {}
   // Compte suspendu détecté à la confirmation d'un lien : même bannière que la connexion refusée.
-  const shown = state ?? (suspended ? { code: "suspended", formError: authErrorMessage("suspended", audience), contactHref: "/contact" } : null)
+  const shown = state ?? (suspended ? { code: "suspended", formError: authErrorMessage("suspended"), contactHref: "/contact" } : null)
   const banner = shown?.formError && !clientErrors ? BANNERS[shown.code] ?? { tone: "erreur" } : null
 
   function handleSubmit(event) {
-    const parsed = parseFormData(makeLoginSchema(audience), new FormData(event.currentTarget))
+    const parsed = parseFormData(makeLoginSchema(), new FormData(event.currentTarget))
     if (parsed.ok) {
       setClientErrors(null)
       setResent(false)
@@ -79,7 +67,6 @@ export function LoginForm({ role = null, next = null, forgotHref = "/auth/forgot
   async function resend() {
     const data = new FormData()
     data.set("email", formRef.current?.elements.email?.value ?? "")
-    data.set("audience", audience)
     if (next) data.set("next", next)
     const result = await resendSignupConfirmation(null, data)
     setResent(!result?.formError && !result?.fieldErrors)
@@ -146,7 +133,6 @@ export function LoginForm({ role = null, next = null, forgotHref = "/auth/forgot
         <PasswordInput
           id="login-password"
           name="password"
-          audience={audience}
           autoComplete="current-password"
           placeholder={copy.passwordPlaceholder}
           invalid={Boolean(errors.password)}
@@ -159,7 +145,6 @@ export function LoginForm({ role = null, next = null, forgotHref = "/auth/forgot
       </div>
 
       {next && <input type="hidden" name="next" value={next} />}
-      {role === "student" && <input type="hidden" name="audience" value="student" />}
 
       <HydratedSubmit pending={pending}>Se connecter</HydratedSubmit>
 

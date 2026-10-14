@@ -22,20 +22,20 @@ export const contactSchema = z.object({
     .pipe(
       z
         .string()
-        .min(1, "Indique ton nom.")
-        .max(CONTACT_LIMITS.nameMax, `Ton nom ne doit pas dépasser ${CONTACT_LIMITS.nameMax} caractères.`)
+        .min(1, "Indiquez votre nom.")
+        .max(CONTACT_LIMITS.nameMax, `Votre nom ne doit pas dépasser ${CONTACT_LIMITS.nameMax} caractères.`)
     ),
   email: z
     .string()
     .trim()
     .max(CONTACT_LIMITS.emailMax, "L'adresse email est trop longue.")
     .pipe(z.email("L'adresse email n'est pas valide.")),
-  subject: z.enum(SUBJECT_IDS, { error: "Choisis un sujet." }),
+  subject: z.enum(SUBJECT_IDS, { error: "Choisissez un sujet." }),
   message: z
     .string()
     .trim()
-    .min(CONTACT_LIMITS.messageMin, `Ton message doit faire au moins ${CONTACT_LIMITS.messageMin} caractères.`)
-    .max(CONTACT_LIMITS.messageMax, `Ton message ne doit pas dépasser ${CONTACT_LIMITS.messageMax} caractères.`),
+    .min(CONTACT_LIMITS.messageMin, `Votre message doit faire au moins ${CONTACT_LIMITS.messageMin} caractères.`)
+    .max(CONTACT_LIMITS.messageMax, `Votre message ne doit pas dépasser ${CONTACT_LIMITS.messageMax} caractères.`),
 })
 
 function field(formData, key) {

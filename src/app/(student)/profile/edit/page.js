@@ -105,7 +105,7 @@ function VerificationBanner({ profile, studentProfile, cardFile, onCardFileChang
             </p>
           )}
           <p className="text-xs text-green-600 mt-1">
-            Tu n&apos;as pas besoin de soumettre à nouveau ta carte.
+            Vous n&apos;avez pas besoin de soumettre à nouveau votre carte.
           </p>
         </div>
       </div>
@@ -122,10 +122,10 @@ function VerificationBanner({ profile, studentProfile, cardFile, onCardFileChang
           </div>
           <div>
             <p className="text-sm font-black text-amber-900">
-              Ton badge a expiré le {fmtDate(profile.verified_until)}
+              Votre badge a expiré le {fmtDate(profile.verified_until)}
             </p>
             <p className="text-xs text-amber-700 mt-0.5">
-              Soumets une nouvelle carte pour renouveler ton badge.
+              Soumettez une nouvelle carte pour renouveler votre badge.
             </p>
           </div>
         </div>
@@ -143,9 +143,9 @@ function VerificationBanner({ profile, studentProfile, cardFile, onCardFileChang
             <AlertCircle size={18} className="text-red-600" />
           </div>
           <div>
-            <p className="text-sm font-black text-red-800">Ton dossier a été rejeté</p>
+            <p className="text-sm font-black text-red-800">Votre dossier a été rejeté</p>
             <p className="text-xs text-red-600 mt-0.5">
-              Soumets une nouvelle carte pour obtenir ton badge.
+              Soumettez une nouvelle carte pour obtenir votre badge.
             </p>
           </div>
         </div>
@@ -170,7 +170,7 @@ function VerificationBanner({ profile, studentProfile, cardFile, onCardFileChang
         <div>
           <p className="text-sm font-black text-amber-900">Vérification en cours</p>
           <p className="text-xs text-amber-700 mt-0.5">
-            Ton dossier a été soumis le{" "}
+            Votre dossier a été soumis le{" "}
             <span className="font-semibold">{fmtDate(submittedAt)}</span> - notre équipe l&apos;examine.
           </p>
           <p className="text-xs text-amber-600 mt-1">
@@ -189,9 +189,9 @@ function VerificationBanner({ profile, studentProfile, cardFile, onCardFileChang
           <ShieldAlert size={18} className="text-amber-600" />
         </div>
         <div>
-          <p className="text-sm font-black text-amber-900">Complète ta vérification</p>
+          <p className="text-sm font-black text-amber-900">Complétez votre vérification</p>
           <p className="text-xs text-amber-700 mt-0.5">
-            Soumets ta carte étudiante pour obtenir ton badge vérifié.
+            Soumettez votre carte étudiante pour obtenir votre badge vérifié.
           </p>
         </div>
       </div>
@@ -392,7 +392,7 @@ export default function ProfileEditPage() {
 
       toast({
         message: cardFile
-          ? "Profil sauvegardé - ta carte est en cours d'examen."
+          ? "Profil sauvegardé - votre carte est en cours d'examen."
           : "Profil mis à jour avec succès.",
         type: "success",
       })
@@ -435,7 +435,7 @@ export default function ProfileEditPage() {
           <div>
             <h1 className="text-xl font-black text-gray-900">Modifier mon profil</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              Mets à jour tes informations et ta vérification
+              Mettez à jour vos informations et votre vérification
             </p>
           </div>
         </div>
@@ -564,7 +564,7 @@ export default function ProfileEditPage() {
               <p className="text-xs text-gray-400">
                 {countryCode === "+229"
                   ? "Format béninois : 01 suivi de 8 chiffres (ex: 01 00 00 00 00)"
-                  : "Saisis le numéro local sans l'indicatif"}
+                  : "Indiquez le numéro local sans l'indicatif"}
               </p>
             </div>
           </div>
@@ -581,7 +581,7 @@ export default function ProfileEditPage() {
               value={bio}
               onChange={(e) => setBio(e.target.value.slice(0, 200))}
               rows={4}
-              placeholder="Décris ton profil, tes expériences et tes points forts…"
+              placeholder="Décrivez votre profil, vos expériences et vos points forts…"
               className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-sm text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] transition-colors"
             />
           </div>
@@ -615,7 +615,7 @@ export default function ProfileEditPage() {
                   type="text"
                   value={schoolOther}
                   onChange={(e) => setSchoolOther(e.target.value)}
-                  placeholder="Nom de ton établissement"
+                  placeholder="Nom de votre établissement"
                   className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] transition-colors mt-1.5"
                 />
               )}
@@ -640,7 +640,7 @@ export default function ProfileEditPage() {
           {/* Disponibilités */}
           <div className="flex flex-col gap-2.5">
             <label className="text-sm font-semibold text-gray-700">Disponibilités</label>
-            <p className="text-xs text-gray-500">Sélectionne tes plages habituelles</p>
+            <p className="text-xs text-gray-500">Sélectionnez vos plages habituelles</p>
             <div className="flex flex-wrap gap-2">
               {AVAILABILITY_PRESETS.map((preset) => {
                 const selected = availabilityPresets.includes(preset)
@@ -666,7 +666,7 @@ export default function ProfileEditPage() {
                 value={availabilityOther}
                 onChange={(e) => setAvailabilityOther(e.target.value)}
                 rows={3}
-                placeholder="Précise tes disponibilités spécifiques…"
+                placeholder="Précisez vos disponibilités spécifiques…"
                 className="w-full rounded-xl border border-gray-200 px-3.5 py-3 text-sm text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] transition-colors"
               />
             )}
@@ -675,7 +675,7 @@ export default function ProfileEditPage() {
           {/* Compétences */}
           <div className="flex flex-col gap-2.5">
             <label className="text-sm font-semibold text-gray-700">Compétences</label>
-            <p className="text-xs text-gray-500">Sélectionne tes domaines de compétences</p>
+            <p className="text-xs text-gray-500">Sélectionnez vos domaines de compétences</p>
             <div className="flex flex-wrap gap-2">
               {SKILLS_LIST.map((skill) => {
                 const selected = skills.includes(skill)

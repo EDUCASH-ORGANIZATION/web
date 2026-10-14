@@ -510,7 +510,7 @@ export function ConversationView({
             value={newMessage}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
-            placeholder="Écris un message…"
+            placeholder="Écrivez un message…"
             rows={1}
             disabled={isBusy}
             className="flex-1 resize-none rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1A6B4A]/40 focus:border-[#1A6B4A] disabled:opacity-60 overflow-hidden leading-relaxed transition-colors"
