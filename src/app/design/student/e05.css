@@ -29,9 +29,17 @@
 .e2-05-fieldset { border: 0; padding: 0; margin: 0; }
 .e2-05-toasts { bottom: 40px; }
 
+/* Suivi (ST-11) : montants longs et titres d'etape sans debordement, a 320 px comme a 1440.
+   Specificite (0,2,0) sur des proprietes de mise en page seulement : aucune couleur, ombre ni transform du systeme. */
+.e2-05-lines .e2-kv__row { flex-wrap: wrap; }
+.e2-05-lines .e2-kv__row > b { min-width: 0; margin-left: auto; overflow-wrap: anywhere; }
+.e2-05-track .e2-step__title, .e2-05-track .e2-step__sub { overflow-wrap: anywhere; }
+.e2-05-actions .e2-link { min-width: 0; }
+
 @media (max-width: 1023.98px) {
   .e2-05-meta { font-size: var(--t-caption); gap: 6px 12px; padding: 0 4px; }
   .e2-05-meta > span:not(.badge) .ic { width: 14px; height: 14px; }
   .e2-05-req__amount { font-size: var(--t-caption); }
+  .e2-05-aside { position: static; }
   .e2-05-foot { padding: var(--s-2) var(--s-4) var(--s-4); }
 }
