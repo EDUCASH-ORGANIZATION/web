@@ -131,6 +131,8 @@ describe("garde-fous de contenu vitrine", () => {
   })
 
   it("vouvoiement : aucun tutoiement dans les textes de la vitrine publique", () => {
+    // Filet local, volontairement conservé : le garde-fou global src/lib/security/no-tutoiement.guard.test.js
+    // est la référence (plus complet) ; celui-ci échoue plus près des fichiers de la vitrine.
     // Décision RD-VOUS-01 : vouvoiement partout. L'authentification (components/auth, app/auth, auth-shell)
     // est couverte par ses propres tests ; le garde-fou global no-tutoiement.guard.test.js couvre tout src/.
     const PRONOUNS = /(^|[^\p{L}-])(?:(?:tu|toi|ton|ta|tes|te)(?![\p{L}-])|t(?:['\u2019]|&rsquo;|&apos;))/iu
