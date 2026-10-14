@@ -15,12 +15,17 @@ export const APPLICATION_TABS = [
  * - En cours : candidature retenue, mission non terminée ni annulée.
  * - Terminées : candidature retenue, mission terminée.
  * - Non retenues : refusée, ou mission fermée sans toi (autre étudiant retenu, mission annulée).
- * @param {{ status?: string, missions?: { status?: string } | null }} application
+ * Quand `userId` est donné et que la mission a un autre étudiant retenu (`selected_student_id`), la candidature
+ * est « Non retenue » quel que soit son statut : le classement ne dépend pas que de la sécurité de la base.
+ * @param {{ status?: string, missions?: { status?: string, selected_student_id?: string | null } | null }} application
+ * @param {string} [userId] Étudiant connecté
  * @returns {"en-attente" | "en-cours" | "terminees" | "non-retenues"}
  */
-export function applicationTab(application) {
+export function applicationTab(application, userId) {
   const status = application?.status
   const missionStatus = application?.missions?.status
+  const selected = application?.missions?.selected_student_id
+  if (userId && selected && selected !== userId) return "non-retenues"
   if (status === "accepted") {
     if (missionStatus === "done") return "terminees"
     if (missionStatus === "cancelled") return "non-retenues"

@@ -4,6 +4,8 @@
 // Plafonds de lecture connus :
 // - les candidatures de l'étudiant sont lues par pages de 1000 lignes (plafond PostgREST), 5 pages au plus ;
 //   les compteurs des onglets sont exacts en dessous de 5000 candidatures ;
+// - les avis de l'onglet Terminées sont lus par lots de 100 missions de l'onglet (filtre `mission_id`), donc sans
+//   plafond de 1000 lignes ;
 // - une mission que la sécurité de la base ne montre plus à l'étudiant (attribuée à un autre) n'a ni titre ni
 //   montant : la candidature reste comptée dans « Non retenues », sans lien vers la mission.
 
@@ -109,7 +111,7 @@ export async function getStudentApplicationsView({ onglet } = {}) {
     const groups = Object.fromEntries(APPLICATION_TABS.map((t) => [t.id, []]))
     for (const app of applications) {
       // Mission illisible : jamais classée « en attente » ni « en cours ».
-      groups[app.missions ? applicationTab(app) : "non-retenues"].push(app)
+      groups[app.missions ? applicationTab(app, user.id) : "non-retenues"].push(app)
     }
     const counts = Object.fromEntries(APPLICATION_TABS.map((t) => [t.id, groups[t.id].length]))
     const tab = defaultApplicationTab(onglet, counts)
@@ -132,19 +134,22 @@ export async function getStudentApplicationsView({ onglet } = {}) {
     const names = clientIds.length > 0 ? await readClientNames(supabase, clientIds) : new Map()
     if (!names) return { error: ERR_APPLICATIONS }
 
-    // Avis déjà laissés (onglet Terminées) : un seul passage filtré sur l'étudiant.
+    // Avis déjà laissés (onglet Terminées) : filtrés sur l'étudiant ET sur les missions de l'onglet, par lots.
     const reviews = new Map()
     if (tab === "terminees" && shown.length > 0) {
-      const { data, error } = await supabase
-        .from("reviews")
-        .select("mission_id, rating")
-        .eq("reviewer_id", user.id)
-        .range(0, PAGE_SIZE - 1)
-      if (error) {
-        console.error("[getStudentApplicationsView] avis", error.message)
-        return { error: ERR_APPLICATIONS }
+      const missionIds = [...new Set(shown.map((a) => a.mission_id))]
+      for (let i = 0; i < missionIds.length; i += NAMES_CHUNK) {
+        const { data, error } = await supabase
+          .from("reviews")
+          .select("mission_id, rating")
+          .eq("reviewer_id", user.id)
+          .in("mission_id", missionIds.slice(i, i + NAMES_CHUNK))
+        if (error) {
+          console.error("[getStudentApplicationsView] avis", error.message)
+          return { error: ERR_APPLICATIONS }
+        }
+        for (const r of data ?? []) reviews.set(r.mission_id, { rating: Number(r.rating) || null })
       }
-      for (const r of data ?? []) reviews.set(r.mission_id, { rating: Number(r.rating) || null })
     }
 
     const nameOf = (clientId) => {

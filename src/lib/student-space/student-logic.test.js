@@ -208,6 +208,16 @@ describe("onglets de candidatures", () => {
     expect(applicationTab(app("pending", "cancelled"))).toBe("non-retenues")
   })
 
+  it("une candidature acceptée dont un autre étudiant est retenu va dans « Non retenues » (sans dépendre de la RLS)", () => {
+    const withSelected = (status, missionStatus, selected) => ({ status, missions: { status: missionStatus, selected_student_id: selected } })
+    expect(applicationTab(withSelected("accepted", "in_progress", "other"), "me")).toBe("non-retenues")
+    expect(applicationTab(withSelected("accepted", "done", "other"), "me")).toBe("non-retenues")
+    expect(applicationTab(withSelected("accepted", "in_progress", "me"), "me")).toBe("en-cours")
+    expect(applicationTab(withSelected("accepted", "done", "me"), "me")).toBe("terminees")
+    expect(applicationTab(withSelected("accepted", "in_progress", null), "me")).toBe("en-cours")
+    expect(applicationTab(withSelected("accepted", "in_progress", "other"))).toBe("en-cours")
+  })
+
   it("expose 4 onglets aux identifiants de l'URL", () => {
     expect(APPLICATION_TABS.map((t) => t.id)).toEqual(["en-attente", "en-cours", "terminees", "non-retenues"])
   })

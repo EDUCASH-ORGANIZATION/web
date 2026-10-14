@@ -111,6 +111,30 @@ describe("getStudentApplicationsView", () => {
     expect(data.rows[0].review).toEqual({ rating: 5 })
   })
 
+  it("avis : filtrés sur les missions de l'onglet, par lots (aucun avis d'une autre mission lu)", async () => {
+    db.reviews.push({ mission_id: "m-a1", reviewer_id: "stu-1", rating: 2 })
+    await getStudentApplicationsView({ onglet: "terminees" })
+    const query = calls.find((c) => c.table === "reviews")
+    expect(query.filters).toContainEqual(["in", "mission_id", ["m-a5"]])
+    expect(query.range).toBeUndefined()
+  })
+
+  it("avis : plus de 100 missions terminées lues en plusieurs lots, aucune perte", async () => {
+    db.applications = Array.from({ length: 250 }, (_, i) => app(`d${i}`, "accepted", mission({ status: "done" })))
+    db.reviews = [{ mission_id: "m-d249", reviewer_id: "stu-1", rating: 4 }]
+    const { data } = await getStudentApplicationsView({ onglet: "terminees" })
+    expect(calls.filter((c) => c.table === "reviews")).toHaveLength(3)
+    expect(data.rows.find((r) => r.id === "d249").review).toEqual({ rating: 4 })
+  })
+
+  it("candidature acceptée dont un autre étudiant est retenu : Non retenues, jamais En cours ni séquestre", async () => {
+    db.applications.push(app("a8", "accepted", mission({ status: "in_progress", selected_student_id: "other", budget: 777000 }), { updated_at: "2026-10-07T17:40:00Z" }))
+    const { data } = await getStudentApplicationsView({ onglet: "non-retenues" })
+    expect(data.rows.map((r) => r.id)).toContain("a8")
+    expect(data.counts["en-cours"]).toBe(2)
+    expect(data.escrow.total).toBe(13200 + 8800)
+  })
+
   it("onglet invalide ou tableau : ramené au premier onglet non vide", async () => {
     for (const bad of ["nimporte-quoi", ["x"], undefined, "", "__proto__"]) {
       const { data } = await getStudentApplicationsView({ onglet: bad })
