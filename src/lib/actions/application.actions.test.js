@@ -7,7 +7,7 @@ let respond = () => ({ data: null, error: null })
 function makeQuery(table) {
   const q = { table, action: "select", values: undefined, filters: [] }
   const chain = {
-    select: () => chain,
+    select: (c) => { q.columns = c; return chain },
     insert: (v) => { q.action = "insert"; q.values = v; return chain },
     update: (v) => { q.action = "update"; q.values = v; return chain },
     eq: (c, v) => { q.filters.push(["eq", c, v]); return chain },
@@ -17,10 +17,24 @@ function makeQuery(table) {
     maybeSingle: () => chain,
     then: (resolve, reject) => {
       calls.push(q)
-      return Promise.resolve(respond(q)).then(resolve, reject)
+      return Promise.resolve(verificationRead(q) ?? respond(q)).then(resolve, reject)
     },
   }
   return chain
+}
+
+// Lecture du statut de vérification de l'étudiant (profiles.is_verified, student_profiles.card_url) : ligne par défaut
+// « compte vérifié », modifiable par test. Les autres lectures passent par `respond`.
+const verifiedProfile = { is_verified: true, verified_until: null, rejection_reason: null }
+let profileRow = verifiedProfile
+let cardRow = { card_url: "stu-1/card.jpg" }
+let verificationError = null
+function verificationRead(q) {
+  if (q.table === "profiles" && /is_verified/.test(q.columns ?? "")) {
+    return verificationError ? { data: null, error: verificationError } : { data: profileRow, error: null }
+  }
+  if (q.table === "student_profiles") return { data: cardRow, error: null }
+  return undefined
 }
 
 const supabase = { from: (table) => makeQuery(table) }
@@ -44,6 +58,9 @@ const writes = () => calls.filter((q) => q.action !== "select")
 beforeEach(() => {
   calls.length = 0
   respond = () => ({ data: null, error: null })
+  profileRow = verifiedProfile
+  cardRow = { card_url: "stu-1/card.jpg" }
+  verificationError = null
   getUserById.mockReset()
   getUserById.mockResolvedValue({ data: { user: { email: "dest@example.com" } } })
   sendEmail.mockReset()
@@ -126,6 +143,66 @@ describe("apply", () => {
     expect(insert.values).toEqual({ mission_id: "m1", student_id: "stu-1", message: "Bonjour", status: "pending" })
     expect(getUserById).toHaveBeenCalledWith("cli-1")
     expect(sendEmail).toHaveBeenCalledWith("new-application", "dest@example.com", expect.objectContaining({ missionId: "m1" }))
+  })
+
+  describe("décision D2 : contrôle serveur du statut de vérification", () => {
+    const plus = (days) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
+    const post = () => apply({ missionId: "m1", message: "Bonjour" })
+    beforeEach(() => {
+      asStudent()
+      respond = (q) => (q.table === "missions" ? { data: openMission } : { data: null, error: null })
+    })
+
+    it.each([
+      ["carte jamais envoyée", { is_verified: false }, null, "Envoie ta carte étudiante pour pouvoir postuler."],
+      ["carte refusée", { is_verified: false, rejection_reason: "floue" }, { card_url: "stu-1/c.jpg" }, "Ta carte a été refusée, renvoie-la pour pouvoir postuler."],
+      ["badge expiré", { is_verified: true, verified_until: plus(-3) }, { card_url: "stu-1/c.jpg" }, "Ton badge a expiré, renouvelle-le pour pouvoir postuler."],
+      ["date de fin illisible", { is_verified: true, verified_until: "pas une date" }, { card_url: "stu-1/c.jpg" }, "Ton badge a expiré, renouvelle-le pour pouvoir postuler."],
+    ])("refuse sans insérer ni notifier : %s", async (_n, profile, card, message) => {
+      profileRow = profile
+      cardRow = card
+      expect(await post()).toEqual({ error: message })
+      expect(writes()).toHaveLength(0)
+      expect(sendEmail).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ["vérifié", { is_verified: true, verified_until: plus(200) }, null],
+      ["badge à renouveler", { is_verified: true, verified_until: plus(10) }, null],
+      ["carte en cours d'examen", { is_verified: false }, { card_url: "stu-1/c.jpg" }],
+    ])("accepte : %s", async (_n, profile, card) => {
+      profileRow = profile
+      cardRow = card
+      expect(await post()).toEqual({ success: true })
+      expect(writes()).toHaveLength(1)
+    })
+
+    it("lit le statut avec l'identifiant de la session, jamais un paramètre", async () => {
+      await apply({ missionId: "m1", message: "Bonjour", userId: "autre", studentId: "autre" })
+      const reads = calls.filter((q) => (q.table === "profiles" && /is_verified/.test(q.columns)) || q.table === "student_profiles")
+      expect(reads).toHaveLength(2)
+      for (const q of reads) expect(filterOf(q, "user_id")).toBe("stu-1")
+    })
+
+    it("lecture du statut en échec : refus neutre sans insertion", async () => {
+      verificationError = { message: "relation secrete" }
+      const res = await post()
+      expect(res.error).toBeTruthy()
+      expect(res.error).not.toContain("secrete")
+      expect(writes()).toHaveLength(0)
+    })
+
+    it("ne renvoie jamais de colonne privée", async () => {
+      profileRow = { is_verified: false, rejection_reason: "motif secret" }
+      cardRow = null
+      expect(JSON.stringify(await post())).not.toContain("motif secret")
+    })
+
+    it("les autres contrôles passent avant : mission fermée reste refusée avec son message", async () => {
+      profileRow = { is_verified: false }
+      respond = (q) => (q.table === "missions" ? { data: { ...openMission, status: "done" } } : { data: null })
+      expect((await post()).error).toMatch(/n'accepte plus/)
+    })
   })
 
   it("réussit même si l'email échoue", async () => {

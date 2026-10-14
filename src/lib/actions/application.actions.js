@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { sendEmail } from "@/lib/email/index"
+import { verificationFromRows } from "@/lib/student-space/verification-status"
 
 const ERR_GENERIC = "Une erreur est survenue. Réessaie dans un instant."
 const ERR_FORBIDDEN = "Tu n'as pas les droits pour effectuer cette action."
@@ -13,6 +14,12 @@ const ERR_GENERIC_CLIENT = "Une erreur est survenue. Réessayez dans un instant.
 const ERR_FORBIDDEN_CLIENT = "Vous n'avez pas les droits pour effectuer cette action."
 const ERR_LOAD = "Impossible de charger les candidatures."
 const MESSAGE_MAX = 500
+// Décision D2 : refus de candidature selon le statut de vérification (espace étudiant, tutoiement).
+const ERR_CANNOT_APPLY = {
+  not_submitted: "Envoie ta carte étudiante pour pouvoir postuler.",
+  rejected: "Ta carte a été refusée, renvoie-la pour pouvoir postuler.",
+  expired: "Ton badge a expiré, renouvelle-le pour pouvoir postuler.",
+}
 
 /** Borne le nombre de lignes renvoyées (défaut 100, maximum 200). */
 function boundedLimit(limit) {
@@ -55,7 +62,33 @@ async function getFullName(supabase, userId) {
 }
 
 /**
- * Postule à une mission.
+ * Statut de vérification de l'étudiant, calculé côté serveur. Les colonnes privées (carte, motif de refus) sont
+ * lues en service role avec l'identifiant de la session : seul le statut calculé est utilisé, jamais renvoyé.
+ *
+ * @param {string} userId identifiant issu de la session
+ * @returns {Promise<import("@/lib/student-space/verification-status").VerificationView | null>} null si la lecture échoue
+ */
+async function readVerification(userId) {
+  try {
+    const service = createServiceClient()
+    const [profileRes, studentRes] = await Promise.all([
+      service.from("profiles").select("is_verified, verified_until, rejection_reason").eq("user_id", userId).maybeSingle(),
+      service.from("student_profiles").select("card_url").eq("user_id", userId).maybeSingle(),
+    ])
+    if (profileRes.error || studentRes.error) {
+      console.error("[apply] Lecture du statut de vérification:", (profileRes.error ?? studentRes.error).message)
+      return null
+    }
+    return verificationFromRows(profileRes.data, studentRes.data)
+  } catch (err) {
+    console.error("[apply] Lecture du statut de vérification:", err?.message)
+    return null
+  }
+}
+
+/**
+ * Postule à une mission. Refuse l'étudiant dont la carte n'a jamais été envoyée, a été refusée ou dont le badge a
+ * expiré (décision D2) : le contrôle est fait ici, il ne dépend pas de l'interface.
  *
  * @param {{ missionId: string, message: string }} params
  * @returns {Promise<{ success: true } | { error: string }>}
@@ -90,6 +123,10 @@ export async function apply({ missionId, message }) {
     .maybeSingle()
 
   if (existing) return { error: "Tu as déjà postulé à cette mission." }
+
+  const verification = await readVerification(user.id)
+  if (!verification) return { error: ERR_GENERIC }
+  if (!verification.canApply) return { error: ERR_CANNOT_APPLY[verification.key] ?? ERR_GENERIC }
 
   const { error: insertError } = await supabase
     .from("applications")
