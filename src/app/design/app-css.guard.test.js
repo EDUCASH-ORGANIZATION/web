@@ -1507,3 +1507,20 @@ describe("E01 et E02 : champ de recherche mobile blanc au repos, sous-lignes san
     for (const room of [206, 246]) expect(264).toBeGreaterThan(room)
   })
 })
+
+describe("E06 et E07 : exception documentee aux composants du systeme (fond, bordure, ombre)", () => {
+  // Exception limitee a ces trois regles, meme precedent que le client (client/c13.css sous .c2) : elles modifient
+  // le fond, la bordure ou l'ombre d'un composant du systeme parce que le rendu par defaut est inutilisable ici.
+  // - .e2-06-search : le champ givre de .shell--v2 .search2 est invisible sur le fond givre de la liste mobile ;
+  // - .composer__field:focus-within : le champ de saisie doit montrer son focus (filet bleu et anneau) ;
+  // - .composer__send:disabled : le bouton desactive restait encre, donc paraissait actif.
+  // Toute autre regle de ce type dans e06.css ou e07.css reste a justifier : ne pas elargir cette liste.
+  const e06 = stripComments(read("student/e06.css"))
+  const e07 = stripComments(read("student/e07.css"))
+
+  it("garde les trois regles necessaires, portees sur des classes de l'espace etudiant", () => {
+    expect(e06).toContain(".e2 .e2-06-search:not(:focus-within) { background: var(--c-blanc); border-color: var(--c-ligne); }")
+    expect(e07).toContain(".e2-07-composer .composer__field:focus-within { background: var(--c-blanc); border-color: var(--c-bleu); box-shadow: var(--sh-champ-focus); }")
+    expect(e07).toContain(".e2-07-composer .composer__send:disabled { background: var(--c-off-bg); color: var(--c-off-txt); }")
+  })
+})
