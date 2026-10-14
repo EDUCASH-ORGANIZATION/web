@@ -36,67 +36,49 @@ export const STUDY_LEVELS = [
 
 export const AVAILABILITY_PRESETS = ["Matin", "Après-midi", "Soir", "Week-end"]
 
-// Messages : étudiant tutoyé, client vouvoyé.
-const MESSAGES = {
-  student: {
-    emailRequired: "Saisis ton adresse email.",
-    emailInvalid: "Cette adresse email n'est pas valide.",
-    emailTooLong: `Ton adresse email ne doit pas dépasser ${EMAIL_MAX} caractères.`,
-    emailDisposable: "Les adresses email jetables ne sont pas acceptées. Utilise une adresse personnelle.",
-    passwordRequired: "Saisis ton mot de passe.",
-    passwordWeak: "Ton mot de passe doit respecter toutes les règles ci-dessous.",
-    confirmRequired: "Confirme ton mot de passe.",
-    confirmMismatch: "Les deux mots de passe ne sont pas identiques.",
-    role: "Choisis si tu es étudiant ou client.",
-    cgu: "Accepte les conditions d'utilisation et la politique de confidentialité pour continuer.",
-    nameRequired: "Saisis ton nom et ton prénom.",
-    nameLength: `Ton nom doit faire entre ${NAME_MIN} et ${NAME_MAX} caractères.`,
-    nameLetter: "Ton nom doit contenir au moins une lettre.",
-    city: "Choisis ta ville.",
-    phoneEmpty: "Saisis ton numéro de téléphone.",
-    bio: `Ta bio ne doit pas dépasser ${BIO_MAX} caractères.`,
-    school: "Choisis ton établissement.",
-    level: "Choisis ton niveau.",
-    skills: "Choisis au moins une compétence.",
-    availability: "Une disponibilité n'est pas valide.",
-    clientType: "Choisis ton profil.",
-  },
-  client: {
-    emailRequired: "Saisissez votre adresse email.",
-    emailInvalid: "Cette adresse email n'est pas valide.",
-    emailTooLong: `Votre adresse email ne doit pas dépasser ${EMAIL_MAX} caractères.`,
-    emailDisposable: "Les adresses email jetables ne sont pas acceptées. Utilisez une adresse personnelle.",
-    passwordRequired: "Saisissez votre mot de passe.",
-    passwordWeak: "Votre mot de passe doit respecter toutes les règles ci-dessous.",
-    confirmRequired: "Confirmez votre mot de passe.",
-    confirmMismatch: "Les deux mots de passe ne sont pas identiques.",
-    role: "Choisissez si vous êtes étudiant ou client.",
-    cgu: "Acceptez les conditions d'utilisation et la politique de confidentialité pour continuer.",
-    nameRequired: "Saisissez votre nom ou celui de votre structure.",
-    nameLength: `Le nom doit faire entre ${NAME_MIN} et ${NAME_MAX} caractères.`,
-    nameLetter: "Le nom doit contenir au moins une lettre.",
-    city: "Choisissez votre ville.",
-    phoneEmpty: "Saisissez votre numéro de téléphone.",
-    bio: `La description ne doit pas dépasser ${BIO_MAX} caractères.`,
-    school: "Choisissez votre établissement.",
-    level: "Choisissez votre niveau.",
-    skills: "Choisissez au moins une compétence.",
-    availability: "Une disponibilité n'est pas valide.",
-    clientType: "Choisissez votre profil.",
-  },
+// Messages : vouvoiement pour tous les publics. Les libellés communs sont partagés,
+// l'identité étudiant et l'identité client gardent leurs propres formulations.
+const COMMON = {
+  emailRequired: "Saisissez votre adresse email.",
+  emailInvalid: "Cette adresse email n'est pas valide.",
+  emailTooLong: `Votre adresse email ne doit pas dépasser ${EMAIL_MAX} caractères.`,
+  emailDisposable: "Les adresses email jetables ne sont pas acceptées. Utilisez une adresse personnelle.",
+  passwordRequired: "Saisissez votre mot de passe.",
+  passwordWeak: "Votre mot de passe doit respecter toutes les règles ci-dessous.",
+  confirmRequired: "Confirmez votre mot de passe.",
+  confirmMismatch: "Les deux mots de passe ne sont pas identiques.",
+  role: "Choisissez si vous êtes étudiant ou client.",
+  cgu: "Acceptez les conditions d'utilisation et la politique de confidentialité pour continuer.",
+  city: "Choisissez votre ville.",
+  phoneEmpty: "Saisissez votre numéro de téléphone.",
 }
 
-/** Messages d'une audience ; toute valeur inconnue donne la variante vouvoyée (neutre). */
-export function authMessages(audience) {
-  return MESSAGES[audience === "student" ? "student" : "client"]
+const STUDENT = {
+  ...COMMON,
+  nameRequired: "Saisissez votre nom et votre prénom.",
+  nameLength: `Votre nom doit faire entre ${NAME_MIN} et ${NAME_MAX} caractères.`,
+  nameLetter: "Votre nom doit contenir au moins une lettre.",
+  bio: `Votre bio ne doit pas dépasser ${BIO_MAX} caractères.`,
+  school: "Choisissez votre établissement.",
+  level: "Choisissez votre niveau.",
+  skills: "Choisissez au moins une compétence.",
+  availability: "Une disponibilité n'est pas valide.",
+}
+
+const CLIENT = {
+  ...COMMON,
+  nameRequired: "Saisissez votre nom ou celui de votre structure.",
+  nameLength: `Le nom doit faire entre ${NAME_MIN} et ${NAME_MAX} caractères.`,
+  nameLetter: "Le nom doit contenir au moins une lettre.",
+  clientType: "Choisissez votre profil.",
 }
 
 function phoneSchema(m) {
   return makeBeninPhoneSchema({ empty: m.phoneEmpty })
 }
 
-export function makeEmailSchema(audience) {
-  const m = authMessages(audience)
+export function makeEmailSchema() {
+  const m = COMMON
   return z
     .string({ error: m.emailRequired })
     .trim()
@@ -106,8 +88,8 @@ export function makeEmailSchema(audience) {
     .refine((email) => !isDisposableDomain(email.split("@")[1]), m.emailDisposable)
 }
 
-function makePasswordSchema(audience) {
-  const m = authMessages(audience)
+function makePasswordSchema() {
+  const m = COMMON
   return z
     .string({ error: m.passwordRequired })
     .min(1, m.passwordRequired)
@@ -115,8 +97,8 @@ function makePasswordSchema(audience) {
 }
 
 // Connexion : pas de règle de complexité (les anciens comptes restent utilisables).
-export function makeLoginSchema(audience) {
-  const m = authMessages(audience)
+export function makeLoginSchema() {
+  const m = COMMON
   return z.object({
     email: z.string({ error: m.emailRequired }).trim().min(1, m.emailRequired).max(EMAIL_MAX, m.emailTooLong),
     password: z.string({ error: m.passwordRequired }).min(1, m.passwordRequired),
@@ -136,13 +118,13 @@ function confirmField(m) {
 }
 
 // Inscription : seuls student et client sont acceptés, jamais admin.
-export function makeRegisterSchema(audience) {
-  const m = authMessages(audience)
+export function makeRegisterSchema() {
+  const m = COMMON
   return withConfirmation(
     {
       role: z.enum(SIGNUP_ROLES, { error: m.role }),
-      email: makeEmailSchema(audience),
-      password: makePasswordSchema(audience),
+      email: makeEmailSchema(),
+      password: makePasswordSchema(),
       confirmPassword: confirmField(m),
       cgu: z.preprocess(
         (value) => value === true || value === "on" || value === "true" || value === "1",
@@ -153,18 +135,18 @@ export function makeRegisterSchema(audience) {
   )
 }
 
-export function makeForgotSchema(audience) {
-  return z.object({ email: makeEmailSchema(audience) })
+export function makeForgotSchema() {
+  return z.object({ email: makeEmailSchema() })
 }
 
-export function makeResendSchema(audience) {
-  return z.object({ email: makeEmailSchema(audience) })
+export function makeResendSchema() {
+  return z.object({ email: makeEmailSchema() })
 }
 
-export function makeResetSchema(audience) {
-  const m = authMessages(audience)
+export function makeResetSchema() {
+  const m = COMMON
   return withConfirmation(
-    { password: makePasswordSchema(audience), confirmPassword: confirmField(m) },
+    { password: makePasswordSchema(), confirmPassword: confirmField(m) },
     m
   )
 }
@@ -200,7 +182,7 @@ function listOf(item, min, minMessage, max = 20) {
 }
 
 export function makeStudentIdentitySchema() {
-  const m = authMessages("student")
+  const m = STUDENT
   return z.object({
     fullName: nameSchema(m),
     city: citySchema(m),
@@ -215,7 +197,7 @@ export function makeStudentIdentitySchema() {
 }
 
 export function makeStudentStudiesSchema() {
-  const m = authMessages("student")
+  const m = STUDENT
   return z.object({
     school: z.string({ error: m.school }).trim().min(1, m.school).max(120, m.school),
     level: z.enum(STUDY_LEVELS, { error: m.level }),
@@ -225,12 +207,12 @@ export function makeStudentStudiesSchema() {
 }
 
 export function makeClientTypeSchema() {
-  const m = authMessages("client")
+  const m = CLIENT
   return z.object({ clientType: z.enum(CLIENT_TYPES, { error: m.clientType }) })
 }
 
 export function makeClientIdentitySchema() {
-  const m = authMessages("client")
+  const m = CLIENT
   return z.object({
     name: nameSchema(m),
     city: citySchema(m),
@@ -238,12 +220,11 @@ export function makeClientIdentitySchema() {
   })
 }
 
-// Schémas prêts à l'emploi. Les écrans sans public connu (connexion, mot de passe oublié)
-// sont vouvoyés ; pour un public précis, utiliser les factories.
-export const loginSchema = makeLoginSchema("client")
-export const forgotSchema = makeForgotSchema("client")
-export const resendSchema = makeResendSchema("client")
-export const resetSchema = makeResetSchema("client")
+// Schémas prêts à l'emploi (vouvoiement partout).
+export const loginSchema = makeLoginSchema()
+export const forgotSchema = makeForgotSchema()
+export const resendSchema = makeResendSchema()
+export const resetSchema = makeResetSchema()
 export const studentIdentitySchema = makeStudentIdentitySchema()
 export const studentStudiesSchema = makeStudentStudiesSchema()
 export const clientTypeSchema = makeClientTypeSchema()

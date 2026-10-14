@@ -144,12 +144,13 @@ describe("login", () => {
     expect(redirect).not.toHaveBeenCalled()
   })
 
-  it("ton selon l'audience (next client = vouvoiement)", async () => {
+  it("vouvoie tous les publics, étudiant compris", async () => {
     auth.signInWithPassword.mockResolvedValue({ data: {}, error: { status: 429, message: "x" } })
     const c = await login(null, form({ email: "a@exemple.bj", password: "x", next: "/client/dashboard" }))
     const s = await login(null, form({ email: "a@exemple.bj", password: "x", role: "student" }))
     expect(c.formError).toContain("Réessayez")
-    expect(s.formError).toContain("Réessaie")
+    expect(s.formError).toContain("Réessayez")
+    expect(s.formError).toBe(c.formError)
   })
 })
 
