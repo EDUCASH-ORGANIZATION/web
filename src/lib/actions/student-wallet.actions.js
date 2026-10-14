@@ -10,8 +10,9 @@
 //   (plafond PostgREST), 5 pages au plus ; au-delà ou en cas d'erreur la valeur est `null` : la carte « Tes gains »
 //   est alors omise, jamais un faux 0 ;
 // - 100 missions en cours au plus pour « À venir, en séquestre » ;
-// - le retrait « en cours » est le dernier retrait débité dont le virement n'est pas confirmé (sans
-//   identifiant de virement), faute de statut dans le grand livre ; sa lecture en échec l'omet.
+// - le retrait « non confirmé » est le dernier retrait débité sans identifiant de virement (faute de statut dans
+//   le grand livre), s'il est plus récent que le dernier retrait confirmé et le dernier remboursement et date de
+//   moins de 7 jours ; jamais présenté comme « en cours ». Sa lecture en échec l'omet.
 // Le numéro de téléphone (colonne privée) n'est lu que pour préremplir le champ de CET étudiant quand les paiements
 // sont ouverts : jamais journalisé, jamais renvoyé autrement qu'en version complète pour le champ et masquée
 // (deux derniers chiffres) pour l'affichage.
@@ -36,6 +37,7 @@ const TO_COME_LIMIT = 100
 const LEDGER_PAGE_SIZE = 1000
 const LEDGER_MAX_PAGES = 5
 const WEEKS = 8
+const UNCONFIRMED_MAX_AGE_DAYS = 7
 const DAY_MS = 24 * 60 * 60 * 1000
 const BENIN_OFFSET_MS = 60 * 60 * 1000 // UTC+1 toute l'année
 
@@ -133,22 +135,34 @@ async function readToCome(supabase, userId) {
   return { total: missions.reduce((sum, m) => sum + m.net, 0), missions }
 }
 
-// Dernier retrait débité dont le virement n'est pas confirmé. Lecture en échec : omis (jamais une erreur de page).
-async function readPendingWithdrawal(supabase, userId) {
-  const { data, error } = await supabase
-    .from("wallet_transactions")
-    .select("id, amount, created_at")
-    .eq("user_id", userId)
-    .eq("type", "withdrawal")
-    .is("fedapay_id", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-  if (error) {
-    console.error("[getStudentWallet] retrait en cours", error.message)
+// Retrait non confirmé : dernière ligne `withdrawal` sans identifiant de virement (process-withdrawal l'écrit dès que le
+// virement démarre : une ligne sans id est un incident ou une fenêtre de quelques secondes, jamais un virement en cours).
+// Gardée seulement si elle est plus récente que le dernier retrait confirmé et que le dernier remboursement de
+// l'étudiant, et datée de moins de 7 jours. Lecture en échec : omis (jamais une erreur de page).
+async function readUnconfirmedWithdrawal(supabase, userId, now) {
+  const latest = (type, confirmed) => {
+    let query = supabase.from("wallet_transactions").select("id, amount, created_at").eq("user_id", userId).eq("type", type)
+    if (type === "withdrawal") query = confirmed ? query.not("fedapay_id", "is", null) : query.is("fedapay_id", null)
+    return query.order("created_at", { ascending: false }).limit(1)
+  }
+  const failed = (error) => {
+    console.error("[getStudentWallet] retrait non confirmé", error.message)
     return null
   }
-  const row = data?.[0]
-  return row ? { amount: Math.abs(Number(row.amount) || 0), createdAt: row.created_at } : null
+  const incidentRes = await latest("withdrawal", false)
+  if (incidentRes.error) return failed(incidentRes.error)
+  const row = incidentRes.data?.[0]
+  const at = row ? Date.parse(row.created_at) : NaN
+  if (!Number.isFinite(at) || now - at >= UNCONFIRMED_MAX_AGE_DAYS * DAY_MS) return null
+
+  const [confirmedRes, refundRes] = await Promise.all([latest("withdrawal", true), latest("refund")])
+  if (confirmedRes.error) return failed(confirmedRes.error)
+  if (refundRes.error) return failed(refundRes.error)
+  for (const other of [confirmedRes.data?.[0], refundRes.data?.[0]]) {
+    const otherAt = other ? Date.parse(other.created_at) : NaN
+    if (Number.isFinite(otherAt) && otherAt >= at) return null
+  }
+  return { amount: Math.abs(Number(row.amount) || 0), createdAt: row.created_at }
 }
 
 /**
@@ -167,7 +181,7 @@ async function readPendingWithdrawal(supabase, userId) {
  *   `null` si la lecture a échoué
  * @property {{ total: number, missions: Array<{ id: string, title: string, clientName: string, budget: number, net: number }> }|null} toCome
  *   Missions en cours où l'étudiant est retenu, `net` = sa part (escrowSplit). `null` si la lecture a échoué
- * @property {{ amount: number, createdAt: string }|null} pendingWithdrawal
+ * @property {{ amount: number, createdAt: string }|null} unconfirmedWithdrawal
  * @property {StudentWalletTransaction[]} transactions Première page de l'historique du filtre
  * @property {boolean} hasMore
  * @property {string} filter Filtre appliqué (valeur validée)
@@ -175,7 +189,7 @@ async function readPendingWithdrawal(supabase, userId) {
 
 /**
  * Toutes les données de la page Portefeuille étudiant. Un solde ou un historique illisible donne une erreur
- * (jamais un zéro) ; les blocs secondaires illisibles (gains, à venir, retrait en cours) sont omis (`null`).
+ * (jamais un zéro) ; les blocs secondaires illisibles (gains, à venir, retrait non confirmé) sont omis (`null`).
  * @param {{ filtre?: string|string[] }} [params]
  * @returns {Promise<{ data: StudentWalletData } | { error: string }>}
  */
@@ -186,12 +200,12 @@ export async function getStudentWallet({ filtre } = {}) {
     const { supabase, user } = auth
     const filter = parseStudentWalletFilter(filtre)
 
-    const [walletRes, txRes, gains, toCome, pendingWithdrawal] = await Promise.all([
+    const [walletRes, txRes, gains, toCome, unconfirmedWithdrawal] = await Promise.all([
       getWallet(user.id),
       getWalletTransactions(user.id, PAGE_SIZE + 1, 0, typesOf(filter)),
       readEarnings(supabase, user.id, Date.now()),
       readToCome(supabase, user.id),
-      readPendingWithdrawal(supabase, user.id),
+      readUnconfirmedWithdrawal(supabase, user.id, Date.now()),
     ])
     if (walletRes.error || !Array.isArray(txRes)) return { error: ERR_WALLET }
 
@@ -200,7 +214,7 @@ export async function getStudentWallet({ filtre } = {}) {
         wallet: { available: Number(walletRes.available) || 0 },
         gains,
         toCome,
-        pendingWithdrawal,
+        unconfirmedWithdrawal,
         transactions: txRes.slice(0, PAGE_SIZE).map(toTransaction),
         hasMore: txRes.length > PAGE_SIZE,
         filter,

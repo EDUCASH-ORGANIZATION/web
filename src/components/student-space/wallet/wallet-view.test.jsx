@@ -39,7 +39,7 @@ const baseData = {
       { id: "m2", title: "Flyer", clientName: "Koffi", budget: 15000, net: 13200 },
     ],
   },
-  pendingWithdrawal: null,
+  unconfirmedWithdrawal: null,
   transactions: [
     tx({ id: "a", type: "release", amount: 7040, missionId: "m4", missionTitle: "Traduction d'un flyer" }),
     tx({ id: "b", type: "withdrawal", amount: 10000 }),
@@ -135,16 +135,17 @@ describe("carte « Disponible »", () => {
     expect(h).not.toContain("Il te manque")
   })
 
-  it("retrait en cours : rappel sur la carte avec lien d'aide, sans promettre de délai", () => {
-    const h = view({ paymentsEnabled: true, data: { ...baseData, pendingWithdrawal: { amount: 10000, createdAt: "2026-10-14T08:20:00Z" } } })
+  it("retrait non confirmé : rappel sur la carte avec lien d'aide, jamais « en cours », sans promettre de délai", () => {
+    const h = view({ paymentsEnabled: true, data: { ...baseData, unconfirmedWithdrawal: { amount: 10000, createdAt: "2026-10-14T08:20:00Z" } } })
     expect(h).toContain(f(10000))
-    expect(h).toContain("en cours de retrait")
+    expect(h).toMatch(/Retrait de <b>[^<]*<\/b> non confirmé\. Si votre argent n&#x27;est pas arrivé, <a href="\/contact\?sujet=question">contactez l&#x27;aide<\/a>\./)
+    expect(h).not.toContain("en cours")
     expect(h).toContain('href="/contact?sujet=question"')
     expect(h).not.toMatch(/\d+ ?(à|-) ?\d+ ?min|24 ?h|48 ?h/)
   })
 
-  it("aucun retrait en cours : aucune mention", () => {
-    expect(view({ paymentsEnabled: true })).not.toContain("en cours de retrait")
+  it("aucun retrait non confirmé : aucune mention", () => {
+    expect(view({ paymentsEnabled: true })).not.toContain("non confirmé")
   })
 
   it("tient les montants de 10 chiffres", () => {

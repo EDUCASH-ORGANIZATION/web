@@ -41,12 +41,12 @@ function availableNote({ paymentsEnabled, available }) {
   return <>Retrait possible dès {formatAmount(MIN_WITHDRAWAL_AMOUNT)}.</>
 }
 
-function PendingWithdrawal({ pending }) {
+function UnconfirmedWithdrawal({ withdrawal }) {
   return (
     <span className="e2-08-pending">
       <Icon name="i-clock" />
       <span>
-        <b>{formatAmount(pending.amount)}</b> en cours de retrait : le virement n&apos;est pas encore confirmé. Si rien n&apos;arrive, <Link href={HELP_HREF}>contacte l&apos;aide</Link>.
+        Retrait de <b>{formatAmount(withdrawal.amount)}</b> non confirmé. Si votre argent n&apos;est pas arrivé, <Link href={HELP_HREF}>contactez l&apos;aide</Link>.
       </span>
     </span>
   )
@@ -128,11 +128,11 @@ export function WalletView({ data, error, paymentsEnabled, prefill = { phone: ""
     )
   }
 
-  const { gains, toCome, pendingWithdrawal, transactions, hasMore, filter } = data
+  const { gains, toCome, unconfirmedWithdrawal, transactions, hasMore, filter } = data
   const note = (
     <>
       {availableNote({ paymentsEnabled, available })}
-      {pendingWithdrawal ? <PendingWithdrawal pending={pendingWithdrawal} /> : null}
+      {unconfirmedWithdrawal ? <UnconfirmedWithdrawal withdrawal={unconfirmedWithdrawal} /> : null}
     </>
   )
   const action = canWithdraw ? (

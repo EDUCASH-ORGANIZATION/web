@@ -11,6 +11,7 @@ function makeQuery(table) {
     eq: (c, v) => { q.filters.push(["eq", c, v]); return chain },
     in: (c, v) => { q.filters.push(["in", c, v]); return chain },
     is: (c, v) => { q.filters.push(["is", c, v]); return chain },
+    not: (c, op, v) => { q.filters.push(["not", c, op, v]); return chain },
     order: () => chain,
     limit: (n) => { q.limit = n; return chain },
     range: (a, b) => { q.range = [a, b]; return chain },
@@ -187,19 +188,66 @@ describe("getStudentWallet", () => {
     expect(data.toCome).toEqual({ total: 0, missions: [] })
   })
 
-  it("retrait en cours : dernier retrait débité sans virement confirmé, de la session", async () => {
-    respond = (q) => (isLedger(q, "withdrawal") ? { data: [{ id: "w1", amount: -10000, created_at: "2026-10-14T08:20:00Z" }], error: null } : defaultRespond(q))
-    const { data } = await getStudentWallet()
-    const q = calls.find((c) => isLedger(c, "withdrawal"))
-    expect(q.filters).toContainEqual(["eq", "user_id", "stu-1"])
-    expect(q.filters).toContainEqual(["is", "fedapay_id", null])
-    expect(data.pendingWithdrawal).toEqual({ amount: 10000, createdAt: "2026-10-14T08:20:00Z" })
-  })
+  describe("retrait non confirmé", () => {
+    const incident = { id: "w1", amount: -10000, created_at: "2026-10-14T08:20:00Z" }
+    const isIncidentQuery = (q) => isLedger(q, "withdrawal") && q.filters.some(([k, c]) => k === "is" && c === "fedapay_id")
+    const isConfirmedQuery = (q) => isLedger(q, "withdrawal") && q.filters.some(([k, c]) => k === "not" && c === "fedapay_id")
+    const with_ = ({ incident: inc = incident, confirmed = null, refund = null } = {}) => {
+      respond = (q) => {
+        if (isIncidentQuery(q)) return { data: inc ? [inc] : [], error: null }
+        if (isConfirmedQuery(q)) return { data: confirmed ? [{ id: "w0", amount: -5000, created_at: confirmed }] : [], error: null }
+        if (isLedger(q, "refund")) return { data: refund ? [{ id: "r1", amount: 6000, created_at: refund }] : [], error: null }
+        return defaultRespond(q)
+      }
+    }
 
-  it("retrait en cours : aucun, ou lecture en échec => null", async () => {
-    expect((await getStudentWallet()).data.pendingWithdrawal).toBeNull()
-    respond = (q) => (isLedger(q, "withdrawal") ? { data: null, error: { message: "boom" } } : defaultRespond(q))
-    expect((await getStudentWallet()).data.pendingWithdrawal).toBeNull()
+    it("incident récent seul : affiché, lu pour CET étudiant", async () => {
+      with_()
+      const { data } = await getStudentWallet()
+      const q = calls.find(isIncidentQuery)
+      expect(q.filters).toContainEqual(["eq", "user_id", "stu-1"])
+      expect(q.filters).toContainEqual(["is", "fedapay_id", null])
+      expect(data.unconfirmedWithdrawal).toEqual({ amount: 10000, createdAt: "2026-10-14T08:20:00Z" })
+      expect(data).not.toHaveProperty("pendingWithdrawal")
+    })
+
+    it("aucun incident => null", async () => {
+      with_({ incident: null })
+      expect((await getStudentWallet()).data.unconfirmedWithdrawal).toBeNull()
+    })
+
+    it("incident ancien suivi d'un retrait réussi => null", async () => {
+      with_({ incident: { ...incident, created_at: "2026-10-12T08:00:00Z" }, confirmed: "2026-10-13T09:00:00Z" })
+      expect((await getStudentWallet()).data.unconfirmedWithdrawal).toBeNull()
+    })
+
+    it("incident puis remboursement => null", async () => {
+      with_({ refund: "2026-10-14T09:00:00Z" })
+      expect((await getStudentWallet()).data.unconfirmedWithdrawal).toBeNull()
+    })
+
+    it("un retrait confirmé ou un remboursement plus ancien ne masque pas l'incident", async () => {
+      with_({ confirmed: "2026-10-10T09:00:00Z", refund: "2026-10-11T09:00:00Z" })
+      expect((await getStudentWallet()).data.unconfirmedWithdrawal).toEqual({ amount: 10000, createdAt: "2026-10-14T08:20:00Z" })
+    })
+
+    it("incident de 8 jours => null ; de 6 jours => affiché", async () => {
+      with_({ incident: { ...incident, created_at: "2026-10-06T08:00:00Z" } })
+      expect((await getStudentWallet()).data.unconfirmedWithdrawal).toBeNull()
+      with_({ incident: { ...incident, created_at: "2026-10-08T08:00:00Z" } })
+      expect((await getStudentWallet()).data.unconfirmedWithdrawal).not.toBeNull()
+    })
+
+    it("lecture en échec (incident, retrait confirmé ou remboursement) => omis, le portefeuille se charge", async () => {
+      for (const failing of [isIncidentQuery, isConfirmedQuery, (q) => isLedger(q, "refund")]) {
+        with_()
+        const ok = respond
+        respond = (q) => (failing(q) ? { data: null, error: { message: "boom" } } : ok(q))
+        const { data } = await getStudentWallet()
+        expect(data.unconfirmedWithdrawal).toBeNull()
+        expect(data.wallet.available).toBe(47600)
+      }
+    })
   })
 
   it("solde ou historique illisible : erreur tutoyée, jamais un zéro", async () => {
