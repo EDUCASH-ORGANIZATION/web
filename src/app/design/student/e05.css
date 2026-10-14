@@ -29,8 +29,8 @@
 .e2-05-fieldset { border: 0; padding: 0; margin: 0; }
 .e2-05-toasts { bottom: 40px; }
 
-/* Suivi (ST-11) : montants longs et titres d'etape sans debordement, a 320 px comme a 1440.
-   Specificite (0,2,0) sur des proprietes de mise en page seulement : aucune couleur, ombre ni transform du systeme. */
+/* Suivi (ST-11) : montants longs et titres d'étape sans débordement, a 320 px comme a 1440.
+   Spécificité (0,2,0) sur des proprietes de mise en page seulement : aucune couleur, ombre ni transform du systeme. */
 .e2-05-lines .e2-kv__row { flex-wrap: wrap; }
 .e2-05-lines .e2-kv__row > b { min-width: 0; margin-left: auto; overflow-wrap: anywhere; }
 .e2-05-track .e2-step__title, .e2-05-track .e2-step__sub { overflow-wrap: anywhere; }
