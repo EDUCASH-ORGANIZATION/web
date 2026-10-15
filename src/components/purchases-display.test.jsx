@@ -21,38 +21,35 @@ const clientMission = (over) => ({
 const status = { label: "Ouverte", tone: "bleu" }
 const back = { href: "/student/missions", label: "Retour" }
 
-describe("détail client : ligne des achats", () => {
-  it("affiche « environ X FCFA, non bloqués » pour une estimation positive", () => {
+describe("détail client : badge « Avec achats »", () => {
+  it("affiche le badge et la ligne provisoire d'achats, sans mention du séquestre", () => {
     const html = text(renderToStaticMarkup(<ClientHeader mission={clientMission({ purchasesEstimate: 15000 })} status={status} />))
+    expect(html).toContain("Avec achats")
     expect(html).toContain("Achats estimés : environ 15 000 FCFA, non bloqués")
+    expect(html).not.toContain("En séquestre")
   })
 
   it.each([null, undefined, 0, -5, Number.NaN])("n'affiche rien pour %j", (purchasesEstimate) => {
     const html = text(renderToStaticMarkup(<ClientHeader mission={clientMission({ purchasesEstimate })} status={status} />))
+    expect(html).not.toContain("Avec achats")
     expect(html).not.toContain("Achats estimés")
-  })
-
-  it("le montant du séquestre reste celui du seul budget", () => {
-    const html = text(renderToStaticMarkup(<ClientHeader mission={clientMission({ purchasesEstimate: 15000 })} status={status} />))
-    expect(html).toContain("En séquestre : 8 000")
   })
 })
 
-describe("détail étudiant : ligne des achats", () => {
-  it("affiche la ligne pour une estimation positive, quel que soit l'état de la mission", () => {
+describe("détail étudiant : badge « Avec achats »", () => {
+  it("affiche le badge pour une estimation positive, quel que soit l'état de la mission", () => {
     for (const s of ["open", "in_progress", "done"]) {
       const html = text(
-        renderToStaticMarkup(
-          <StudentHeader mission={clientMission({ status: s, purchasesEstimate: 15000 })} status={status} back={back} />,
-        ),
+        renderToStaticMarkup(<StudentHeader mission={clientMission({ status: s, purchasesEstimate: 15000 })} back={back} />),
       )
+      expect(html).toContain("Avec achats")
       expect(html).toContain("Achats estimés : environ 15 000 FCFA, non bloqués")
     }
   })
 
   it.each([null, undefined, 0, -1])("n'affiche rien pour %j", (purchasesEstimate) => {
-    const html = text(renderToStaticMarkup(<StudentHeader mission={clientMission({ purchasesEstimate })} status={status} back={back} />))
-    expect(html).not.toContain("Achats estimés")
+    const html = text(renderToStaticMarkup(<StudentHeader mission={clientMission({ purchasesEstimate })} back={back} />))
+    expect(html).not.toContain("Avec achats")
   })
 })
 

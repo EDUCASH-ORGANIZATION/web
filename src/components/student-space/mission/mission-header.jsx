@@ -5,36 +5,39 @@ import { PageHead } from "@/components/app-ui/page-head"
 import { StatusBadge } from "@/components/app-ui/status-badge"
 import { missionTypeLabel } from "@/lib/constants/missions"
 import { formatDateFr } from "@/lib/app/format"
-import { purchasesLine } from "@/lib/app/purchases"
+import { purchasesEstimateOf, purchasesLine } from "@/lib/app/purchases"
 
 /**
- * En-tête partagé du détail de mission étudiant (E03 et E05) : lien de retour, type et date de publication,
- * titre (seul h1, Anton), statut, ville et échéance. Composant pur.
+ * En-tête partagé du détail de mission étudiant (E03 et E05) : lien de retour, ligne de date, titre (seul h1,
+ * Anton), puis la méta de la planche : ville, échéance, nombre de candidats si fourni, badge « Avec achats »
+ * si estimation. Pas de badge de statut (il est dans la carte de suivi). Composant pur.
+ * E03 : « <type> · Publiée le <date> » ; E05 : « <type> · retenue <quand> » seulement si `retainedAt` existe.
  * @param {{
  *   mission: { title: string, type: string, city: string|null, deadline: string|null, createdAt: string,
- *     purchasesEstimate?: number|null },
- *   status: { label: string, tone: string },
+ *     purchasesEstimate?: number|null, applicationsCount?: number|null },
  *   back: { href: string, label: string },
- *   variant?: "03" | "05"
+ *   variant?: "03" | "05",
+ *   retainedAt?: string|null
  * }} props `variant` choisit la famille de classes de la planche (E03 ou E05)
  */
-export function MissionHeader({ mission, status, back, variant = "03" }) {
-  const published = mission.createdAt ? formatDateFr(mission.createdAt) : ""
+export function MissionHeader({ mission, back, variant = "03", retainedAt = null }) {
   const deadline = mission.deadline ? formatDateFr(mission.deadline) : ""
-  // Mission avec achats : une ligne d'information seulement si l'estimation est positive, sinon rien.
+  const withPurchases = purchasesEstimateOf(mission.purchasesEstimate) !== null
   const purchases = purchasesLine(mission.purchasesEstimate)
+  const count = Number.isInteger(mission.applicationsCount) && mission.applicationsCount > 0 ? mission.applicationsCount : 0
+  const deadlinePrefix = variant === "05" ? (mission.status === "in_progress" ? "Jusqu'au " : "") : "Avant le "
+  const type = missionTypeLabel(mission.type)
+  let dateLine = type
+  if (variant === "03" && mission.createdAt) dateLine = `${type} · Publiée le ${formatDateFr(mission.createdAt)}`
+  if (variant === "05" && retainedAt) dateLine = `${type} · retenue le ${formatDateFr(retainedAt)}`
   return (
     <header className={`e2-${variant}-top`}>
       <Link className="e2-back" href={back.href}>
         <Icon name="i-arrow-left" />
         {back.label}
       </Link>
-      <PageHead
-        date={`${missionTypeLabel(mission.type)}${published ? ` · Publiée le ${published}` : ""}`}
-        title={mission.title}
-      />
+      <PageHead date={dateLine} title={mission.title} />
       <div className={`e2-${variant}-meta`}>
-        <StatusBadge label={status.label} tone={status.tone} />
         {mission.city ? (
           <span>
             <Icon name="i-map-pin" />
@@ -44,16 +47,19 @@ export function MissionHeader({ mission, status, back, variant = "03" }) {
         {deadline ? (
           <span>
             <Icon name="i-calendar" />
-            {`Avant le ${deadline}`}
+            {`${deadlinePrefix}${deadline}`}
           </span>
         ) : null}
-        {purchases ? (
+        {variant === "03" && count > 0 ? (
           <span>
-            <Icon name="i-receipt" />
-            {purchases}
+            <Icon name="i-users" />
+            {`${count} ${count > 1 ? "candidats" : "candidat"}`}
           </span>
         ) : null}
+        {withPurchases ? <StatusBadge label="Avec achats" icon="i-receipt" /> : null}
       </div>
+      {/* Provisoire : migre vers les cartes en ST-08/ST-09/ST-11/ST-12 */}
+      {purchases ? <p className="body-s">{purchases}</p> : null}
     </header>
   )
 }
