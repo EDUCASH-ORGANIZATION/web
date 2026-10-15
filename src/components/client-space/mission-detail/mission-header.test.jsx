@@ -99,6 +99,16 @@ describe("MissionHeader client", () => {
     expect(meta).toContain("#i-receipt")
   })
 
+  it.each([
+    ["Babysitting", "#i-baby"],
+    ["Saisie", "#i-keyboard"],
+    ["Inconnu", "#i-briefcase"],
+  ])("done : l'icône du type %s est %s", (type, icon) => {
+    const html = render(mission({ status: "done", type }))
+    const typeSpan = html.slice(html.lastIndexOf("<span>"))
+    expect(typeSpan).toContain(icon)
+  })
+
   it("sans estimation, le badge « Avec achats » est absent", () => {
     for (const purchasesEstimate of [undefined, null, 0]) {
       expect(render(mission({ purchasesEstimate }))).not.toContain("Avec achats")

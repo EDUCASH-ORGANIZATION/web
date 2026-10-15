@@ -25,6 +25,7 @@ export function MissionHeader({ mission, back, variant = "03", retainedAt = null
   const withPurchases = purchasesEstimateOf(mission.purchasesEstimate) !== null
   const purchases = purchasesLine(mission.purchasesEstimate)
   const count = Number.isInteger(mission.applicationsCount) && mission.applicationsCount > 0 ? mission.applicationsCount : 0
+  const deadlinePrefix = variant === "05" ? (mission.status === "in_progress" ? "Jusqu'au " : "") : "Avant le "
   const type = missionTypeLabel(mission.type)
   let dateLine = type
   if (variant === "03" && mission.createdAt) dateLine = `${type} · Publiée le ${formatDateFr(mission.createdAt)}`
@@ -46,7 +47,7 @@ export function MissionHeader({ mission, back, variant = "03", retainedAt = null
         {deadline ? (
           <span>
             <Icon name="i-calendar" />
-            {`${variant === "05" ? "Jusqu'au" : "Avant le"} ${deadline}`}
+            {`${deadlinePrefix}${deadline}`}
           </span>
         ) : null}
         {variant === "03" && count > 0 ? (

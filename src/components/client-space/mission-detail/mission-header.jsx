@@ -6,6 +6,7 @@ import { formatDateFr } from "@/lib/app/format"
 import { missionTypeLabel } from "@/lib/constants/missions"
 import { purchasesEstimateOf, purchasesLine } from "@/lib/app/purchases"
 import { clientMissionsHref } from "@/lib/app/client-routes"
+import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 
 // Onglet de « Mes missions » (libellé de la ligne de date, clé de l'URL) selon le statut de la mission.
 const TAB_OF = {
@@ -17,8 +18,8 @@ const TAB_OF = {
 
 // En-tête partagé du détail de mission (C04, C08, C11) : ligne « Mes missions · <onglet> » (lien vers l'onglet),
 // titre unique, puis la méta de la planche : statut, « Avec achats » si estimation, ville, date, puis
-// « Publiée le » (open) ou le type (autres statuts). Le séquestre vit dans la colonne droite. `status` vient de missionStatusView ; `actions` (optionnel) se place
-// à droite du titre.
+// « Publiée le » (open) ou le type (autres statuts). Le séquestre vit dans la colonne droite.
+// `status` vient de missionStatusView ; `actions` (optionnel) se place à droite du titre.
 export function MissionHeader({ mission, status, actions }) {
   const tab = TAB_OF[mission.status]
   const withPurchases = purchasesEstimateOf(mission.purchasesEstimate) !== null
@@ -65,7 +66,7 @@ export function MissionHeader({ mission, status, actions }) {
         ) : null}
         {showType ? (
           <span>
-            <Icon name="i-briefcase" className="ic" />
+            <Icon name={TYPE_ICON[mission.type] ?? "i-briefcase"} className="ic" />
             {missionTypeLabel(mission.type)}
           </span>
         ) : null}

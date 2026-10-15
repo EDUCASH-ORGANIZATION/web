@@ -47,9 +47,22 @@ describe("MissionHeader étudiant", () => {
 
   it("« Avant le » pour E03, « Jusqu'au » pour E05", () => {
     expect(text(render(mission()))).toContain("Avant le 30 octobre 2099")
-    const e05 = text(render(mission(), { variant: "05" }))
+    const e05 = text(render(mission({ status: "in_progress" }), { variant: "05" }))
     expect(e05).toContain("Jusqu'au 30 octobre 2099")
     expect(e05).not.toContain("Avant le")
+  })
+
+  it.each([
+    ["in_progress", "Jusqu'au 30 octobre 2099"],
+    ["done", "30 octobre 2099"],
+    ["cancelled", "30 octobre 2099"],
+  ])("E05 %s : préfixe de date", (status, expected) => {
+    const out = text(render(mission({ status }), { variant: "05" }))
+    expect(out).toContain(expected)
+    if (status !== "in_progress") {
+      expect(out).not.toContain("Jusqu")
+      expect(out).not.toContain("Avant le")
+    }
   })
 
   it("omet candidats et badge sans donnée, accorde le singulier", () => {
