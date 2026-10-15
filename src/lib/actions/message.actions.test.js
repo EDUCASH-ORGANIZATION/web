@@ -1369,3 +1369,38 @@ describe("informations de mission : espace étudiant", () => {
     expect([...dates].sort().reverse()).toEqual(dates)
   })
 })
+
+// ─── Cas limites complémentaires (RD-FIDELITE-01 ST-02, tester) ──────────────────────────────────────────────
+
+describe("informations de mission : cas limites", () => {
+  it("budget en chaîne décimale ou entière : converti en nombre", async () => {
+    for (const [raw, expected] of [["6000", 6000], ["6000.50", 6000.5], ["0", 0]]) {
+      db.missions[0] = { ...db.missions[0], budget: raw }
+      const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+      expect(conversation.mission.budget).toBe(expected)
+    }
+  })
+
+  it("budget négatif, booleen, infini ou non numérique : null", async () => {
+    for (const bad of [-1, "-100", true, false, Infinity, "abc", "", undefined, {}]) {
+      db.missions[0] = { ...db.missions[0], budget: bad }
+      const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+      expect(conversation.mission.budget).toBeNull()
+    }
+  })
+
+  it("mission sans étudiant retenu : relation candidate", async () => {
+    db.missions[0] = { ...db.missions[0], selected_student_id: null }
+    const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+    expect(conversation.relation).toBe("candidate")
+  })
+
+  it("espace étudiant : budget en chaîne, net calculé sur le nombre", async () => {
+    seedStudent()
+    requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: STUDENT }, role: "student", profile: {} })
+    db.missions[0] = { ...db.missions[0], budget: "6000.00" }
+    const { conversation } = await getStudentConversation({ missionId: MA })
+    expect(conversation.mission.budget).toBe(6000)
+    expect(conversation.mission.net).toBe(netAmount(6000))
+  })
+})
