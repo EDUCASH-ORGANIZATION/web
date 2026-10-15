@@ -185,7 +185,7 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
         name={name}
         badgeUntil={badgeUntil}
         onConfirm={() =>
-          decide(() => approveStudentCard(dossier.userId, { expectedSubmittedAt: dossier.submittedAt }), `${name} vérifié(e)`)
+          decide(() => approveStudentCard(dossier.userId, { expectedSubmittedAt: dossier.submittedAt, expectedCardPath: dossier.cardPath }), `${name} vérifié(e)`)
         }
       />
       <RejectDialog
@@ -194,7 +194,7 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
         name={name}
         onConfirm={({ reason, message }) =>
           decide(
-            () => rejectStudentCard(dossier.userId, { reason, message, expectedSubmittedAt: dossier.submittedAt }),
+            () => rejectStudentCard(dossier.userId, { reason, message, expectedSubmittedAt: dossier.submittedAt, expectedCardPath: dossier.cardPath }),
             `Carte de ${name} refusée`,
           )
         }

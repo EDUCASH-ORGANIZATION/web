@@ -113,7 +113,16 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }))
 
-const { approveStudentCard, rejectStudentCard, resetStudentRejection, revokeStudentBadge, getVerificationQueue } = await import("./admin-verifications.actions")
+const { approveStudentCard: rawApprove, rejectStudentCard: rawReject, resetStudentRejection, revokeStudentBadge, getVerificationQueue } = await import(
+  "./admin-verifications.actions"
+)
+// Le jeton est composite (date de dépôt + chemin de la carte) : par défaut l'appel porte le chemin actuellement
+// stocké ; un test peut fournir `expectedCardPath` pour simuler une carte remplacée depuis l'affichage.
+const currentCardPath = (id) => state.studentProfiles.find((s) => s.user_id === id)?.card_url ?? undefined
+const withPath = (id, opts = {}) => ({ expectedCardPath: currentCardPath(id), ...opts })
+const approveStudentCard = (id, opts) => rawApprove(id, withPath(id, opts))
+const rejectStudentCard = (id, opts) => rawReject(id, withPath(id, opts))
+
 const { countPendingVerifications } = await import("./admin-context")
 
 const SUBMITTED = "2026-10-10T09:00:00.123456+00:00"

@@ -323,9 +323,28 @@ export async function saveStudentCardUrl(cardUrl) {
     const cardPath = toOwnedStoragePath(cardUrl, "student-cards", user.id)
     if (!cardPath) return { error: ERR_CARD }
 
-    // Le profil repasse en attente AVANT l'écriture de la carte : si la seconde écriture échoue, l'état restant
-    // est sûr (badge perdu, ancienne carte), jamais une nouvelle carte sous un badge « vérifié » conservé.
-    // Liste blanche de colonnes : jamais role, is_suspended ni verified_until.
+    // Ordre : (1) le badge est retiré, (2) la nouvelle carte est écrite, (3) le jeton de dépôt change et le profil
+    // repasse en attente. Le jeton n'est donc jamais nouveau avec l'ancienne carte, et un échec laisse toujours un
+    // état sûr (badge perdu), jamais une nouvelle carte sous un badge « vérifié ». Liste blanche de colonnes :
+    // jamais role, is_suspended ni verified_until.
+    const fail = "Impossible d'enregistrer votre carte étudiante."
+    const { error: dropError } = await supabase
+      .from("profiles")
+      .update({ is_verified: false })
+      .eq("user_id", user.id)
+    if (dropError) {
+      console.error("[saveStudentCardUrl]", dropError.message)
+      return { error: fail }
+    }
+
+    const { error: updateError } = await supabase
+      .from("student_profiles")
+      .upsert({ user_id: user.id, card_url: cardPath }, { onConflict: "user_id" })
+    if (updateError) {
+      console.error("[saveStudentCardUrl]", updateError.message)
+      return { error: fail }
+    }
+
     const { error: resetError } = await supabase
       .from("profiles")
       .update({
@@ -334,19 +353,9 @@ export async function saveStudentCardUrl(cardUrl) {
         verification_submitted_at: new Date().toISOString(),
       })
       .eq("user_id", user.id)
-
     if (resetError) {
       console.error("[saveStudentCardUrl]", resetError.message)
-      return { error: "Impossible d'enregistrer votre carte étudiante." }
-    }
-
-    const { error: updateError } = await supabase
-      .from("student_profiles")
-      .upsert({ user_id: user.id, card_url: cardPath }, { onConflict: "user_id" })
-
-    if (updateError) {
-      console.error("[saveStudentCardUrl]", updateError.message)
-      return { error: "Impossible d'enregistrer votre carte étudiante." }
+      return { error: fail }
     }
 
     revalidatePath("/profile")
