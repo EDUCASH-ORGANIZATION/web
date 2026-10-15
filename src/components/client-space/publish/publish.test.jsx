@@ -720,7 +720,7 @@ describe("mission avec achats", () => {
       .map(text)
       .join(" ")
     expect(all).not.toMatch(/(?<![\p{L}\p{N}_])(?:tu|ton|ta|tes|toi)(?![\p{L}\p{N}_])/iu)
-    expect(all).not.toMatch(/[—–]/)
+    expect(all).not.toMatch(new RegExp(`[${String.fromCharCode(0x2014)}${String.fromCharCode(0x2013)}]`))
     expect(all).not.toMatch(/fedapay/i)
   })
 
