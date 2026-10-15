@@ -293,4 +293,48 @@ describe("journal des échecs d'écriture de carte : une ligne par étape, sans 
     expect(res.ok).not.toBe(true)
     expect(console.error).toHaveBeenCalledWith(`[completeStudentOnboarding] step=set_card_path code=42501 ${PG.message}`)
   })
+
+  it("message multiligne : normalisé en une seule ligne journalisée", async () => {
+    const multiline = { code: "42501", message: "permission denied\n  for table\r\nprofiles\tnow" }
+    const { supabase } = fakeDb({ studentRow: { school: "UAC" } })
+    const failing = {
+      ...supabase,
+      from: (t) => {
+        const table = supabase.from(t)
+        if (t !== "profiles") return table
+        return { ...table, update: () => ({ eq: async () => ({ error: multiline }) }) }
+      },
+    }
+    requireRole.mockResolvedValue({ supabase: failing, user: { id: UID }, role: "student" })
+    await saveStudentCardUrl(CARD)
+    expect(console.error).toHaveBeenCalledWith("[saveStudentCardUrl] step=drop_badge code=42501 permission denied for table profiles now")
+  })
+
+  it("completeStudentOnboarding, upsert des études en échec : étape journalisée, save_failed, aucune écriture de carte", async () => {
+    const { db, supabase } = fakeDb({ studentRow: { school: "UAC" } })
+    const failing = {
+      ...supabase,
+      from: (t) => {
+        const table = supabase.from(t)
+        if (t !== "student_profiles") return table
+        return { ...table, upsert: async () => ({ error: PG }) }
+      },
+    }
+    vi.mocked(createClient).mockResolvedValue(failing)
+    const res = await completeStudentOnboarding({
+      fullName: "Sèna Agossou",
+      city: "Cotonou",
+      phone: "01 97 45 21 08",
+      school: "UAC",
+      level: "Licence 2",
+      skills: ["Livraison"],
+      availability: ["Matin"],
+      cardUrl: CARD,
+    })
+    expect(res).toMatchObject({ ok: false, code: "save_failed" })
+    expect(console.error).toHaveBeenCalledTimes(1)
+    expect(console.error).toHaveBeenCalledWith(`[completeStudentOnboarding] step=studies_upsert code=42501 ${PG.message}`)
+    expect(db.writes.filter((w) => w.op === "update")).toEqual([])
+    expect(db.student).not.toHaveProperty("card_url")
+  })
 })

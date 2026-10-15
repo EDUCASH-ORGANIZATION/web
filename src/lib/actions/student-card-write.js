@@ -52,6 +52,6 @@ export async function setOwnCardPath(supabase, userId, cardPath) {
  */
 export function logCardStepError(action, step, error) {
   const code = typeof error?.code === "string" && error.code !== "" ? error.code : "none"
-  const message = typeof error?.message === "string" ? error.message.slice(0, 300) : "erreur sans message"
+  const message = typeof error?.message === "string" ? error.message.replace(/\s+/g, " ").slice(0, 300) : "erreur sans message"
   console.error(`[${action}] step=${step} code=${code} ${message}`)
 }
