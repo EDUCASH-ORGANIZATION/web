@@ -114,8 +114,6 @@ export function DossierReview({ dossier, today, showChecklist = false, children 
   const years = expectedAcademicYears(today)
   const verdict = compareNames(dossier.name, typed)
   const typedText = typed.trim()
-  // Renouvellement : le dossier à examiner a encore un badge ; son échéance actuelle est rappelée (bureau et mobile).
-  const currentUntil = dossier.verifiedUntil ? formatDateFr(dossier.verifiedUntil) : ""
 
   if (tab === "incomplets") {
     return (
@@ -176,6 +174,10 @@ export function DossierReview({ dossier, today, showChecklist = false, children 
       </div>
     )
   }
+
+  // Renouvellement : le dossier à examiner a encore un badge ; son échéance actuelle est rappelée (bureau et mobile).
+  // Calculée ici seulement : les autres onglets lisent `verifiedUntil` chacun à leur manière (Expirés tolère un jour illisible).
+  const currentUntil = dossier.verifiedUntil ? formatDateFr(dossier.verifiedUntil) : ""
 
   return (
     <div className="ad-review a2-02-review">
