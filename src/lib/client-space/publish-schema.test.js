@@ -32,6 +32,8 @@ const valid = {
   budget: 10000,
   urgency: "low",
   deadline: "2026-10-31",
+  avecAchats: false,
+  estimationAchats: null,
 }
 
 const errorOf = (field, patch) => validateFields({ ...valid, ...patch }, [field], TODAY)[field]
@@ -238,5 +240,64 @@ describe("icônes de type", () => {
     expect(typeIcon("Démarches")).toBe("i-file")
     expect(typeIcon("Autre")).toBe("i-sparkles")
     expect(typeIcon("inconnu")).toBe("i-sparkles")
+  })
+})
+
+describe("mission avec achats", () => {
+  it("la case est à l'étape 2, l'estimation à l'étape 3", () => {
+    expect(STEP_FIELDS[2]).toContain("avecAchats")
+    expect(STEP_FIELDS[3]).toContain("estimationAchats")
+  })
+
+  it("vide par défaut : case décochée, aucune estimation", () => {
+    expect(emptyValues()).toMatchObject({ avecAchats: false, estimationAchats: null })
+  })
+
+  it("décochée : l'estimation n'est pas exigée et une valeur parasite est ignorée", () => {
+    expect(validateStep(3, { ...valid, avecAchats: false, estimationAchats: null }, TODAY)).toEqual({})
+    expect(validateStep(3, { ...valid, avecAchats: false, estimationAchats: -5 }, TODAY)).toEqual({})
+  })
+
+  it("cochée : l'estimation est obligatoire, entière, positive et bornée", () => {
+    const err = (estimationAchats) => errorOf("estimationAchats", { avecAchats: true, estimationAchats })
+    expect(err(null)).toBe("Indiquez l'estimation des achats.")
+    expect(err(undefined)).toBe("Indiquez l'estimation des achats.")
+    expect(err(0)).toBeTruthy()
+    expect(err(-1)).toBeTruthy()
+    expect(err(1.5)).toBeTruthy()
+    expect(err(Number.NaN)).toBeTruthy()
+    expect(err(Number.POSITIVE_INFINITY)).toBeTruthy()
+    expect(err("15000")).toBeTruthy()
+    expect(err(BUDGET_MAX + 1)).toBe("Cette estimation est trop élevée.")
+    expect(err(1)).toBeUndefined()
+    expect(err(BUDGET_MAX)).toBeUndefined()
+  })
+
+  it("une case qui n'est pas un booléen est refusée à l'étape 2", () => {
+    expect(errorOf("avecAchats", { avecAchats: "oui" })).toBeTruthy()
+    expect(errorOf("avecAchats", { avecAchats: 1 })).toBeTruthy()
+  })
+
+  it("le type de mission est sans effet sur la case", () => {
+    for (const type of MISSION_TYPES) {
+      expect(validatePublish({ ...valid, type, avecAchats: true, estimationAchats: 15000 }, TODAY).ok).toBe(true)
+    }
+  })
+
+  it("la charge utile porte l'estimation seulement si la case est cochée", () => {
+    expect(toMissionInput({ ...valid, avecAchats: true, estimationAchats: 15000 })).toMatchObject({
+      with_purchases: true,
+      purchases_estimate: 15000,
+    })
+    const unchecked = toMissionInput({ ...valid, avecAchats: false, estimationAchats: 15000 })
+    expect(unchecked).not.toHaveProperty("with_purchases")
+    expect(unchecked).not.toHaveProperty("purchases_estimate")
+  })
+
+  it("une mission dupliquée recoche la case si l'estimation est positive", () => {
+    expect(duplicateValues({ purchases_estimate: "15000" })).toMatchObject({ avecAchats: true, estimationAchats: 15000 })
+    for (const raw of [null, undefined, 0, -3, "abc", BUDGET_MAX + 1, Number.NaN]) {
+      expect(duplicateValues({ purchases_estimate: raw })).toEqual({})
+    }
   })
 })
