@@ -467,6 +467,11 @@ describe("aides pures", () => {
     expect(last.hrefs.afterDecision).toBe(`/admin/verifications?id=${ID1}`)
     const alone = dossierNeighbors(data({ rows: [row()], dossier: dossier() }))
     expect(alone.hrefs.afterDecision).toBe("/admin/verifications")
+    // Bascule « Passer au dossier suivant » désactivée : le détail reste sur le même dossier.
+    expect(first.hrefs.self).toBe(`/admin/verifications?id=${ID1}`)
+    expect(last.hrefs.self).toBe(`/admin/verifications?id=${ID2}`)
+    expect(alone.hrefs.self).toBe(`/admin/verifications?id=${ID1}`)
+    expect(dossierNeighbors(data({ dossier: null })).hrefs.self).toBe("/admin/verifications")
     expect(dossierNeighbors(data({ dossier: dossier({ userId: "autre" }) })).position).toBeNull()
   })
 

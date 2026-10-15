@@ -162,7 +162,10 @@ function Pager({ data }) {
   )
 }
 
-/** Dossier précédent et suivant dans la liste de la page, et destination après une décision. */
+/**
+ * Dossier précédent et suivant dans la liste de la page, et destination après une décision : le suivant (bascule
+ * active) ou le dossier lui-même (`self`, bascule désactivée) pour que le détail reste affiché avec son nouvel état.
+ */
 export function dossierNeighbors(data) {
   const { onglet, q, ecole, delai, page, rows, dossier } = data
   const link = (id) => adminVerificationsHref({ onglet, id, q, ecole, delai, page })
@@ -172,7 +175,7 @@ export function dossierNeighbors(data) {
   const next = index >= 0 && index < rows.length - 1 ? link(rows[index + 1].userId) : null
   return {
     position: index >= 0 ? { index, total: rows.length } : null,
-    hrefs: { prev, next, afterDecision: next ?? prev ?? list, list },
+    hrefs: { prev, next, afterDecision: next ?? prev ?? list, self: dossier ? link(dossier.userId) : list, list },
   }
 }
 

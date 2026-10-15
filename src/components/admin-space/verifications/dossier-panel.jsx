@@ -110,12 +110,13 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
   const name = dossier.name || "cet étudiant"
   const { actions } = dossier
 
-  // Après une décision, le focus passe au dossier suivant (titre du détail), pas à la page.
+  // Après une décision, le focus va au titre du détail : celui du dossier suivant (changement d'identifiant) ou,
+  // bascule désactivée, celui du même dossier dont l'état a changé (changement d'onglet). Jamais à la page.
   useEffect(() => {
     if (!refocus.current) return
     refocus.current = false
     headingRef.current?.focus()
-  }, [dossier.userId])
+  }, [dossier.userId, dossier.tab])
 
   useQueueShortcuts({
     allowed: actions,
@@ -127,7 +128,7 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
   })
 
   const decide = async (run, title, text) => {
-    const outcome = await runDecision({ run, title, text, router, notify: success, afterHref: advance ? hrefs.afterDecision : hrefs.list })
+    const outcome = await runDecision({ run, title, text, router, notify: success, afterHref: advance ? hrefs.afterDecision : hrefs.self })
     if (outcome.done) refocus.current = true
     return outcome.error ? { error: outcome.error } : undefined
   }
@@ -148,7 +149,8 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
   return (
     <div className="card a2-02-dossier">
       <div className="a2-02-dossier__head">
-        <span className="a2-02-avatar">
+        {/* Avatar décoratif : le nom est déjà annoncé par le titre h2 qui suit. */}
+        <span className="a2-02-avatar" aria-hidden="true">
           <Avatar name={dossier.name || "Étudiant sans nom"} />
         </span>
         <div className="a2-02-dossier__id">
@@ -158,14 +160,18 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
           <div className="caption">{dossierCaption(dossier)}</div>
         </div>
         <div className="a2-02-dossier__status">
-          <StatusBadge {...(TAB_STATUS[dossier.tab] ?? TAB_STATUS.incomplets)} />
+          {/* Annonce du nouvel état après une décision quand le dossier reste affiché (bascule désactivée). */}
+          <span aria-live="polite">
+            <StatusBadge {...(TAB_STATUS[dossier.tab] ?? TAB_STATUS.incomplets)} />
+          </span>
           <Link className="link body-s" href={adminUserHref(dossier.userId)}>
             Ouvrir la fiche
           </Link>
         </div>
       </div>
 
-      <DossierReview dossier={dossier} today={dossier.today} showChecklist={actions.includes("approve")}>
+      {/* Une instance par dossier : le nom recopié et les cases de contrôle ne passent jamais d'un dossier à l'autre. */}
+      <DossierReview key={dossier.userId} dossier={dossier} today={dossier.today} showChecklist={actions.includes("approve")}>
         <DecisionTimeline dossier={dossier} />
       </DossierReview>
 
