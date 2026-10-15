@@ -24,12 +24,21 @@ export function fullscreenSupported(doc, element) {
 }
 
 /**
- * Passe la scène de la carte en plein écran, sans ouvrir d'onglet ni placer l'URL signée dans l'historique.
- * Un refus du navigateur (geste non reconnu, réglage) laisse simplement la carte dans la page.
+ * Passe la visionneuse (barre d'outils et scène) en plein écran, sans ouvrir d'onglet ni placer l'URL signée dans
+ * l'historique. Un refus du navigateur (geste non reconnu, réglage) laisse simplement la carte dans la page.
  */
 export function enterFullscreen(element) {
   if (typeof element?.requestFullscreen !== "function") return
-  element.requestFullscreen().catch(() => {})
+  Promise.resolve(element.requestFullscreen()).catch(() => {})
+}
+
+/**
+ * Quitte le plein écran s'il est actif (avant d'ouvrir une confirmation, qui sinon resterait cachée derrière
+ * l'élément plein écran). Sans plein écran actif ou sans API, ne fait rien ; un refus du navigateur est ignoré.
+ */
+export function leaveFullscreen(doc) {
+  if (!doc?.fullscreenElement || typeof doc.exitFullscreen !== "function") return
+  Promise.resolve(doc.exitFullscreen()).catch(() => {})
 }
 
 function Missing({ text }) {
@@ -58,12 +67,34 @@ export function CardViewer({ cardView, name }) {
   const [rotation, setRotation] = useState(0)
   const [failed, setFailed] = useState(false)
   const [canFullscreen, setCanFullscreen] = useState(false)
-  const stageRef = useRef(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const viewerRef = useRef(null)
+  const fullscreenButtonRef = useRef(null)
 
   // Détection après montage seulement : le rendu serveur et le premier rendu client restent identiques.
   useEffect(() => {
-    setCanFullscreen(fullscreenSupported(document, stageRef.current))
+    setCanFullscreen(fullscreenSupported(document, viewerRef.current))
   }, [cardView?.kind, failed])
+
+  // Suit l'entrée et la sortie (bouton, Échap, décision V ou R) pour le libellé du bouton. À la sortie, le focus
+  // revient au bouton, sauf s'il est déjà ailleurs dans la page (confirmation ouverte par V ou R).
+  useEffect(() => {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function") return undefined
+    const doc = document
+    let wasActive = false
+    const onChange = () => {
+      const viewer = viewerRef.current
+      const active = Boolean(viewer) && doc.fullscreenElement === viewer
+      setIsFullscreen(active)
+      if (wasActive && !active) {
+        const focused = doc.activeElement
+        if (!focused || focused === doc.body || viewer?.contains?.(focused)) fullscreenButtonRef.current?.focus?.()
+      }
+      wasActive = active
+    }
+    doc.addEventListener("fullscreenchange", onChange)
+    return () => doc.removeEventListener("fullscreenchange", onChange)
+  }, [])
 
   if (!cardView || cardView.kind === "none" || !cardView.url) {
     return <Missing text="La carte n'est pas disponible : elle n'a pas été envoyée ou le lien a expiré." />
@@ -86,8 +117,9 @@ export function CardViewer({ cardView, name }) {
 
   if (failed) return <Missing text="La carte n'a pas pu s'afficher." />
 
+  // L'élément plein écran est la visionneuse entière : zoom, rotation et sortie restent accessibles.
   return (
-    <div className="ad-viewer">
+    <div className="ad-viewer a2-02-viewer" ref={viewerRef}>
       <div className="ad-viewer__tools a2-02-tools">
         <button
           type="button"
@@ -115,14 +147,22 @@ export function CardViewer({ cardView, name }) {
         >
           <Icon name="i-rotate" />
         </button>
+        {/* Le sprite n'a pas d'icône d'agrandissement : i-external pour entrer, i-x pour sortir. */}
         {canFullscreen ? (
-          <button type="button" className="btn-icon btn-icon--sm" aria-label="Plein écran" onClick={() => enterFullscreen(stageRef.current)}>
-            <Icon name="i-external" />
+          <button
+            type="button"
+            className="btn-icon btn-icon--sm"
+            ref={fullscreenButtonRef}
+            aria-label={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+            aria-pressed={isFullscreen}
+            onClick={() => (isFullscreen ? leaveFullscreen(document) : enterFullscreen(viewerRef.current))}
+          >
+            <Icon name={isFullscreen ? "i-x" : "i-external"} />
           </button>
         ) : null}
         <span aria-live="polite">Zoom {zoom} %</span>
       </div>
-      <div className="a2-02-stage" ref={stageRef}>
+      <div className="a2-02-stage">
         {/* Image signée hébergée hors du domaine : next/image exigerait une liste de domaines et la réécrirait. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
