@@ -131,8 +131,11 @@ describe("schéma de référence : table notifications", () => {
     expect(realtime.some((l) => l.includes("notifications"))).toBe(false)
   })
 
-  it("la mention « NON appliqué » du script 80 figure dans l'en-tête", () => {
-    expect(SCHEMA.slice(0, 1200)).toContain("Script 80 de RD-NOTIF-01")
-    expect(SCHEMA.slice(0, 1200)).toContain("NON appliqué en production")
+  it("l'en-tête indique que le script 80 est appliqué en production", () => {
+    const head = SCHEMA.slice(0, 1200)
+    expect(head).toContain("Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.")
+    const script80 = head.split("\n").filter((l) => /script 80/i.test(l))
+    expect(script80.length).toBeGreaterThan(0)
+    expect(script80.some((l) => /NON appliqué|à retirer après application/.test(l))).toBe(false)
   })
 })
