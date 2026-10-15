@@ -333,3 +333,47 @@ describe("règles transverses", () => {
     expect(NB.test(all)).toBe(true)
   })
 })
+
+describe("le séquestre reste le budget seul (estimation d'achats jamais ajoutée)", () => {
+  const withPurchases = (status, over) => {
+    const base = detailOf(status, over)
+    return { ...base, mission: { ...base.mission, budget: 8000, purchasesEstimate: 15000 } }
+  }
+  const section = (out, label) => {
+    const from = out.slice(out.indexOf(`aria-label="${label}"`))
+    return from.slice(0, from.indexOf("</section>"))
+  }
+
+  it("C08 en cours : 8 000 en séquestre, ni 23 000 ni 15 000", () => {
+    const out = render(withPurchases("in_progress", { ledger: [{ type: "reserve", amount: 8000, createdAt: "2026-10-02T10:14:00Z" }] }))
+    const escrow = section(out, "Séquestre")
+    expect(escrow).toMatch(/8\s000/)
+    expect(escrow).not.toMatch(/23\s000|15\s000/)
+    expect(out).not.toMatch(/23\s000/)
+  })
+
+  it("C11 terminée : le reçu ne montre ni 23 000 ni 15 000", () => {
+    const ledger = [
+      { type: "reserve", amount: 8000, createdAt: "2026-10-02T10:14:00Z" },
+      { type: "release", amount: 8000, createdAt: "2026-10-08T09:02:00Z" },
+      { type: "commission", amount: 960, createdAt: "2026-10-08T09:02:00Z" },
+    ]
+    const out = render(withPurchases("done", { ledger }))
+    const receipt = section(out, "Reçu")
+    expect(receipt).toMatch(/8\s000/)
+    expect(receipt).not.toMatch(/23\s000|15\s000/)
+    expect(out).not.toMatch(/23\s000/)
+  })
+
+  it("C11 annulée : le remboursement ne montre ni 23 000 ni 15 000", () => {
+    const ledger = [
+      { type: "reserve", amount: 8000, createdAt: "2026-10-02T10:14:00Z" },
+      { type: "refund", amount: 8000, createdAt: "2026-10-05T16:20:00Z" },
+    ]
+    const out = render(withPurchases("cancelled", { selectedStudent: null, ledger }))
+    const refund = section(out, "Remboursement")
+    expect(refund).toMatch(/8\s000/)
+    expect(refund).not.toMatch(/23\s000|15\s000/)
+    expect(out).not.toMatch(/23\s000/)
+  })
+})

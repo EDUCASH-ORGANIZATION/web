@@ -38,10 +38,18 @@ export function studentMissionsHref({ q, type, cities, urgency, budget, sort, pa
   ])
 }
 
-/** @param {string} id @param {{ postuler?: boolean }} [params] `postuler` ouvre la feuille de candidature (mobile). */
-export function studentMissionHref(id, { postuler } = {}) {
+/**
+ * @param {string} id
+ * @param {{ postuler?: boolean, terminer?: boolean }} [params] `postuler` ouvre la feuille de candidature
+ *   (mobile) ; `terminer` ouvre la fenêtre « J'ai terminé » (drapeau sans action : rien n'est déclaré
+ *   avant le clic de confirmation).
+ */
+export function studentMissionHref(id, { postuler, terminer } = {}) {
   if (!hasId(id)) return "/student/missions"
-  return withQuery(`/student/missions/${encodeURIComponent(id)}`, [["postuler", postuler]])
+  return withQuery(`/student/missions/${encodeURIComponent(id)}`, [
+    ["postuler", postuler],
+    ["terminer", terminer],
+  ])
 }
 
 /** @param {{ onglet?: string }} [params] */
