@@ -112,6 +112,8 @@
   .a2 .a2-02 .switch { min-height: 44px; }
   .a2 .a2-02 .a2-02-review .input { min-height: 44px; }
   .a2 .a2-02 .a2-02-cta { min-height: 44px; }
+  /* Pagination de la file : 40 px au bureau (components.css), 44 px au toucher */
+  .a2 .a2-02 .pagination .page-btn { min-width: 44px; min-height: 44px; }
   .a2 .a2-02 .search { width: 100%; }
   .a2 .a2-02 .a2-02-dossier { border: 0; background: transparent; padding: 0; }
   /* Avatar masqué ; « Ouvrir la fiche » reste le seul chemin vers la fiche de l'étudiant : zone de 44 px */

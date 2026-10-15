@@ -1991,6 +1991,8 @@ describe("admin : barre d'action fixe, en-tete de sous-page et coquille", () => 
     expect(tablet).toContain(".a2 .a2-02 .switch { min-height: 44px; }")
     expect(tablet).toContain(".a2 .a2-02 .a2-02-cta { min-height: 44px; }")
     expect(tablet).toContain(".a2-02-actions__btns { display: none; }")
+    // Pagination de la file : 40 px au bureau (components.css), 44 px sous 1024.
+    expect(tablet).toContain(".a2 .a2-02 .pagination .page-btn { min-width: 44px; min-height: 44px; }")
     expect(ad02).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/)
   })
 
