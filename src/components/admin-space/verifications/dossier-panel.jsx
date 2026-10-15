@@ -23,7 +23,6 @@ import { RejectDialog } from "./reject-dialog"
 import { ResetDialog } from "./reset-dialog"
 import { RevokeDialog } from "./revoke-dialog"
 import { useQueueShortcuts } from "./use-queue-shortcuts"
-import { leaveFullscreen } from "./card-viewer"
 
 const ACTION_LABELS = {
   approve: { label: "Valider", icon: "i-check", className: "btn btn--primary a2-02-cta", key: "V" },
@@ -119,19 +118,13 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
     headingRef.current?.focus()
   }, [dossier.userId, dossier.tab])
 
-  // Une confirmation rendue dans la page resterait cachée derrière la carte en plein écran : on en sort d'abord.
-  const openDialog = (action) => {
-    if (typeof document !== "undefined") leaveFullscreen(document)
-    setDialog(action)
-  }
-
   useQueueShortcuts({
     allowed: actions,
     dialogOpen: dialog !== null,
     onPrev: hrefs.prev ? () => router.push(hrefs.prev) : undefined,
     onNext: hrefs.next ? () => router.push(hrefs.next) : undefined,
-    onApprove: () => openDialog("approve"),
-    onReject: () => openDialog("reject"),
+    onApprove: () => setDialog("approve"),
+    onReject: () => setDialog("reject"),
   })
 
   const decide = async (run, title, text) => {
@@ -145,7 +138,7 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
     actions.map((action) => {
       const spec = ACTION_LABELS[action]
       return (
-        <button key={action} type="button" className={spec.className} onClick={() => openDialog(action)}>
+        <button key={action} type="button" className={spec.className} onClick={() => setDialog(action)}>
           {compact ? null : <Icon name={spec.icon} />}
           {spec.label}
           {!compact && spec.key ? <span className="ad-kbd">{spec.key}</span> : null}
