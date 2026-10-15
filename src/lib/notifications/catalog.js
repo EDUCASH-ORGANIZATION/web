@@ -328,8 +328,9 @@ export function notificationHref(row, space) {
       case "application_rejected":
       case "mission_cancelled": return studentApplicationsHref()
       case "payment_released": return studentReviewHref(missionId)
-      case "review_received":
-      case "badge_revoked": return studentProfileHref()
+      case "review_received": return studentProfileHref()
+      // Badge retiré : la page de vérification permet d'agir (renvoyer une carte).
+      case "badge_revoked": return studentVerifyHref()
       case "message_received": return studentConversationHref(missionId)
       case "account_reactivated": return studentHomeHref()
       default: return studentVerifyHref()

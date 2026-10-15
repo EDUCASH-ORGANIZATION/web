@@ -218,7 +218,7 @@ describe("liens recalculés à la lecture", () => {
     expect(notificationHref({ type: "mission_cancelled", mission_id: M }, "student")).toBe("/applications")
     expect(notificationHref({ type: "payment_released", mission_id: M }, "student")).toBe(`/student/review/${M}`)
     expect(notificationHref({ type: "review_received", mission_id: M }, "student")).toBe("/profile")
-    expect(notificationHref({ type: "badge_revoked" }, "student")).toBe("/profile")
+    expect(notificationHref({ type: "badge_revoked" }, "student")).toBe("/profile/verify")
     for (const type of ["verification_approved", "verification_rejected", "verification_reset"]) {
       expect(notificationHref({ type }, "student")).toBe("/profile/verify")
     }
