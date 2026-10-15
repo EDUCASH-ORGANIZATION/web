@@ -563,6 +563,8 @@ export async function getVerificationQueue(searchParams) {
         overdue48h: hints.overdue48h,
         age: ageLabel(now, dossier.submittedAt ?? dossier.createdAt),
         submittedOn: beninDay(dossier.submittedAt),
+        // Jour d'échéance seul (colonne de type date), jamais l'horodatage complet ; null si absent ou illisible.
+        verifiedUntil: typeof dossier.verifiedUntil === "string" && /^\d{4}-\d{2}-\d{2}/.test(dossier.verifiedUntil.trim()) ? dossier.verifiedUntil.trim().slice(0, 10) : null,
       }
     })
     const schools = [...new Set(rows.map((row) => row.school).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"))

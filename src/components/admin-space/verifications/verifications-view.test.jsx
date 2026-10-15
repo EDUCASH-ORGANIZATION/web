@@ -95,6 +95,9 @@ describe("VerificationsView : file avec dossier ouvert", () => {
 
   it("un seul titre h1 « Vérifications » et sous-titre avec ancienneté", () => {
     expect(html.match(/<h1\b/g)).toHaveLength(1)
+    expect(html).toContain('<h1 class="page__title">Vérifications</h1>')
+    expect(html).toContain('<p class="page__sub">4 dossiers à examiner · le plus ancien attend depuis 3 jours</p>')
+    expect(html).not.toMatch(/head2|a2-filters|search2|empty2|hero2__link/)
     expect(html).toContain("Vérifications")
     expect(html).toContain("4 dossiers à examiner")
     expect(html).toContain("le plus ancien attend depuis 3 jours")
@@ -110,6 +113,9 @@ describe("VerificationsView : file avec dossier ouvert", () => {
   it("recherche en GET vers la file, établissement en liste fermée", () => {
     expect(html).toContain('action="/admin/verifications"')
     expect(html).toContain('method="get"')
+    expect(html).toContain('class="filterbar"')
+    expect(html).toContain('<label class="search">')
+    expect(html).toContain('class="filterbar__count"')
     expect(html).toContain('name="q"')
     expect(html).toContain('name="ecole"')
     expect(html).toContain("4 dossiers")
@@ -135,12 +141,12 @@ describe("VerificationsView : file avec dossier ouvert", () => {
     expect(html).toMatch(/<img[^>]*referrerPolicy="no-referrer"/)
     expect(html).toContain('alt="Carte étudiante de Codjo Ahouansou"')
     expect(buttonLabels(html).filter((l) => /^(Valider|Refuser|Réinitialiser|Révoquer)/.test(l))).toEqual([
-      "ValiderV",
       "RefuserR",
-      "Valider",
+      "ValiderV",
       "Refuser",
+      "Valider",
     ])
-    expect(html).not.toContain("Réinitialiser le refus")
+    expect(html).not.toContain("Réinitialiser")
     expect(html).not.toContain("Révoquer le badge")
   })
 
@@ -194,14 +200,15 @@ describe("VerificationsView : décisions selon l'onglet", () => {
   it("incomplets : aucune décision, note d'attente", () => {
     const { html, labels } = actionsOf("incomplets", [], { hasCard: false, cardView: { kind: "none", url: null } })
     expect(labels).toEqual([])
-    expect(html).toContain("En attente d&#x27;une carte de l&#x27;étudiant.")
+    expect(html).toContain("Aucune carte fournie")
+    expect(html).toContain("Validation impossible sans carte")
     expect(html).not.toContain("a2-mbar")
     expect(html).not.toContain("Contrôle")
   })
 
   it("refusés : seulement réinitialiser, avec le motif affiché", () => {
     const { html, labels } = actionsOf("refuses", ["reset"], { rejectionReason: "Photo floue ou illisible" })
-    expect(labels).toEqual(["Réinitialiser le refus", "Réinitialiser le refus"])
+    expect(labels).toEqual(["Réinitialiser le dossier", "Réinitialiser le dossier"])
     expect(html).toContain("Photo floue ou illisible")
   })
 
@@ -220,15 +227,18 @@ describe("VerificationsView : décisions selon l'onglet", () => {
 describe("VerificationsView : états", () => {
   it("file vide : message, nombre d'étudiants sans carte et lien vers les incomplets", () => {
     const html = render({ data: data({ rows: [], total: 0, counts: { ...data().counts, "a-examiner": 0 }, oldestAgeDays: null }) })
-    expect(html).toContain("Aucun dossier à examiner.")
-    expect(html).toContain("3 étudiants n&#x27;ont pas encore envoyé de carte.")
-    expect(html).toContain('href="/admin/verifications?onglet=incomplets"')
-    expect(html).toContain("Aucun dossier à examiner</b>")
+    expect(html).toContain('<div class="empty">')
+    expect(html).toContain('<span class="ic-sq ic-sq--menthe">')
+    expect(html).toContain('<div class="empty__title">Aucun dossier à examiner</div>')
+    expect(html).toContain("Tout est à jour. 3 étudiants n&#x27;ont pas encore envoyé de carte : ils sont dans « Incomplets ».")
+    expect(html).toMatch(/<a class="btn btn--secondary btn--sm" href="\/admin\/verifications\?onglet=incomplets">Voir les incomplets<\/a>/)
+    expect(html).toContain("Aucun dossier à examiner</p>")
   })
 
   it("file vide sans incomplets : tout est à jour", () => {
     const html = render({ data: data({ rows: [], total: 0, counts: { ...data().counts, "a-examiner": 0, incomplets: 0 } }) })
-    expect(html).toContain("Tous les dossiers sont à jour.")
+    expect(html).toContain('<p class="empty__text">Tout est à jour.</p>')
+    expect(html).not.toContain("Voir les incomplets")
   })
 
   it("recherche sans résultat et onglet vide", () => {
@@ -238,10 +248,23 @@ describe("VerificationsView : états", () => {
 
   it("erreur de chargement distincte de la file vide, annoncée", () => {
     const html = render({ data: null, error: "Les dossiers n'ont pas pu être chargés. Réessayez dans un instant." })
-    expect(html).toContain('role="alert"')
-    expect(html).toContain("Réessayer")
+    expect(html).toContain('class="empty empty--erreur empty--sm" role="alert"')
+    expect(html).toContain("Impossible de charger la file")
+    expect(html).toMatch(/<a class="btn btn--primary btn--sm" href="\/admin\/verifications">[\s\S]*Réessayer<\/a>/)
     expect(html).not.toContain("Aucun dossier à examiner.")
     expect(html.match(/<h1\b/g)).toHaveLength(1)
+  })
+
+  it("erreur de lecture : « Réessayer » rouvre la même vue (onglet, dossier, recherche, page), valeurs encodées", () => {
+    const html = render({
+      data: null,
+      error: "Les dossiers n'ont pas pu être chargés. Réessayez dans un instant.",
+      retryParams: { onglet: "refuses", id: "11111111-1111-4111-8111-111111111111", q: "kofi & ama", ecole: ["EPAC", "UAC"], page: "2" },
+    })
+    expect(html).toContain(
+      'href="/admin/verifications?onglet=refuses&amp;id=11111111-1111-4111-8111-111111111111&amp;q=kofi+%26+ama&amp;page=2"',
+    )
+    expect(html).not.toContain("EPAC")
   })
 
   it("aucun dossier ouvert : invite bureau seulement, pas d'en-tête de sous-page ni de barre fixe", () => {
@@ -260,10 +283,17 @@ describe("VerificationsView : états", () => {
 
   it("pagination : liens précédent et suivant dans l'URL", () => {
     const html = render({ data: data({ page: 2, pageCount: 3, q: "ko" }) })
-    expect(html).toContain("Page 2 sur 3")
+    expect(html).toContain('aria-label="Pagination des dossiers"')
     expect(html).toContain('href="/admin/verifications?q=ko"')
     expect(html).toContain('href="/admin/verifications?q=ko&amp;page=3"')
+    expect(html).toContain('aria-current="page"')
     expect(render({ data: data() })).not.toContain("Pagination des dossiers")
+  })
+
+  it("pagination : plage « 1 à 20 sur 58 »", () => {
+    const rows = Array.from({ length: 20 }, (_, n) => row({ userId: `${n}`.padStart(8, "0") + ID1.slice(8) }))
+    const html = render({ data: data({ rows, total: 58, page: 1, pageCount: 3, pageSize: 20 }) })
+    expect(html).toContain('<span class="pagination__info">1 à 20 sur 58</span>')
   })
 
   it("onglet autre que le défaut : champ caché pour garder l'onglet dans la recherche", () => {
@@ -333,7 +363,7 @@ describe("boîtes de dialogue", () => {
     expect(html).toContain("Valider la carte de Codjo ?")
     expect(html).toContain("15 octobre 2027")
     expect(html).toContain("Valider et passer au suivant")
-    expect(html).toContain("btn btn--dark")
+    expect(html).toContain("btn btn--primary a2-02-cta")
   })
 
   it("validation : libellé « Valider la carte » quand le passage au suivant est désactivé", () => {
@@ -347,7 +377,9 @@ describe("boîtes de dialogue", () => {
   it("réinitialisation et révocation : motif obligatoire, la révocation est en ton danger", () => {
     const reset = renderToStaticMarkup(<ResetDialog open onClose={() => {}} onConfirm={() => {}} name="Codjo" />)
     const revoke = renderToStaticMarkup(<RevokeDialog open onClose={() => {}} onConfirm={() => {}} name="Codjo" />)
-    expect(reset).toContain("Réinitialiser le refus")
+    expect(reset).toContain("Réinitialiser le dossier de Codjo ?")
+    expect(reset).toMatch(/<button type="button" class="btn btn--primary a2-02-cta">Réinitialiser<\/button>/)
+    expect(reset).not.toContain("Réinitialiser le refus")
     expect(reset).toContain("required")
     expect(reset).not.toContain("btn btn--danger")
     expect(revoke).toContain("Révoquer le badge")

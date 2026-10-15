@@ -10,8 +10,8 @@ describe("AD02 sous 1024 px avec dossier ouvert", () => {
   })
 
   it("onglets et filtres sont masqués, le bloc de titre est seulement masqué visuellement", () => {
-    expect(css).toMatch(/\.a2-02--open \.a2-02-head > :not\(\.head2\) \{ display: none; \}/)
-    const rule = css.match(/\.a2-02--open \.a2-02-head \.head2 \{([^}]*)\}/)?.[1] ?? ""
+    expect(css).toMatch(/\.a2-02--open \.a2-02-head > :not\(\.page__head\) \{ display: none; \}/)
+    const rule = css.match(/\.a2-02--open \.a2-02-head \.page__head \{([^}]*)\}/)?.[1] ?? ""
     expect(rule).toMatch(/position: absolute/)
     expect(rule).toMatch(/clip-path: inset\(50%\)/)
     expect(rule).not.toMatch(/display: none|visibility: hidden/)

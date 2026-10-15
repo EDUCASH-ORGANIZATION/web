@@ -2,7 +2,6 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Icon } from "@/components/design/icon"
 import { Modal } from "@/components/app-ui/modal"
 import { RadioGroupField, TextareaField } from "@/components/app-ui/fields"
 import { confirmOnce } from "@/components/app-ui/confirm-dialog"
@@ -59,18 +58,16 @@ function Preview({ firstName, reason, message }) {
   const shownReason = reason === OTHER_REASON ? message.trim() : reason
   const note = reason === OTHER_REASON ? "" : message.trim()
   return (
-    <div className="a2-note" role="group" aria-label="Aperçu de l'e-mail envoyé à l'étudiant">
-      <Icon name="i-mail" className="ic" />
-      <div>
-        <b>Aperçu de l&apos;e-mail</b>
-        <p>Bonjour {firstName},</p>
-        <p>
-          Notre équipe a examiné votre dossier mais n&apos;a pas pu valider votre carte étudiante pour la raison suivante :{" "}
-          <b>{shownReason || "motif à choisir"}</b>
-        </p>
-        {note ? <p>{note}</p> : null}
-        <p>Vous pouvez envoyer une nouvelle carte depuis votre profil.</p>
-      </div>
+    <div className="ad-mail" role="group" aria-label="Aperçu de l'e-mail envoyé à l'étudiant">
+      <div className="caption">Aperçu de l&apos;e-mail</div>
+      <b>Votre carte étudiante n&apos;a pas été acceptée</b>
+      <p>Bonjour {firstName},</p>
+      <p>
+        Notre équipe a examiné votre dossier mais n&apos;a pas pu valider votre carte étudiante pour la raison suivante :{" "}
+        <b>{shownReason || "motif à choisir"}</b>
+      </p>
+      {note ? <p>{note}</p> : null}
+      <p>Vous pouvez envoyer une nouvelle carte depuis votre profil.</p>
     </div>
   )
 }
@@ -81,6 +78,7 @@ function RejectForm({ onClose, onConfirm, name }) {
   const [error, setError] = useState(null)
   const [pending, setPending] = useState(false)
   const sending = useRef(false)
+  const cancelRef = useRef(null)
   const firstName = name.trim().split(/\s+/)[0] || "Étudiant"
 
   const submit = async () => {
@@ -107,12 +105,14 @@ function RejectForm({ onClose, onConfirm, name }) {
       onClose={() => {
         if (!pending) onClose()
       }}
-      title={`Refuser la carte de ${name}`}
+      title={`Refuser la carte de ${name} ?`}
+      icon={{ name: "i-x", tone: "erreur" }}
       description="L'étudiant recevra ce motif par e-mail et pourra renvoyer une carte."
       tone="danger"
+      initialFocusRef={cancelRef}
       footer={
         <>
-          <button type="button" className="btn btn--secondary" onClick={onClose} disabled={pending}>
+          <button ref={cancelRef} type="button" className="btn btn--secondary" onClick={onClose} disabled={pending}>
             Annuler
           </button>
           <button

@@ -89,7 +89,7 @@ export function CloseButton({ onClose }) {
   )
 }
 
-function ModalOpen({ onClose, title, description, footer, size, tone, initialFocusRef, children }) {
+function ModalOpen({ onClose, title, description, footer, size, tone, icon, initialFocusRef, children }) {
   const uid = useId()
   const titleId = `${uid}-title`
   const descriptionId = `${uid}-desc`
@@ -114,6 +114,11 @@ function ModalOpen({ onClose, title, description, footer, size, tone, initialFoc
       >
         {compact ? <div className="sheet__grip" aria-hidden="true" /> : null}
         <div className="modal__head">
+          {icon ? (
+            <span className={cx("modal__icon ic-sq", icon.tone && `ic-sq--${icon.tone}`)}>
+              <Icon name={icon.name} />
+            </span>
+          ) : null}
           <div>
             <h2 id={titleId} className="modal__title">{title}</h2>
             {description ? <p id={descriptionId} className="modal__sub">{description}</p> : null}
@@ -128,8 +133,9 @@ function ModalOpen({ onClose, title, description, footer, size, tone, initialFoc
 }
 
 // Boîte de dialogue : modale centrée en bureau, feuille du bas sous 1024 px.
-// size : "sm" | "md" | "lg" ; tone : "default" | "danger" (bordure rouge, bureau).
-export function Modal({ open, onClose, title, description, footer, size = "md", tone = "default", initialFocusRef, children }) {
+// size : "sm" | "md" | "lg" ; tone : "default" | "danger" (bordure rouge, bureau) ;
+// icon : { name, tone } facultatif, pastille carrée avant le titre (aucun rendu sans elle).
+export function Modal({ open, onClose, title, description, footer, size = "md", tone = "default", icon, initialFocusRef, children }) {
   if (!open) return null
   return (
     <ModalOpen
@@ -139,6 +145,7 @@ export function Modal({ open, onClose, title, description, footer, size = "md", 
       footer={footer}
       size={size}
       tone={tone}
+      icon={icon}
       initialFocusRef={initialFocusRef}
     >
       {children}

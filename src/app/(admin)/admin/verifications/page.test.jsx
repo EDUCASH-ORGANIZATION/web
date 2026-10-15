@@ -51,7 +51,7 @@ describe("page admin verifications", () => {
     const hostile = { onglet: "<script>", id: "' or 1=1", q: "x".repeat(10000), page: ["1", "2"] }
     const view = await load(Promise.resolve(hostile))
     expect(getVerificationQueue).toHaveBeenCalledWith(hostile)
-    expect(view.props).toEqual({ data, error: undefined })
+    expect(view.props).toEqual({ data, error: undefined, retryParams: undefined })
   })
 
   it("une erreur de lecture est rendue comme erreur, pas comme file vide", async () => {
@@ -60,6 +60,14 @@ describe("page admin verifications", () => {
     const view = await load(Promise.resolve({}))
     expect(view.props.data).toBeNull()
     expect(view.props.error).toMatch(/pas pu être chargés/)
+  })
+
+  it("en erreur, la vue reçoit les paramètres d'URL pour le lien Réessayer", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" } })
+    getVerificationQueue.mockResolvedValue({ error: "Les dossiers n'ont pas pu être chargés. Réessayez dans un instant." })
+    const params = { onglet: "refuses", q: "kofi", page: "2" }
+    const view = await load(Promise.resolve(params))
+    expect(view.props.retryParams).toEqual(params)
   })
 
   it("sans paramètres d'URL, l'action reçoit un objet vide", async () => {

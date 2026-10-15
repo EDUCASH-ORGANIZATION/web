@@ -3,8 +3,6 @@ import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { Select } from "@/components/design/select"
 import { TabsNav } from "@/components/app-ui/tabs-nav"
-import { EmptyState } from "@/components/app-ui/empty-state"
-import { ErrorState } from "@/components/app-ui/state-block"
 import { adminVerificationsHref } from "@/lib/app/admin-routes"
 import { DEFAULT_VERIFICATION_TAB, VERIFICATION_TABS, badgeUntil } from "@/lib/admin-space/verification-queue"
 import { QueueList } from "./queue-list"
@@ -32,15 +30,10 @@ export function queueSubtitle(pending, oldestAgeDays) {
 function Header({ data }) {
   const sub = data ? queueSubtitle(data.counts["a-examiner"], data.oldestAgeDays) : null
   return (
-    <div className="head2">
+    <div className="page__head">
       <div>
-        <h1 className="head2__title">Vérifications</h1>
-        {sub ? (
-          <p className="head2__sub">
-            <b>{sub.strong}</b>
-            {sub.rest ? ` · ${sub.rest}` : ""}
-          </p>
-        ) : null}
+        <h1 className="page__title">Vérifications</h1>
+        {sub ? <p className="page__sub">{sub.rest ? `${sub.strong} · ${sub.rest}` : sub.strong}</p> : null}
       </div>
     </div>
   )
@@ -57,9 +50,9 @@ function Filters({ data }) {
   const known = ecole && !schools.includes(ecole) ? [...schools, ecole] : schools
   const options = [{ value: "", label: "Tous les établissements" }, ...known.map((school) => ({ value: school, label: school }))]
   return (
-    <form className="a2-filters" method="get" action="/admin/verifications" role="search" aria-label="Rechercher un dossier">
+    <form className="filterbar" method="get" action="/admin/verifications" role="search" aria-label="Rechercher un dossier">
       {onglet !== DEFAULT_VERIFICATION_TAB ? <input type="hidden" name="onglet" value={onglet} /> : null}
-      <label className="search2">
+      <label className="search">
         <Icon name="i-search" />
         <input type="search" name="q" defaultValue={q} placeholder="Nom de l'étudiant" aria-label="Rechercher un dossier" maxLength={80} />
       </label>
@@ -85,33 +78,53 @@ function Filters({ data }) {
           aria-label="Délai"
         />
       ) : null}
-      <span className="a2-02-sort">
-        <Icon name="i-sort" />
-        Plus anciens d&apos;abord
-      </span>
+      <span className="chip a2-02-sort">Plus anciens d&apos;abord</span>
       <button type="submit" className="btn btn--secondary btn--sm">
         Rechercher
       </button>
-      <span className="a2-filters__count">
+      <span className="filterbar__count">
         {total} {plural(total, "dossier", "dossiers")}
       </span>
     </form>
   )
 }
 
+/** Bloc vide du système : pastille carrée, titre, texte et lien facultatif (`action` : { href, label }). */
+function EmptyBlock({ icon, tone, title, text, action, small = false, error = false, titleAs: Title = "div" }) {
+  const cls = ["empty", error ? "empty--erreur" : "", small ? "empty--sm" : ""].filter(Boolean).join(" ")
+  return (
+    <div className={cls} role={error ? "alert" : undefined}>
+      <div className="empty__art">
+        <span className={tone ? `ic-sq ic-sq--${tone}` : "ic-sq"}>
+          <Icon name={icon} />
+        </span>
+      </div>
+      <Title className="empty__title">{title}</Title>
+      {text ? <p className="empty__text">{text}</p> : null}
+      {action ? (
+        <Link className={action.primary ? "btn btn--primary btn--sm" : "btn btn--secondary btn--sm"} href={action.href}>
+          {action.primary ? <Icon name="i-refresh" /> : null}
+          {action.label}
+        </Link>
+      ) : null}
+    </div>
+  )
+}
+
 function Empty({ data }) {
   const { onglet, q, ecole, delai, counts } = data
-  if (q || ecole || delai) return <EmptyState compact icon="i-search" title="Aucun dossier ne correspond à cette recherche." />
-  if (onglet !== "a-examiner") return <EmptyState compact title="Aucun dossier dans cet onglet." />
+  if (q || ecole || delai) return <EmptyBlock small icon="i-search" title="Aucun dossier ne correspond à cette recherche." />
+  if (onglet !== "a-examiner") return <EmptyBlock small icon="i-inbox" title="Aucun dossier dans cet onglet." />
   const missing = counts.incomplets
   return (
-    <EmptyState
+    <EmptyBlock
       icon="i-check-circle"
-      title="Aucun dossier à examiner."
+      tone="menthe"
+      title="Aucun dossier à examiner"
       text={
         missing > 0
-          ? `${missing} ${plural(missing, "étudiant n'a", "étudiants n'ont")} pas encore envoyé de carte.`
-          : "Tous les dossiers sont à jour."
+          ? `Tout est à jour. ${missing} ${plural(missing, "étudiant n'a", "étudiants n'ont")} pas encore envoyé de carte : ${plural(missing, "il est", "ils sont")} dans « Incomplets ».`
+          : "Tout est à jour."
       }
       action={missing > 0 ? { href: adminVerificationsHref({ onglet: "incomplets" }), label: "Voir les incomplets" } : undefined}
     />
@@ -133,30 +146,61 @@ function ListHead({ data }) {
   )
 }
 
+/** Numéros de page affichés : première, dernière, courante et ses voisines (5 au plus), "gap" pour un saut. */
+export function pageWindow(page, pageCount) {
+  const wanted = [...new Set([1, page - 1, page, page + 1, pageCount])].filter((n) => n >= 1 && n <= pageCount).sort((a, b) => a - b)
+  const out = []
+  wanted.forEach((n, index) => {
+    if (index > 0 && n - wanted[index - 1] > 1) out.push("gap")
+    out.push(n)
+  })
+  return out
+}
+
 function Pager({ data }) {
-  const { onglet, q, ecole, delai, page, pageCount } = data
+  const { onglet, q, ecole, delai, page, pageCount, pageSize = 25, total, rows } = data
   if (pageCount <= 1) return null
   const href = (target) => adminVerificationsHref({ onglet, q, ecole, delai, page: target })
+  const first = (page - 1) * pageSize + 1
   return (
-    <nav className="row row--between" aria-label="Pagination des dossiers">
+    <nav className="pagination" aria-label="Pagination des dossiers">
+      <span className="pagination__info">
+        {first} à {first + rows.length - 1} sur {total}
+      </span>
       {page > 1 ? (
-        <Link className="btn btn--secondary btn--sm" href={href(page - 1)}>
+        <Link className="page-btn page-btn--nav" href={href(page - 1)} aria-label="Page précédente">
           <Icon name="i-chevron-left" />
-          Précédent
         </Link>
       ) : (
-        <span />
+        <span className="page-btn page-btn--nav is-disabled" aria-disabled="true">
+          <Icon name="i-chevron-left" />
+        </span>
       )}
-      <span className="caption">
-        Page {page} sur {pageCount}
-      </span>
+      {pageWindow(page, pageCount).map((item, index) =>
+        item === "gap" ? (
+          <span key={`gap-${index}`} className="page-btn page-btn--gap" aria-hidden="true">
+            …
+          </span>
+        ) : (
+          <Link
+            key={item}
+            className={item === page ? "page-btn is-active" : "page-btn"}
+            href={href(item)}
+            aria-current={item === page ? "page" : undefined}
+            aria-label={`Page ${item}`}
+          >
+            {item}
+          </Link>
+        ),
+      )}
       {page < pageCount ? (
-        <Link className="btn btn--secondary btn--sm" href={href(page + 1)}>
-          Suivant
+        <Link className="page-btn page-btn--nav" href={href(page + 1)} aria-label="Page suivante">
           <Icon name="i-chevron-right" />
         </Link>
       ) : (
-        <span />
+        <span className="page-btn page-btn--nav is-disabled" aria-disabled="true">
+          <Icon name="i-chevron-right" />
+        </span>
       )}
     </nav>
   )
@@ -179,16 +223,31 @@ export function dossierNeighbors(data) {
   }
 }
 
+// Paramètres d'URL bruts (chaîne, tableau ou absents) : seules les chaînes sont reprises, la fabrique les encode.
+const retryHref = (params) => {
+  const pick = (key) => (typeof params?.[key] === "string" ? params[key] : undefined)
+  return adminVerificationsHref({ onglet: pick("onglet"), id: pick("id"), q: pick("q"), ecole: pick("ecole"), delai: pick("delai"), page: pick("page") })
+}
+
 /**
  * File de vérification (AD02), maître et détail. Vue pure : le serveur fournit toutes les données.
- * `data` est la réponse de `getVerificationQueue` ; `error` vaut son message quand la lecture a échoué.
+ * `data` est la réponse de `getVerificationQueue` ; `error` vaut son message quand la lecture a échoué ;
+ * `retryParams` (paramètres d'URL de la page) fait rouvrir la même vue par « Réessayer ».
  */
-export function VerificationsView({ data, error }) {
+export function VerificationsView({ data, error, retryParams }) {
   if (error || !data) {
     return (
       <div className="a2-02">
         <Header data={null} />
-        <ErrorState titleAs="h2" title="Les dossiers n'ont pas pu être chargés" text={error || undefined} />
+        <EmptyBlock
+          small
+          error
+          icon="i-alert-triangle"
+          titleAs="h2"
+          title="Impossible de charger la file"
+          text={error || "Les dossiers n'ont pas pu être récupérés. Aucune décision n'est perdue."}
+          action={{ href: retryHref(retryParams), label: "Réessayer", primary: true }}
+        />
       </div>
     )
   }
@@ -265,7 +324,7 @@ export function VerificationsView({ data, error }) {
             </div>
           ) : (
             <div className="ds-desk-only">
-              <EmptyState compact icon="i-id-card" title="Choisissez un dossier dans la liste pour l'examiner." />
+              <EmptyBlock small icon="i-id-card" title="Choisissez un dossier dans la liste pour l'examiner." />
             </div>
           )}
         </div>

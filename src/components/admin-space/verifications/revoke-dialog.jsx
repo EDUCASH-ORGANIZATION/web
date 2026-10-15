@@ -10,7 +10,8 @@ export function RevokeDialog({ open, onClose, onConfirm, name }) {
       open={open}
       onClose={onClose}
       onConfirm={onConfirm}
-      title={`Révoquer le badge de ${name}`}
+      title={`Révoquer le badge de ${name} ?`}
+      icon={{ name: "i-ban", tone: "erreur" }}
       description="Le badge est retiré et le motif est envoyé à l'étudiant par e-mail. Il pourra renvoyer une carte."
       confirmLabel="Révoquer le badge"
       tone="danger"
