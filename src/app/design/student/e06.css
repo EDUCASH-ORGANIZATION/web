@@ -34,7 +34,8 @@
   .e2-06-inbox > .e2-07-pane { height: calc(100dvh - var(--s-2) - env(safe-area-inset-bottom, 0px)); }
   .e2-06-inbox[data-view="list"] > :not(.e2-06-list) { display: none; }
   .e2-06-inbox[data-view="conversation"] > .e2-06-list { display: none; }
-  .head2:has(+ .e2-06-inbox[data-view="conversation"]) { display: none; }
+  /* Titre masqué à l'œil seulement : le h1 « Messages » reste lu par les lecteurs d'écran */
+  .head2:has(+ .e2-06-inbox[data-view="conversation"]) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   /* La planche mobile n'affiche que le compteur sous le titre : le jour est réservé au bureau */
   .e2-06-day { display: none; }
   .e2-06-list__items { padding: 6px; overflow-y: visible; }

@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(nav.search),
 }))
 
-const { StudentInboxView } = await import("./inbox-view")
+const { StudentInboxView, createDebouncedRefresh, REFRESH_DELAY_MS, nextOpened } = await import("./inbox-view")
 const { inboxHref, subtitleOf } = await import("./inbox-list")
 
 const NOW = "2026-10-13T12:00:00Z"
@@ -308,6 +308,81 @@ describe("StudentInboxView : deux volets", () => {
   })
 })
 
+describe("StudentInboxView : conversation sans liste exploitable", () => {
+  const PANE = <section className="e2-07-pane">Fil de test</section>
+  const open = { pathname: `/messages/${M1}` }
+
+  it("liste vide : garde la conversation et un vide compact à gauche, sans la page vide", () => {
+    const html = render({ result: { conversations: [] }, children: PANE }, open)
+    expect(html).toContain('data-view="conversation"')
+    expect(html).toContain("Fil de test")
+    expect(html).not.toContain("Explorer les missions</a></div></section>")
+    expect(html).not.toContain('aria-label="Aucune conversation"')
+    expect(html).toContain("Pas encore de message")
+  })
+
+  it("liste en erreur : l'erreur reste dans le volet gauche et la conversation s'affiche", () => {
+    const html = render({ result: { error: "Impossible de charger vos messages." }, children: PANE }, open)
+    expect(html).toContain('data-view="conversation"')
+    expect(html).toContain("Fil de test")
+    expect(html).toContain('role="alert"')
+    expect(html).not.toContain('aria-label="Erreur de chargement"')
+  })
+
+  it("sur /messages, la liste vide ou en erreur garde la page pleine", () => {
+    expect(render({ result: { conversations: [] } })).toContain('aria-label="Aucune conversation"')
+    expect(render({ result: { error: "x" } })).toContain('aria-label="Erreur de chargement"')
+  })
+
+  it("garde un seul h1 dans ces états", () => {
+    expect(h1Count(render({ result: { conversations: [] }, children: PANE }, open))).toBe(1)
+    expect(h1Count(render({ result: { error: "x" }, children: PANE }, open))).toBe(1)
+  })
+})
+
+describe("StudentInboxView : remise à zéro locale des non lus", () => {
+  it("la conversation ouverte est comptée lue, le reste garde son compteur", () => {
+    const list = [conv({ unreadCount: 2 }), conv({ key: `${M2}:c1`, missionId: M2, unreadCount: 3 })]
+    const html = render({ result: { conversations: list }, children: <section /> }, { pathname: `/messages/${M2}` })
+    expect(html).toContain("2 non lus")
+    expect(html).not.toContain("5 non lus")
+  })
+})
+
+describe("nextOpened : mémoire des conversations ouvertes", () => {
+  it("garde M1 quand M2 est ouverte avec le même résultat, et se vide quand le résultat change", () => {
+    const result = { conversations: [] }
+    const s1 = nextOpened({ result, ids: [] }, result, M1)
+    expect(s1.ids).toEqual([M1])
+    const s2 = nextOpened(s1, result, M2)
+    expect(s2.ids).toEqual([M1, M2])
+    expect(nextOpened(s2, result, M1)).toBe(s2)
+    expect(nextOpened(s2, result, null)).toBe(s2)
+    const s3 = nextOpened(s2, { conversations: [] }, M2)
+    expect(s3.ids).toEqual([M2])
+  })
+})
+
+describe("rafraîchissement regroupé", () => {
+  it("un INSERT et un UPDATE rapprochés ne déclenchent qu'un refresh", () => {
+    vi.useFakeTimers()
+    const refresh = vi.fn()
+    const scheduler = createDebouncedRefresh(refresh)
+    scheduler.trigger()
+    vi.advanceTimersByTime(REFRESH_DELAY_MS - 50)
+    scheduler.trigger()
+    vi.advanceTimersByTime(REFRESH_DELAY_MS - 1)
+    expect(refresh).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(refresh).toHaveBeenCalledTimes(1)
+    scheduler.trigger()
+    scheduler.cancel()
+    vi.advanceTimersByTime(REFRESH_DELAY_MS * 2)
+    expect(refresh).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+})
+
 describe("structure du segment messages", () => {
   const root = join(process.cwd(), "src/app/(student)/messages")
 
@@ -328,6 +403,7 @@ describe("structure du segment messages", () => {
     const page = readFileSync(join(root, "page.js"), "utf8")
     expect(page.startsWith("// @ds-screen RD-STUDENT-01")).toBe(true)
     expect(page).toContain("return null")
+    expect(page).not.toMatch(/supabase|\.from\("/)
   })
 })
 
@@ -348,7 +424,10 @@ describe("styles des deux volets", () => {
   })
 
   it("sous 1024 px : titre de page masqué en conversation, jour réservé au bureau", () => {
-    expect(declarationsOf(css, '.head2:has(+ .e2-06-inbox[data-view="conversation"])', MOBILE).display).toBe("none")
+    const head = declarationsOf(css, '.head2:has(+ .e2-06-inbox[data-view="conversation"])', MOBILE)
+    expect(head.display).toBeUndefined()
+    expect(head.position).toBe("absolute")
+    expect(head["clip-path"]).toBe("inset(50%)")
     expect(declarationsOf(css, ".e2-06-day", MOBILE).display).toBe("none")
   })
 })
