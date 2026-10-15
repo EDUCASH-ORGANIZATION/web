@@ -28,7 +28,7 @@ import { leaveFullscreen } from "./card-viewer"
 const ACTION_LABELS = {
   approve: { label: "Valider", icon: "i-check", className: "btn btn--primary a2-02-cta", key: "V" },
   reject: { label: "Refuser", icon: "i-x", className: "btn btn--danger-outline", key: "R" },
-  reset: { label: "Réinitialiser le refus", icon: "i-undo", className: "btn btn--dark" },
+  reset: { label: "Réinitialiser le dossier", icon: "i-refresh", className: "btn btn--secondary" },
   revoke: { label: "Révoquer le badge", icon: "i-ban", className: "btn btn--danger-outline" },
 }
 
@@ -40,6 +40,9 @@ const TAB_STATUS = {
   expires: { label: "Badge expiré", tone: "neutre" },
   incomplets: { label: "Non vérifié", tone: "neutre" },
 }
+
+// Ordre d'affichage des décisions (planche v1 : Refuser à gauche de Valider) ; l'ensemble vient de `dossier.actions`.
+const ACTION_ORDER = ["reject", "approve", "reset", "revoke"]
 
 const STEP_ICONS = { done: "i-check", current: "i-clock", error: "i-x" }
 
@@ -142,7 +145,7 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
 
   // Bureau : icône et raccourci ; mobile (barre fixe) : libellé seul. La décision elle-même passe par une confirmation.
   const buttons = (compact) =>
-    actions.map((action) => {
+    ACTION_ORDER.filter((action) => actions.includes(action)).map((action) => {
       const spec = ACTION_LABELS[action]
       return (
         <button key={action} type="button" className={spec.className} onClick={() => openDialog(action)}>
@@ -164,6 +167,11 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
           <h2 className="ds-h3 a2-02-dossier__name" ref={headingRef} tabIndex={-1}>
             {dossier.name || "Étudiant sans nom"}
           </h2>
+          {dossier.overdue48h ? (
+            <div className="ds-mob-only">
+              <span className="badge badge--erreur badge--sm">+48 h</span>
+            </div>
+          ) : null}
           <div className="caption">{dossierCaption(dossier)}</div>
         </div>
         <div className="a2-02-dossier__status">
@@ -185,22 +193,17 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
       {actions.length > 0 ? (
         <>
           <div className="a2-02-actions">
-            <label className="switch">
-              <input type="checkbox" checked={advance} onChange={(event) => setAdvance(event.target.checked)} />
-              Passer au dossier suivant après décision
-            </label>
+            {actions.includes("approve") ? (
+              <label className="switch">
+                <input type="checkbox" checked={advance} onChange={(event) => setAdvance(event.target.checked)} />
+                Passer au dossier suivant après décision
+              </label>
+            ) : null}
             <div className="a2-02-actions__btns">{buttons(false)}</div>
           </div>
           <div className="a2-mbar">{buttons(true)}</div>
         </>
-      ) : (
-        <div className="a2-note">
-          <Icon name="i-info" className="ic" />
-          <span>
-            {dossier.tab === "expires" ? "En attente d'une nouvelle carte de l'étudiant." : "En attente d'une carte de l'étudiant."}
-          </span>
-        </div>
-      )}
+      ) : null}
 
       <ApproveDialog
         open={dialog === "approve"}

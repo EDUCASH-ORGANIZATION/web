@@ -180,11 +180,13 @@ describe("DossierPanel : focus après décision", () => {
     // Données rechargées : même dossier, nouvel onglet. Pastille annoncée, focus sur le titre, choix conservé.
     const after = render(dossier({ tab: "verifies", actions: ["revoke"] }))
     expect(focus).toHaveBeenCalledTimes(1)
-    expect(toggle(after).props.checked).toBe(false)
+    // La bascule n'est affichée que si Valider est possible : absente sur Vérifiés, choix conservé au retour.
+    expect(toggle(after)).toBeUndefined()
     const live = find(after, (n) => n.props["aria-live"] === "polite")[0]
     expect(live.props.children.props).toMatchObject({ label: "Vérifié", tone: "succes" })
     render(dossier({ tab: "verifies", actions: ["revoke"] }))
     expect(focus).toHaveBeenCalledTimes(1)
+    expect(toggle(render(dossier())).props.checked).toBe(false)
   })
 
   it("avatar décoratif : masqué aux lecteurs d'écran, le nom n'est annoncé que par le titre", () => {

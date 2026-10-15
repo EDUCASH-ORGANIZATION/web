@@ -141,10 +141,10 @@ describe("VerificationsView : file avec dossier ouvert", () => {
     expect(html).toMatch(/<img[^>]*referrerPolicy="no-referrer"/)
     expect(html).toContain('alt="Carte étudiante de Codjo Ahouansou"')
     expect(buttonLabels(html).filter((l) => /^(Valider|Refuser|Réinitialiser|Révoquer)/.test(l))).toEqual([
-      "ValiderV",
       "RefuserR",
-      "Valider",
+      "ValiderV",
       "Refuser",
+      "Valider",
     ])
     expect(html).not.toContain("Réinitialiser le refus")
     expect(html).not.toContain("Révoquer le badge")
@@ -200,14 +200,15 @@ describe("VerificationsView : décisions selon l'onglet", () => {
   it("incomplets : aucune décision, note d'attente", () => {
     const { html, labels } = actionsOf("incomplets", [], { hasCard: false, cardView: { kind: "none", url: null } })
     expect(labels).toEqual([])
-    expect(html).toContain("En attente d&#x27;une carte de l&#x27;étudiant.")
+    expect(html).toContain("Aucune carte fournie")
+    expect(html).toContain("Validation impossible sans carte")
     expect(html).not.toContain("a2-mbar")
     expect(html).not.toContain("Contrôle")
   })
 
   it("refusés : seulement réinitialiser, avec le motif affiché", () => {
     const { html, labels } = actionsOf("refuses", ["reset"], { rejectionReason: "Photo floue ou illisible" })
-    expect(labels).toEqual(["Réinitialiser le refus", "Réinitialiser le refus"])
+    expect(labels).toEqual(["Réinitialiser le dossier", "Réinitialiser le dossier"])
     expect(html).toContain("Photo floue ou illisible")
   })
 
