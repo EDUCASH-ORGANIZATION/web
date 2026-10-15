@@ -278,7 +278,7 @@ describe("catalogue : textes bornes, sans donnee personnelle, sans tiret cadrati
   it("aucun tiret cadratin ni demi-cadratin, vouvoiement (pas de tutoiement)", () => {
     for (const n of built()) {
       const all = `${n.title} ${n.body}`
-      expect(all).not.toMatch(/[–—]/)
+      expect(all).not.toMatch(/[\u2013\u2014]/)
       expect(all).not.toMatch(/\b(tu|ton|ta|tes|toi)\b/i)
     }
   })
