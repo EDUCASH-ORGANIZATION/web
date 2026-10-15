@@ -9,10 +9,11 @@ import { useSupabase } from "@/components/shared/supabase-provider"
 import { saveStudentCardUrl } from "@/lib/actions/profile.actions"
 import { CARD_UPLOAD_INSTRUCTIONS } from "@/lib/supabase/database.constants"
 import { studentMissionsHref } from "@/lib/app/student-routes"
+import { CARD_TYPES, cardStoragePath, cardUploadUnique } from "@/lib/storage/card-paths"
+
+export { CARD_TYPES, cardStoragePath }
 
 export const MAX_CARD_BYTES = 10 * 1024 * 1024
-// L'extension vient du type MIME, jamais du nom du fichier.
-export const CARD_TYPES = { "image/jpeg": "jpg", "image/png": "png", "application/pdf": "pdf" }
 const ACCEPT = Object.keys(CARD_TYPES).join(",")
 
 const REFUSALS = {
@@ -39,16 +40,6 @@ export function checkCardFile(file) {
   return { ok: true }
 }
 
-/**
- * Chemin d'envoi : dossier de l'utilisateur, nom unique, extension déduite du type MIME.
- * @param {string} userId
- * @param {string} mime
- * @param {string} unique
- */
-export function cardStoragePath(userId, mime, unique) {
-  return `${userId}/carte-${unique}.${CARD_TYPES[mime]}`
-}
-
 // Contrôle de lisibilité côté serveur : le module (client IA) n'est évalué qu'au moment d'un envoi.
 const checkReadable = async (path) => (await import("@/lib/actions/verify-card.actions")).verifyStudentCardWithAI(path)
 
@@ -70,7 +61,7 @@ export async function sendCardFile({ file, supabase, verifyCard, saveCard, onPha
   try {
     const { data } = await supabase.auth.getUser()
     if (!data?.user) return { error: ERR_SESSION }
-    path = cardStoragePath(data.user.id, file.type, unique ?? `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`)
+    path = cardStoragePath(data.user.id, file.type, unique ?? cardUploadUnique())
     onPhase("upload")
     const { error: uploadError } = await supabase.storage
       .from("student-cards")

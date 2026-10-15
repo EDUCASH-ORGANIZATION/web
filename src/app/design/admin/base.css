@@ -1,0 +1,392 @@
+/* @ds-screen RD-ADMIN-01 */
+/* =====================================================================
+   EduCash - admin/base.css
+   Espace admin v2.1 « calme » (AD01 a AD13), port de v2-admin.css.
+   Charge apres app-shell.css, client.css et student.css, via admin.css.
+
+   1. Apaisement des composants v1 dans .a2 (racine de l'espace admin,
+      posee par le layout : <div className="ds a2">) : surfaces blanches,
+      filets 1 px, aucune ombre dure, bouton principal en encre, citron
+      reserve a .flag2. La portee de la planche (body.v2a) devient .a2.
+   1b. Equivalents .a2 des regles .c2 / .e2 dont dependent les composants
+      app-ui et la coquille (boutons icone, champs, onglets, avatars,
+      focus, cibles de 44 px, mouvement reduit).
+   2. Composants communs (prefixe .a2-) : retour, sections, notes, cles et
+      valeurs, priorite, graphique, ecran plein cadre, barre fixe mobile.
+   Aucune regle hors .a2 ne cible une classe du code ancien : le rendu des
+   pages existantes ne change pas.
+
+   Differences avec la planche :
+   - .table et .table-wrap deviennent .ds-table et .ds-table-wrap ;
+   - head2__sub, head2__actions et head2__back restent des extensions de
+     .head2 sous .a2 ; les autres classes de la section 2 passent au
+     prefixe .a2- (sec2, split2, grid2, kv2, note2, prio2, full2, filters2) car client/base.css definit deja sec2, split2, note2
+     et client/c14.css filters2 avec d'autres valeurs ;
+   - mtop2--sub et mtop2__title deviennent .a2-mtop (comme .e2-mtop) ;
+   - .ad-chat (lecture de conversation), .state__canvas (cadre de planche),
+     chart2 et legend2 (histogramme retire d'AD01, AD14 hors lot), AD10, AD14,
+     T02 a T07 : non portes (ecrans hors lot, voir le rapport) ;
+   - les variantes --m des planches sont remplacees par des media queries ;
+   - la barre du bas est celle de RD-NAV-02 (capsule, app-shell.css) ;
+   - rgba remplace par color-mix sur les tokens ;
+   - .a2-mbar est fixe (position: fixed + safe-area), pas absolue.
+   ===================================================================== */
+
+/* ---------- 1. Couche « calme » sur les composants v1 ---------- */
+
+/* Cartes */
+.a2 .card { border: 1px solid var(--c-ligne); box-shadow: none; }
+.a2 .card--hl, .a2 .card--link:hover, .a2 .card--link.is-hover { box-shadow: none; transform: none; }
+.a2 .card--lavande, .a2 .card--citron, .a2 .card--citron-pale, .a2 .card--menthe,
+.a2 .card--rose, .a2 .card--peche { background: var(--c-blanc); }
+.a2 .card--sm { border-radius: var(--r-m); }
+
+/* Indicateurs v1 (.stat) : blancs, filet léger, pas de forme */
+.a2 .stat { border: 1px solid var(--c-ligne); }
+.a2 .stat--lavande, .a2 .stat--citron, .a2 .stat--menthe, .a2 .stat--rose,
+.a2 .stat--peche { background: var(--c-blanc); }
+.a2 .stat--encre { background: var(--c-blanc); color: var(--c-encre); }
+.a2 .stat--encre .stat__sub { color: var(--c-ardoise); }
+.a2 .stat__shape, .a2 .bento-card__shape { display: none; }
+.a2 .stat--link:hover, .a2 .stat--link.is-hover { box-shadow: none; transform: none; border-color: var(--c-acier); }
+.a2 .stat__value { font-weight: var(--fw-xbold); }
+.a2 .stat__label { font-weight: var(--fw-semibold); color: var(--c-ardoise); }
+.a2 .stat__label .ic { color: var(--c-ardoise); }
+.a2 .stat__trend { background: var(--c-givre); }
+.a2 .stat.is-active { border-color: var(--c-encre); box-shadow: inset 0 0 0 1px var(--c-encre); }
+
+/* Pastilles d'icône : neutres, sauf les variantes sémantiques */
+.a2 .ic-sq { background: var(--c-givre); color: var(--c-ardoise); }
+.a2 .ic-sq--blanc { border: 1px solid var(--c-ligne); background: var(--c-blanc); }
+.a2 .ic-sq--succes { background: var(--c-succes-bg); color: var(--c-succes); }
+.a2 .ic-sq--erreur { background: var(--c-erreur-bg); color: var(--c-erreur); }
+.a2 .ic-sq--alerte { background: var(--c-alerte-bg); color: var(--c-alerte-txt); }
+
+/* Lignes arrondies v1 (.lrow) : blanches, filet, sélection en encre fine */
+.a2 .lrows { gap: 0; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); overflow: hidden; }
+.a2 .lrow { background: var(--c-blanc); border: 0; border-radius: 0; padding: 10px 14px 10px 12px; box-shadow: none; }
+.a2 .lrow + .lrow { border-top: 1px solid var(--c-ligne-2); }
+.a2 .lrow--lavande, .a2 .lrow--citron, .a2 .lrow--menthe, .a2 .lrow--peche { background: var(--c-blanc); }
+.a2 .lrow__ic { background: var(--c-givre); color: var(--c-ardoise); border-radius: 10px; }
+.a2 .lrow:hover, .a2 .lrow.is-hover { background: var(--c-givre); }
+.a2 .lrow.is-selected { background: var(--c-givre); box-shadow: inset 3px 0 0 var(--c-bleu); }
+
+/* Badges : citron, lavande et contour encre neutralisés */
+.a2 .badge--citron, .a2 .badge--lavande { background: var(--c-ligne); color: var(--c-encre); }
+.a2 .badge--contour { border: 1px solid var(--c-ligne); }
+.a2 .badge--encre { background: var(--c-encre); color: var(--c-blanc); }
+.a2 .badge--plein-bleu { background: var(--c-bleu-50); color: var(--c-bleu); }
+.a2 .verified { background: var(--c-givre); color: var(--c-encre); border: 1px solid var(--c-ligne); }
+.a2 .verified svg { color: var(--c-bleu); }
+.a2 .verified--citron { background: var(--c-givre); }
+
+/* Compteurs : discrets partout (hors navigation déjà traitée par shell--v2) */
+.a2 .count, .a2 .count--erreur, .a2 .count--citron { background: var(--c-ligne); color: var(--c-encre); }
+.a2 .count--neutre { background: var(--c-ligne-2); color: var(--c-ardoise); }
+.a2 .tab.is-active .count { background: var(--c-encre); color: var(--c-blanc); }
+.a2 .chip.is-selected .count { background: var(--c-blanc); color: var(--c-encre); }
+
+/* Boutons */
+.a2 .btn--primary { background: var(--c-encre); color: var(--c-blanc); }
+.a2 .btn--primary:hover, .a2 .btn--primary.is-hover { background: var(--c-encre-700); }
+.a2 .btn--primary .btn__dot { background: var(--c-blanc); color: var(--c-encre); }
+.a2 .btn--secondary { border: 1.5px solid var(--c-brume); }
+.a2 .btn--accent { background: var(--c-encre); color: var(--c-blanc); border-color: var(--c-encre); box-shadow: none; }
+.a2 .btn--accent:hover, .a2 .btn--accent.is-hover { transform: none; box-shadow: none; background: var(--c-encre-700); }
+.a2 .btn--danger-outline { border: 1.5px solid var(--c-brume); color: var(--c-erreur); }
+.a2 .btn--danger-outline:hover, .a2 .btn--danger-outline.is-hover { background: var(--c-erreur-bg); }
+.a2 .btn:disabled, .a2 .btn.is-disabled { background: var(--c-off-bg); color: var(--c-off-txt); border-color: transparent; }
+.a2 .btn--ghost { text-decoration: none; padding: 0 4px; }
+
+/* Boutons icône : carrés arrondis sans bordure encre */
+.a2 .btn-icon { border: 1px solid var(--c-ligne); border-radius: 10px; }
+.a2 .btn-icon--plain { border-color: transparent; background: transparent; }
+.a2 .btn-icon__dot { background: var(--c-bleu); border-color: var(--c-blanc); }
+.a2 .btn-icon__count { background: var(--c-encre); }
+.a2 .avatar-btn { border: 1px solid var(--c-ligne); }
+
+/* Avatars en initiales des admins : fond neutre */
+.a2 .ad-av--citron, .a2 .ad-av--menthe, .a2 .ad-av--peche, .a2 .ad-av--lavande, .a2 .ad-av--rose { --av-bg: var(--c-givre); }
+.a2 .avatar:not(:has(> svg)) { border: 1px solid var(--c-ligne); }
+
+/* Onglets, segments, puces */
+.a2 .tabs { border-bottom: 1px solid var(--c-ligne); }
+.a2 .tab { margin-bottom: -1px; border-bottom-width: 2px; }
+.a2 .tab.is-active { border-bottom-color: var(--c-encre); }
+.a2 .segmented { border: 1px solid var(--c-ligne); }
+.a2 .chip { border: 1px solid var(--c-ligne); }
+.a2 .chip:hover, .a2 .chip.is-hover { border-color: var(--c-acier); }
+.a2 .chip.is-selected { background: var(--c-encre); border-color: var(--c-encre); color: var(--c-blanc); }
+.a2 .chip--remove { background: var(--c-givre); border-color: var(--c-ligne); color: var(--c-encre); }
+
+/* Tableaux sobres : filets 1 px, pas d'aplat d'en-tête, pas de zébrure */
+.a2 .ds-table-wrap { border: 1px solid var(--c-ligne); }
+.a2 .ds-table th { background: var(--c-blanc); text-transform: none; letter-spacing: 0; font-size: var(--t-caption); font-weight: var(--fw-semibold); border-bottom: 1px solid var(--c-ligne); }
+.a2 .ds-table td { border-bottom: 1px solid var(--c-ligne-2); }
+.a2 .ds-table tbody tr.is-selected td { background: var(--c-givre); }
+.a2 .ds-table tbody tr.ad-row-prio td:first-child { box-shadow: none; }
+.a2 .ds-table-wrap__foot, .a2 .ds-table-wrap__head { border-color: var(--c-ligne); border-width: 1px; }
+.a2 .tcard { border: 1px solid var(--c-ligne); }
+.a2 .ad-compare th { text-transform: none; letter-spacing: 0; font-size: var(--t-caption); font-weight: var(--fw-semibold); border-bottom: 1px solid var(--c-ligne); }
+.a2 .ad-compare td { border-bottom: 1px solid var(--c-ligne-2); }
+
+/* Modales, tiroirs, feuilles, toasts : sans ombre dure */
+.a2 .modal { border: 1px solid var(--c-ligne); border-radius: var(--r-l); box-shadow: none; }
+.a2 .modal--danger { border-color: var(--c-ligne); box-shadow: none; }
+.a2 .modal__icon { width: 44px; height: 44px; border-radius: 12px; }
+.a2 .modal__title { font-size: 22px; }
+.a2 .drawer { border-left: 1px solid var(--c-ligne); box-shadow: none; }
+.a2 .sheet { border: 1px solid var(--c-ligne); border-bottom: 0; border-radius: var(--r-l) var(--r-l) 0 0; }
+.a2 .toast, .a2 .toast--erreur { box-shadow: none; }
+.a2 .toast__action { color: var(--c-blanc); }
+.a2 .toast__icon { background: var(--c-encre-700); color: var(--c-blanc); }
+.a2 .toast--succes .toast__icon { background: var(--c-succes-sombre); color: var(--c-encre); }
+.a2 .toast--erreur .toast__icon { background: var(--c-erreur-sombre); color: var(--c-encre); }
+.a2 .notif-panel { border: 1px solid var(--c-ligne); box-shadow: none; }
+.a2 .notif-panel__foot { border-top: 1px solid var(--c-ligne); }
+.a2 .notif.is-unread { background: transparent; }
+.a2 .menu { border: 1px solid var(--c-ligne); box-shadow: none; }
+
+/* Bannières : surface blanche, filet, icône sémantique seule */
+.a2 .banner { background: var(--c-blanc); border: 1px solid var(--c-ligne); color: var(--c-encre); box-shadow: none; }
+.a2 .banner--alerte > .ic { color: var(--c-alerte-txt); }
+.a2 .banner--citron > .ic { color: var(--c-encre); }
+.a2 .banner--encre { background: var(--c-encre); border-color: var(--c-encre); color: var(--c-blanc); }
+.a2 .banner--encre > .ic { color: var(--c-blanc); }
+.a2 .banner__title { font-size: var(--t-body-s); }
+
+/* États vides : pas de gribouillis, pas de pastille penchée */
+.a2 .scribble { display: none; }
+.a2 .empty__art { width: 64px; height: 64px; margin-bottom: 2px; }
+.a2 .empty__art .ic-sq { left: 0; top: 0; width: 64px; height: 64px; border: 1px solid var(--c-ligne); box-shadow: none; transform: none; background: var(--c-givre); color: var(--c-ardoise); }
+.a2 .empty--erreur .empty__art .ic-sq { background: var(--c-erreur-bg); color: var(--c-erreur); border-color: var(--c-erreur-bg); }
+.a2 .empty--sm .empty__art { transform: none; margin: 0; }
+.a2 .empty__title { font-size: var(--t-h4); }
+
+/* Récapitulatifs et listes clés */
+.a2 .recap { background: var(--c-givre); }
+.a2 .recap__total { border-top: 1px solid var(--c-ligne); }
+.a2 .recap__total b { font-weight: var(--fw-xbold); }
+
+/* Champs : filet 1,5 px plutôt que 2 px */
+.a2 .input, .a2 .select, .a2 .control { border-width: 1.5px; }
+
+/* Mobile v1 réutilisé : barre du haut claire, barre d'actions sans filet encre */
+.a2 .mtopbar--admin { background: var(--c-givre); color: var(--c-encre); }
+.a2 .mtopbar--admin .btn-icon { color: var(--c-encre); border-color: transparent; background: transparent; }
+.a2 .mtopbar--white { border-bottom: 1px solid var(--c-ligne); }
+.a2 .mtopbar .btn-icon { border-color: transparent; background: transparent; }
+.a2 .action-bar { border-top: 1px solid var(--c-ligne); }
+
+/* Composants admin locaux v1 */
+.a2 .ad-stage { border: 1px dashed var(--c-acier); }
+.a2 .ad-viewer { background: var(--c-givre); border: 1px solid var(--c-ligne); }
+.a2 .ad-viewer__tools { color: var(--c-ardoise); }
+.a2 .ad-viewer__tools .btn-icon { background: var(--c-blanc); border-color: var(--c-ligne); color: var(--c-encre); }
+.a2 .ad-idcard { border: 1px solid var(--c-acier); }
+.a2 .ad-idcard__band { background: var(--c-givre); border-bottom: 1px solid var(--c-ligne); }
+.a2 .ad-idcard__pin, .a2 .ad-legend b { background: var(--c-encre); }
+.a2 .ad-subnav a.is-active { background: var(--c-blanc); color: var(--c-encre); box-shadow: inset 0 0 0 1px var(--c-ligne); }
+.a2 .ad-subnav a.is-active .ic { color: var(--c-bleu); }
+.a2 .ad-setting { border-bottom: 1px solid var(--c-ligne-2); }
+.a2 .ad-setting__val { font-weight: var(--fw-xbold); }
+.a2 .ad-log { border: 0; border-radius: 0; background: transparent; border-bottom: 1px solid var(--c-ligne-2); }
+.a2 .ad-log.is-selected { box-shadow: inset 3px 0 0 var(--c-bleu); background: var(--c-givre); }
+.a2 .ad-diff__old { background: var(--c-blanc); border: 1px solid var(--c-ligne); }
+.a2 .ad-diff__new { background: var(--c-blanc); border: 1px solid var(--c-encre); }
+.a2 .ad-payreq { border: 1px solid var(--c-ligne); }
+.a2 .ad-payreq.is-flagged { border-color: var(--c-ligne); background: var(--c-blanc); box-shadow: inset 3px 0 0 var(--c-erreur); }
+.a2 .ad-proof { border: 1px solid var(--c-acier); }
+.a2 .ad-proof__ic { border: 1px solid var(--c-ligne); }
+.a2 .ad-proof__lab { border-top: 1px solid var(--c-ligne); }
+.a2 .ad-proof__note { background: var(--c-blanc); border: 1px solid var(--c-acier); }
+.a2 .ad-proof__sms { border-width: 1px; }
+.a2 .ad-ro { background: var(--c-givre); color: var(--c-ardoise); border-bottom: 1px solid var(--c-ligne); }
+.a2 .ad-ro .ic { color: var(--c-ardoise); }
+.a2 .ad-typeconfirm { border: 1px solid var(--c-ligne); background: var(--c-givre); }
+.a2 .ad-steps .is-on b { color: var(--c-blanc); }
+.a2 .ad-kbd { border-width: 1px; }
+.a2 .ad-hbar__track { height: 10px; }
+.a2 .ad-hbar--citron .ad-hbar__track i, .a2 .ad-hbar--lavande .ad-hbar__track i,
+.a2 .ad-hbar--encre .ad-hbar__track i { background: var(--c-brume); box-shadow: none; }
+.a2 .ad-vchart__plot { border-bottom: 1px solid var(--c-acier); }
+.a2 .ad-vchart__bar { border-radius: 6px 6px 0 0; }
+.a2 .ad-vchart__bar.is-hl { background: var(--c-bleu); box-shadow: none; }
+.a2 .ad-indic { border-width: 1px; }
+.a2 .t-paycard { border: 1px solid var(--c-ligne); }
+.a2 .t-paycard__photo { border-width: 1px; }
+.a2 .t-warn .ic { color: var(--c-alerte-txt); }
+.a2 .a-object { border: 1px solid var(--c-ligne); }
+
+/* Autres composants v1 à bordure encre ou ombre dure */
+.a2 .mission, .a2 .applicant, .a2 .file, .a2 .push, .a2 .a-install, .a2 .e-achat, .a2 .c-payreq,
+.a2 .e-inbox__list, .a2 .e-inbox__pane, .a2 .c-inbox { border: 1px solid var(--c-ligne); box-shadow: none; }
+.a2 .mission--hl, .a2 .mission--link:hover, .a2 .mission--link.is-hover { box-shadow: none; transform: none; }
+.a2 .e-inbox__pane-head { border-bottom: 1px solid var(--c-ligne); }
+.a2 .choice { border-width: 1px; }
+.a2 .choice.is-selected { background: var(--c-blanc); border-color: var(--c-encre); box-shadow: inset 0 0 0 1px var(--c-encre); }
+.a2 .step.is-current .step__dot { background: var(--c-encre); color: var(--c-blanc); box-shadow: none; }
+.a2 .msg-system, .a2 .chat-status { background: var(--c-givre); border-color: var(--c-ligne); }
+.a2 .sticker, .a2 .photo-ph { border-width: 1px; box-shadow: none; }
+.a2 .detail-card { background: var(--c-givre); }
+.a2 .bento-card { background: var(--c-blanc); border: 1px solid var(--c-ligne); box-shadow: none; }
+.a2 .e-success__mark { background: var(--c-givre); border: 1px solid var(--c-ligne); }
+.a2 .ad-prio i { border-width: 0; background: var(--c-acier); width: 8px; height: 8px; }
+.a2 .ad-prio--haute i { background: var(--c-erreur); }
+.a2 .ad-prio--moy i { background: var(--c-alerte); }
+.a2 .searchbar { border: 1px solid var(--c-ligne); }
+.a2 .searchbar__icon { background: var(--c-givre); }
+.a2 .search { border-width: 1px; }
+
+/* ---------- 1b. Équivalents .a2 des règles .c2 et .e2 utilisées par app-ui et la coquille ---------- */
+
+/* Fenêtres : l'espace admin n'a pas d'ombre (filet seul) ; le tiroir colle au bord */
+.a2 .modal__icon { display: none; }
+.a2 .drawer { border-radius: 0; }
+
+/* Boutons icône (fermer d'une fenêtre, d'un toast) : carrés arrondis discrets */
+.a2 .btn-icon { width: 40px; height: 40px; }
+.a2 .btn-icon--sm { width: 36px; height: 36px; }
+.a2 .btn-icon:hover, .a2 .btn-icon.is-hover { background: var(--c-givre); }
+.a2 .toast__close:hover, .a2 .toast__close.is-hover { background: var(--c-encre-700); }
+
+/* Champs et cases : filet 1,5 px, coché en encre, focus bleu inchangé */
+.a2 .check input, .a2 .radio input { border-width: 1.5px; }
+.a2 .check input:checked, .a2 .check.is-checked input { background-color: var(--c-encre); border-color: var(--c-encre); }
+.a2 .radio input:checked, .a2 .radio.is-checked input { border-color: var(--c-encre); background: radial-gradient(circle, var(--c-encre) 0 5px, var(--c-blanc) 6px); }
+
+/* Avatars : image rognée dans le cercle */
+.a2 .av2 { overflow: hidden; }
+.a2 .av2 img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+
+/* Anneau système (3 px) sur les liens de cartes et de listes, et sortie visible des champs sans anneau propre */
+.a2 .link:focus-visible, .a2 .list2__more:focus-visible, .a2 .hero2__link:focus-visible, .a2 .list2__head a:focus-visible, .a2 .item2__action:focus-visible,
+.a2 .head2__back:focus-visible, .a2 .a2-sec__more:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
+.a2 input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(.input):focus-visible, .a2 textarea:not(.input):focus-visible, .a2 select:not(.select):focus-visible { outline: 2px solid var(--c-bleu); outline-offset: 2px; }
+.a2 .btn--secondary:focus-visible, .a2 .btn--accent:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+
+/* ---------- 2. Composants communs ---------- */
+
+/* Sous-titre et actions de l'en-tête de page (sous le titre Anton) */
+.a2 .head2__sub { font-size: var(--t-body-s); color: var(--c-ardoise); margin-top: 6px; }
+.a2 .head2__sub b { color: var(--c-encre); font-weight: var(--fw-bold); }
+.a2 .head2__actions { display: flex; align-items: center; gap: var(--s-3); flex: none; }
+.a2 .head2__back { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-body-s); font-weight: var(--fw-bold); color: var(--c-bleu); }
+.a2 .head2__back .ic { width: 16px; height: 16px; }
+
+/* Mobile : en-tête de sous-page (retour + titre court, sans Anton). Masqué au bureau. */
+.a2-mtop { height: 60px; flex: none; display: none; align-items: center; gap: var(--s-2); margin: 0 0 0 calc(-1 * var(--s-2)); padding: 0; }
+.a2-mtop__spacer { width: 40px; height: 40px; flex: none; }
+.a2-mtop__title { flex: 1; min-width: 0; font-size: var(--t-body); font-weight: var(--fw-xbold); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Mobile : barre d'action fixe (remplace la barre du bas sur le dossier ouvert, voir app-shell.css). Masquée au bureau. */
+.a2-mbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-nav); background: var(--c-blanc); border-top: 1px solid var(--c-ligne); padding: 12px var(--s-4) calc(12px + env(safe-area-inset-bottom, 0px)); display: none; align-items: center; gap: var(--s-3); }
+.a2-mbar__info { flex: 1; min-width: 0; line-height: 1.25; }
+.a2-mbar__info small { display: block; font-size: var(--t-micro); color: var(--c-ardoise); }
+.a2-mbar .btn { flex: 1; }
+.a2-mbar--stack { flex-direction: column; align-items: stretch; }
+
+/* Barre de filtres sobre */
+.a2-filters { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+.a2-filters__count { margin-left: auto; font-size: var(--t-caption); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
+.a2-filters .search2 { width: 320px; max-width: 100%; height: 40px; background: var(--c-blanc); border-color: var(--c-ligne); }
+
+/* Section de contenu : titre sobre en Figtree + carte blanche */
+.a2-sec { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+.a2-sec__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); }
+.a2-sec__title { font-size: var(--t-h4); font-weight: var(--fw-xbold); }
+.a2-sec__title span { color: var(--c-ardoise); font-weight: var(--fw-semibold); margin-left: 6px; }
+.a2-sec__more { font-size: var(--t-body-s); font-weight: var(--fw-bold); color: var(--c-bleu); }
+
+/* Grille maître et détail, colonnes */
+.a2-split { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--s-5); align-items: start; }
+.a2-split--wide { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+.a2-split--md { grid-template-columns: 340px minmax(0, 1fr); }
+.a2-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5); }
+.a2-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Liste clé / valeur sobre */
+.a2-kv { display: grid; grid-template-columns: auto 1fr; gap: 10px var(--s-4); font-size: var(--t-body-s); }
+.a2-kv dt { color: var(--c-ardoise); }
+.a2-kv dd { font-weight: var(--fw-bold); text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+/* Note sobre (remplace les bannières colorées quand il ne s'agit que d'informer) */
+.a2-note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-m); background: var(--c-givre); font-size: var(--t-body-s); color: var(--c-encre); line-height: 1.45; }
+.a2-note > .ic { width: 18px; height: 18px; flex: none; margin-top: 1px; color: var(--c-ardoise); }
+.a2-note b { font-weight: var(--fw-bold); }
+.a2-note--erreur > .ic { color: var(--c-erreur); }
+.a2-note--alerte > .ic { color: var(--c-alerte-txt); }
+.a2-note--succes > .ic { color: var(--c-succes); }
+
+/* Priorité : un point seul (jamais de filet citron) */
+.a2-prio { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-caption); font-weight: var(--fw-bold); white-space: nowrap; }
+.a2-prio i { width: 8px; height: 8px; border-radius: 50%; background: var(--c-acier); }
+.a2-prio--haute i { background: var(--c-erreur); }
+.a2-prio--moy i { background: var(--c-alerte); }
+
+/* Écran plein cadre (erreur, hors ligne) : sobre */
+.a2-full { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--s-4); padding: var(--s-10) var(--s-6); }
+.a2-full__code { font-family: var(--f-text); font-weight: var(--fw-black); font-size: 96px; line-height: 1; letter-spacing: -.04em; color: var(--c-ligne); }
+.a2-full__text { font-size: var(--t-body); color: var(--c-ardoise); max-width: 520px; line-height: 1.5; }
+.a2-full__actions { display: flex; gap: var(--s-4); align-items: center; flex-wrap: wrap; justify-content: center; margin-top: var(--s-2); }
+.a2-full__safe { max-width: 520px; width: 100%; text-align: left; background: var(--c-blanc); border: 1px solid var(--c-ligne); }
+
+/* Tableau en liste sous 768 : classe .a2-tlist sur le tableau, chaque cellule porte son libellé (data-label), voir le bloc 768 */
+
+/* ---------- Responsive : sous 1024 ---------- */
+@media (max-width: 1023.98px) {
+  /* Coquille : sur le dossier ouvert l'en-tête .a2-mtop remplace l'en-tête .mtop2 */
+  .a2:has(.a2-mtop) .mtop2 { display: none; }
+  .a2-mtop { display: flex; }
+  .a2-mbar { display: flex; }
+  .a2-mtop .iconbtn2, .a2-mtop__spacer { width: 44px; height: 44px; }
+  /* Les toasts passent au-dessus de la barre d'action fixe (hauteur réservée : 140 px, comme .mbar2) */
+  .a2:has(.a2-mbar) .toasts--mobile.ds-toasts-fixed { bottom: calc(140px + env(safe-area-inset-bottom, 0px) + var(--s-3)); }
+
+  /* Maître et détail : une seule colonne */
+  .a2-split, .a2-split--wide, .a2-split--md, .a2 .ad-md, .a2 .ad-review { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+  .a2-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
+  .a2-sec { gap: var(--s-2); }
+  .a2-full { padding: var(--s-8) var(--s-4); }
+  .a2-full__code { font-size: 72px; }
+  .a2 .head2__title { font-size: 30px; }
+
+  /* Cibles tactiles de 44 px (liens et pastilles isolés, boutons icône, fermeture des fenêtres) */
+  .a2-sec__more, .a2 .head2__back { display: inline-flex; align-items: center; min-height: 44px; }
+  .a2 .chip { min-height: 44px; }
+  .a2 .iconbtn2, .a2 .btn-icon, .a2 .btn-icon--sm { width: 44px; height: 44px; }
+  .a2 .toast__close { margin: -8px -8px -8px 0; }
+  .a2 .check, .a2 .radio { min-height: 44px; align-items: flex-start; }
+  .a2 .btn--sm { min-height: 44px; }
+  .a2 .mtop2 > a { position: relative; }
+  .a2 .mtop2 > a::after { content: ""; position: absolute; inset: -6px; }
+  .a2 .mtop2 > a.av2 { overflow: visible; }
+  .a2 .mtop2 > a.av2::after { inset: -7px; }
+  .a2 .item2__action, .a2 .hero2__link, .a2 .list2__more { display: inline-flex; align-items: center; min-height: 44px; }
+  .a2 .item2__action { min-width: 44px; }
+  .a2 .stat2__sub, .a2 .money2 .stat2__sub, .a2 .item2__sub { white-space: normal; overflow: visible; text-overflow: clip; }
+  .a2-filters .search2 { width: 100%; }
+}
+
+/* ---------- Responsive : 768 (tableaux en liste) ---------- */
+@media (max-width: 767.98px) {
+  .a2-grid, .a2-grid--3 { grid-template-columns: minmax(0, 1fr); }
+  .a2-kv { gap: 8px var(--s-3); }
+  .a2 .ds-table-wrap { overflow: visible; }
+  .a2 .a2-tlist, .a2 .a2-tlist tbody, .a2 .a2-tlist tr, .a2 .a2-tlist td { display: block; width: 100%; }
+  .a2 .a2-tlist thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .a2 .a2-tlist tr { padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--c-ligne-2); }
+  .a2 .a2-tlist td { padding: 2px 0; border: 0; overflow-wrap: anywhere; }
+  .a2 .a2-tlist td::before { content: attr(data-label); display: block; font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
+}
+
+/* ---------- Responsive : 480 ---------- */
+@media (max-width: 480px) {
+  .a2-mbar { padding-left: var(--s-3); padding-right: var(--s-3); }
+  .a2-note { padding: 12px; }
+  .a2-full__code { font-size: 56px; }
+}
+
+/* ---------- Mouvement réduit ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .a2, .a2 *, .a2 *::before, .a2 *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

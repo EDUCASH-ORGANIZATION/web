@@ -178,3 +178,48 @@ export function CheckboxField({ id, label, help, error, className, ...inputProps
     </div>
   )
 }
+
+// Groupe de boutons radio natifs : fieldset et legend, une seule valeur cochée, erreur reliée par aria-describedby.
+// `options` : [{ value, label, help? }] ; `onChange(value)` reçoit la valeur choisie.
+export function RadioGroupField({ id, legend, name, options, value, onChange, error, required, className }) {
+  const uid = useId()
+  const groupId = id ?? `${uid}-group`
+  const errorId = error ? `${groupId}-error` : undefined
+  return (
+    <fieldset
+      id={groupId}
+      className={cx("field", className)}
+      aria-describedby={errorId}
+      aria-invalid={error ? "true" : undefined}
+      aria-required={required ? "true" : undefined}
+    >
+      <legend className="field__label">
+        {legend}
+        {required ? <span className="req" aria-hidden="true">*</span> : null}
+      </legend>
+      {options.map((option) => {
+        const optionId = `${groupId}-${option.value}`
+        const helpId = option.help ? `${optionId}-help` : undefined
+        return (
+          <label key={option.value} className={cx("radio", error && "is-error")} htmlFor={optionId}>
+            <input
+              id={optionId}
+              type="radio"
+              name={name}
+              value={option.value}
+              checked={value === option.value}
+              onChange={() => onChange?.(option.value)}
+              required={required}
+              aria-describedby={helpId}
+            />
+            <span>
+              {option.label}
+              {option.help ? <span id={helpId} className="check__sub">{option.help}</span> : null}
+            </span>
+          </label>
+        )
+      })}
+      <FieldError id={errorId} error={error} />
+    </fieldset>
+  )
+}
