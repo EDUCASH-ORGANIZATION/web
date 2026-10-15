@@ -101,6 +101,8 @@ async function readEmailTarget(service, userId) {
     service.from("student_profiles").select("school").eq("user_id", userId).maybeSingle(),
     service.auth.admin.getUserById(userId),
   ])
+  if (profileRes.error) console.error("[admin-verifications] e-mail : lecture du nom impossible")
+  if (schoolRes.error) console.error("[admin-verifications] e-mail : lecture de l'établissement impossible")
   return {
     name: firstName(profileRes.data?.full_name),
     school: schoolRes.data?.school ?? "votre établissement",
