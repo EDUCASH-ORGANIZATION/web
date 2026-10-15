@@ -254,6 +254,17 @@ describe("onglet Détails et séquestre (commission par escrowSplit)", () => {
     expect(html).toContain(formatAmount(split.commission))
   })
 
+  it("le séquestre reste le seul budget : l'estimation d'achats n'y est jamais ajoutée", () => {
+    const out = render({ detail: detailOf({ applications: TWO, budget: 8000, purchasesEstimate: 15000 }) })
+    const card = out.slice(out.indexOf('aria-label="Séquestre"'))
+    const escrow = card.slice(0, card.indexOf("</section>"))
+    expect(escrow).toContain(formatAmount(8000))
+    expect(escrow).not.toContain(formatAmount(23000))
+    expect(escrow).not.toContain(formatAmount(15000))
+    expect(out).not.toContain(formatAmount(23000))
+    expect(out).toContain("Achats estimés : environ")
+  })
+
   it("affiche le type par son libellé, jamais la valeur brute", () => {
     expect(html).toContain("Marché et achats")
     expect(html).not.toContain(">Livraison<")

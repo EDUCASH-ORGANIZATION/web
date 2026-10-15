@@ -13,7 +13,7 @@ const mission = (over) => ({
   ...over,
 })
 const render = (m, props = {}) => renderToStaticMarkup(<MissionHeader mission={m} back={back} {...props} />)
-const text = (html) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")
+const text = (html) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/\s+/g, " ")
 
 describe("MissionHeader étudiant", () => {
   it("porte un seul h1, le type par son libellé et la date de publication (E03)", () => {
@@ -36,6 +36,20 @@ describe("MissionHeader étudiant", () => {
     expect(order.every((i) => i > -1)).toBe(true)
     expect([...order].sort((a, b) => a - b)).toEqual(order)
     expect(meta).toContain("badge--sm")
+  })
+
+  it("garde la ligne d'achats provisoire sous la méta, avec le badge", () => {
+    const html = render(mission({ purchasesEstimate: 5000 }))
+    expect(text(html)).toContain("Achats estimés : environ")
+    expect(html).toContain("Avec achats")
+    expect(render(mission())).not.toContain("Achats estimés")
+  })
+
+  it("« Avant le » pour E03, « Jusqu'au » pour E05", () => {
+    expect(text(render(mission()))).toContain("Avant le 30 octobre 2099")
+    const e05 = text(render(mission(), { variant: "05" }))
+    expect(e05).toContain("Jusqu'au 30 octobre 2099")
+    expect(e05).not.toContain("Avant le")
   })
 
   it("omet candidats et badge sans donnée, accorde le singulier", () => {

@@ -22,16 +22,17 @@ const status = { label: "Ouverte", tone: "bleu" }
 const back = { href: "/student/missions", label: "Retour" }
 
 describe("détail client : badge « Avec achats »", () => {
-  it("affiche le badge pour une estimation positive, sans montant d'achats ni mention du séquestre", () => {
+  it("affiche le badge et la ligne provisoire d'achats, sans mention du séquestre", () => {
     const html = text(renderToStaticMarkup(<ClientHeader mission={clientMission({ purchasesEstimate: 15000 })} status={status} />))
     expect(html).toContain("Avec achats")
-    expect(html).not.toContain("Achats estimés")
+    expect(html).toContain("Achats estimés : environ 15 000 FCFA, non bloqués")
     expect(html).not.toContain("En séquestre")
   })
 
   it.each([null, undefined, 0, -5, Number.NaN])("n'affiche rien pour %j", (purchasesEstimate) => {
     const html = text(renderToStaticMarkup(<ClientHeader mission={clientMission({ purchasesEstimate })} status={status} />))
     expect(html).not.toContain("Avec achats")
+    expect(html).not.toContain("Achats estimés")
   })
 })
 
@@ -42,7 +43,7 @@ describe("détail étudiant : badge « Avec achats »", () => {
         renderToStaticMarkup(<StudentHeader mission={clientMission({ status: s, purchasesEstimate: 15000 })} back={back} />),
       )
       expect(html).toContain("Avec achats")
-      expect(html).not.toContain("Achats estimés")
+      expect(html).toContain("Achats estimés : environ 15 000 FCFA, non bloqués")
     }
   })
 

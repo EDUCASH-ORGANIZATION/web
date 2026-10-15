@@ -5,7 +5,7 @@ import { PageHead } from "@/components/app-ui/page-head"
 import { StatusBadge } from "@/components/app-ui/status-badge"
 import { missionTypeLabel } from "@/lib/constants/missions"
 import { formatDateFr } from "@/lib/app/format"
-import { purchasesEstimateOf } from "@/lib/app/purchases"
+import { purchasesEstimateOf, purchasesLine } from "@/lib/app/purchases"
 
 /**
  * En-tête partagé du détail de mission étudiant (E03 et E05) : lien de retour, ligne de date, titre (seul h1,
@@ -23,6 +23,7 @@ import { purchasesEstimateOf } from "@/lib/app/purchases"
 export function MissionHeader({ mission, back, variant = "03", retainedAt = null }) {
   const deadline = mission.deadline ? formatDateFr(mission.deadline) : ""
   const withPurchases = purchasesEstimateOf(mission.purchasesEstimate) !== null
+  const purchases = purchasesLine(mission.purchasesEstimate)
   const count = Number.isInteger(mission.applicationsCount) && mission.applicationsCount > 0 ? mission.applicationsCount : 0
   const type = missionTypeLabel(mission.type)
   let dateLine = type
@@ -45,7 +46,7 @@ export function MissionHeader({ mission, back, variant = "03", retainedAt = null
         {deadline ? (
           <span>
             <Icon name="i-calendar" />
-            {`Avant le ${deadline}`}
+            {`${variant === "05" ? "Jusqu'au" : "Avant le"} ${deadline}`}
           </span>
         ) : null}
         {variant === "03" && count > 0 ? (
@@ -56,6 +57,8 @@ export function MissionHeader({ mission, back, variant = "03", retainedAt = null
         ) : null}
         {withPurchases ? <StatusBadge label="Avec achats" icon="i-receipt" /> : null}
       </div>
+      {/* Provisoire : migre vers les cartes en ST-08/ST-09/ST-11/ST-12 */}
+      {purchases ? <p className="body-s">{purchases}</p> : null}
     </header>
   )
 }
