@@ -6,7 +6,7 @@
 .a2-02-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-3); padding: 12px var(--s-4); min-height: 56px; color: var(--c-encre); }
 .a2-02-row + .a2-02-row { border-top: 1px solid var(--c-ligne-2); }
 .a2-02-row:hover { background: var(--c-givre); }
-.a2-02-row[aria-current="true"] { background: var(--c-givre); box-shadow: inset 3px 0 0 var(--c-bleu); }
+.a2-02-row[aria-current="true"] { background: var(--c-lavande); box-shadow: inset 3px 0 0 var(--c-bleu); }
 .a2-02-row:focus-visible { outline: none; box-shadow: var(--sh-focus); }
 .a2-02-row__name { font-size: var(--t-body-s); font-weight: var(--fw-bold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .a2-02-row__sub { font-size: var(--t-caption); color: var(--c-ardoise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -21,11 +21,43 @@
 .a2-02-checklist { border: 0; padding: 0; margin: 0; min-width: 0; }
 .a2-02-checklist__legend { font-weight: var(--fw-bold); padding: 0; margin-bottom: var(--s-2); }
 .a2-02-dossier { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
-.a2-02-actions { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.a2-02-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; }
+.a2-02-actions__btns { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; margin-left: auto; }
 .a2-02-checklist { display: flex; flex-direction: column; gap: 4px; }
+
+/* Planche v1 : en-tête de liste, mention de tri, pastilles, bascule, bouton principal bleu, bandeau des noms, frise.
+   Sous .a2 .a2-02 pour l'emporter sur base.css (calme) et sur ad07.css (frise, chargée après). */
+.a2-02-listhead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); font-size: var(--t-body-s); font-weight: var(--fw-bold); }
+.a2-02-listhead span:last-child { font-size: var(--t-caption); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
+.a2-02-sort { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; font-size: var(--t-caption); font-weight: var(--fw-semibold); color: var(--c-ardoise); white-space: nowrap; }
+.a2 .a2-02 .badge--contour { border: 1px solid var(--c-encre); }
+.a2 .a2-02 .a2-02-cta { background: var(--c-bleu); border-color: var(--c-bleu); color: var(--c-blanc); }
+.a2 .a2-02 .a2-02-cta:hover { background: var(--c-bleu-700); border-color: var(--c-bleu-700); }
+.a2 .a2-02 .a2-02-cta .ad-kbd { background: transparent; border-color: var(--c-blanc); color: var(--c-blanc); }
+.a2 .a2-02 .ad-legend b { background: var(--c-bleu); }
+.a2 .a2-02 .banner--succes { background: var(--c-succes-bg); border-color: var(--c-succes); }
+.a2 .a2-02 .banner--alerte { background: var(--c-alerte-bg); border-color: var(--c-alerte-txt); }
+.a2 .a2-02 .banner--alerte > .ic { color: var(--c-alerte-txt); }
+.a2-02-namecheck { min-width: 0; overflow-wrap: anywhere; }
+.a2-02-review { min-width: 0; }
+.a2-02-review > * { min-width: 0; }
+.a2-02-legend { margin-top: var(--s-3); }
+.a2-02-dossier__head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-4); min-width: 0; }
+.a2-02-dossier__id { flex: 1 1 200px; min-width: 0; }
+.a2-02-dossier__status { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-3); }
+.a2 .a2-02 .a2-02-avatar .av2 { width: 56px; height: 56px; font-size: var(--t-body); }
+.a2 .a2-02 .tl-item.is-done::before { background: var(--c-encre); }
+.a2 .a2-02 .tl-item.is-done .tl-item__dot { background: var(--c-encre); border: 1px solid var(--c-encre); color: var(--c-citron); }
+.a2 .a2-02 .tl-item.is-current .tl-item__dot { background: var(--c-citron); border: 1.5px solid var(--c-encre); color: var(--c-encre); }
+.a2 .a2-02 .tl-item.is-error .tl-item__dot { background: var(--c-erreur-bg); border: 1px solid var(--c-erreur); color: var(--c-erreur); }
 
 /* Carte : image ou PDF dans la scène, zoom (100 à 300 %) et rotation par 90° pilotés par des attributs, jamais par style local */
 .a2-02-stage { position: relative; overflow: auto; border-radius: var(--r-l); background: var(--c-givre); border: 1px solid var(--c-ligne); min-height: 320px; max-height: 70vh; display: grid; place-items: center; padding: var(--s-4); }
+/* Plein écran : la visionneuse entière (outils en haut, scène centrée dessous) occupe l'écran ; outils de 44 px */
+.a2-02-viewer:fullscreen { box-sizing: border-box; width: 100%; height: 100vh; height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; background: var(--c-givre); padding: var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); overflow: hidden; }
+.a2-02-viewer:fullscreen .a2-02-tools { flex: none; }
+.a2-02-viewer:fullscreen .a2-02-tools .btn-icon { width: 44px; height: 44px; }
+.a2-02-viewer:fullscreen .a2-02-stage { flex: 1 1 auto; min-height: 0; max-height: none; }
 .a2-02-img { max-width: 100%; height: auto; transform: rotate(var(--a2-rot, 0deg)) scale(var(--a2-zoom, 1)); transform-origin: center; transition: transform .15s; }
 .a2-02-img[data-zoom="150"] { --a2-zoom: 1.5; }
 .a2-02-img[data-zoom="200"] { --a2-zoom: 2; }
@@ -47,7 +79,12 @@
      (l'en-tête .a2-mtop porte le titre visible du dossier) */
   .a2-02--open .a2-02-head > :not(.head2) { display: none; }
   .a2-02--open .a2-02-head .head2 { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .a2-02-actions { display: none; }
+  /* La barre fixe (.a2-mbar) porte les décisions ; la bascule reste dans le dossier */
+  .a2-02-actions__btns { display: none; }
+  .a2-02-actions { justify-content: flex-start; }
+  .a2 .a2-02 .switch { min-height: 44px; }
+  .a2 .a2-02 .a2-02-review .input { min-height: 44px; }
+  .a2 .a2-02 .a2-02-cta { min-height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

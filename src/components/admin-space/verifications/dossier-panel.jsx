@@ -5,43 +5,82 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Icon } from "@/components/design/icon"
-import { CheckboxField } from "@/components/app-ui/fields"
+import { Avatar } from "@/components/app-ui/avatar"
+import { StatusBadge } from "@/components/app-ui/status-badge"
 import { useAppToast } from "@/components/app-ui/toast"
 import { adminUserHref } from "@/lib/app/admin-routes"
-import { formatDateFr, formatShortDate } from "@/lib/app/format"
+import { historySteps } from "@/lib/admin-space/verification-queue"
 import {
   approveStudentCard,
   rejectStudentCard,
   resetStudentRejection,
   revokeStudentBadge,
 } from "@/lib/actions/admin-verifications.actions"
-import { CardViewer } from "./card-viewer"
+import { DossierReview } from "./dossier-review"
+import { shortDay } from "./queue-list"
 import { ApproveDialog } from "./approve-dialog"
 import { RejectDialog } from "./reject-dialog"
 import { ResetDialog } from "./reset-dialog"
 import { RevokeDialog } from "./revoke-dialog"
 import { useQueueShortcuts } from "./use-queue-shortcuts"
-
-const CHECKLIST = ["La carte est lisible et entière", "Le nom correspond au profil", "L'année universitaire est en cours"]
+import { leaveFullscreen } from "./card-viewer"
 
 const ACTION_LABELS = {
-  approve: { label: "Valider", icon: "i-check", className: "btn btn--dark", key: "V" },
+  approve: { label: "Valider", icon: "i-check", className: "btn btn--primary a2-02-cta", key: "V" },
   reject: { label: "Refuser", icon: "i-x", className: "btn btn--danger-outline", key: "R" },
   reset: { label: "Réinitialiser le refus", icon: "i-undo", className: "btn btn--dark" },
   revoke: { label: "Révoquer le badge", icon: "i-ban", className: "btn btn--danger-outline" },
 }
 
-const KIND_HISTORY = { renouvellement: "renouvellement du badge", premiere: "première demande" }
+// État du dossier selon l'onglet : pastille d'en-tête.
+const TAB_STATUS = {
+  "a-examiner": { label: "En cours d'examen", tone: "alerte", icon: "i-clock" },
+  refuses: { label: "Carte refusée", tone: "erreur" },
+  verifies: { label: "Vérifié", tone: "succes" },
+  expires: { label: "Badge expiré", tone: "neutre" },
+  incomplets: { label: "Non vérifié", tone: "neutre" },
+}
 
-/** Ligne d'historique : création du compte, dépôt de la carte et nature de la demande. */
-export function historyLine(dossier) {
-  const parts = []
-  if (dossier.createdAt) parts.push(`compte créé le ${formatShortDate(dossier.createdAt)}`)
-  if (dossier.submittedAt) {
-    const kind = KIND_HISTORY[dossier.kind]
-    parts.push(`carte envoyée le ${formatShortDate(dossier.submittedAt)}${kind ? `, ${kind}` : ""}`)
+const STEP_ICONS = { done: "i-check", current: "i-clock", error: "i-x" }
+
+const plural = (n, one, many) => (n > 1 ? many : one)
+
+/** Légende de l'en-tête : « Licence 3 · EPAC · soumis le 5 oct. (3 jours) » ; seules les données connues figurent. */
+export function dossierCaption(dossier) {
+  const parts = [dossier.level, dossier.school].filter(Boolean)
+  const day = shortDay(dossier.submittedOn)
+  if (day) {
+    const age = Number.isInteger(dossier.ageDays) ? ` (${dossier.ageDays === 0 ? "aujourd'hui" : `${dossier.ageDays} ${plural(dossier.ageDays, "jour", "jours")}`})` : ""
+    parts.push(`soumis le ${day}${age}`)
   }
-  return parts.length > 0 ? `Historique : ${parts.join(" · ")}.` : ""
+  return parts.join(" · ") || "Profil étudiant"
+}
+
+/** Frise « Historique des décisions » : dates connues, sauf la validation, estimée depuis l'échéance (voir `historySteps`). */
+export function DecisionTimeline({ dossier }) {
+  const steps = historySteps(dossier)
+  if (steps.length === 0) return null
+  return (
+    <div>
+      <b className="body-s">Historique des décisions</b>
+      <ol className="timeline a2-02-timeline">
+        {steps.map((step) => {
+          const meta = [shortDay(step.at), step.meta].filter(Boolean).join(" · ")
+          return (
+            <li key={step.title} className={`tl-item is-${step.state}`}>
+              <span className="tl-item__dot">
+                <Icon name={STEP_ICONS[step.state]} />
+              </span>
+              <div>
+                <div className="tl-item__title">{step.title}</div>
+                {meta ? <div className="tl-item__meta">{meta}</div> : null}
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
 }
 
 /**
@@ -61,34 +100,42 @@ export async function runDecision({ run, title, text, router, notify, afterHref 
   return { done: true }
 }
 
-/** Détail du dossier : carte, données déclarées, liste de contrôle, historique et décisions de l'onglet. */
+/** Détail du dossier : en-tête, revue de la carte, historique et décisions de l'onglet. */
 export function DossierPanel({ dossier, hrefs, badgeUntil }) {
   const router = useRouter()
   const { success } = useAppToast()
   const [dialog, setDialog] = useState(null)
+  const [advance, setAdvance] = useState(true)
   const headingRef = useRef(null)
   const refocus = useRef(false)
   const name = dossier.name || "cet étudiant"
   const { actions } = dossier
 
-  // Après une décision, le focus passe au dossier suivant (titre du détail), pas à la page.
+  // Après une décision, le focus va au titre du détail : celui du dossier suivant (changement d'identifiant) ou,
+  // bascule désactivée, celui du même dossier dont l'état a changé (changement d'onglet). Jamais à la page.
   useEffect(() => {
     if (!refocus.current) return
     refocus.current = false
     headingRef.current?.focus()
-  }, [dossier.userId])
+  }, [dossier.userId, dossier.tab])
+
+  // Une confirmation rendue dans la page resterait cachée derrière la carte en plein écran : on en sort d'abord.
+  const openDialog = (action) => {
+    if (typeof document !== "undefined") leaveFullscreen(document)
+    setDialog(action)
+  }
 
   useQueueShortcuts({
     allowed: actions,
     dialogOpen: dialog !== null,
     onPrev: hrefs.prev ? () => router.push(hrefs.prev) : undefined,
     onNext: hrefs.next ? () => router.push(hrefs.next) : undefined,
-    onApprove: () => setDialog("approve"),
-    onReject: () => setDialog("reject"),
+    onApprove: () => openDialog("approve"),
+    onReject: () => openDialog("reject"),
   })
 
   const decide = async (run, title, text) => {
-    const outcome = await runDecision({ run, title, text, router, notify: success, afterHref: hrefs.afterDecision })
+    const outcome = await runDecision({ run, title, text, router, notify: success, afterHref: advance ? hrefs.afterDecision : hrefs.self })
     if (outcome.done) refocus.current = true
     return outcome.error ? { error: outcome.error } : undefined
   }
@@ -98,7 +145,7 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
     actions.map((action) => {
       const spec = ACTION_LABELS[action]
       return (
-        <button key={action} type="button" className={spec.className} onClick={() => setDialog(action)}>
+        <button key={action} type="button" className={spec.className} onClick={() => openDialog(action)}>
           {compact ? null : <Icon name={spec.icon} />}
           {spec.label}
           {!compact && spec.key ? <span className="ad-kbd">{spec.key}</span> : null}
@@ -108,66 +155,42 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
 
   return (
     <div className="card a2-02-dossier">
-      <div className="row row--between row--top">
-        <div>
-          {dossier.overdue48h ? (
-            <span className="flag2">
-              <Icon name="i-clock" />
-              Délai de 48 h dépassé
-            </span>
-          ) : null}
+      <div className="a2-02-dossier__head">
+        {/* Avatar décoratif : le nom est déjà annoncé par le titre h2 qui suit. */}
+        <span className="a2-02-avatar" aria-hidden="true">
+          <Avatar name={dossier.name || "Étudiant sans nom"} />
+        </span>
+        <div className="a2-02-dossier__id">
           <h2 className="ds-h3 a2-02-dossier__name" ref={headingRef} tabIndex={-1}>
             {dossier.name || "Étudiant sans nom"}
           </h2>
-          <div className="caption">
-            {[dossier.level, dossier.school].filter(Boolean).join(" · ") || "Profil étudiant"}
-          </div>
+          <div className="caption">{dossierCaption(dossier)}</div>
         </div>
-        <Link className="link body-s" href={adminUserHref(dossier.userId)}>
-          Ouvrir la fiche
-        </Link>
+        <div className="a2-02-dossier__status">
+          {/* Annonce du nouvel état après une décision quand le dossier reste affiché (bascule désactivée). */}
+          <span aria-live="polite">
+            <StatusBadge {...(TAB_STATUS[dossier.tab] ?? TAB_STATUS.incomplets)} />
+          </span>
+          <Link className="link body-s" href={adminUserHref(dossier.userId)}>
+            Ouvrir la fiche
+          </Link>
+        </div>
       </div>
 
-      <div className="ad-review">
-        <CardViewer key={dossier.userId} cardView={dossier.cardView} name={name} />
-        <div className="stack">
-          <dl className="a2-kv">
-            <dt>Nom au profil</dt>
-            <dd>{dossier.name || "Non renseigné"}</dd>
-            <dt>Établissement</dt>
-            <dd>{dossier.school || "Non renseigné"}</dd>
-            <dt>Niveau</dt>
-            <dd>{dossier.level || "Non renseigné"}</dd>
-            {dossier.verifiedUntil ? (
-              <>
-                <dt>Badge jusqu&apos;au</dt>
-                <dd>{formatDateFr(dossier.verifiedUntil)}</dd>
-              </>
-            ) : null}
-          </dl>
-          {dossier.rejectionReason ? (
-            <div className="a2-note a2-note--erreur">
-              <Icon name="i-alert-circle" className="ic" />
-              <span>
-                <b>Motif du refus.</b> {dossier.rejectionReason}
-              </span>
-            </div>
-          ) : null}
-          {actions.includes("approve") ? (
-            <fieldset className="a2-02-checklist">
-              <legend className="body-s a2-02-checklist__legend">Contrôle (indicatif)</legend>
-              {CHECKLIST.map((label) => (
-                <CheckboxField key={label} label={label} />
-              ))}
-            </fieldset>
-          ) : null}
-          <p className="caption">{historyLine(dossier)}</p>
-        </div>
-      </div>
+      {/* Une instance par dossier : le nom recopié et les cases de contrôle ne passent jamais d'un dossier à l'autre. */}
+      <DossierReview key={dossier.userId} dossier={dossier} today={dossier.today} showChecklist={actions.includes("approve")}>
+        <DecisionTimeline dossier={dossier} />
+      </DossierReview>
 
       {actions.length > 0 ? (
         <>
-          <div className="a2-02-actions">{buttons(false)}</div>
+          <div className="a2-02-actions">
+            <label className="switch">
+              <input type="checkbox" checked={advance} onChange={(event) => setAdvance(event.target.checked)} />
+              Passer au dossier suivant après décision
+            </label>
+            <div className="a2-02-actions__btns">{buttons(false)}</div>
+          </div>
           <div className="a2-mbar">{buttons(true)}</div>
         </>
       ) : (
@@ -184,6 +207,7 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
         onClose={() => setDialog(null)}
         name={name}
         badgeUntil={badgeUntil}
+        advance={advance}
         onConfirm={() =>
           decide(() => approveStudentCard(dossier.userId, { expectedSubmittedAt: dossier.submittedAt, expectedCardPath: dossier.cardPath }), `${name} vérifié(e)`)
         }

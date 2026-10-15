@@ -46,8 +46,14 @@ function Header({ data }) {
   )
 }
 
+const DELAY_OPTIONS = [
+  { value: "", label: "Tous les délais" },
+  { value: "plus-48h", label: "Plus de 48 h" },
+  { value: "moins-48h", label: "Moins de 48 h" },
+]
+
 function Filters({ data }) {
-  const { onglet, q, ecole, schools, total } = data
+  const { onglet, q, ecole, delai = "", schools, total } = data
   const known = ecole && !schools.includes(ecole) ? [...schools, ecole] : schools
   const options = [{ value: "", label: "Tous les établissements" }, ...known.map((school) => ({ value: school, label: school }))]
   return (
@@ -68,6 +74,21 @@ function Filters({ data }) {
           aria-label="Établissement"
         />
       ) : null}
+      {onglet === DEFAULT_VERIFICATION_TAB ? (
+        <Select
+          variant="chip"
+          name="delai"
+          icon="i-clock"
+          defaultValue={delai}
+          options={DELAY_OPTIONS}
+          placeholder="Délai"
+          aria-label="Délai"
+        />
+      ) : null}
+      <span className="a2-02-sort">
+        <Icon name="i-sort" />
+        Plus anciens d&apos;abord
+      </span>
       <button type="submit" className="btn btn--secondary btn--sm">
         Rechercher
       </button>
@@ -79,8 +100,8 @@ function Filters({ data }) {
 }
 
 function Empty({ data }) {
-  const { onglet, q, ecole, counts } = data
-  if (q || ecole) return <EmptyState compact icon="i-search" title="Aucun dossier ne correspond à cette recherche." />
+  const { onglet, q, ecole, delai, counts } = data
+  if (q || ecole || delai) return <EmptyState compact icon="i-search" title="Aucun dossier ne correspond à cette recherche." />
   if (onglet !== "a-examiner") return <EmptyState compact title="Aucun dossier dans cet onglet." />
   const missing = counts.incomplets
   return (
@@ -97,10 +118,25 @@ function Empty({ data }) {
   )
 }
 
+/** En-tête de la liste : ordre fixe et plage affichée (« 1 à 4 sur 4 »). */
+function ListHead({ data }) {
+  const { rows, page, pageSize = 25, total } = data
+  if (rows.length === 0) return null
+  const first = (page - 1) * pageSize + 1
+  return (
+    <div className="a2-02-listhead">
+      <span>Plus ancien en premier</span>
+      <span>
+        {first} à {first + rows.length - 1} sur {total}
+      </span>
+    </div>
+  )
+}
+
 function Pager({ data }) {
-  const { onglet, q, ecole, page, pageCount } = data
+  const { onglet, q, ecole, delai, page, pageCount } = data
   if (pageCount <= 1) return null
-  const href = (target) => adminVerificationsHref({ onglet, q, ecole, page: target })
+  const href = (target) => adminVerificationsHref({ onglet, q, ecole, delai, page: target })
   return (
     <nav className="row row--between" aria-label="Pagination des dossiers">
       {page > 1 ? (
@@ -126,17 +162,20 @@ function Pager({ data }) {
   )
 }
 
-/** Dossier précédent et suivant dans la liste de la page, et destination après une décision. */
+/**
+ * Dossier précédent et suivant dans la liste de la page, et destination après une décision : le suivant (bascule
+ * active) ou le dossier lui-même (`self`, bascule désactivée) pour que le détail reste affiché avec son nouvel état.
+ */
 export function dossierNeighbors(data) {
-  const { onglet, q, ecole, page, rows, dossier } = data
-  const link = (id) => adminVerificationsHref({ onglet, id, q, ecole, page })
-  const list = adminVerificationsHref({ onglet, q, ecole, page })
+  const { onglet, q, ecole, delai, page, rows, dossier } = data
+  const link = (id) => adminVerificationsHref({ onglet, id, q, ecole, delai, page })
+  const list = adminVerificationsHref({ onglet, q, ecole, delai, page })
   const index = dossier ? rows.findIndex((row) => row.userId === dossier.userId) : -1
   const prev = index > 0 ? link(rows[index - 1].userId) : null
   const next = index >= 0 && index < rows.length - 1 ? link(rows[index + 1].userId) : null
   return {
     position: index >= 0 ? { index, total: rows.length } : null,
-    hrefs: { prev, next, afterDecision: next ?? prev ?? list, list },
+    hrefs: { prev, next, afterDecision: next ?? prev ?? list, self: dossier ? link(dossier.userId) : list, list },
   }
 }
 
@@ -154,7 +193,7 @@ export function VerificationsView({ data, error }) {
     )
   }
 
-  const { onglet, q, ecole, counts, rows, dossier, dossierNotFound } = data
+  const { onglet, q, ecole, delai, counts, rows, dossier, dossierNotFound } = data
   const open = Boolean(dossier) || dossierNotFound
   const { position, hrefs } = dossierNeighbors(data)
   const tabs = VERIFICATION_TABS.map((key) => ({
@@ -185,7 +224,19 @@ export function VerificationsView({ data, error }) {
       <div className="ad-md">
         <div className="a2-02-master stack stack--3">
           {rows.length > 0 ? (
-            <QueueList rows={rows} openId={dossier?.userId ?? null} onglet={onglet} q={q} ecole={ecole} page={data.page} />
+            <>
+              <ListHead data={data} />
+              <QueueList
+                rows={rows}
+                openId={dossier?.userId ?? null}
+                onglet={onglet}
+                q={q}
+                ecole={ecole}
+                delai={delai}
+                page={data.page}
+                today={data.today}
+              />
+            </>
           ) : (
             <Empty data={data} />
           )}
