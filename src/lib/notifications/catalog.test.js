@@ -45,7 +45,7 @@ function allBuilt() {
     verificationApproved({ verifiedUntil: "2027-06-29" }),
     verificationRejected({ reasonLabel: "Photo floue ou illisible", submittedAt: "2026-10-14T09:00:00Z" }),
     verificationReset({ token: "2026-10-14T09:00:00Z" }),
-    badgeRevoked({ reasonLabel: "Carte d'une année passée", at: new Date("2026-10-15T10:00:00Z") }),
+    badgeRevoked({ at: new Date("2026-10-15T10:00:00Z") }),
     accountReactivated({ at: new Date("2026-10-15T10:00:00Z") }),
     cardSubmitted({ studentId: S, studentName: "Codjo Agbo", at: new Date("2026-10-15T10:00:00Z") }),
   ]
@@ -95,7 +95,7 @@ describe("catalogue des notifications", () => {
     expect(refused.body).toBe("Motif : photo floue ou illisible. Vous pouvez envoyer une nouvelle carte.")
     expect(refused.dedupeKey).toBe("verification_rejected:2026-10-14T09:00:00Z")
     expect(reset.body).toBe("Le refus de votre carte a été levé.")
-    expect(revoked.body).toBe("Motif : carte d'une année passée. Envoyez une nouvelle carte pour le retrouver.")
+    expect(revoked.body).toBe("Votre badge vérifié a été retiré. Consultez votre profil pour en savoir plus.")
     expect(reactivated.body).toBe("Vous pouvez de nouveau utiliser EduCash.")
     expect(card).toMatchObject({
       title: "Nouveau dossier à examiner",
@@ -182,7 +182,8 @@ describe("liens recalculés à la lecture", () => {
     expect(notificationHref({ type: "mission_cancelled", mission_id: M }, "student")).toBe("/applications")
     expect(notificationHref({ type: "payment_released", mission_id: M }, "student")).toBe(`/student/review/${M}`)
     expect(notificationHref({ type: "review_received", mission_id: M }, "student")).toBe("/profile")
-    for (const type of ["verification_approved", "verification_rejected", "verification_reset", "badge_revoked"]) {
+    expect(notificationHref({ type: "badge_revoked" }, "student")).toBe("/profile")
+    for (const type of ["verification_approved", "verification_rejected", "verification_reset"]) {
       expect(notificationHref({ type }, "student")).toBe("/profile/verify")
     }
   })

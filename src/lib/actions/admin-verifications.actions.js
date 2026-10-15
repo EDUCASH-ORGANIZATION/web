@@ -472,7 +472,7 @@ export async function revokeStudentBadge(userId, { reason } = {}) {
       after: { isVerified: false },
       reason: why.data,
     })
-    await notifyDecision(id.data, () => badgeRevoked({ reasonLabel: why.data, at: new Date() }))
+    await notifyDecision(id.data, () => badgeRevoked({ at: new Date() }))
     const emailSent = await notify(service, id.data, "verification-rejected", (t) => ({
       name: t.name,
       rejectionReason: why.data,

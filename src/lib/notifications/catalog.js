@@ -208,14 +208,13 @@ export function verificationReset({ token }) {
   })
 }
 
-/** Badge retiré. */
-export function badgeRevoked({ reasonLabel, at }) {
+/** Badge retiré. Texte générique : le motif libre saisi par l'administrateur n'est jamais recopié. */
+export function badgeRevoked({ at } = {}) {
   const date = dayStamp(at)
-  const reason = reasonSentence(reasonLabel)
   return build({
     type: "badge_revoked",
     title: "Badge retiré",
-    body: `${reason ? `${reason} ` : ""}Envoyez une nouvelle carte pour le retrouver.`,
+    body: "Votre badge vérifié a été retiré. Consultez votre profil pour en savoir plus.",
     dedupeKey: `badge_revoked:${todayInBenin(date)}:${date.getTime()}`,
   })
 }
@@ -309,7 +308,8 @@ export function notificationHref(row, space) {
       case "application_rejected":
       case "mission_cancelled": return studentApplicationsHref()
       case "payment_released": return studentReviewHref(missionId)
-      case "review_received": return studentProfileHref()
+      case "review_received":
+      case "badge_revoked": return studentProfileHref()
       case "message_received": return studentConversationHref(missionId)
       case "account_reactivated": return studentHomeHref()
       default: return studentVerifyHref()

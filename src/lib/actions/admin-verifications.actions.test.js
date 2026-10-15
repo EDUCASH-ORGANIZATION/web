@@ -1248,13 +1248,14 @@ describe("notifications in-app (RD-NOTIF-01)", () => {
     })
   })
 
-  it("retrait du badge : notifie avec le motif enregistré", async () => {
+  it("retrait du badge : notifie sans recopier le motif libre", async () => {
     const id = addStudent(1, { is_verified: true, verified_until: "2027-05-01" })
     expect(await revokeStudentBadge(id, { reason: "Carte déclarée perdue" })).toMatchObject({ success: true })
     expect(notifyInApp).toHaveBeenCalledTimes(1)
     const n = notifyInApp.mock.calls[0][0]
     expect(n).toMatchObject({ recipientId: id, type: "badge_revoked", title: "Badge retiré" })
-    expect(n.body).toBe("Motif : carte déclarée perdue. Envoyez une nouvelle carte pour le retrouver.")
+    expect(n.body).toBe("Votre badge vérifié a été retiré. Consultez votre profil pour en savoir plus.")
+    expect(n.body).not.toMatch(/perdue/i)
     expect(n.dedupeKey).toMatch(/^badge_revoked:2026-10-15:\d+$/)
   })
 
