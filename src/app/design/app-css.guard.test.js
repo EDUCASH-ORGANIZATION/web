@@ -2037,10 +2037,15 @@ describe("admin : barre d'action fixe, en-tete de sous-page et coquille", () => 
     expect(ad02).toMatch(/\.a2-02-mkv \{/)
   })
 
-  it("AD02 v1 fidele : sous 1024 le dossier ouvert est pleine largeur, sans avatar ni lien, titre de la taille ad-mtitle", () => {
-    const tablet = tabletOf(stripComments(read("admin/ad02.css")))
+  it("AD02 v1 fidele : sous 1024 le dossier ouvert est pleine largeur, sans avatar, lien vers la fiche visible de 44 px, titre de la taille ad-mtitle", () => {
+    const ad02 = stripComments(read("admin/ad02.css"))
+    const tablet = tabletOf(ad02)
     expect(tablet).toMatch(/\.a2 \.a2-02 \.a2-02-dossier \{ border: 0; background: transparent; padding: 0; \}/)
-    expect(tablet).toMatch(/\.a2 \.a2-02 \.a2-02-avatar, \.a2 \.a2-02 \.a2-02-dossier__status \.link \{ display: none; \}/)
+    expect(tablet).toMatch(/\.a2 \.a2-02 \.a2-02-avatar \{ display: none; \}/)
+    // « Ouvrir la fiche » est le seul chemin vers la fiche sur tablette et mobile : jamais masque, zone de 44 px.
+    expect(ad02).not.toMatch(/\.a2-02-dossier__status \.link[^{]*\{[^}]*display: none/)
+    expect(ad02).not.toMatch(/\.a2-02-dossier__status[^{]*\{[^}]*display: none/)
+    expect(tablet).toMatch(/\.a2 \.a2-02 \.a2-02-dossier__status \.link \{[^}]*display: inline-flex;[^}]*min-height: 44px;/)
     expect(tablet).toMatch(/\.a2 \.a2-02 \.a2-02-dossier__name \{ font-size: var\(--t-h3\); font-weight: var\(--fw-xbold\); \}/)
     expect(tablet).toMatch(/\.a2 \.a2-02 \.search \{ width: 100%; \}/)
   })

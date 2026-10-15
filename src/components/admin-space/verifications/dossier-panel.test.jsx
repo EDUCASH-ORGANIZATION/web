@@ -54,6 +54,15 @@ describe("DossierPanel : décisions", () => {
     expect(render({ overdue48h: false })).not.toContain("+48 h")
   })
 
+  it("« Ouvrir la fiche » reste rendu hors bloc bureau : seul chemin vers la fiche sur tablette et mobile", () => {
+    for (const over of [{}, { tab: "refuses", actions: ["reset"] }, { tab: "verifies", actions: ["revoke"] }, { tab: "incomplets", actions: [] }]) {
+      const html = render(over)
+      const status = html.slice(html.indexOf('class="a2-02-dossier__status"'))
+      expect(status).toMatch(/^class="a2-02-dossier__status">.*<a class="link body-s" href="\/admin\/users\/11111111-1111-4111-8111-111111111111">Ouvrir la fiche<\/a>/)
+      expect(html).not.toMatch(/ds-desk-only[^>]*>[^<]*<a class="link body-s"/)
+    }
+  })
+
   it("aucune note grise d'attente sans décision", () => {
     expect(render({ tab: "incomplets", actions: [], cardView: null })).not.toContain("En attente d")
   })

@@ -114,7 +114,9 @@
   .a2 .a2-02 .a2-02-cta { min-height: 44px; }
   .a2 .a2-02 .search { width: 100%; }
   .a2 .a2-02 .a2-02-dossier { border: 0; background: transparent; padding: 0; }
-  .a2 .a2-02 .a2-02-avatar, .a2 .a2-02 .a2-02-dossier__status .link { display: none; }
+  /* Avatar masqué ; « Ouvrir la fiche » reste le seul chemin vers la fiche de l'étudiant : zone de 44 px */
+  .a2 .a2-02 .a2-02-avatar { display: none; }
+  .a2 .a2-02 .a2-02-dossier__status .link { display: inline-flex; align-items: center; min-height: 44px; }
   .a2 .a2-02 .a2-02-dossier__name { font-size: var(--t-h3); font-weight: var(--fw-xbold); }
 }
 
