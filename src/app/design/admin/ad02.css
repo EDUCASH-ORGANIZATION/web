@@ -43,7 +43,10 @@
   .a2-02-tools .btn-icon { width: 44px; height: 44px; }
   /* Dossier ouvert : la liste cède la place au dossier plein écran, la barre d'action fixe reste visible */
   .a2-02--open .a2-02-master { display: none; }
-  .a2-02--open .a2-02-head { display: none; }
+  /* Onglets et filtres masqués ; le titre h1 « Vérifications » reste dans l'arbre d'accessibilité, masqué à l'écran
+     (l'en-tête .a2-mtop porte le titre visible du dossier) */
+  .a2-02--open .a2-02-head > :not(.head2) { display: none; }
+  .a2-02--open .a2-02-head .head2 { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .a2-02-actions { display: none; }
 }
 
