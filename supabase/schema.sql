@@ -2,6 +2,7 @@
 -- État de référence de la production Educash après RD-SEC-01, RD-SEC-02 et
 -- RD-SEC-03b (relevé du 2026-10-14, puis scripts 60, 61 et 62 de RD-SEC-03b), puis
 -- script 70 de RD-MISSION-02 (colonne missions.purchases_estimate, à appliquer avant le code).
+-- Script 70 NON appliqué en production au 2026-10-15 : à retirer après application.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
@@ -216,7 +217,7 @@ alter table public.wallets add constraint wallets_reserved_check CHECK ((reserve
 alter table public.missions add constraint missions_budget_check CHECK ((budget >= (0)::numeric));
 alter table public.missions add constraint missions_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'done'::text, 'cancelled'::text])));
 alter table public.missions add constraint missions_urgency_check CHECK ((urgency = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
-alter table public.missions add constraint missions_purchases_estimate_check CHECK (((purchases_estimate IS NULL) OR ((purchases_estimate > (0)::numeric) AND (purchases_estimate <= (999999999)::numeric))));
+alter table public.missions add constraint missions_purchases_estimate_check CHECK (((purchases_estimate IS NULL) OR ((purchases_estimate > (0)::numeric) AND (purchases_estimate <= (999999999)::numeric) AND (purchases_estimate = trunc(purchases_estimate)))));
 alter table public.reviews add constraint reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 alter table public.transactions add constraint transactions_amount_student_check CHECK ((amount_student >= (0)::numeric));
 alter table public.transactions add constraint transactions_amount_total_check CHECK ((amount_total >= (0)::numeric));
