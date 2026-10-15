@@ -243,6 +243,23 @@
 .shell--v2 .page2 { padding: 0 0 var(--s-4); gap: var(--s-5); }
 .shell--v2 .head2__title { font-size: 38px; }
 
+/* D. Navigation fixe pendant le défilement du contenu (RD-FIX-11).
+   Cause : .shell__frame (grid, overflow: hidden) grandit avec le contenu et la page entière défile ;
+   la sidebar, étirée à la hauteur du contenu, partait avec lui, et overflow: hidden empêche tout sticky.
+   `overflow: clip` garde le rognage arrondi sans créer de conteneur de défilement. La sidebar est collée
+   à la fenêtre (hauteur 100dvh moins marges, défilement interne), la barre du haut reste en haut ;
+   l'en-tête mobile (affiché sous 1024) reste en haut et la barre du bas est déjà en position fixed. */
+.shell--v2 .shell__frame { overflow: clip; }
+.shell--v2 .sidebar { position: sticky; top: calc(var(--s-4) + 2px + var(--s-3)); align-self: start; height: calc(100vh - 2 * (var(--s-4) + 2px + var(--s-3))); height: calc(100dvh - 2 * (var(--s-4) + 2px + var(--s-3))); overflow-y: auto; overscroll-behavior: contain; }
+.shell--v2 .top2 { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--c-blanc); box-shadow: 0 1px 0 var(--c-ligne); }
+.shell--v2 .mtop2 { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--c-givre); }
+/* Décalage des contenus collants de page (colonnes de filtres, panneaux latéraux) : ils se collent sous
+   la barre du haut collée (.shell--v2 .top2, 56 px) avec une marge --s-3, jamais à top: 0 dessous.
+   Le même décalage sert de scroll-padding-top : le focus clavier et les ancres ne finissent pas sous
+   la barre (WCAG 2.4.11). Sous 1024 la barre est l'en-tête mobile (.mtop2, .e2-mtop, .a2-mtop : 60 px). */
+.shell--v2 { --shell-sticky-top: calc(56px + var(--s-3)); }
+html:has(.shell--v2) { scroll-padding-top: calc(56px + var(--s-3)); }
+
 /* Cartes génériques */
 .card2 { background: var(--c-blanc); border: 1px solid var(--c-ligne); padding: var(--s-7) var(--s-8); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .duo2 { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr); gap: var(--s-5); }
@@ -311,6 +328,7 @@
 
 /* ---------- Responsive : tablette et mobile (sous 1024) ---------- */
 @media (max-width: 1023.98px) {
+  html:has(.shell--v2) { scroll-padding-top: calc(60px + var(--s-3)); }
   .app2 { grid-template-columns: minmax(0, 1fr); }
   .ds-drawer--full { width: 100%; max-width: 100%; border-left: 0; box-shadow: none; }
   .side2, .top2 { display: none; }
