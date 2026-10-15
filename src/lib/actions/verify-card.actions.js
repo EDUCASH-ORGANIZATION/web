@@ -3,7 +3,10 @@
 import OpenAI from "openai"
 import { createClient } from "@/lib/supabase/server"
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+// Client créé à l'appel, après le contrôle de la clé : le SDK lève dans son constructeur sans clé, et une levée à
+// l'évaluation du module ferait échouer l'action serveur avant son try/catch.
+let openai = null
+const getOpenAI = () => (openai ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }))
 
 /**
  * Vérifie via GPT-4o Vision si l'image uploadée est bien une carte étudiante.
@@ -50,7 +53,7 @@ export async function verifyStudentCardWithAI(storagePath) {
     const dataUrl = `data:${contentType};base64,${base64}`
 
     // Appel GPT-4o Vision
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
       max_tokens: 200,
       messages: [
