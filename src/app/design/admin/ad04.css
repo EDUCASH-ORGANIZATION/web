@@ -3,6 +3,9 @@
 .a2-04 { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
 .a2-04-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-4); }
 .a2-04-id { display: flex; align-items: center; gap: var(--s-4); min-width: 0; }
+.a2-04-link { font-weight: var(--fw-bold); color: var(--c-encre); overflow-wrap: anywhere; }
+.a2-04-link:hover { color: var(--c-bleu); }
+.a2-04-link:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
 .a2-04-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); }
 .a2-04-card { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); padding: var(--s-5) var(--s-6); display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
 

@@ -1,66 +1,60 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 const requireRole = vi.fn()
-const createServiceClient = vi.fn()
+const listAdminUsers = vi.fn()
 const redirect = vi.fn((url) => {
   throw new Error(`REDIRECT:${url}`)
 })
 
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: (...a) => requireRole(...a) }))
-vi.mock("@/lib/supabase/service", () => ({ createServiceClient: (...a) => createServiceClient(...a) }))
-vi.mock("next/navigation", () => ({ redirect: (...a) => redirect(...a) }))
-vi.mock("next/image", () => ({ default: () => null }))
-vi.mock("next/link", () => ({ default: () => null }))
-vi.mock("@/components/admin/verifications-tabs", () => ({ VerificationsTabs: () => null }))
-vi.mock("@/components/admin/suspend-button", () => ({ SuspendButton: () => null }))
+vi.mock("@/lib/actions/admin-users.actions", () => ({
+  listAdminUsers: (...a) => listAdminUsers(...a),
+  suspendAccount: vi.fn(),
+  reactivateAccount: vi.fn(),
+}))
+vi.mock("next/navigation", () => ({ redirect: (...a) => redirect(...a), useRouter: () => ({ refresh: vi.fn() }) }))
+vi.mock("@/components/admin-space/users/users-view", () => ({
+  UsersView: (props) => ({ marker: "view", props }),
+}))
 
-import Users from "./page.js"
+import Page from "./page.js"
 
-/** Constructeur de requête chaînable et attendable. */
-function query(result) {
-  const q = {}
-  for (const m of ["select", "eq", "order", "range", "limit", "gte", "is", "in"]) q[m] = () => q
-  q.then = (resolve) => resolve(result)
-  return q
-}
-
-describe("page admin users : contrôle de rôle fail-closed", () => {
+describe("page admin users", () => {
   beforeEach(() => {
     requireRole.mockReset()
-    createServiceClient.mockReset()
+    listAdminUsers.mockReset()
     redirect.mockClear()
+  })
+
+  it("redirige sans lire de données si requireRole refuse", async () => {
     requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
-  })
-
-  it("users redirige sans lire de données si requireRole refuse", async () => {
-    await expect(Users({ searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT:/auth/login")
+    await expect(Page({ searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT:/auth/login")
     expect(requireRole).toHaveBeenCalledWith(["admin"])
-    expect(createServiceClient).not.toHaveBeenCalled()
-  })
-})
-
-describe("page admin users : lectures via le client service role", () => {
-  beforeEach(() => {
-    requireRole.mockReset()
-    createServiceClient.mockReset()
+    expect(listAdminUsers).not.toHaveBeenCalled()
   })
 
-  it("users lit avec le client service et jamais avec la session", async () => {
-    const session = { from: vi.fn(() => { throw new Error("lecture avec la session interdite") }) }
-    requireRole.mockResolvedValue({ supabase: session, user: { id: "a" }, role: "admin", profile: {} })
-    const ranges = []
-    const service = {
-      from: () => {
-        const q = query({ data: [], error: null, count: 0 })
-        const range = q.range
-        q.range = (...a) => { ranges.push(a); return range() }
-        return q
-      },
-      auth: { admin: { getUserById: async () => ({ data: null }) } },
-    }
-    createServiceClient.mockReturnValue(service)
-    await Users({ searchParams: Promise.resolve({ page: "abc" }) })
-    expect(session.from).not.toHaveBeenCalled()
-    for (const r of ranges) expect(r[0]).toBe(0)
+  it("transmet les paramètres bruts à l'action (elle les valide) et rend la vue avec la réponse", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" } })
+    const data = { rows: [], total: 0 }
+    listAdminUsers.mockResolvedValue(data)
+    const hostile = { q: "%' or 1=1 --", role: "root", page: "-1", verif: ["a", "b"] }
+    const view = await Page({ searchParams: Promise.resolve(hostile) })
+    expect(listAdminUsers).toHaveBeenCalledWith(hostile)
+    expect(view.props).toEqual({ data, error: undefined })
+  })
+
+  it("rend une erreur de lecture comme une erreur, pas comme une liste vide", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" } })
+    listAdminUsers.mockResolvedValue({ error: "Les comptes n'ont pas pu être chargés. Réessayez dans un instant." })
+    const view = await Page({ searchParams: Promise.resolve({}) })
+    expect(view.props.data).toBeNull()
+    expect(view.props.error).toMatch(/pas pu être chargés/)
+  })
+
+  it("sans paramètres d'URL, l'action reçoit un objet vide", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" } })
+    listAdminUsers.mockResolvedValue({ rows: [] })
+    await Page({ searchParams: undefined })
+    expect(listAdminUsers).toHaveBeenCalledWith({})
   })
 })
