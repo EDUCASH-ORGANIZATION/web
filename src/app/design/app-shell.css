@@ -216,13 +216,13 @@
 
 /* B. Shell v1 allégé : .shell.shell--v2 > .shell__frame > aside.sidebar + .shell__main */
 .shell--v2 .sidebar__space { color: var(--c-brume); font-weight: var(--fw-semibold); letter-spacing: .02em; text-transform: none; }
-.shell--v2 .sidebar__brand { padding-bottom: var(--s-6); }
+.shell--v2 .sidebar__brand { padding-bottom: var(--s-6); padding-bottom: clamp(var(--s-2), calc((100dvh - 600px) / 4 + var(--s-2)), var(--s-6)); }
 .shell--v2 .nav-item .ic { stroke-width: 1.75; }
 .shell--v2 .nav-item.is-active { background: var(--c-blanc); color: var(--c-encre); }
 .shell--v2 .nav-item.is-active .ic { color: var(--c-bleu); }
 .shell--v2 .nav-item .count { background: transparent; color: var(--c-brume); min-width: 0; padding: 0; }
 .shell--v2 .nav-item.is-active .count { background: transparent; color: var(--c-ardoise); }
-.shell--v2 .sidebar__group { padding-top: var(--s-5); }
+.shell--v2 .sidebar__group { padding-top: var(--s-5); padding-top: clamp(var(--s-2), calc((100dvh - 600px) / 4 + var(--s-2)), var(--s-5)); }
 /* Unique CTA de sidebar (client) : contour clair, sans aplat */
 .btn--sidebar { background: transparent; color: var(--c-blanc); border: 1.5px solid color-mix(in srgb, var(--c-blanc) 35%, transparent); }
 .btn--sidebar:hover, .btn--sidebar.is-hover { background: var(--c-encre-700); }
@@ -243,14 +243,27 @@
 .shell--v2 .page2 { padding: 0 0 var(--s-4); gap: var(--s-5); }
 .shell--v2 .head2__title { font-size: 38px; }
 
-/* D. Navigation fixe pendant le défilement du contenu (RD-FIX-11).
+/* D. Navigation fixe pendant le défilement du contenu (RD-FIX-11, RD-FIX-13).
    Cause : .shell__frame (grid, overflow: hidden) grandit avec le contenu et la page entière défile ;
    la sidebar, étirée à la hauteur du contenu, partait avec lui, et overflow: hidden empêche tout sticky.
    `overflow: clip` garde le rognage arrondi sans créer de conteneur de défilement. La sidebar est collée
-   à la fenêtre (hauteur 100dvh moins marges, défilement interne), la barre du haut reste en haut ;
-   l'en-tête mobile (affiché sous 1024) reste en haut et la barre du bas est déjà en position fixed. */
+   à la fenêtre (hauteur 100dvh moins marges), la barre du haut reste en haut ; l'en-tête mobile (affiché
+   sous 1024) reste en haut et la barre du bas est déjà en position fixed.
+   RD-FIX-13 : la sidebar ne défile JAMAIS (ni verticalement ni horizontalement). Un overflow-y: auto rendait
+   aussi overflow-x auto (une valeur visible devient auto si l'autre ne l'est pas) : barres et glissement
+   interne. Elle est rognée (clip : ni conteneur de défilement, ni glissement au focus ; hidden en repli) et
+   son contenu est compact par construction : marges, titres de groupe et entrées se resserrent en continu
+   sous 664 px de haut de fenêtre (clamp() sur 100dvh, sans media query : le garde-fou n'autorise que les
+   seuils de largeur 1024, 768 et 480). Budget au pire (étudiant, 8 entrées + 1 titre ; admin, 7 + 2) :
+   environ 470 px à 600 px de fenêtre pour 540 px disponibles, 456 px au plancher (entrées de 32 px), soit
+   tout le contenu visible jusqu'à environ 520 px de haut. En dessous, la liste de navigation est rognée
+   par le bas (dernières entrées masquées, jamais de défilement) ; le logo et l'identité (déconnexion)
+   restent visibles. Les anneaux de focus (5 px) tiennent dans la marge de 6 px de la liste et de 12 px de la sidebar. */
 .shell--v2 .shell__frame { overflow: clip; }
-.shell--v2 .sidebar { position: sticky; top: calc(var(--s-4) + 2px + var(--s-3)); align-self: start; height: calc(100vh - 2 * (var(--s-4) + 2px + var(--s-3))); height: calc(100dvh - 2 * (var(--s-4) + 2px + var(--s-3))); overflow-y: auto; overscroll-behavior: contain; }
+.shell--v2 .sidebar { position: sticky; top: calc(var(--s-4) + 2px + var(--s-3)); align-self: start; height: calc(100vh - 2 * (var(--s-4) + 2px + var(--s-3))); height: calc(100dvh - 2 * (var(--s-4) + 2px + var(--s-3))); overflow: hidden; overflow: clip; padding-top: var(--s-6); padding-top: clamp(var(--s-3), calc((100dvh - 600px) / 4 + var(--s-3)), var(--s-6)); }
+.shell--v2 .sidebar__brand, .shell--v2 .sidebar__cta, .shell--v2 .sidebar__me { flex: none; }
+.shell--v2 .sidebar__nav { flex: 1 1 auto; min-height: 0; overflow: hidden; overflow: clip; margin: -6px; padding: 6px; }
+.shell--v2 .nav-item { flex: none; height: 42px; height: clamp(32px, calc((100dvh - 600px) / 8 + 34px), 42px); }
 .shell--v2 .top2 { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--c-blanc); box-shadow: 0 1px 0 var(--c-ligne); }
 .shell--v2 .mtop2 { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--c-givre); }
 /* Décalage des contenus collants de page (colonnes de filtres, panneaux latéraux) : ils se collent sous
