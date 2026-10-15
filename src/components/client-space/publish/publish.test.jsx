@@ -624,3 +624,131 @@ describe("vue de l'assistant (états)", () => {
     expect(text(html)).toContain("Étape 3 sur 4 · Budget et échéance")
   })
 })
+
+describe("mission avec achats", () => {
+  const checked = { ...full, avecAchats: true, estimationAchats: 15000 }
+  const details = (values, errors = {}) =>
+    renderToStaticMarkup(<StepDetails values={values} errors={errors} onChange={noop} />)
+  const budgetStep = (values, errors = {}) =>
+    renderToStaticMarkup(<StepBudget values={values} errors={errors} today={TODAY} onChange={noop} />)
+
+  it("étape 2 : une vraie case à cocher, avec son libellé et son aide", () => {
+    const html = details({ ...full, avecAchats: false })
+    expect(html).toMatch(/<input[^>]*type="checkbox"/)
+    expect(html).toMatch(/<label[^>]*for="[^"]+"[^>]*class="check|<label[^>]*class="check[^"]*"[^>]*for=/)
+    expect(text(html)).toContain("Mission avec achats")
+    expect(text(html)).toContain(
+      "L'étudiant fait des achats pour vous (marché, boutique) : vous payez le vendeur directement par MoMo."
+    )
+    // L'aide ne laisse pas croire que l'étudiant avance l'argent des achats.
+    expect(text(html)).not.toMatch(/étudiant (achète|avance|paie)/)
+    expect(html).not.toMatch(/<input[^>]*type="checkbox"[^>]*checked/)
+  })
+
+  it("la case est proposée quel que soit le type de mission", () => {
+    for (const type of ["Babysitting", "Livraison", "Traduction", "Autre", ""]) {
+      expect(details({ ...full, type })).toMatch(/type="checkbox"/)
+    }
+  })
+
+  it("la case est reliée à une région annoncée (aria-controls, aria-expanded)", () => {
+    const off = details({ ...full, avecAchats: false })
+    const on = details(checked)
+    const controls = on.match(/aria-controls="([^"]+)"/)?.[1]
+    expect(controls).toBeTruthy()
+    expect(on).toContain(`id="${controls}"`)
+    expect(on).toContain('aria-expanded="true"')
+    expect(off).toContain('aria-expanded="false"')
+    expect(on).toContain('aria-live="polite"')
+    expect(text(on)).toContain("estimation des achats à l'étape suivante")
+    expect(text(off)).not.toContain("estimation des achats à l'étape suivante")
+    expect(on).toMatch(/<input[^>]*type="checkbox"[^>]*checked/)
+  })
+
+  it("étape 3 : l'estimation n'apparaît que si la case est cochée", () => {
+    expect(text(budgetStep({ ...full, avecAchats: false }))).not.toContain("Estimation des achats")
+    const on = text(budgetStep(checked))
+    expect(on).toContain("Estimation des achats")
+    expect(on).toContain("n'est pas bloqué")
+    expect(on).not.toContain("Vous payez ce montant, rien de plus")
+    expect(text(budgetStep({ ...full, avecAchats: false }))).toContain("Vous payez ce montant, rien de plus")
+  })
+
+  it("étape 3 : l'erreur d'estimation est annoncée sur le champ", () => {
+    const html = budgetStep({ ...checked, estimationAchats: null }, { estimationAchats: "Indiquez l'estimation des achats." })
+    expect(html).toContain('aria-invalid="true"')
+    expect(text(html)).toContain("Indiquez l'estimation des achats.")
+  })
+
+  it("étape 3 : le résumé en direct rappelle que les achats ne sont pas bloqués", () => {
+    const html = text(renderToStaticMarkup(<BudgetAside budget={10000} purchases={15000} />))
+    expect(html).toContain(`Les achats (environ ${f(15000)}) ne sont pas bloqués : prévoyez-les sur votre MoMo`)
+    expect(html).toContain(f(10000))
+    const without = text(renderToStaticMarkup(<BudgetAside budget={10000} />))
+    expect(without).not.toContain("achats")
+  })
+
+  it("étape 4 : le récapitulatif liste l'estimation, sans toucher au montant bloqué", () => {
+    const html = text(renderToStaticMarkup(<RecapBody values={checked} onEdit={noop} />))
+    expect(html).toContain(`environ ${f(15000)}`)
+    expect(html).toContain("ne sont pas bloqués : prévoyez-les sur votre MoMo")
+    expect(html).toContain(f(10000))
+    expect(html).not.toContain("Un seul paiement")
+    // Aucune commission ni répartition n'est calculée sur les achats (12 % de 15 000 = 1 800).
+    expect(html).not.toContain(f(1800))
+  })
+
+  it("étape 4 : sans la case, ou avec une estimation inutilisable, aucune ligne d'achats", () => {
+    for (const values of [full, { ...full, avecAchats: false, estimationAchats: 15000 }, { ...full, avecAchats: true, estimationAchats: 0 }]) {
+      const html = text(renderToStaticMarkup(<RecapBody values={values} onEdit={noop} />))
+      expect(html).not.toContain("Achats estimés")
+      expect(html).toContain("Un seul paiement")
+    }
+  })
+
+  it("aperçu : pastille « Avec achats » et estimation seulement si la case est cochée", () => {
+    expect(text(renderToStaticMarkup(<PreviewCard values={checked} />))).toContain("Avec achats")
+    expect(text(renderToStaticMarkup(<PreviewCard values={checked} />))).toContain(`Achats estimés : environ ${f(15000)}, non bloqués`)
+    const plain = text(renderToStaticMarkup(<PreviewCard values={full} />))
+    expect(plain).not.toContain("Avec achats")
+    expect(plain).not.toContain("Achats estimés")
+  })
+
+  it("le texte reste au vouvoiement, sans tiret cadratin, sans fournisseur de paiement", () => {
+    const all = [
+      details(checked),
+      budgetStep(checked),
+      renderToStaticMarkup(<RecapBody values={checked} onEdit={noop} />),
+      renderToStaticMarkup(<BudgetAside budget={10000} purchases={15000} />),
+    ]
+      .map(text)
+      .join(" ")
+    expect(all).not.toMatch(/(?<![\p{L}\p{N}_])(?:tu|ton|ta|tes|toi)(?![\p{L}\p{N}_])/iu)
+    expect(all).not.toMatch(new RegExp(`[${String.fromCharCode(0x2014)}${String.fromCharCode(0x2013)}]`))
+    expect(all).not.toMatch(/fedapay/i)
+  })
+
+  it("envoi : case cochée, l'estimation part avec le drapeau", async () => {
+    const create = vi.fn().mockResolvedValue({ id: "m-1" })
+    await runPublish({ values: checked, today: TODAY, create, lock: { current: false } })
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ with_purchases: true, purchases_estimate: 15000, budget: 10000 }))
+  })
+
+  it("envoi : case décochée avec une estimation restée en état, rien n'est envoyé", async () => {
+    const create = vi.fn().mockResolvedValue({ id: "m-1" })
+    await runPublish({ values: { ...full, avecAchats: false, estimationAchats: 15000 }, today: TODAY, create, lock: { current: false } })
+    const sent = create.mock.calls[0][0]
+    expect(sent).not.toHaveProperty("with_purchases")
+    expect(sent).not.toHaveProperty("purchases_estimate")
+  })
+
+  it("envoi : case cochée sans estimation valable, refus avant l'appel serveur", async () => {
+    const create = vi.fn()
+    for (const estimationAchats of [null, 0, -3, Number.NaN, 1e12]) {
+      const out = await runPublish({ values: { ...full, avecAchats: true, estimationAchats }, today: TODAY, create, lock: { current: false } })
+      expect(out.kind).toBe("invalid")
+      expect(out.step).toBe(3)
+    }
+    expect(create).not.toHaveBeenCalled()
+  })
+})

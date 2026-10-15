@@ -2,7 +2,7 @@
 
 import { useId, useRef } from "react"
 import { Icon } from "@/components/design/icon"
-import { AmountField, SelectField, TextField, TextareaField } from "@/components/app-ui/fields"
+import { AmountField, CheckboxField, SelectField, TextField, TextareaField } from "@/components/app-ui/fields"
 import { chipKeyAction } from "@/components/app-ui/interactive-logic"
 import { CITIES, MIN_MISSION_BUDGET } from "@/lib/supabase/database.constants"
 import { MISSION_TYPE_OPTIONS } from "@/lib/constants/missions"
@@ -133,7 +133,39 @@ export function StepNeed({ values, errors, onChange }) {
 }
 
 /**
- * Étape 2 : détails (description et ville).
+ * Case « Mission avec achats » (tous les types de mission). Vrai `<input type="checkbox">` relié à une région
+ * annoncée (`aria-controls`, `aria-expanded`) qui précise ce que la case implique, sans rien promettre de plus.
+ */
+function PurchasesToggle({ checked, error, onChange }) {
+  const regionId = useId()
+  return (
+    <div className="wizard2__purchases">
+      <CheckboxField
+        label="Mission avec achats"
+        help="L'étudiant fait des achats pour vous (marché, boutique) : vous payez le vendeur directement par MoMo."
+        checked={checked}
+        error={error}
+        aria-controls={regionId}
+        aria-expanded={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <div id={regionId} aria-live="polite">
+        {checked ? (
+          <p className="note2">
+            <Icon name="i-info" />
+            <span>
+              Vous indiquerez une estimation des achats à l&apos;étape suivante. Elle est indicative : les achats ne sont
+              pas bloqués et ne s&apos;ajoutent pas au budget bloqué.
+            </span>
+          </p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Étape 2 : détails (description, ville et case « Mission avec achats »).
  * @param {{ values: object, errors: Record<string, string>, onChange: (field: string, value: unknown) => void }} props
  */
 export function StepDetails({ values, errors, onChange }) {
@@ -162,6 +194,11 @@ export function StepDetails({ values, errors, onChange }) {
         error={errors.city}
         onChange={(v) => onChange("city", v)}
       />
+      <PurchasesToggle
+        checked={values.avecAchats === true}
+        error={errors.avecAchats}
+        onChange={(checked) => onChange("avecAchats", checked)}
+      />
     </>
   )
 }
@@ -182,7 +219,11 @@ export function StepBudget({ values, errors, today, onChange }) {
           required
           value={values.budget}
           onChange={(v) => onChange("budget", v)}
-          help={`Minimum ${formatAmount(MIN_MISSION_BUDGET)}. Vous payez ce montant, rien de plus.`}
+          help={
+            values.avecAchats === true
+              ? `Minimum ${formatAmount(MIN_MISSION_BUDGET)}. C'est le montant du service : seul ce budget est bloqué.`
+              : `Minimum ${formatAmount(MIN_MISSION_BUDGET)}. Vous payez ce montant, rien de plus.`
+          }
           error={errors.budget}
         />
         <TextField
@@ -197,6 +238,16 @@ export function StepBudget({ values, errors, today, onChange }) {
           onChange={(event) => onChange("deadline", event.target.value)}
         />
       </div>
+      {values.avecAchats === true ? (
+        <AmountField
+          label="Estimation des achats"
+          required
+          value={values.estimationAchats}
+          onChange={(v) => onChange("estimationAchats", v)}
+          help="Montant indicatif des articles à acheter. Il n'est pas bloqué et ne donne lieu à aucune commission."
+          error={errors.estimationAchats}
+        />
+      ) : null}
       <ChoiceGroup
         label="Urgence"
         variant="choice"
@@ -238,6 +289,6 @@ export function TipsAside({ step }) {
 }
 
 /** Colonne de droite de l'étape 3 : répartition en direct du budget. */
-export function BudgetAside({ budget }) {
-  return <LiveSummary budget={budget} />
+export function BudgetAside({ budget, purchases = null }) {
+  return <LiveSummary budget={budget} purchases={purchases} />
 }

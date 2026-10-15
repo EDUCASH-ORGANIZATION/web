@@ -1,6 +1,8 @@
 -- =============================================================================
 -- État de référence de la production Educash après RD-SEC-01, RD-SEC-02 et
--- RD-SEC-03b (relevé du 2026-10-14, puis scripts 60, 61 et 62 de RD-SEC-03b).
+-- RD-SEC-03b (relevé du 2026-10-14, puis scripts 60, 61 et 62 de RD-SEC-03b), puis
+-- script 70 de RD-MISSION-02 (colonne missions.purchases_estimate, à appliquer avant le code).
+-- Script 70 NON appliqué en production au 2026-10-15 : à retirer après application.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
@@ -117,7 +119,8 @@ create table public.missions (
   deadline date,
   selected_student_id uuid,
   created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
+  updated_at timestamp with time zone default now(),
+  purchases_estimate numeric
 );
 
 create table public.reviews (
@@ -214,6 +217,7 @@ alter table public.wallets add constraint wallets_reserved_check CHECK ((reserve
 alter table public.missions add constraint missions_budget_check CHECK ((budget >= (0)::numeric));
 alter table public.missions add constraint missions_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'done'::text, 'cancelled'::text])));
 alter table public.missions add constraint missions_urgency_check CHECK ((urgency = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
+alter table public.missions add constraint missions_purchases_estimate_check CHECK (((purchases_estimate IS NULL) OR ((purchases_estimate > (0)::numeric) AND (purchases_estimate <= (999999999)::numeric) AND (purchases_estimate = trunc(purchases_estimate)))));
 alter table public.reviews add constraint reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 alter table public.transactions add constraint transactions_amount_student_check CHECK ((amount_student >= (0)::numeric));
 alter table public.transactions add constraint transactions_amount_total_check CHECK ((amount_total >= (0)::numeric));
@@ -586,6 +590,12 @@ begin
   if new.client_id is distinct from old.client_id
      or new.budget is distinct from old.budget then
     raise exception 'Le proprietaire et le budget d''une mission ne sont pas modifiables.'
+      using errcode = '42501';
+  end if;
+
+  if new.purchases_estimate is distinct from old.purchases_estimate
+     and (old.status <> 'open' or new.status <> 'open') then
+    raise exception 'L''estimation des achats n''est plus modifiable une fois la mission demarree.'
       using errcode = '42501';
   end if;
 

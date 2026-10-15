@@ -262,3 +262,28 @@ describe("getClientMissions : recherche", () => {
     expect(ilikeArg()).toBeUndefined()
   })
 })
+
+describe("getClientMissions : mission avec achats", () => {
+  it("marque withPurchases seulement pour une estimation positive", async () => {
+    missionsResult = {
+      data: [
+        mission({ id: "a", purchases_estimate: 15000 }),
+        mission({ id: "b", purchases_estimate: null }),
+        mission({ id: "c", purchases_estimate: -5 }),
+        mission({ id: "d" }),
+      ],
+      error: null,
+    }
+    const res = await getClientMissions({ onglet: "open" })
+    expect(res.missions.map((m) => [m.id, m.withPurchases === true])).toEqual([
+      ["a", true], ["b", false], ["c", false], ["d", false],
+    ])
+  })
+
+  it("lit la colonne par une liste explicite, jamais select(*)", async () => {
+    await getClientMissions({ onglet: "open" })
+    const select = calls.find((c) => c.table === "missions" && c.method === "select" && !c.args[1]?.head).args[0]
+    expect(select).toContain("purchases_estimate")
+    expect(select).not.toContain("*")
+  })
+})

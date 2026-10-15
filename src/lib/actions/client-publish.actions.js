@@ -16,7 +16,7 @@ import { duplicateValues, parseDuplicateId } from "@/lib/client-space/publish-sc
 const ERR_PAGE = "Impossible de charger la publication de mission."
 
 // Colonnes lues : celles que l'on reprend, rien de plus.
-const DUPLICATE_COLUMNS = "title, description, type, city, budget, urgency"
+const DUPLICATE_COLUMNS = "title, description, type, city, budget, urgency, purchases_estimate"
 
 async function readDuplicate(supabase, userId, rawId) {
   const id = parseDuplicateId(rawId)

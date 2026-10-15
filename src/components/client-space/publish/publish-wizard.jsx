@@ -178,7 +178,7 @@ export function PublishWizardView({
         </form>
         <div className="col2">
           {step <= 2 ? <TipsAside step={step} /> : null}
-          {step === 3 ? <BudgetAside budget={values.budget} /> : null}
+          {step === 3 ? <BudgetAside budget={values.budget} purchases={values.avecAchats === true ? values.estimationAchats : null} /> : null}
           {step === LAST_STEP ? (
             <>
               <PreviewCard values={values} />
@@ -254,7 +254,12 @@ export function PublishWizard({ initial, duplicateId = "", available, today, err
   const resumeHref = clientPublishHref({ duplicate: duplicateId, besoin: values.title, ville: values.city, type: values.type })
 
   function change(field, value) {
-    setValues((current) => ({ ...current, [field]: value }))
+    // Case décochée : l'estimation saisie est effacée, elle ne reste dans aucun état.
+    setValues((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === "avecAchats" && value !== true ? { estimationAchats: null } : {}),
+    }))
     setServerError(null)
   }
 

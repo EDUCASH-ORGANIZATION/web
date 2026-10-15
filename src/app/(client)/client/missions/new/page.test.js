@@ -9,7 +9,7 @@ vi.mock("@/components/client-space/publish/publish-paused-view", () => ({ Publis
 const { default: NewMissionPage } = await import("./page")
 
 const ID = "3f2b8c1e-9a4d-4e6b-8c2a-1d5f7e9b0a3c"
-const EMPTY = { type: "", title: "", description: "", city: "", budget: null, urgency: "low", deadline: "" }
+const EMPTY = { type: "", title: "", description: "", city: "", budget: null, urgency: "low", deadline: "", avecAchats: false, estimationAchats: null }
 const props = (tree) => tree.props
 
 beforeEach(() => {
@@ -65,6 +65,8 @@ describe("NewMissionPage, paiements ouverts", () => {
       budget: 8000,
       urgency: "high",
       deadline: "",
+      avecAchats: false,
+      estimationAchats: null,
     })
     expect(props(tree).duplicateId).toBe(ID)
     expect(props(tree).available).toBe(3000)
