@@ -31,6 +31,8 @@
 import { z } from "zod"
 import { requireRole } from "@/lib/auth/require-role"
 import { toOwnedStoragePath, toProjectAvatarUrl } from "@/lib/storage/owned-paths"
+import { purchasesEstimateOf } from "@/lib/app/purchases"
+import { netAmount } from "@/lib/constants/missions"
 import { isUuid } from "@/lib/vitrine/ids"
 import { publicDisplayName } from "@/lib/vitrine/public-name"
 import {
@@ -67,7 +69,7 @@ const INBOX_COLUMNS = "id, mission_id, sender_id, receiver_id, content, type, re
 const MEDIA_IDS_MAX = 50
 const MESSAGE_COLUMNS =
   "id, mission_id, sender_id, receiver_id, content, type, media_url, location_lat, location_lng, read, created_at"
-const MISSION_COLUMNS = "id, title, status, selected_student_id"
+const MISSION_COLUMNS = "id, title, status, selected_student_id, type, budget, purchases_estimate"
 // Colonnes publiques seulement : jamais de select("*") sur profiles.
 const PUBLIC_PROFILE_COLUMNS = "user_id, full_name, avatar_url"
 
@@ -89,6 +91,25 @@ const toMission = (m) => ({
   title: typeof m.title === "string" ? m.title : "",
   status: m.status,
   selectedStudentId: m.selected_student_id ?? null,
+  type: typeof m.type === "string" ? m.type : null,
+  budget: toBudget(m.budget),
+  purchasesEstimate: purchasesEstimateOf(m.purchases_estimate),
+})
+
+// Budget en FCFA : la colonne peut arriver en chaîne (numeric). Nombre fini positif ou nul, sinon null.
+function toBudget(raw) {
+  if (raw === null || raw === undefined || raw === "" || typeof raw === "boolean") return null
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 0 ? n : null
+}
+
+// Informations de mission du volet de conversation : colonnes de la même ligne de mission, déjà contrôlée.
+const toMissionInfo = (m) => ({
+  title: m.title,
+  status: m.status,
+  type: m.type,
+  budget: m.budget,
+  purchasesEstimate: m.purchasesEstimate,
 })
 
 function toStudent(id, profile) {
@@ -335,7 +356,8 @@ export async function getClientConversation({ missionId, studentId } = {}) {
       missionId,
       studentId: other,
       student: toStudent(other, profileRes.data),
-      mission: { title: pair.mission.title, status: pair.mission.status },
+      mission: toMissionInfo(pair.mission),
+      relation: pair.mission.selectedStudentId === other ? "selected" : "candidate",
       state: pair.access.state,
       canWrite: pair.access.canWrite,
       messages,
@@ -474,7 +496,8 @@ export async function markClientConversationRead({ missionId, studentId } = {}) 
 
 // `client_id` sert à DÉDUIRE l'interlocuteur : il n'est jamais renvoyé tel quel aux vues autrement que comme
 // identifiant public de la paire.
-const STUDENT_MISSION_COLUMNS = "id, title, status, selected_student_id, client_id"
+const STUDENT_MISSION_COLUMNS =
+  "id, title, status, selected_student_id, client_id, type, budget, purchases_estimate"
 
 const studentSendSchema = z.object({
   missionId: uuid,
@@ -645,7 +668,7 @@ export async function getStudentConversation({ missionId } = {}) {
       missionId,
       clientId: other,
       client: toClientParty(other, profileRes.data),
-      mission: { title: pair.mission.title, status: pair.mission.status },
+      mission: { ...toMissionInfo(pair.mission), net: pair.mission.budget === null ? null : netAmount(pair.mission.budget) },
       state: pair.access.state,
       canWrite: pair.access.canWrite,
       messages,
