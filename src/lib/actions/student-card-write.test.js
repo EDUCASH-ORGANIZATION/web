@@ -164,7 +164,7 @@ describe("saveStudentCardUrl : privilèges réels de la session étudiante", () 
     requireRole.mockResolvedValue({ supabase: failing, user: { id: UID }, role: "student" })
     const res = await saveStudentCardUrl(CARD)
     expect(res).toEqual({ error: "Impossible d'enregistrer votre carte étudiante." })
-    expect(console.error).toHaveBeenCalledWith("[saveStudentCardUrl]", DENIED.message)
+    expect(console.error).toHaveBeenCalledWith(`[saveStudentCardUrl] step=set_card_path code=42501 ${DENIED.message}`)
   })
 
   it("mise à jour de la carte qui ne touche aucune ligne : échec signalé, jamais un succès silencieux", async () => {
@@ -206,5 +206,91 @@ describe("completeStudentOnboarding : carte déposée pendant l'inscription", ()
     expect(res).toMatchObject({ ok: true })
     expect(db.student).toMatchObject({ user_id: UID, school: "UAC", level: "Licence 2", card_url: CARD })
     expect(Date.parse(db.profile.verification_submitted_at)).not.toBeNaN()
+  })
+})
+
+// RD-FIX-16 : chaque étape en échec est identifiable dans les logs Vercel (une ligne : action, étape, code, message),
+// sans `details`, `hint` ni chemin de carte (données de ligne).
+describe("journal des échecs d'écriture de carte : une ligne par étape, sans donnée de ligne", () => {
+  const PG = { code: "42501", message: "permission denied for table profiles", details: `Key (user_id)=(${UID})`, hint: CARD }
+
+  // Fait échouer UNE étape de saveStudentCardUrl : n-ième appel à `profiles.update`, ou upsert / update de student_profiles.
+  function failingAt(step) {
+    const { supabase } = fakeDb({ studentRow: { school: "UAC" } })
+    let profileUpdates = 0
+    return {
+      ...supabase,
+      from: (t) => {
+        const table = supabase.from(t)
+        if (t === "profiles") {
+          return {
+            ...table,
+            update: (cols) => {
+              profileUpdates += 1
+              const fail = (step === "drop_badge" && profileUpdates === 1) || (step === "reset_pending" && profileUpdates === 2)
+              return fail ? { eq: async () => ({ error: PG }) } : table.update(cols)
+            },
+          }
+        }
+        if (step === "ensure_row") return { ...table, upsert: async () => ({ error: PG }) }
+        if (step === "set_card_path") return { ...table, update: () => ({ eq: async () => ({ error: PG, count: null }) }) }
+        return table
+      },
+    }
+  }
+
+  it.each(["drop_badge", "ensure_row", "set_card_path", "reset_pending"])(
+    "saveStudentCardUrl, étape %s en échec : identifiant d'étape et code PostgreSQL journalisés",
+    async (step) => {
+      requireRole.mockResolvedValue({ supabase: failingAt(step), user: { id: UID }, role: "student" })
+      expect(await saveStudentCardUrl(CARD)).toEqual({ error: "Impossible d'enregistrer votre carte étudiante." })
+      expect(console.error).toHaveBeenCalledTimes(1)
+      expect(console.error).toHaveBeenCalledWith(`[saveStudentCardUrl] step=${step} code=42501 ${PG.message}`)
+      const line = console.error.mock.calls.flat().join(" ")
+      expect(line).not.toContain(UID)
+      expect(line).not.toContain(CARD)
+    }
+  )
+
+  it("aucune ligne mise à jour : code card_row_count journalisé", async () => {
+    const { supabase } = fakeDb({ studentRow: { school: "UAC" } })
+    const ghost = {
+      ...supabase,
+      from: (t) => {
+        const table = supabase.from(t)
+        if (t !== "student_profiles") return table
+        return { ...table, update: () => ({ eq: async () => ({ error: null, count: null }) }) }
+      },
+    }
+    requireRole.mockResolvedValue({ supabase: ghost, user: { id: UID }, role: "student" })
+    await saveStudentCardUrl(CARD)
+    expect(console.error).toHaveBeenCalledWith(
+      "[saveStudentCardUrl] step=set_card_path code=card_row_count student_profiles : aucune ligne mise à jour pour la carte"
+    )
+  })
+
+  it("completeStudentOnboarding, écriture de la carte en échec : étape et code journalisés", async () => {
+    const { supabase } = fakeDb({ studentRow: { school: "UAC" } })
+    const failing = {
+      ...supabase,
+      from: (t) => {
+        const table = supabase.from(t)
+        if (t !== "student_profiles") return table
+        return { ...table, update: () => ({ eq: async () => ({ error: PG, count: null }) }) }
+      },
+    }
+    vi.mocked(createClient).mockResolvedValue(failing)
+    const res = await completeStudentOnboarding({
+      fullName: "Sèna Agossou",
+      city: "Cotonou",
+      phone: "01 97 45 21 08",
+      school: "UAC",
+      level: "Licence 2",
+      skills: ["Livraison"],
+      availability: ["Matin"],
+      cardUrl: CARD,
+    })
+    expect(res.ok).not.toBe(true)
+    expect(console.error).toHaveBeenCalledWith(`[completeStudentOnboarding] step=set_card_path code=42501 ${PG.message}`)
   })
 })

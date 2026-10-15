@@ -16,7 +16,7 @@ import {
   makeClientIdentitySchema,
 } from "@/lib/auth/schemas"
 import { toOwnedAvatarUrl, toOwnedStoragePath } from "@/lib/storage/owned-paths"
-import { setOwnCardPath } from "@/lib/actions/student-card-write"
+import { logCardStepError, setOwnCardPath } from "@/lib/actions/student-card-write"
 
 const MESSAGES = {
   unauthenticated: "Votre session a expiré. Connectez-vous pour continuer.",
@@ -180,10 +180,16 @@ export async function completeStudentOnboarding(payload) {
   const { error } = await supabase
     .from("student_profiles")
     .upsert(studentColumns, { onConflict: "user_id" })
-  if (error) return failure("student", "save_failed")
+  if (error) {
+    logCardStepError("completeStudentOnboarding", "studies_upsert", error)
+    return failure("student", "save_failed")
+  }
   if (card.url) {
     const { error: cardError } = await setOwnCardPath(supabase, user.id, card.url)
-    if (cardError) return failure("student", "save_failed")
+    if (cardError) {
+      logCardStepError("completeStudentOnboarding", "set_card_path", cardError)
+      return failure("student", "save_failed")
+    }
   }
 
   // Le profil (donc le jeton de dépôt) est écrit APRÈS la carte : jamais de jeton nouveau avec une carte ancienne.

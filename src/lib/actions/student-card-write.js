@@ -36,6 +36,22 @@ export async function setOwnCardPath(supabase, userId, cardPath) {
     .update({ card_url: cardPath }, { count: "exact" })
     .eq("user_id", userId)
   if (error) return { error }
-  if (count !== 1) return { error: { message: `student_profiles : ${count ?? "aucune"} ligne mise à jour pour la carte` } }
+  if (count !== 1) {
+    return { error: { code: "card_row_count", message: `student_profiles : ${count ?? "aucune"} ligne mise à jour pour la carte` } }
+  }
   return { error: null }
+}
+
+/**
+ * Journalise l'échec d'une étape d'écriture de carte sur UNE ligne lisible dans les logs Vercel :
+ * `[action] step=<étape> code=<code PostgreSQL ou PostgREST> <message>`. Seuls `code` et `message` sont repris :
+ * jamais `details` ni `hint` (ils peuvent contenir des valeurs de ligne), ni le chemin de la carte.
+ * @param {string} action - nom de l'action serveur (ex. `saveStudentCardUrl`)
+ * @param {string} step - identifiant d'étape stable (ex. `set_card_path`)
+ * @param {{ code?: string, message?: string } | null | undefined} error
+ */
+export function logCardStepError(action, step, error) {
+  const code = typeof error?.code === "string" && error.code !== "" ? error.code : "none"
+  const message = typeof error?.message === "string" ? error.message.slice(0, 300) : "erreur sans message"
+  console.error(`[${action}] step=${step} code=${code} ${message}`)
 }

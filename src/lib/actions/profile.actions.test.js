@@ -152,7 +152,9 @@ describe("écritures de profil", () => {
     const res = await call()
     expect(res.error).toBeTruthy()
     expect(res.error).not.toContain(LEAK)
-    expect(console.error).toHaveBeenCalledWith(expect.any(String), LEAK)
+    // Le détail est journalisé côté serveur (en un ou plusieurs arguments selon l'action).
+    const logged = console.error.mock.calls.map((args) => args.join(" "))
+    expect(logged.some((line) => line.includes(LEAK))).toBe(true)
   })
 
   it("exige le rôle étudiant ou client selon l'action, sans écrire en cas de refus", async () => {
@@ -311,7 +313,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     const res = await saveStudentCardUrl("u1/card.jpg")
     expect(res).toEqual({ error: "Impossible d'enregistrer votre carte étudiante." })
     expect(captured).not.toHaveProperty("student_profiles")
-    expect(console.error).toHaveBeenCalledWith("[saveStudentCardUrl]", LEAK)
+    expect(console.error).toHaveBeenCalledWith(`[saveStudentCardUrl] step=drop_badge code=none ${LEAK}`)
   })
 
   it("saveStudentCardUrl : écriture de la carte en échec après le retrait du badge, erreur neutre vouvoyée", async () => {
