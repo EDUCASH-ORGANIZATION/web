@@ -15,13 +15,15 @@ function fake() {
       const done = async (single) => {
         if (q.op !== "select") ctx.writes.push({ table, op: q.op, payload: q.payload, filters: q.filters })
         if (q.op === "select") return { data: single ? (rows()[0] ?? null) : rows(), error: null }
+        // UPDATE avec { count: "exact" } : nombre de lignes visées par les filtres.
+        if (q.op === "update" && q.count) return { data: null, error: null, count: rows().length }
         return { data: null, error: null }
       }
       const b = {
         select: () => b,
         eq: (c, v) => (q.filters.push([c, v]), b),
         insert: (p) => ((q.op = "insert"), (q.payload = p), b),
-        update: (p) => ((q.op = "update"), (q.payload = p), b),
+        update: (p, o) => ((q.op = "update"), (q.payload = p), (q.count = o?.count), b),
         upsert: (p) => ((q.op = "upsert"), (q.payload = p), b),
         maybeSingle: () => done(true),
         single: () => done(true),
@@ -146,10 +148,15 @@ describe("saveStudentCardUrl", () => {
     seed("rejected")
     const res = await saveStudentCardUrl("stu-me/nouvelle.jpg")
     expect(res).toEqual({ success: true })
-    const up = ctx.writes.find((w) => w.table === "student_profiles")
-    expect(up.payload).toEqual({ user_id: ME, card_url: "stu-me/nouvelle.jpg" })
+    // La carte n'est jamais dans un upsert (EXCLUDED.card_url exigerait SELECT sur une colonne privée, RD-FIX-15) :
+    // ligne garantie sans la carte, puis UPDATE de la carte filtré sur l'appelant.
+    const ensure = ctx.writes.find((w) => w.table === "student_profiles" && w.op === "upsert")
+    expect(ensure.payload).toEqual({ user_id: ME })
+    const up = ctx.writes.find((w) => w.table === "student_profiles" && w.op === "update")
+    expect(up.payload).toEqual({ card_url: "stu-me/nouvelle.jpg" })
+    expect(up.filters).toEqual([["user_id", ME]])
     const order = ctx.writes.map((w) => w.table)
-    expect(order).toEqual(["profiles", "student_profiles", "profiles"])
+    expect(order).toEqual(["profiles", "student_profiles", "student_profiles", "profiles"])
     const reset = ctx.writes.filter((w) => w.table === "profiles").at(-1)
     expect(reset.payload).toMatchObject({ is_verified: false, rejection_reason: null })
     expect(Object.keys(reset.payload).sort()).toEqual(["is_verified", "rejection_reason", "verification_submitted_at"])
@@ -193,7 +200,7 @@ describe("saveStudentCardUrl", () => {
     seed("pending")
     const res = await saveStudentCardUrl("https://example.supabase.co/storage/v1/object/sign/student-cards/stu-me/c.jpg")
     expect(res).toEqual({ success: true })
-    expect(ctx.writes.find((w) => w.table === "student_profiles").payload.card_url).toBe("stu-me/c.jpg")
+    expect(ctx.writes.find((w) => w.table === "student_profiles" && w.op === "update").payload.card_url).toBe("stu-me/c.jpg")
   })
 
   it.each([["client"], ["admin"]])("rôle %s : refusé, aucune écriture", async (role) => {

@@ -18,8 +18,9 @@ function fakeSupabase({
   profile = null,
   profileError = null,
   updateRows = [{ user_id: UID }],
+  cardResult = { error: null, count: 1 },
 } = {}) {
-  const calls = { update: [], insert: [], upsert: [], updateUser: [] }
+  const calls = { update: [], insert: [], upsert: [], updateUser: [], studentUpdate: [] }
   const supabase = {
     auth: {
       getUser: vi.fn(async () => ({ data: { user } })),
@@ -47,6 +48,13 @@ function fakeSupabase({
           calls.upsert.push({ table, row, opts })
           return { error: null }
         },
+        // Carte : UPDATE simple filtré sur user_id (jamais dans l'upsert, voir student-card-write.js).
+        update: (cols, opts) => ({
+          eq: async (col, value) => {
+            calls.studentUpdate.push({ table, cols, opts, filter: [col, value] })
+            return cardResult
+          },
+        }),
       }
     }),
   }
@@ -168,7 +176,24 @@ describe("completeStudentOnboarding", () => {
     expect(cols.verification_submitted_at).toEqual(expect.any(String))
     expect(cols).not.toHaveProperty("is_verified")
     expect(cols).not.toHaveProperty("role")
-    expect(calls.upsert[0].row.card_url).toBe(`${UID}/card.jpg`)
+    expect(calls.upsert[0].row).not.toHaveProperty("card_url")
+    expect(calls.studentUpdate).toEqual([
+      { table: "student_profiles", cols: { card_url: `${UID}/card.jpg` }, opts: { count: "exact" }, filter: ["user_id", UID] },
+    ])
+  })
+
+  it.each([
+    ["refus DENIED", { error: { message: "DENIED" }, count: null }],
+    ["aucune ligne mise à jour (count 0)", { error: null, count: 0 }],
+  ])("échec de l'écriture de la carte (%s) : save_failed, profil jamais écrit", async (_label, cardResult) => {
+    const { calls } = use({ profile: studentProfile, cardResult })
+    const cardUrl = `${SUPABASE_URL}/storage/v1/object/public/student-cards/${UID}/card.jpg`
+    const result = await completeStudentOnboarding({ ...studentPayload, cardUrl })
+
+    expect(result).toMatchObject({ ok: false, code: "save_failed" })
+    expect(calls.studentUpdate).toHaveLength(1)
+    expect(calls.update).toHaveLength(0)
+    expect(calls.insert).toHaveLength(0)
   })
 
   it("sans carte : pas de verification_submitted_at ni de card_url", async () => {
@@ -176,6 +201,7 @@ describe("completeStudentOnboarding", () => {
     await completeStudentOnboarding(studentPayload)
     expect(calls.update[0].cols).not.toHaveProperty("verification_submitted_at")
     expect(calls.upsert[0].row).not.toHaveProperty("card_url")
+    expect(calls.studentUpdate).toHaveLength(0)
   })
 
   it("avatar du projet et de l'utilisateur : enregistré", async () => {
@@ -204,14 +230,14 @@ describe("completeStudentOnboarding", () => {
     const { calls } = use({ profile: studentProfile })
     const result = await completeStudentOnboarding({ ...studentPayload, cardUrl: `${UID}/card.jpg` })
     expect(result.ok).toBe(true)
-    expect(calls.upsert[0].row.card_url).toBe(`${UID}/card.jpg`)
+    expect(calls.studentUpdate[0].cols).toEqual({ card_url: `${UID}/card.jpg` })
   })
 
   it("URL signée de carte : le chemin est stocké, sans requête", async () => {
     const { calls } = use({ profile: studentProfile })
     const cardUrl = `${SUPABASE_URL}/storage/v1/object/sign/student-cards/${UID}/card.pdf?token=t`
     await completeStudentOnboarding({ ...studentPayload, cardUrl })
-    expect(calls.upsert[0].row.card_url).toBe(`${UID}/card.pdf`)
+    expect(calls.studentUpdate[0].cols).toEqual({ card_url: `${UID}/card.pdf` })
   })
 
   it("avatar avec paramètres de requête : stocké sans paramètres", async () => {
@@ -232,6 +258,7 @@ describe("completeStudentOnboarding", () => {
     expect(result.fieldErrors.cardUrl).toBeDefined()
     expect(calls.update).toHaveLength(0)
     expect(calls.upsert).toHaveLength(0)
+    expect(calls.studentUpdate).toHaveLength(0)
   })
 
   it("carte d'un autre utilisateur refusée", async () => {
@@ -240,6 +267,7 @@ describe("completeStudentOnboarding", () => {
     const result = await completeStudentOnboarding({ ...studentPayload, cardUrl })
     expect(result.fieldErrors.cardUrl).toBeDefined()
     expect(calls.update).toHaveLength(0)
+    expect(calls.studentUpdate).toHaveLength(0)
   })
 
   it("téléphone invalide et ville hors liste : erreurs de champ, aucune écriture", async () => {

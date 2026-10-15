@@ -16,6 +16,7 @@ import {
   makeClientIdentitySchema,
 } from "@/lib/auth/schemas"
 import { toOwnedAvatarUrl, toOwnedStoragePath } from "@/lib/storage/owned-paths"
+import { setOwnCardPath } from "@/lib/actions/student-card-write"
 
 const MESSAGES = {
   unauthenticated: "Votre session a expiré. Connectez-vous pour continuer.",
@@ -174,12 +175,16 @@ export async function completeStudentOnboarding(payload) {
     skills: data.skills,
     availability: data.availability.length > 0 ? data.availability.join(", ") : null,
   }
-  if (card.url) studentColumns.card_url = card.url
-
+  // La carte n'est jamais dans l'upsert : il lirait EXCLUDED.card_url, colonne privée non lisible par la session
+  // (42501). L'upsert des études garantit la ligne, puis la carte est écrite par un UPDATE simple.
   const { error } = await supabase
     .from("student_profiles")
     .upsert(studentColumns, { onConflict: "user_id" })
   if (error) return failure("student", "save_failed")
+  if (card.url) {
+    const { error: cardError } = await setOwnCardPath(supabase, user.id, card.url)
+    if (cardError) return failure("student", "save_failed")
+  }
 
   // Le profil (donc le jeton de dépôt) est écrit APRÈS la carte : jamais de jeton nouveau avec une carte ancienne.
   const saved = await writeProfile({ supabase, user, columns })
