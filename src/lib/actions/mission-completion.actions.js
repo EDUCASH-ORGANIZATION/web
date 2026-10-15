@@ -79,6 +79,7 @@ export async function declareMissionCompletion(missionId) {
     .select(COLUMNS)
     .eq("id", missionId)
     .maybeSingle()
+  if (isMissingCompletionColumn(rereadError)) return { error: COMPLETION_COPY.unavailable, code: "unavailable" }
   if (rereadError) {
     console.error("[declareMissionCompletion] relecture", rereadError.code ?? "erreur")
     return { error: ERR_GENERIC, code: "generic" }

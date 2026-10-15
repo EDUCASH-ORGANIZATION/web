@@ -99,6 +99,36 @@ describe("declareMissionCompletion", () => {
     expect(revalidatePath).not.toHaveBeenCalled()
   })
 
+  it("UPDATE à 0 ligne puis relecture sans la colonne (42703 ou PGRST204) : unavailable, pas generic", async () => {
+    for (const code of ["42703", "PGRST204"]) {
+      vi.clearAllMocks()
+      const { client, calls } = makeService({
+        reads: [{ data: mission, error: null }, { data: null, error: { code, message: "colonne absente" } }],
+        update: { data: [], error: null },
+      })
+      createServiceClient.mockReturnValue(client)
+      expect(await declareMissionCompletion(M)).toEqual({
+        error: "Cette fonction n'est pas encore disponible.",
+        code: "unavailable",
+      })
+      expect(calls.filter((c) => c.op === "update")).toHaveLength(1)
+      expect(calls.filter((c) => c.op === "select")).toHaveLength(2)
+      expect(revalidatePath).not.toHaveBeenCalled()
+    }
+  })
+
+  it("UPDATE à 0 ligne puis autre erreur de relecture : generic", async () => {
+    const { client } = makeService({
+      reads: [{ data: mission, error: null }, { data: null, error: { code: "57014", message: "timeout" } }],
+      update: { data: [], error: null },
+    })
+    createServiceClient.mockReturnValue(client)
+    expect(await declareMissionCompletion(M)).toEqual({
+      error: "Une erreur est survenue. Réessayez dans un instant.",
+      code: "generic",
+    })
+  })
+
   it("expose une signature à un seul argument", () => {
     expect(declareMissionCompletion.length).toBe(1)
   })
