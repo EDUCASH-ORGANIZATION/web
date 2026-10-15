@@ -261,3 +261,26 @@ describe("getStudentMissionDetail : mission non ouverte", () => {
     expect(JSON.stringify(await getStudentMissionDetail(MISSION))).not.toContain(CLIENT)
   })
 })
+
+describe("getStudentMissionDetail : mission avec achats", () => {
+  it.each([
+    [15000, 15000],
+    ["12000", 12000],
+    [null, null],
+    [0, null],
+    [-4, null],
+    ["abc", null],
+    [1e12, null],
+  ])("estimation %j renvoyée comme %j", async (raw, expected) => {
+    responses.missions = missionsFor({ ...baseMission, purchases_estimate: raw })
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.mission.purchasesEstimate).toBe(expected)
+  })
+
+  it("lit la colonne par une liste explicite, jamais select(*)", async () => {
+    await getStudentMissionDetail(MISSION)
+    const full = callsOn("missions").find((c) => c.columns?.includes("client_id"))
+    expect(full.columns).toContain("purchases_estimate")
+    expect(full.columns).not.toContain("*")
+  })
+})

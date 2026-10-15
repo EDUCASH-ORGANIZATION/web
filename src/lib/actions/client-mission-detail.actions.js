@@ -1,6 +1,7 @@
 "use server"
 
 import { requireRole } from "@/lib/auth/require-role"
+import { purchasesEstimateOf } from "@/lib/app/purchases"
 import { isUuid } from "@/lib/vitrine/ids"
 import { firstName } from "@/lib/vitrine/public-name"
 
@@ -10,7 +11,7 @@ const ERR_LOAD_CANDIDATE = "Impossible de charger ce candidat."
 // Colonnes explicites : jamais de select("*") sur profiles ni student_profiles, aucune colonne privée
 // (téléphone, card_url, motif de refus, jeton de notification...).
 const MISSION_COLUMNS =
-  "id, title, description, type, city, budget, urgency, deadline, status, created_at, selected_student_id"
+  "id, title, description, type, city, budget, urgency, deadline, status, created_at, selected_student_id, purchases_estimate"
 const APPLICATION_COLUMNS = "id, student_id, message, status, created_at"
 const PUBLIC_PROFILE_FIELDS =
   "user_id, full_name, avatar_url, city, rating, missions_done, is_verified, verified_until"
@@ -43,6 +44,7 @@ const CANDIDATE_REVIEWS_LIMIT = 20
  * @property {string} mission.type Valeur en base : l'afficher par missionTypeLabel()
  * @property {string|null} mission.city
  * @property {number} mission.budget Montant en FCFA (jamais de commission en dur : escrowSplit)
+ * @property {number|null} mission.purchasesEstimate Estimation indicative des achats en FCFA (mission avec achats), null sinon
  * @property {"low"|"medium"|"high"|null} mission.urgency
  * @property {string|null} mission.deadline "AAAA-MM-JJ" ou null
  * @property {"open"|"in_progress"|"done"|"cancelled"} mission.status
@@ -193,6 +195,7 @@ export async function getClientMissionDetail(id) {
       type: mission.type,
       city: mission.city ?? null,
       budget: Number(mission.budget) || 0,
+      purchasesEstimate: purchasesEstimateOf(mission.purchases_estimate),
       urgency: mission.urgency ?? null,
       deadline: mission.deadline ?? null,
       status: mission.status,
