@@ -18,6 +18,7 @@ function fakeSupabase({
   profile = null,
   profileError = null,
   updateRows = [{ user_id: UID }],
+  cardResult = { error: null, count: 1 },
 } = {}) {
   const calls = { update: [], insert: [], upsert: [], updateUser: [], studentUpdate: [] }
   const supabase = {
@@ -51,7 +52,7 @@ function fakeSupabase({
         update: (cols, opts) => ({
           eq: async (col, value) => {
             calls.studentUpdate.push({ table, cols, opts, filter: [col, value] })
-            return { error: null, count: 1 }
+            return cardResult
           },
         }),
       }
@@ -179,6 +180,20 @@ describe("completeStudentOnboarding", () => {
     expect(calls.studentUpdate).toEqual([
       { table: "student_profiles", cols: { card_url: `${UID}/card.jpg` }, opts: { count: "exact" }, filter: ["user_id", UID] },
     ])
+  })
+
+  it.each([
+    ["refus DENIED", { error: { message: "DENIED" }, count: null }],
+    ["aucune ligne mise à jour (count 0)", { error: null, count: 0 }],
+  ])("échec de l'écriture de la carte (%s) : save_failed, profil jamais écrit", async (_label, cardResult) => {
+    const { calls } = use({ profile: studentProfile, cardResult })
+    const cardUrl = `${SUPABASE_URL}/storage/v1/object/public/student-cards/${UID}/card.jpg`
+    const result = await completeStudentOnboarding({ ...studentPayload, cardUrl })
+
+    expect(result).toMatchObject({ ok: false, code: "save_failed" })
+    expect(calls.studentUpdate).toHaveLength(1)
+    expect(calls.update).toHaveLength(0)
+    expect(calls.insert).toHaveLength(0)
   })
 
   it("sans carte : pas de verification_submitted_at ni de card_url", async () => {

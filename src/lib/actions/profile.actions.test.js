@@ -107,11 +107,14 @@ const LEAK = 'duplicate key value violates constraint "profiles_pkey"'
 const SUPABASE_URL = "https://proj.supabase.co"
 
 // `captured[table]` : état cumulé des colonnes écrites sur la ligne de l'appelant (plusieurs écritures successives
-// sur une même table se cumulent, comme dans la base).
+// sur une même table se cumulent, comme dans la base). `captured.last[table]` : dernière écriture seule, pour vérifier
+// qu'une valeur précise vient bien de l'écriture finale et non d'une écriture précédente.
 function session({ failOn, captured } = {}) {
   const result = (table) => ({ error: table === failOn ? { message: LEAK } : null })
   const record = (table, payload) => {
-    if (captured) captured[table] = { ...captured[table], ...payload }
+    if (!captured) return
+    captured[table] = { ...captured[table], ...payload }
+    captured.last = { ...captured.last, [table]: payload }
   }
   const chain = (table) => ({
     update: (payload) => {
@@ -258,6 +261,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     expect(await saveStudentCardUrl(value)).toEqual({ success: true })
     expect(captured.student_profiles).toEqual({ user_id: "u1", card_url: expected })
     expect(captured.profiles.is_verified).toBe(false)
+    expect(captured.last.profiles).toMatchObject({ is_verified: false })
   })
 
   it("saveStudentCardUrl remet le dossier en attente : liste blanche, jamais role, is_suspended ni verified_until", async () => {
@@ -266,6 +270,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     expect(await saveStudentCardUrl("u1/card.jpg")).toEqual({ success: true })
     expect(Object.keys(captured.profiles).sort()).toEqual(["is_verified", "rejection_reason", "verification_submitted_at"])
     expect(captured.profiles).toMatchObject({ is_verified: false, rejection_reason: null })
+    expect(captured.last.profiles).toMatchObject({ is_verified: false, rejection_reason: null })
     expect(Date.parse(captured.profiles.verification_submitted_at)).not.toBeNaN()
     for (const col of ["role", "is_suspended", "verified_until"]) {
       expect(captured.profiles).not.toHaveProperty(col)
