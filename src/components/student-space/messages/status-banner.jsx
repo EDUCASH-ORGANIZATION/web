@@ -30,9 +30,9 @@ function actionOf(state, missionId) {
 }
 
 // Montants de la mission en cours : budget du client (retenu en séquestre) et net de l'étudiant. Aucun montant
-// quand le budget ou le net manque. Paiements fermés : formulation indicative, jamais une promesse de séquestre.
+// quand le budget n'est pas strictement positif ou que le net est négatif ou non fini. Paiements fermés : formulation indicative, jamais une promesse de séquestre.
 function amountsOf({ state, budget, net, purchases, paymentsEnabled }) {
-  if (state !== "in_progress" || !Number.isFinite(budget) || !Number.isFinite(net)) return null
+  if (state !== "in_progress" || !(Number.isFinite(budget) && budget > 0 && Number.isFinite(net) && net >= 0)) return null
   const service = <b>{formatFcfa(budget)}</b>
   const touched = <b>{formatFcfa(net)}</b>
   const tail = purchases ? " · les achats se paient hors EduCash" : ""
@@ -70,8 +70,10 @@ export function StatusBanner({ state, missionId, mission, paymentsEnabled = fals
     purchases,
     paymentsEnabled,
   })
+  // Quand les montants s'affichent, le texte « Prévenez le client par message quand c'est terminé » n'est pas
+  // repris (plan ST-05) : il reviendra avec le bouton « J'ai terminé » (RD-DONE-01, branchement hors ST-05).
   return (
-    <div className="e2-07-status">
+    <div className={amounts ? "e2-07-status e2-07-status--amounts" : "e2-07-status"}>
       <StatusBadge {...banner.badge} />
       {purchases ? (
         <span className="badge badge--neutre badge--sm e2-07-status__achats">

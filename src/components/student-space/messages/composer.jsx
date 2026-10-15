@@ -36,6 +36,25 @@ export function LockedComposer({ text }) {
 }
 
 /**
+ * Bouton à droite du champ : l'envoi dès qu'il y a du texte, sinon le micro (message vocal).
+ * @param {{ hasText: boolean, onRecord: () => void }} props
+ */
+export function SendOrMic({ hasText, onRecord }) {
+  if (hasText) {
+    return (
+      <button type="submit" className="composer__send" aria-label="Envoyer">
+        <Icon name="i-send" />
+      </button>
+    )
+  }
+  return (
+    <button type="button" className="iconbtn2" aria-label="Enregistrer un message vocal" onClick={onRecord}>
+      <Icon name="i-mic" />
+    </button>
+  )
+}
+
+/**
  * Zone d'écriture : texte, image, message vocal, position. `onSend(payload)` reçoit
  * `{ type: "text", content }`, `{ type: "image"|"voice", file, ext }` ou `{ type: "location", lat, lng }` ;
  * l'envoi, les échecs et les reprises sont gérés par la conversation (bulle « non envoyé » avec Réessayer).
@@ -231,15 +250,7 @@ export function Composer({ onSend }) {
               onKeyDown={onKeyDown}
             />
           </label>
-          {text.trim() ? (
-            <button type="submit" className="composer__send" aria-label="Envoyer">
-              <Icon name="i-send" />
-            </button>
-          ) : (
-            <button type="button" className="iconbtn2" aria-label="Enregistrer un message vocal" onClick={startRecording}>
-              <Icon name="i-mic" />
-            </button>
-          )}
+          <SendOrMic hasText={Boolean(text.trim())} onRecord={startRecording} />
         </form>
       </div>
       {preview ? <ImageDialog file={preview.file} previewUrl={preview.url} onConfirm={confirmImage} onCancel={() => setPreview(null)} /> : null}

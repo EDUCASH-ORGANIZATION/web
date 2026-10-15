@@ -186,7 +186,7 @@ describe("StudentConversationView : mission en cours", () => {
 
 describe("StudentConversationView : bandeau de mission avec montants", () => {
   const mission = (over) => ({ title: "Courses du mois", status: "in_progress", budget: 8000, net: 7040, purchasesEstimate: 7450, ...over })
-  const banner = (html) => html.slice(html.indexOf('class="e2-07-status"'), html.indexOf('class="chat e2-07-chat"'))
+  const banner = (html) => html.slice(html.indexOf('class="e2-07-status'), html.indexOf('class="chat e2-07-chat"'))
   const withState = (over, paymentsEnabled) =>
     renderToStaticMarkup(
       <StudentConversationView
@@ -214,6 +214,11 @@ describe("StudentConversationView : bandeau de mission avec montants", () => {
     const text = banner(withState({}, false)).replace(/<[^>]+>/g, "").replace(/\u202f|\u00a0/g, " ")
     expect(text).toContain("Service : 8 000 FCFA · vous touchez 7 040 FCFA (montants indicatifs)")
     expect(text).not.toContain("séquestre")
+  })
+
+  it("la classe e2-07-status--amounts n'est posée que lorsque les montants s'affichent", () => {
+    expect(banner(withState({}, true))).toContain("e2-07-status e2-07-status--amounts")
+    expect(banner(withState({ budget: null, net: null }, true))).not.toContain("e2-07-status--amounts")
   })
 
   it("sans budget ou sans net : texte d'état seul, aucun montant", () => {
@@ -338,7 +343,7 @@ describe("StatusBanner", () => {
 })
 
 describe("Composer et dialogues", () => {
-  it("désactive l'envoi tant que le champ est vide et borne la longueur et le type de fichier", () => {
+  it("au repos, le micro remplace l'envoi ; le champ est borné en longueur et en type de fichier", () => {
     const html = renderToStaticMarkup(<Composer onSend={vi.fn()} />)
     // Au repos, le micro occupe la place de l'envoi (il est remplacé dès qu'il y a du texte, voir composer.test.jsx).
     expect(html).not.toContain('type="submit"')
@@ -510,7 +515,10 @@ describe("e07.css : saisie et bandeau (règles statiques)", () => {
   })
 
   it("bandeau sur une ligne sous 1024 et volet pleine largeur sans rayon", () => {
-    expect(tablet).toContain(".e2-07-status { flex-wrap: nowrap; }")
+    expect(tablet).toContain(".e2-07-status--amounts { flex-wrap: nowrap; }")
+    expect(tablet).not.toMatch(/\.e2-07-status \{ flex-wrap: nowrap/)
+    expect(tablet).toContain(".e2-07-status--amounts .e2-07-status__text { overflow: hidden;")
+    expect(css).not.toContain("min-height: 57px")
     expect(tablet).toMatch(/\.e2-07-pane \{[^}]*border-radius: 0;/)
     expect(tablet).toMatch(/\.e2-07-pane \{[^}]*margin-inline: calc\(-1 \* var\(--s-4\)\)/)
   })
@@ -518,5 +526,11 @@ describe("e07.css : saisie et bandeau (règles statiques)", () => {
   it("le retour n'existe que sous 1024", () => {
     expect(css.slice(0, css.indexOf("@media"))).toMatch(/\.e2-07-back[^{]*\{ display: none; \}/)
     expect(tablet).toMatch(/\.e2-07-back[^{]*\{ display: inline-grid; \}/)
+  })
+
+  it("la zone sûre du bas n'est comptée qu'une fois, dans la saisie", () => {
+    expect(tablet).toContain(".e2-07-composer:not(.is-locked) { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }")
+    expect(tablet).toContain(".shell--v2:has(.e2-07-pane) .shell__main { padding-bottom: var(--s-2); }")
+    expect((css.match(/safe-area-inset-bottom/g) ?? []).length).toBe(1)
   })
 })

@@ -1333,8 +1333,8 @@ describe("student : cascade statique (specificite et ordre de chargement)", () =
     expect(tabletOf(e06)).toContain(".e2-06-inbox, .e2-06-inbox--tall { grid-template-columns: minmax(0, 1fr); height: auto; }")
     const e07 = stripComments(read("student/e07.css"))
     expect(tabletOf(e07)).toContain(".e2:has(.e2-07-mhead) .mtop2 { display: none; }")
-    expect(tabletOf(e07)).toMatch(/\.shell--v2:has\(\.e2-07-pane\) \.shell__main \{ padding-bottom: calc\(var\(--s-2\) \+ env\(safe-area-inset-bottom/)
-    expect(tabletOf(e07)).toMatch(/\.e2-07-pane \{ height: calc\(100dvh - var\(--s-2\) - env\(safe-area-inset-bottom/)
+    expect(tabletOf(e07)).toMatch(/\.shell--v2:has\(\.e2-07-pane\) \.shell__main \{ padding-bottom: var\(--s-2\); \}/)
+    expect(tabletOf(e07)).toMatch(/\.e2-07-pane \{ height: calc\(100dvh - var\(--s-2\)\);/)
   })
 })
 
@@ -1485,7 +1485,7 @@ describe("E06 et E07 : exception documentee aux composants du systeme (fond, bor
       ".e2 .e2-06-search:not(:focus-within)",
       ".e2-07-composer .composer__field:focus-within",
     ])
-    // Le detecteur voit une quatrieme regle du meme type (cas temoin).
+    // Le detecteur voit une troisieme regle du meme type (cas temoin).
     const witness = rulesOf(".e2-07-composer .composer__field:disabled { background: red; } .e2-07-pane { background: red; }")
     expect(witness.filter(({ selector, body }) => STATE.test(selector) && POSES.test(body))).toHaveLength(1)
   })

@@ -1,5 +1,5 @@
 // @ds-screen RD-STUDENT-01
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
 
 vi.mock("next/link", () => ({
@@ -20,22 +20,9 @@ vi.mock("@/hooks/use-realtime-messages", () => ({
   useMessageMediaUpload: () => vi.fn(),
 }))
 
-// Premier useState du compositeur = texte saisi : fixé pour rendre l'état voulu.
-const typed = { text: "", calls: 0 }
-vi.mock("react", async (importOriginal) => {
-  const actual = await importOriginal()
-  return {
-    ...actual,
-    useState: (initial) => {
-      typed.calls += 1
-      return typed.calls === 1 && typed.text !== null ? [typed.text, () => {}] : actual.useState(initial)
-    },
-  }
-})
-
 const { StudentConversationView } = await import("./conversation-view")
 const { StatusBanner } = await import("./status-banner")
-const { Composer } = await import("./composer")
+const { Composer, SendOrMic } = await import("./composer")
 
 const M1 = "11111111-1111-4111-8111-111111111111"
 const M2 = "44444444-4444-4444-8444-444444444444"
@@ -50,11 +37,8 @@ const conversation = (over = {}) => ({
   messages: [],
   ...over,
 })
-const view = (over, paymentsEnabled = true) => {
-  typed.text = null
-  typed.calls = 0
-  return renderToStaticMarkup(<StudentConversationView conversation={conversation(over)} now="2026-10-13T12:00:00Z" paymentsEnabled={paymentsEnabled} />)
-}
+const view = (over, paymentsEnabled = true) =>
+  renderToStaticMarkup(<StudentConversationView conversation={conversation(over)} now="2026-10-13T12:00:00Z" paymentsEnabled={paymentsEnabled} />)
 const banner = (mission, paymentsEnabled = true, state = "in_progress") =>
   renderToStaticMarkup(<StatusBanner state={state} missionId={M1} mission={mission} paymentsEnabled={paymentsEnabled} />)
 const clean = (html) => {
@@ -63,16 +47,8 @@ const clean = (html) => {
   expect(html).not.toContain("null")
 }
 const fallbackText = "Mission en cours. Prévenez le client par message quand c&#x27;est terminé."
-const composer = (text) => {
-  typed.text = text
-  typed.calls = 0
-  return renderToStaticMarkup(<Composer onSend={vi.fn()} />)
-}
-
-beforeEach(() => {
-  typed.text = ""
-  typed.calls = 0
-})
+// Le texte saisi pilote SendOrMic par `hasText` (même calcul que le compositeur : texte non blanc).
+const composer = (text) => renderToStaticMarkup(<SendOrMic hasText={Boolean(text.trim())} onRecord={vi.fn()} />)
 
 describe("ST-05 bandeau : montants", () => {
   it("budget et net valides, paiements ouverts : « en séquestre » et le net", () => {
@@ -103,12 +79,11 @@ describe("ST-05 bandeau : montants", () => {
     expect(html).not.toContain("en séquestre")
   })
 
-  // Écart connu (non corrigé ici) : StatusBanner n'écarte que les non finis ; 0 et négatif sont montrés
-  // (« 0 FCFA en séquestre »). La couche données écarte le négatif (toBudget), pas le zéro.
-  it.fails.each([
+  it.each([
     ["budget 0", { budget: 0, net: 0 }],
     ["budget négatif", { budget: -500, net: -450 }],
-  ])("ECART %s : devrait retomber sur le texte d'état", (_n, mission) => {
+    ["net négatif", { budget: 500, net: -10 }],
+  ])("budget %s : retombe sur le texte d'état", (_n, mission) => {
     const html = banner(mission)
     expect(html).toContain(fallbackText)
     expect(html).not.toContain("en séquestre")
@@ -149,7 +124,7 @@ describe("ST-05 composeur", () => {
     const html = composer("a".repeat(2500))
     expect(html).toContain('aria-label="Envoyer"')
     expect(html).not.toMatch(/<button[^>]*aria-label="Envoyer"[^>]*disabled/)
-    expect(html).toMatch(/maxLength="\d+"|maxlength="\d+"/i)
+    expect(renderToStaticMarkup(<Composer onSend={vi.fn()} />)).toMatch(/maxLength="\d+"|maxlength="\d+"/i)
   })
 })
 
