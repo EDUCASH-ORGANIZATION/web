@@ -14,11 +14,7 @@ vi.mock("next/link", () => ({ default: () => null }))
 vi.mock("@/components/admin/verifications-tabs", () => ({ VerificationsTabs: () => null }))
 vi.mock("@/components/admin/suspend-button", () => ({ SuspendButton: () => null }))
 
-import Dashboard from "./dashboard/page.js"
-import Verifications from "./verifications/page.js"
-import Users from "./users/page.js"
-import Missions from "./missions/page.js"
-import Wallets from "./wallets/page.js"
+import Verifications from "./page.js"
 
 /** Constructeur de requête chaînable et attendable. */
 function query(result) {
@@ -28,7 +24,7 @@ function query(result) {
   return q
 }
 
-describe("pages admin : contrôle de rôle fail-closed", () => {
+describe("page admin verifications : contrôle de rôle fail-closed", () => {
   beforeEach(() => {
     requireRole.mockReset()
     createServiceClient.mockReset()
@@ -36,14 +32,8 @@ describe("pages admin : contrôle de rôle fail-closed", () => {
     requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
   })
 
-  it.each([
-    ["dashboard", Dashboard, []],
-    ["verifications", Verifications, []],
-    ["users", Users, [{ searchParams: Promise.resolve({}) }]],
-    ["missions", Missions, [{ searchParams: Promise.resolve({}) }]],
-    ["wallets", Wallets, []],
-  ])("%s redirige sans lire de données si requireRole refuse", async (_name, Page, args) => {
-    await expect(Page(...args)).rejects.toThrow("REDIRECT:/auth/login")
+  it("verifications redirige sans lire de données si requireRole refuse", async () => {
+    await expect(Verifications()).rejects.toThrow("REDIRECT:/auth/login")
     expect(requireRole).toHaveBeenCalledWith(["admin"])
     expect(createServiceClient).not.toHaveBeenCalled()
   })
@@ -169,35 +159,5 @@ describe("admin/verifications : cartes et pagination", () => {
     createServiceClient.mockReturnValue(service([]))
     await Verifications({ searchParams: Promise.resolve(params) })
     expect(ranges[0]).toEqual(expected)
-  })
-})
-
-describe("pages admin : lectures via le client service role", () => {
-  beforeEach(() => {
-    requireRole.mockReset()
-    createServiceClient.mockReset()
-  })
-
-  it.each([
-    ["users", Users, [{ searchParams: Promise.resolve({ page: "abc" }) }]],
-    ["missions", Missions, [{ searchParams: Promise.resolve({ page: "NaN" }) }]],
-    ["wallets", Wallets, []],
-  ])("%s lit avec le client service et jamais avec la session", async (_name, Page, args) => {
-    const session = { from: vi.fn(() => { throw new Error("lecture avec la session interdite") }) }
-    requireRole.mockResolvedValue({ supabase: session, user: { id: "a" }, role: "admin", profile: {} })
-    const ranges = []
-    const service = {
-      from: () => {
-        const q = query({ data: [], error: null, count: 0 })
-        const range = q.range
-        q.range = (...a) => { ranges.push(a); return range() }
-        return q
-      },
-      auth: { admin: { getUserById: async () => ({ data: null }) } },
-    }
-    createServiceClient.mockReturnValue(service)
-    await Page(...args)
-    expect(session.from).not.toHaveBeenCalled()
-    for (const r of ranges) expect(r[0]).toBe(0)
   })
 })
