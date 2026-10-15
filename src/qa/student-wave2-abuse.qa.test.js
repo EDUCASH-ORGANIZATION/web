@@ -633,7 +633,12 @@ describe("chemins de fichiers hostiles : carte étudiante et photo de profil", (
   it("carte valide : seul le chemin est stocké, le statut repasse en attente sans toucher role / is_suspended / verified_until", async () => {
     const r = await saveStudentCardUrl(`${S1}/nouvelle.png`)
     expect(r.success).toBe(true)
-    const payload = ctx.writes.find((w) => w.table === "profiles").payload
+    const profileWrites = ctx.writes.filter((w) => w.table === "profiles")
+    expect(profileWrites.map((w) => Object.keys(w.payload).sort())).toEqual([
+      ["is_verified"],
+      ["is_verified", "rejection_reason", "verification_submitted_at"],
+    ])
+    const payload = profileWrites.at(-1).payload
     expect(Object.keys(payload).sort()).toEqual(["is_verified", "rejection_reason", "verification_submitted_at"])
   })
   const hostileAvatar = [

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { readdirSync, readFileSync, statSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -281,7 +281,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     expect(after.rejection_reason).toBeNull()
   })
 
-  it("saveStudentCardUrl : la remise en attente passe AVANT l'écriture de la carte", async () => {
+  it("saveStudentCardUrl : badge retiré, puis carte écrite, puis jeton de dépôt (jamais jeton nouveau avec ancienne carte)", async () => {
     const order = []
     const supabase = {
       from: (table) => ({
@@ -291,7 +291,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     }
     asRole(supabase)
     expect(await saveStudentCardUrl("u1/card.jpg")).toEqual({ success: true })
-    expect(order).toEqual(["update:profiles", "upsert:student_profiles"])
+    expect(order).toEqual(["update:profiles", "upsert:student_profiles", "update:profiles"])
   })
 
   it("saveStudentCardUrl : remise en attente en échec, la carte n'est jamais écrite (état sûr)", async () => {
@@ -303,14 +303,36 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     expect(console.error).toHaveBeenCalledWith("[saveStudentCardUrl]", LEAK)
   })
 
-  it("saveStudentCardUrl : écriture de la carte en échec après la remise en attente, erreur neutre vouvoyée", async () => {
+  it("saveStudentCardUrl : écriture de la carte en échec après le retrait du badge, erreur neutre vouvoyée", async () => {
     const captured = {}
     asRole(session({ failOn: "student_profiles", captured }))
     const res = await saveStudentCardUrl("u1/card.jpg")
     expect(res).toEqual({ error: "Impossible d'enregistrer votre carte étudiante." })
     expect(res.error).not.toContain(LEAK)
-    // Le badge a déjà été retiré : le profil n'est jamais « vérifié » avec une carte non contrôlée.
-    expect(captured.profiles).toMatchObject({ is_verified: false, rejection_reason: null })
+    // Le badge a déjà été retiré et le jeton de dépôt n'a pas changé : aucun état « vérifié » avec une carte inconnue.
+    expect(captured.profiles).toEqual({ is_verified: false })
+  })
+
+  it("saveStudentCardUrl : jeton de dépôt en échec après la carte, erreur neutre et jeton jamais écrit", async () => {
+    const payloads = []
+    let n = 0
+    const supabase = {
+      from: () => ({
+        update: (p) => ({
+          eq: () => {
+            payloads.push(p)
+            n += 1
+            return Promise.resolve({ error: n === 2 ? { message: LEAK } : null })
+          },
+        }),
+        upsert: () => Promise.resolve({ error: null }),
+      }),
+    }
+    asRole(supabase)
+    const res = await saveStudentCardUrl("u1/card-1.jpg")
+    expect(res).toEqual({ error: "Impossible d'enregistrer votre carte étudiante." })
+    expect(payloads[0]).toEqual({ is_verified: false })
+    expect(payloads[0]).not.toHaveProperty("verification_submitted_at")
   })
 
   it("saveStudentCardUrl : un chemin refusé n'écrit rien, ni carte ni remise en attente", async () => {
@@ -688,9 +710,10 @@ const SRC = path.resolve(import.meta.dirname, "../..")
 const PRIVATE_COLUMNS = ["phone", "fcm_token", "rejection_reason", "verification_submitted_at", "card_url"]
 const SERVER_ALLOWLIST = [
   "lib/actions/profile.actions.js",
-  "lib/actions/admin.actions.js",
   "lib/actions/onboarding.actions.js",
-  "app/(admin)/admin/verifications/page.js",
+  "lib/actions/admin-verifications.actions.js",
+  "lib/actions/admin-dashboard.actions.js",
+  "lib/actions/admin-users.actions.js",
 ]
 
 const SELECT_ARG = /\.select\(\s*(`[^`]*`|"[^"]*"|'[^']*')/g
@@ -744,6 +767,18 @@ describe("garde-fou colonnes privées de profiles", () => {
       { file: "lib/actions/profile.actions.js", source: 'x.from("profiles").select("phone, rejection_reason")' },
     ]
     expect(findPrivateColumnReads(files)).toEqual([])
+  })
+
+  it("chaque entrée de la liste blanche vise un fichier existant qui cite une colonne privée", () => {
+    for (const entry of SERVER_ALLOWLIST) {
+      const full = path.join(SRC, entry)
+      expect(existsSync(full), `${entry} : fichier introuvable`).toBe(true)
+      const source = readFileSync(full, "utf8")
+      expect(
+        PRIVATE_COLUMNS.some((c) => new RegExp(`\\b${c}\\b`).test(source)),
+        `${entry} : aucune colonne privée citée`,
+      ).toBe(true)
+    }
   })
 
   it("aucun module de src ne lit une colonne privée avec la session", () => {

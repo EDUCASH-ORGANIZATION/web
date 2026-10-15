@@ -27,4 +27,21 @@ describe("UnreadProvider", () => {
   it("sans fournisseur, le compteur vaut 0", () => {
     expect(renderToStaticMarkup(<Reader name="x" />)).toBe('<i data-name="x">0</i>')
   })
+
+  it("sans userId ou avec realtime faux : le hook n'est pas appelé et le compteur vaut 0", () => {
+    hook.mockClear()
+    const none = renderToStaticMarkup(
+      <UnreadProvider userId={null} initialCount={4}>
+        <Reader name="a" />
+      </UnreadProvider>,
+    )
+    const off = renderToStaticMarkup(
+      <UnreadProvider userId="u1" initialCount={4} realtime={false}>
+        <Reader name="a" />
+      </UnreadProvider>,
+    )
+    expect(hook).not.toHaveBeenCalled()
+    expect(none).toBe('<i data-name="a">0</i>')
+    expect(off).toBe('<i data-name="a">0</i>')
+  })
 })

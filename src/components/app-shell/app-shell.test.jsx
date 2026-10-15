@@ -345,3 +345,60 @@ describe("configuration client : aucun lien vers une route inexistante", () => {
     expect(matches("/client/missions/42")).toBe(true)
   })
 })
+
+describe("AppShell : compteurs nommés et mode sans temps réel (espace admin)", () => {
+  const ADMIN_LIKE = {
+    space: "Administration",
+    identityLabel: "Admin",
+    homeHref: "/admin/dashboard",
+    profileHref: "/admin/dashboard",
+    realtime: false,
+    search: { action: "/admin/users", label: "Rechercher un utilisateur", placeholder: "Rechercher", ariaLabel: "Rechercher un utilisateur" },
+    groups: [
+      {
+        title: "Général",
+        items: [
+          { key: "dashboard", label: "Tableau de bord", href: "/admin/dashboard", icon: "i-home" },
+          { key: "verifications", label: "Vérifications", href: "/admin/verifications", icon: "i-shield-check", badge: "verifications", badgeUnit: "en attente" },
+        ],
+      },
+    ],
+    mobile: [
+      { key: "dashboard", label: "Accueil", href: "/admin/dashboard", icon: "i-home" },
+      { key: "verifications", label: "Vérifs", href: "/admin/verifications", icon: "i-shield-check", badge: "verifications", badgeUnit: "en attente" },
+    ],
+  }
+
+  it("le compteur nommé arrive à la sidebar et à la barre du bas, avec l'unité de l'élément", () => {
+    const html = render({ nav: ADMIN_LIKE, counts: { verifications: 4 } }, "/admin/dashboard")
+    expect(navHtml(html, "sidebar__nav")).toContain('aria-label="Vérifications, 4 en attente"')
+    expect(navHtml(html, "sidebar__nav")).toContain('<span class="count" aria-hidden="true">4</span>')
+    expect(navHtml(html, "bottom-nav")).toContain('aria-label="Vérifs, 4 en attente"')
+  })
+
+  it("sans compteur (ou à zéro), aucune pastille", () => {
+    const html = render({ nav: ADMIN_LIKE, counts: { verifications: 0 } }, "/admin/dashboard")
+    expect(html).not.toContain('class="count"')
+    expect(html).not.toContain("bnav-item__dot")
+  })
+
+  it("realtime faux : le hook d'abonnement n'est jamais appelé et le compteur de messages vaut 0", () => {
+    unreadHook.mockClear()
+    render({ nav: ADMIN_LIKE, counts: { verifications: 4 } }, "/admin/dashboard")
+    expect(unreadHook).not.toHaveBeenCalled()
+  })
+
+  it("client : counts vide ou absent donne le même HTML, abonnement conservé", () => {
+    unreadHook.mockClear()
+    const base = render()
+    expect(unreadHook).toHaveBeenCalledTimes(1)
+    expect(render({ counts: {} })).toBe(base)
+  })
+
+  it("étudiant : même HTML qu'avant l'ajout de counts (empreinte)", () => {
+    const digest = (html) => createHash("sha256").update(html.replace(/\?v=[0-9a-f]+/g, "?v=V")).digest("hex")
+    for (const route of ["/student/dashboard", "/student/messages/abc"]) {
+      expect(digest(render({ nav: STUDENT_NAV }, route))).toBe("968bf0b5a6586d003bff4f08b566a7753047702813d6ef0be7a8729290a64824")
+    }
+  })
+})

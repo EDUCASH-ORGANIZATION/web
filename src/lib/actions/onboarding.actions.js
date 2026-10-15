@@ -167,9 +167,6 @@ export async function completeStudentOnboarding(payload) {
   if (avatar.url) columns.avatar_url = avatar.url
   if (card.url) columns.verification_submitted_at = new Date().toISOString()
 
-  const saved = await writeProfile({ supabase, user, columns })
-  if (!saved) return failure("student", "save_failed")
-
   const studentColumns = {
     user_id: user.id,
     school: data.school,
@@ -183,6 +180,10 @@ export async function completeStudentOnboarding(payload) {
     .from("student_profiles")
     .upsert(studentColumns, { onConflict: "user_id" })
   if (error) return failure("student", "save_failed")
+
+  // Le profil (donc le jeton de dépôt) est écrit APRÈS la carte : jamais de jeton nouveau avec une carte ancienne.
+  const saved = await writeProfile({ supabase, user, columns })
+  if (!saved) return failure("student", "save_failed")
 
   return {
     ok: true,

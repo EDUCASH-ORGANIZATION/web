@@ -1673,3 +1673,289 @@ describe("recette finale : portefeuille, recapitulatif, compteur, edition du pro
     expect(rule).not.toMatch(/nav2|bnav2|shell/)
   })
 })
+
+// =====================================================================================================
+// Espace admin (RD-ADMIN-01 ST-01) : admin.css + admin/*.css, port de v2-admin.css (portee .v2a -> .a2).
+// Memes controles que pour student/*.css (couleurs, variables, seuils, portee, ordre mobile, 13 px), plus la
+// presence de chaque classe de la source, la barre d'action fixe et le respect de la capsule RD-NAV-02.
+// =====================================================================================================
+
+const ADMIN_FILES = readdirSync(path.join(dir, "admin")).filter((f) => f.endsWith(".css")).sort()
+const ADMIN_FILE_CSS = ADMIN_FILES.map((f) => stripComments(read(`admin/${f}`)))
+const ADMIN = ADMIN_FILE_CSS.join("\n")
+const ADMIN_BASE = stripComments(read("admin/base.css"))
+const ADMIN_IMPORTS = [...read("admin.css").matchAll(/@import "\.\/(admin\/[\w-]+\.css)";/g)].map((m) => m[1])
+const ADMIN_SCREENS = ["ad01", "ad02", "ad03", "ad04", "ad06", "ad07", "ad11", "ad12", "ad13"]
+
+// Classes des selecteurs de v2-admin.css (la planche), au renommage ds- pres, moins REMOVED_A2 et RENAMED_A2.
+const ADMIN_SOURCE_CLASSES = `
+a-install a-object action-bar ad-av--citron ad-av--lavande ad-av--menthe ad-av--peche ad-av--rose ad-compare ad-diff__new
+ad-diff__old ad-hbar ad-hbar--citron ad-hbar--encre ad-hbar--lavande ad-hbar__track ad-idcard ad-idcard__band ad-idcard__pin
+ad-indic ad-kbd ad-legend ad-log ad-payreq ad-payreq__proofs ad-prio ad-prio--haute ad-prio--moy ad-proof ad-proof__ic
+ad-proof__lab ad-proof__note ad-proof__sms ad-ro ad-row-prio ad-setting ad-setting__val ad-stage ad-steps ad-subnav
+ad-typeconfirm ad-vchart__bar ad-vchart__plot ad-viewer ad-viewer__tools ad07-payreq ad12-money applicant avatar avatar-btn
+badge--citron badge--contour badge--encre badge--lavande badge--plein-bleu banner banner--alerte banner--citron banner--encre
+banner__title bento-card bento-card__shape btn btn--accent btn--danger-outline btn--ghost btn--primary btn--secondary btn-icon
+btn-icon--plain btn-icon__count btn-icon__dot btn__dot c-inbox c-payreq card card--citron card--citron-pale card--hl
+card--lavande card--link card--menthe card--peche card--rose card--sm chat-status chip chip--remove choice control count
+count--citron count--erreur count--neutre detail-card drawer e-achat e-inbox__list e-inbox__pane e-inbox__pane-head
+e-success__mark empty--erreur empty--sm empty__art empty__title file head2__actions head2__back head2__sub head2__title ic
+ic-sq ic-sq--alerte ic-sq--blanc ic-sq--erreur ic-sq--succes input is-active is-current is-disabled is-done is-error
+is-flagged is-hl is-hover is-on is-selected is-serie is-unread lrow lrow--citron lrow--lavande lrow--menthe lrow--peche
+lrow__ic lrows menu mission mission--hl mission--link modal modal--danger modal__icon modal__title msg-system mtopbar
+mtopbar--admin mtopbar--white notif notif-panel notif-panel__foot photo-ph push recap recap__total scribble search search2
+searchbar searchbar__icon segmented select sheet stat stat--citron stat--encre stat--lavande stat--link stat--menthe
+stat--peche stat--rose stat2 stat__label stat__shape stat__sub stat__trend stat__value step step__dot sticker t-paycard
+t-paycard__photo t-warn tab table table-wrap table-wrap__foot table-wrap__head tabs tcard tl-item tl-item__dot toast
+toast--erreur toast--succes toast__action toast__icon verified verified--citron
+`.trim().split(/\s+/)
+
+// Classes de la section 2 de la planche renommees : l'ancien nom ne doit plus apparaitre, le nouveau doit exister.
+const RENAMED_A2 = {
+  filters2: "a2-filters", filters2__count: "a2-filters__count", full2: "a2-full",
+  full2__actions: "a2-full__actions", full2__code: "a2-full__code", full2__text: "a2-full__text", grid2: "a2-grid",
+  "grid2--3": "a2-grid--3", kv2: "a2-kv", "mtop2--sub": "a2-mtop", mtop2__title: "a2-mtop__title",
+  note2: "a2-note", "note2--alerte": "a2-note--alerte", "note2--erreur": "a2-note--erreur", "note2--succes": "a2-note--succes",
+  prio2: "a2-prio", "prio2--haute": "a2-prio--haute", "prio2--moy": "a2-prio--moy", sec2: "a2-sec", sec2__head: "a2-sec__head",
+  sec2__more: "a2-sec__more", sec2__title: "a2-sec__title", split2: "a2-split", "split2--md": "a2-split--md",
+  "split2--wide": "a2-split--wide",
+}
+// Classes de la planche volontairement non portees, avec la raison.
+const REMOVED_A2 = {
+  "ad-chat": "lecture de conversation par l'admin : hors perimetre (donnee personnelle sans trace d'acces, AD07 sans messages)",
+  chat: "conversation en lecture seule (.ad-chat .chat) : hors perimetre",
+  bubble__meta: "conversation en lecture seule (.ad-chat) : hors perimetre",
+  "bubble--me": "conversation en lecture seule (.ad-chat) : hors perimetre",
+  state__canvas: "cadre d'etat propre aux planches, aucun equivalent dans l'application",
+  "ad10-proofs": "AD10 (detail de signalement) : ecran hors lot, aucun signalement dans le code",
+  "ad14-bars": "AD14 (statistiques) : ecran hors lot",
+  "ad14-hatch": "AD14 (statistiques) : ecran hors lot",
+  "ad-hbar": "n'apparait que dans une regle AD14 (.ad14-bars .ad-hbar.is-serie), ecran hors lot ; les variantes --citron, --encre et --lavande sont portees",
+  chart2: "histogramme retire d'AD01 (decision v2.1) ; AD14 hors lot ; la hauteur des barres exigeait un style local",
+  chart2__bar: "histogramme retire d'AD01 ; hauteur par style local interdite",
+  chart2__empty: "histogramme retire d'AD01 ; hauteur par style local interdite",
+  chart2__plot: "histogramme retire d'AD01 ; hauteur par style local interdite",
+  chart2__y: "histogramme retire d'AD01 ; hauteur par style local interdite",
+  "is-serie": "etat de serie de l'histogramme et de sa legende : retire avec eux",
+  legend2: "legende d'histogramme : retiree avec l'histogramme",
+  mpage2: "T02 et AD15 (parametres) : ecrans hors lot",
+  t03: "T03 (page derriere la modale) : transverse hors lot",
+  "t03-behind": "T03 (page derriere la modale) : transverse hors lot",
+  "t04-m": "T04 (introuvable) mobile : transverse hors lot",
+  "t05-safe": "T05 (erreur) : reprise sous le nom a2-full__safe",
+  "t05-title": "T05 (maintenance) : ecran hors lot",
+  "t06-cache": "T06 (hors ligne) : transverse hors lot, la bannière hors ligne est celle d'app-ui",
+  "t07-progress": "T07 (demarrage) : transverse hors lot",
+  flag2: "n'apparait que dans une regle T05 (.full2 > .flag2) hors lot ; la classe vient d'app-shell.css",
+  table: "renomme ds-table (anti-collision Tailwind)", "table-wrap": "renomme ds-table-wrap (anti-collision Tailwind)",
+  "table-wrap__foot": "renomme ds-table-wrap__foot", "table-wrap__head": "renomme ds-table-wrap__head",
+}
+const ADMIN_CLASSES = ADMIN_SOURCE_CLASSES.filter((c) => !(c in REMOVED_A2))
+
+describe("feuilles admin.css et admin/*.css", () => {
+  it("admin.css importe chaque feuille de admin/ une fois, base en premier, puis un fichier par ecran dans l'ordre", () => {
+    expect(ADMIN_IMPORTS[0]).toBe("admin/base.css")
+    expect([...ADMIN_IMPORTS.map((f) => f.replace("admin/", ""))].sort()).toEqual(ADMIN_FILES)
+    expect(new Set(ADMIN_IMPORTS).size).toBe(ADMIN_IMPORTS.length)
+    expect(ADMIN_FILES).toEqual([...ADMIN_SCREENS.map((s) => `${s}.css`), "base.css"])
+    expect(ADMIN_IMPORTS.slice(1)).toEqual(ADMIN_SCREENS.map((s) => `admin/${s}.css`))
+  })
+
+  it("est branche dans globals.css en couche components, apres student.css", () => {
+    const globals = readFileSync(path.join(dir, "..", "globals.css"), "utf8")
+    expect(globals).toContain('@import "./design/admin.css" layer(components);')
+    const order = ["tokens.css", "components.css", "layouts.css", "app-shell.css", "client.css", "student.css", "admin.css"].map((f) => globals.indexOf(`./design/${f}`))
+    expect(order.every((i) => i >= 0)).toBe(true)
+    expect([...order].sort((a, b) => a - b)).toEqual(order)
+  })
+
+  it("chaque feuille porte le marqueur @ds-screen RD-ADMIN-01 en tete", () => {
+    for (const f of ADMIN_FILES) expect(read(`admin/${f}`).startsWith("/* @ds-screen RD-ADMIN-01 */"), f).toBe(true)
+  })
+
+  it("contient chaque classe de v2-admin.css (renommages ds- et a2- pres), les retraits etant documentes", () => {
+    const renamedSources = new Set(Object.keys(RENAMED_A2))
+    const own = ADMIN_CLASSES.filter((c) => !renamedSources.has(c))
+    expect(own.filter((c) => !hasClass(ADMIN, c) && !c.startsWith("ds-"))).toEqual([])
+    expect(Object.values(RENAMED_A2).filter((n) => !hasClass(ADMIN, n))).toEqual([])
+    expect(Object.keys(RENAMED_A2).filter((c) => hasClass(ADMIN, c))).toEqual([])
+    expect(Object.keys(REMOVED_A2).filter((c) => hasClass(ADMIN, c))).toEqual([])
+    for (const reason of Object.values(REMOVED_A2)) expect(reason.length).toBeGreaterThan(10)
+  })
+
+  it("applique le renommage ds- (table) et la portee .a2 a la place de body.v2a", () => {
+    expect(ADMIN).toContain(".a2 .ds-table-wrap")
+    expect(ADMIN).toContain(".a2 .ds-table td")
+    expect(ADMIN).toContain(".a2 .ds-table-wrap__foot")
+    expect(ADMIN).not.toMatch(/\.table(?![\w-])/)
+    expect(ADMIN).not.toMatch(/v2a/)
+    expect(ADMIN).toMatch(/\.a2 \.card \{ border: 1px solid var\(--c-ligne\); box-shadow: none; \}/)
+  })
+
+  it("ne contient aucune couleur en dur (hex, rgb, rgba, hsl) ni de nom de couleur CSS nu", () => {
+    expect(ADMIN).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
+    expect(ADMIN).not.toMatch(/\b(?:rgba?|hsla?)\(/)
+    expect(ADMIN).not.toMatch(/:\s*(?:white|black|red|green|blue)\s*[;}]/)
+  })
+
+  it("ne contient aucun !important hors mouvement reduit, aucune ombre dure ni attribut de style", () => {
+    const outsideMotion = ADMIN.replace(/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\n\}/g, "")
+    expect(outsideMotion).not.toMatch(/!important/)
+    for (const m of ADMIN.matchAll(/box-shadow:\s*([^;}]+)/g)) {
+      expect(m[1].trim(), m[0]).toMatch(/^(?:none|var\(--sh-[\w-]+\)|inset [^;]*var\(--c-[\w-]+\)|inset 3px 0 0 var\(--c-[\w-]+\)|inset 0 0 0 1px var\(--c-[\w-]+\))$/)
+    }
+  })
+
+  it("n'utilise que des variables definies dans les feuilles du systeme", () => {
+    const defined = new Set()
+    for (const f of [...DESIGN_CSS, "student.css", ...STUDENT_FILES.map((x) => `student/${x}`), "admin.css", ...ADMIN_FILES.map((x) => `admin/${x}`)]) {
+      for (const m of read(f).matchAll(/(--[\w-]+)\s*:/g)) defined.add(m[1])
+    }
+    const used = new Set([...ADMIN.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]))
+    expect([...used].filter((v) => !defined.has(v))).toEqual([])
+  })
+
+  it("ne reutilise aucun nom d'utilitaire Tailwind comme classe propre ni de classe deja definie ailleurs", () => {
+    const own = [...classNamesOf(ADMIN)].filter((c) => /^a2-/.test(c))
+    expect(own.length).toBeGreaterThan(50)
+    expect(own.filter((n) => TAILWIND_BARE.has(n))).toEqual([])
+    expect(own.filter((n) => /^-?(?:m|p|w|h|gap|space|text|bg|border|rounded|col|row)[trblxy]?-\d/.test(n))).toEqual([])
+    const before = [read("components.css"), read("layouts.css"), read("app-shell.css"), ...CLIENT_FILES.map((f) => read(`client/${f}`)), ...STUDENT_FILES.map((f) => read(`student/${f}`))].join("\n")
+    // app-shell.css cite .a2-mtop et .a2-mbar a dessein (regles :has de la coquille) : ces deux noms sont exclus.
+    expect(own.filter((n) => !/^a2-(?:mtop|mbar)/.test(n) && hasClass(before, n))).toEqual([])
+    const noShell = [read("components.css"), read("layouts.css"), ...CLIENT_FILES.map((f) => read(`client/${f}`)), ...STUDENT_FILES.map((f) => read(`student/${f}`))].join("\n")
+    expect(own.filter((n) => hasClass(noShell, n))).toEqual([])
+  })
+
+  it("garde chaque regle sous .a2 ou sur une classe propre (aucun changement de rendu des pages existantes)", () => {
+    const offenders = []
+    for (const sel of selectorsOf(ADMIN)) {
+      for (const part of sel.split(",").map((p) => p.trim())) {
+        if (part === ".a2" || part.startsWith(".a2 ") || part.startsWith(".a2:")) continue
+        const names = [...part.matchAll(/\.([A-Za-z][\w-]*)/g)].map((m) => m[1])
+        if (!names.some((n) => /^a2-/.test(n))) offenders.push(part)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it("n'utilise que les seuils de media query 1023.98, 767.98 et 480 (plus le mouvement reduit), sans min-width ni conteneur", () => {
+    const conditions = [...ADMIN.matchAll(/@media\s*([^{]+)\{/g)].map((m) => m[1].trim())
+    const allowed = ["(max-width: 1023.98px)", "(max-width: 767.98px)", "(max-width: 480px)", "(prefers-reduced-motion: reduce)"]
+    expect(conditions.filter((c) => !allowed.includes(c))).toEqual([])
+    for (const a of allowed) expect(conditions).toContain(a)
+    expect(ADMIN).not.toMatch(/@media[^{]*\bmin-width/)
+    expect(ADMIN).not.toMatch(/@container/)
+  })
+
+  it("range les regles mobiles apres les regles de base de leur propre fichier", () => {
+    for (const css of ADMIN_FILE_CSS) {
+      const firstMedia = css.search(/@(?:media|container)/)
+      if (firstMedia === -1) continue
+      const outside = css.slice(firstMedia).replace(AT_BLOCK, "")
+      expect(outside.trim()).toBe("")
+    }
+  })
+
+  it("n'utilise aucune font-size en px inferieure a 13 et protege toute taille relative", () => {
+    const sizes = [...ADMIN.matchAll(/font-size:\s*([\d.]+)px/g)].map((m) => Number(m[1]))
+    expect(sizes.length).toBeGreaterThan(0)
+    expect(sizes.filter((px) => px < 13)).toEqual([])
+    expect(relativeSizeOffenders(ADMIN)).toEqual([])
+  })
+
+  it("chaque ecran du lot a sa feuille, sans regle hors de sa propre racine .a2-NN ni de .a2 .adNN-", () => {
+    for (const s of ADMIN_SCREENS) {
+      const n = s.slice(2)
+      const css = stripComments(read(`admin/${s}.css`))
+      const root = new RegExp(`^\\.a2-${n}(?:[\\s.:-]|$)|^\\.a2 \\.(?:a2-${n}|ad${n}-|ad-|tl-item|a2-${n})`)
+      const bad = selectorsOf(css).flatMap((sel) => sel.split(",").map((p) => p.trim())).filter((p) => !root.test(p))
+      expect(bad, s).toEqual([])
+    }
+  })
+
+  it("les sources du systeme (components.css) definissent deja les classes .ad-* reprises par .a2 (aucune n'est redefinie en hors-portee)", () => {
+    const system = read("components.css")
+    for (const c of ["ad-idcard", "ad-kvl", "ad-stage", "ad-actions", "ad-viewer", "ad-md", "ad-review"]) expect(hasClass(system, c), c).toBe(true)
+    for (const c of ["ad-idcard", "ad-kvl", "ad-stage", "ad-actions", "ad-viewer", "ad-md", "ad-review"]) {
+      const bare = selectorsOf(ADMIN).flatMap((sel) => sel.split(",").map((p) => p.trim())).filter((p) => new RegExp(`^\\.${c}(?![\\w-])`).test(p))
+      expect(bare, c).toEqual([])
+    }
+  })
+})
+
+describe("admin : barre d'action fixe, en-tete de sous-page et coquille", () => {
+  it(".a2-mbar est fixe avec la safe-area, masquee au bureau, affichee sous 1024 ; jamais position: absolute", () => {
+    const rule = ADMIN_BASE.match(/\.a2-mbar \{([^}]*)\}/)[1]
+    expect(rule).toMatch(/position: fixed/)
+    expect(rule).toMatch(/env\(safe-area-inset-bottom/)
+    expect(rule).toMatch(/display: none/)
+    expect(rule).not.toMatch(/position: absolute/)
+    const tablet = tabletOf(ADMIN_BASE)
+    expect(tablet).toMatch(/\.a2-mbar \{ display: flex; \}/)
+    expect(tablet).toMatch(/\.a2-mtop \{ display: flex; \}/)
+    expect(ADMIN_BASE).toMatch(/\.a2-mtop \{[^}]*display: none/)
+  })
+
+  it("sous 1024 l'en-tete .a2-mtop remplace .mtop2 et les toasts passent au-dessus de la barre d'action", () => {
+    const tablet = tabletOf(ADMIN_BASE)
+    expect(tablet).toContain(".a2:has(.a2-mtop) .mtop2 { display: none; }")
+    expect(tablet).toMatch(/\.a2:has\(\.a2-mbar\) \.toasts--mobile\.ds-toasts-fixed \{ bottom: calc\(140px \+ env\(safe-area-inset-bottom, 0px\) \+ var\(--s-3\)\); \}/)
+  })
+
+  it("la coquille masque la capsule RD-NAV-02 sur un dossier ouvert et reserve la hauteur de la barre d'action", () => {
+    const shell = stripComments(read("app-shell.css"))
+    expect(shell).toContain(".shell--v2:has(.a2-mtop) .bottom-nav--v2 { display: none; }")
+    expect(shell).toContain(".shell--v2:has(.a2-mbar) .bottom-nav--v2 { display: none; }")
+    expect(shell).toContain(".shell--v2:has(.a2-mbar) .shell__main { padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }")
+    // La capsule elle-meme n'est pas modifiee par les feuilles admin.
+    expect(ADMIN).not.toMatch(/\.bottom-nav|\.bnav-item/)
+  })
+
+  it("le lien d'evitement a les memes regles sous .a2 que sous .c2 et .e2", () => {
+    const shell = stripComments(read("app-shell.css"))
+    for (const sel of ["a.ds-skip-link { transform: translateY(-200%); box-shadow: none; }", "a.ds-skip-link:focus, .a2 a.ds-skip-link:focus-visible { transform: none; }"]) {
+      expect(shell).toContain(`.a2 ${sel}`)
+    }
+    expect(shell).toMatch(/\.a2 a\.ds-skip-link:focus-visible \{ position: fixed; left: var\(--s-2\); top: var\(--s-2\); z-index: var\(--z-toast\); outline: none; box-shadow: var\(--sh-focus\); \}/)
+  })
+
+  it("les regles .a2 d'app-shell.css n'ont modifie aucune regle .c2 ni .e2 (memes valeurs que les regles jumelles)", () => {
+    const shell = stripComments(read("app-shell.css"))
+    const twin = (scope) => shell.match(new RegExp(`\\.${scope} a\\.ds-skip-link \\{[^}]*\\}`))[0].replace(`.${scope} `, "")
+    expect(twin("a2")).toBe(twin("c2"))
+    expect(twin("a2")).toBe(twin("e2"))
+  })
+
+  it("tableaux : une classe .a2-tlist les passe en liste sous 768 (en-tete masquee, libelle par cellule)", () => {
+    const m768 = ADMIN_BASE.slice(ADMIN_BASE.indexOf("@media (max-width: 767.98px)"))
+    expect(m768).toMatch(/\.a2 \.a2-tlist thead \{[^}]*clip-path/)
+    expect(m768).toMatch(/\.a2 \.a2-tlist td::before \{ content: attr\(data-label\);/)
+    expect(m768).toMatch(/\.a2 \.a2-tlist, \.a2 \.a2-tlist tbody, \.a2 \.a2-tlist tr, \.a2 \.a2-tlist td \{ display: block;/)
+  })
+
+  it("cibles tactiles de 44 px sous 1024 et mouvement reduit sous .a2", () => {
+    const tablet = tabletOf(ADMIN_BASE)
+    for (const sel of [".a2 .chip { min-height: 44px; }", ".a2 .btn--sm { min-height: 44px; }", ".a2 .iconbtn2, .a2 .btn-icon, .a2 .btn-icon--sm { width: 44px; height: 44px; }"]) {
+      expect(tablet).toContain(sel)
+    }
+    expect(ADMIN_BASE).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.a2, \.a2 \*, \.a2 \*::before, \.a2 \*::after \{[^}]*scroll-behavior: auto/)
+  })
+
+  it("dossier AD02 : zoom et rotation par attributs data, la carte ne deborde pas, la liste cede la place au dossier sous 1024", () => {
+    const ad02 = stripComments(read("admin/ad02.css"))
+    for (const z of ["150", "200", "300"]) expect(ad02).toContain(`.a2-02-img[data-zoom="${z}"]`)
+    for (const r of ["90", "180", "270"]) expect(ad02).toContain(`.a2-02-img[data-rot="${r}"]`)
+    expect(ad02).toMatch(/\.a2-02-stage \{[^}]*overflow: auto/)
+    expect(ad02).toMatch(/\.a2-02--open \.a2-02-master \{ display: none; \}/)
+    expect(ad02).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.a2-02-img \{ transition: none; \}/)
+  })
+
+  it("couleurs semantiques : les anomalies restent en citron/erreur par tokens, jamais d'accent hors tokens", () => {
+    const colors = parseColorTokens(read("tokens.css"))
+    expect(contrastRatio(colors["--c-ardoise"], colors["--c-blanc"])).toBeGreaterThanOrEqual(4.5)
+    expect(ADMIN_BASE).toMatch(/\.a2 \.btn--primary \{ background: var\(--c-encre\); color: var\(--c-blanc\); \}/)
+    expect(ADMIN_BASE).toMatch(/\.a2 \.btn--danger-outline \{[^}]*color: var\(--c-erreur\)/)
+    expect(ADMIN_BASE).toMatch(/\.a2 \.badge--citron, \.a2 \.badge--lavande \{ background: var\(--c-ligne\); color: var\(--c-encre\); \}/)
+  })
+})
