@@ -581,7 +581,8 @@ export async function getVerificationQueue(searchParams) {
       onglet: params.onglet,
       q: params.q,
       ecole: params.ecole,
-      delai: params.delai,
+      // Le filtre Délai n'existe que sur À examiner : ailleurs il n'est ni appliqué, ni renvoyé, ni recopié dans les liens.
+      delai: params.onglet === "a-examiner" ? params.delai : "",
       counts,
       oldestAgeDays,
       rows,

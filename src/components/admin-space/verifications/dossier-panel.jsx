@@ -55,7 +55,7 @@ export function dossierCaption(dossier) {
   return parts.join(" · ") || "Profil étudiant"
 }
 
-/** Frise « Historique des décisions » : seules les dates réellement connues (voir `historySteps`). */
+/** Frise « Historique des décisions » : dates connues, sauf la validation, estimée depuis l'échéance (voir `historySteps`). */
 export function DecisionTimeline({ dossier }) {
   const steps = historySteps(dossier)
   if (steps.length === 0) return null

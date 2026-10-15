@@ -386,7 +386,7 @@ describe("historySteps", () => {
   })
   it("vérifiés : validation déduite de l'échéance", () => {
     const steps = historySteps({ ...base, tab: "verifies", verifiedUntil: "2027-10-06" })
-    expect(steps.at(-1)).toEqual({ state: "done", title: "Badge validé", at: "2026-10-06", meta: "" })
+    expect(steps.at(-1)).toEqual({ state: "done", title: "Badge validé", at: "2026-10-06", meta: "date estimée" })
   })
   it("expirés : validé puis expiré", () => {
     expect(titles({ ...base, tab: "expires", verifiedUntil: "2026-09-01" })).toEqual([

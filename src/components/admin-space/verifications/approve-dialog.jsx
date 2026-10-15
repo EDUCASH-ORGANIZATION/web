@@ -8,6 +8,8 @@ import { formatDateFr } from "@/lib/app/format"
  * Confirmation de validation : récapitulatif du badge (valable jusqu'au) puis « Valider et passer au suivant »
  * (ou « Valider la carte » quand le passage au dossier suivant est désactivé).
  * `onConfirm` renvoie `{ error }` en cas de refus (le message reste affiché, la boîte reste ouverte).
+ * Écart connu avec la planche v1 : le bouton de confirmation reste au style encre de `ConfirmDialog` (composant partagé,
+ * hors du périmètre de RD-ADMIN-03).
  */
 export function ApproveDialog({ open, onClose, onConfirm, name, badgeUntil, advance = true }) {
   const until = formatDateFr(badgeUntil)

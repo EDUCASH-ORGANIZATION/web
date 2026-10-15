@@ -725,6 +725,8 @@ describe("getVerificationQueue", () => {
     expect(moins.total).toBe(1)
     const refuses = await getVerificationQueue({ onglet: "refuses", delai: "plus-48h" })
     expect(refuses.rows.map((r) => r.userId)).toEqual([uid(4)])
+    // Hors À examiner, le filtre n'est pas renvoyé : il ne se recopie pas dans les liens de l'onglet.
+    expect(refuses.delai).toBe("")
     expect((await getVerificationQueue({ delai: "n'importe quoi" })).delai).toBe("")
   })
 

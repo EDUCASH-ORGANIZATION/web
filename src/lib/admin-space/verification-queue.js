@@ -248,7 +248,7 @@ export function compareNames(profileName, typedName) {
 
 /**
  * Frise « Historique des décisions » d'un dossier, limitée aux dates réellement connues. La date de validation est
- * déduite de l'échéance du badge (échéance moins un an). Aucune date ni auteur de refus n'est conservé : le motif de
+ * déduite de l'échéance du badge (échéance moins un an) et signalée comme « date estimée ». Aucune date ni auteur de refus n'est conservé : le motif de
  * refus est affiché sans date.
  * @param {{ tab?: string, createdAt?: string|null, submittedAt?: string|null, verifiedUntil?: string|null, rejectionReason?: string|null }} dossier
  * @returns {{ state: "done"|"current"|"error", title: string, at: string|null, meta: string }[]}
@@ -265,7 +265,7 @@ export function historySteps(dossier) {
   }
   const until = readDay(verifiedUntil)
   if ((tab === "verifies" || tab === "expires") && until) {
-    steps.push({ state: "done", title: "Badge validé", at: renewalSinceDay(until), meta: "" })
+    steps.push({ state: "done", title: "Badge validé", at: renewalSinceDay(until), meta: "date estimée" })
   }
   if (tab === "expires" && until) steps.push({ state: "error", title: "Badge expiré", at: until, meta: "" })
   if (tab === "refuses") {
