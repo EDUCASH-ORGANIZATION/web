@@ -8,6 +8,7 @@ export const OVERDUE_HOURS = 48
 export const QUEUE_PAGE_SIZE = 25
 export const MAX_PAGE = 1000
 export const MAX_QUERY_LENGTH = 80
+export const DELAY_FILTERS = ["plus-48h", "moins-48h"]
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
@@ -25,8 +26,8 @@ function readDay(value) {
   return ok ? text : null
 }
 
-/** Jour du Bénin d'un horodatage ISO, ou null si illisible. */
-function beninDay(timestamp) {
+/** Jour du Bénin ("AAAA-MM-JJ") d'un horodatage ISO, ou null si illisible. */
+export function beninDay(timestamp) {
   if (timestamp === null || timestamp === undefined || timestamp === "") return null
   const date = new Date(timestamp)
   return Number.isNaN(date.getTime()) ? null : todayInBenin(date)
@@ -169,12 +170,14 @@ export function parseVerificationParams(searchParams) {
   const onglet = String(firstValue(raw.onglet) ?? "")
   const id = String(firstValue(raw.id) ?? "")
   const pageText = String(firstValue(raw.page) ?? "")
+  const delai = String(firstValue(raw.delai) ?? "")
   const page = /^\d{1,15}$/.test(pageText) ? Number(pageText) : 1
   return {
     onglet: VERIFICATION_TABS.includes(onglet) ? onglet : DEFAULT_VERIFICATION_TAB,
     id: UUID.test(id) ? id.toLowerCase() : null,
     q: cleanText(firstValue(raw.q)),
     ecole: cleanText(firstValue(raw.ecole)),
+    delai: DELAY_FILTERS.includes(delai) ? delai : "",
     page: Math.min(Math.max(page, 1), MAX_PAGE),
   }
 }
@@ -188,4 +191,86 @@ export function badgeUntil(today = todayInBenin()) {
   const lastDay = new Date(Date.UTC(targetYear, m, 0)).getUTCDate()
   const pad = (n) => String(n).padStart(2, "0")
   return `${targetYear}-${pad(m)}-${pad(Math.min(d, lastDay))}`
+}
+
+/**
+ * Filtre Délai de l'onglet « À examiner » : `overdue48h` (plus de 48 h depuis le dépôt) ou non. Filtre vide : tout passe.
+ * @param {{ overdue48h?: boolean }} hints repères de `dossierHints`
+ * @param {string} delai "", "plus-48h" ou "moins-48h"
+ */
+export function matchesDelay(hints, delai) {
+  if (delai === "plus-48h") return hints?.overdue48h === true
+  if (delai === "moins-48h") return hints?.overdue48h !== true
+  return true
+}
+
+/**
+ * Années universitaires attendues sur une carte, au format "AAAA-AAAA". Hypothèse : l'année universitaire change au
+ * 1er septembre (jour du Bénin). Les deux années (en cours et précédente) sont acceptées : une carte délivrée à la
+ * rentrée précédente reste recevable. Valeur de repère pour l'administrateur, jamais une donnée déclarée.
+ * @param {string} today "AAAA-MM-JJ"
+ * @returns {{ current: string, previous: string } | null} null si la date est illisible
+ */
+export function expectedAcademicYears(today) {
+  const day = readDay(today)
+  if (!day) return null
+  const [y, m] = day.split("-").map(Number)
+  const start = m >= 9 ? y : y - 1
+  return { current: `${start}-${start + 1}`, previous: `${start - 1}-${start}` }
+}
+
+function nameWords(value) {
+  if (typeof value !== "string") return []
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+}
+
+/**
+ * Compare le nom du profil au nom recopié par l'administrateur (accents, casse, ponctuation et espaces ignorés).
+ * Résultat pur d'affichage : le nom recopié ne quitte jamais le navigateur.
+ * @param {string} profileName
+ * @param {string} typedName
+ * @returns {null|"identiques"|"ordre-different"|"differents"} null si l'un des deux est vide
+ */
+export function compareNames(profileName, typedName) {
+  const a = nameWords(profileName)
+  const b = nameWords(typedName)
+  if (a.length === 0 || b.length === 0) return null
+  if (a.join(" ") === b.join(" ")) return "identiques"
+  return [...a].sort().join(" ") === [...b].sort().join(" ") ? "ordre-different" : "differents"
+}
+
+/**
+ * Frise « Historique des décisions » d'un dossier, limitée aux dates réellement connues. La date de validation est
+ * déduite de l'échéance du badge (échéance moins un an). Aucune date ni auteur de refus n'est conservé : le motif de
+ * refus est affiché sans date.
+ * @param {{ tab?: string, createdAt?: string|null, submittedAt?: string|null, verifiedUntil?: string|null, rejectionReason?: string|null }} dossier
+ * @returns {{ state: "done"|"current"|"error", title: string, at: string|null, meta: string }[]}
+ */
+export function historySteps(dossier) {
+  const { tab, createdAt, submittedAt, verifiedUntil, rejectionReason } = dossier ?? {}
+  const steps = []
+  const created = beninDay(createdAt)
+  if (created) steps.push({ state: "done", title: "Compte créé", at: created, meta: "" })
+  const sent = beninDay(submittedAt)
+  if (sent) {
+    const meta = tab === "a-examiner" ? (readDay(verifiedUntil) ? "renouvellement du badge" : "première demande") : ""
+    steps.push({ state: "done", title: "Carte envoyée", at: sent, meta })
+  }
+  const until = readDay(verifiedUntil)
+  if ((tab === "verifies" || tab === "expires") && until) {
+    steps.push({ state: "done", title: "Badge validé", at: renewalSinceDay(until), meta: "" })
+  }
+  if (tab === "expires" && until) steps.push({ state: "error", title: "Badge expiré", at: until, meta: "" })
+  if (tab === "refuses") {
+    steps.push({ state: "error", title: "Carte refusée", at: null, meta: hasText(rejectionReason) ? rejectionReason.trim() : "" })
+  }
+  if (tab === "a-examiner") steps.push({ state: "current", title: "En cours d'examen", at: null, meta: "" })
+  return steps
 }

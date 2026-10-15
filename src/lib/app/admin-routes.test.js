@@ -25,6 +25,8 @@ describe("fabriques d'URL admin", () => {
     expect(adminVerificationsHref({ onglet: "refuses", id: ID, page: 3 })).toBe(`/admin/verifications?onglet=refuses&id=${ID}&page=3`)
     expect(adminVerificationsHref({ page: 1 })).toBe("/admin/verifications")
     expect(adminVerificationsHref({ q: "Awa K", ecole: "UAC" })).toBe("/admin/verifications?q=Awa+K&ecole=UAC")
+    expect(adminVerificationsHref({ delai: "plus-48h" })).toBe("/admin/verifications?delai=plus-48h")
+    expect(adminVerificationsHref({ delai: "" })).toBe("/admin/verifications")
   })
 
   it("pages invalides ou non numériques : paramètre omis", () => {

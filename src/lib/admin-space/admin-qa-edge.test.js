@@ -170,7 +170,12 @@ describe("QA dossierHints, ageLabel, sortQueue", () => {
 describe("QA parseVerificationParams hostiles", () => {
   it("valeurs par défaut sur entrée absente ou nulle", () => {
     for (const input of [undefined, null, {}]) {
-      expect(parseVerificationParams(input)).toEqual({ onglet: "a-examiner", id: null, q: "", ecole: "", page: 1 })
+      expect(parseVerificationParams(input)).toEqual({ onglet: "a-examiner", id: null, q: "", ecole: "", delai: "", page: 1 })
+    }
+  })
+  it("delai hostile ramené à vide", () => {
+    for (const delai of [["x", "y"], "x".repeat(500), "plus-48h\u0000", "PLUS-48H", "__proto__", 12, { a: 1 }]) {
+      expect(parseVerificationParams({ delai }).delai).toBe("")
     }
   })
   it("onglet hors liste, prototype pollué, tableau", () => {

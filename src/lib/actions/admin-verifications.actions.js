@@ -18,8 +18,10 @@ import {
   allowedActions,
   ageLabel,
   badgeUntil,
+  beninDay,
   classifyDossier,
   dossierHints,
+  matchesDelay,
   parseVerificationParams,
   sortQueue,
 } from "@/lib/admin-space/verification-queue"
@@ -531,6 +533,9 @@ export async function getVerificationQueue(searchParams) {
       const schools = await matchingIds(service, "student_profiles", (q) => q.eq("school", params.ecole))
       tabRows = tabRows.filter((entry) => schools.has(entry.profile.user_id))
     }
+    if (params.delai && params.onglet === "a-examiner") {
+      tabRows = tabRows.filter((entry) => matchesDelay(dossierHints(entry.dossier, now), params.delai))
+    }
     tabRows = sortQueue(tabRows, (entry) => entry.dossier.submittedAt ?? entry.dossier.createdAt)
 
     const total = tabRows.length
@@ -557,6 +562,7 @@ export async function getVerificationQueue(searchParams) {
         kind: hints.kind,
         overdue48h: hints.overdue48h,
         age: ageLabel(now, dossier.submittedAt ?? dossier.createdAt),
+        submittedOn: beninDay(dossier.submittedAt),
       }
     })
     const schools = [...new Set(rows.map((row) => row.school).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"))
@@ -575,6 +581,7 @@ export async function getVerificationQueue(searchParams) {
       onglet: params.onglet,
       q: params.q,
       ecole: params.ecole,
+      delai: params.delai,
       counts,
       oldestAgeDays,
       rows,
@@ -614,6 +621,8 @@ async function openDossier(service, { profile, dossier, tab }, now) {
     ageDays: hints.ageDays,
     age: ageLabel(now, dossier.submittedAt ?? dossier.createdAt),
     submittedAt: profile.verification_submitted_at ?? null,
+    submittedOn: beninDay(profile.verification_submitted_at),
+    today: todayInBenin(now),
     cardPath: toOwnedStoragePath(declaredRes.data?.card_url, CARDS_BUCKET, profile.user_id),
     createdAt: profile.created_at ?? null,
     verifiedUntil: profile.verified_until ?? null,

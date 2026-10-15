@@ -669,7 +669,7 @@ describe("getVerificationQueue", () => {
     const json = JSON.stringify(res.rows)
     expect(json).not.toMatch(/signed\.example|exemple\.bj|phone|fcm|token-secret|rejection|submittedAt|carte\.jpg|\+229/)
     expect(Object.keys(res.rows[0]).sort()).toEqual(
-      ["age", "avatarUrl", "kind", "level", "name", "overdue48h", "school", "tab", "userId"].sort(),
+      ["age", "avatarUrl", "kind", "level", "name", "overdue48h", "school", "submittedOn", "tab", "userId"].sort(),
     )
     expect(state.signed).toHaveLength(0)
   })
@@ -710,6 +710,30 @@ describe("getVerificationQueue", () => {
 
     const long = await getVerificationQueue({ q: "a".repeat(10000) })
     expect(long.q).toHaveLength(80)
+  })
+
+  it("filtre Délai : plus de 48 h ou moins de 48 h sur À examiner, ignoré ailleurs, total cohérent", async () => {
+    seed()
+    state.profiles.find((p) => p.user_id === uid(1)).verification_submitted_at = "2026-10-15T08:00:00+00:00"
+    const plus = await getVerificationQueue({ delai: "plus-48h" })
+    expect(plus.delai).toBe("plus-48h")
+    expect(plus.rows.map((r) => r.userId)).toEqual([uid(2)])
+    expect(plus.total).toBe(1)
+    expect(plus.counts["a-examiner"]).toBe(2)
+    const moins = await getVerificationQueue({ delai: "moins-48h" })
+    expect(moins.rows.map((r) => r.userId)).toEqual([uid(1)])
+    expect(moins.total).toBe(1)
+    const refuses = await getVerificationQueue({ onglet: "refuses", delai: "plus-48h" })
+    expect(refuses.rows.map((r) => r.userId)).toEqual([uid(4)])
+    expect((await getVerificationQueue({ delai: "n'importe quoi" })).delai).toBe("")
+  })
+
+  it("chaque ligne porte le jour de dépôt (jour seulement) ; le dossier ouvert porte aussi la date du jour", async () => {
+    seed()
+    const res = await getVerificationQueue({ id: uid(1) })
+    expect(res.rows.map((r) => r.submittedOn)).toEqual(["2026-10-05", "2026-10-12"])
+    expect(JSON.stringify(res.rows)).not.toMatch(/T09:00/)
+    expect(res.dossier).toMatchObject({ submittedOn: "2026-10-12", today: "2026-10-15" })
   })
 
   it("filtre par établissement", async () => {

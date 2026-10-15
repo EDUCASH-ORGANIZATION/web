@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest"
 import {
   ageLabel,
   allowedActions,
+  compareNames,
+  DELAY_FILTERS,
+  expectedAcademicYears,
+  historySteps,
+  matchesDelay,
   badgeUntil,
   classifyDossier,
   renewalSinceDay,
@@ -150,7 +155,7 @@ describe("parseVerificationParams", () => {
   const ID = "0B8F1C1E-2C1B-4B53-9A52-9D6B6A6F3A10"
 
   it("valeurs par défaut", () => {
-    expect(parseVerificationParams(undefined)).toEqual({ onglet: "a-examiner", id: null, q: "", ecole: "", page: 1 })
+    expect(parseVerificationParams(undefined)).toEqual({ onglet: "a-examiner", id: null, q: "", ecole: "", delai: "", page: 1 })
   })
 
   it("onglet en liste fermée, UUID validé et mis en minuscules", () => {
@@ -307,5 +312,97 @@ describe("libellés", () => {
     const labels = ["deposit", "reserve", "release", "commission", "refund", "withdrawal"].map(transactionTypeLabel)
     expect(labels).toEqual(["Recharge", "Réservation", "Libération", "Commission", "Remboursement", "Retrait"])
     expect(transactionTypeLabel("inconnu")).toBe("Mouvement")
+  })
+})
+
+describe("filtre Délai", () => {
+  it("liste fermée, valeur hors liste ramenée à vide", () => {
+    expect(DELAY_FILTERS).toEqual(["plus-48h", "moins-48h"])
+    expect(parseVerificationParams({ delai: "plus-48h" }).delai).toBe("plus-48h")
+    expect(parseVerificationParams({ delai: "moins-48h" }).delai).toBe("moins-48h")
+    expect(parseVerificationParams({ delai: "tous" }).delai).toBe("")
+    expect(parseVerificationParams({ delai: ["moins-48h", "plus-48h"] }).delai).toBe("moins-48h")
+  })
+
+  it("matchesDelay s'appuie sur overdue48h", () => {
+    expect(matchesDelay({ overdue48h: true }, "plus-48h")).toBe(true)
+    expect(matchesDelay({ overdue48h: false }, "plus-48h")).toBe(false)
+    expect(matchesDelay({ overdue48h: false }, "moins-48h")).toBe(true)
+    expect(matchesDelay({ overdue48h: true }, "moins-48h")).toBe(false)
+    expect(matchesDelay({ overdue48h: true }, "")).toBe(true)
+  })
+})
+
+describe("expectedAcademicYears", () => {
+  it("change au 1er septembre", () => {
+    expect(expectedAcademicYears("2026-10-08")).toEqual({ current: "2026-2027", previous: "2025-2026" })
+    expect(expectedAcademicYears("2026-03-01")).toEqual({ current: "2025-2026", previous: "2024-2025" })
+    expect(expectedAcademicYears("2026-08-31")).toEqual({ current: "2025-2026", previous: "2024-2025" })
+    expect(expectedAcademicYears("2026-09-01")).toEqual({ current: "2026-2027", previous: "2025-2026" })
+  })
+  it("29 février valide, date illisible : null", () => {
+    expect(expectedAcademicYears("2028-02-29")).toEqual({ current: "2027-2028", previous: "2026-2027" })
+    expect(expectedAcademicYears("2027-02-29")).toBeNull()
+    expect(expectedAcademicYears("")).toBeNull()
+    expect(expectedAcademicYears(undefined)).toBeNull()
+  })
+})
+
+describe("compareNames", () => {
+  it("identiques : casse, accents, espaces et ponctuation ignorés", () => {
+    expect(compareNames("Codjo Ahouansou", "codjo ahouansou")).toBe("identiques")
+    expect(compareNames("Élodie Agbodjan", "  ELODIE   agbodjan ")).toBe("identiques")
+    expect(compareNames("Jean-Pierre Dossou", "Jean Pierre Dossou")).toBe("identiques")
+  })
+  it("ordre différent", () => {
+    expect(compareNames("Codjo Ahouansou", "AHOUANSOU Codjo")).toBe("ordre-different")
+  })
+  it("différents : mot manquant ou différent", () => {
+    expect(compareNames("Codjo Ahouansou", "Codjo")).toBe("differents")
+    expect(compareNames("Codjo Ahouansou", "Codjo Ahouansu")).toBe("differents")
+  })
+  it("saisie ou nom vide : null", () => {
+    expect(compareNames("Codjo Ahouansou", "")).toBeNull()
+    expect(compareNames("Codjo Ahouansou", "   ")).toBeNull()
+    expect(compareNames("", "Codjo")).toBeNull()
+    expect(compareNames(null, undefined)).toBeNull()
+  })
+})
+
+describe("historySteps", () => {
+  const base = { createdAt: "2026-09-01T10:00:00+00:00", submittedAt: "2026-10-05T09:12:00+00:00" }
+  const titles = (d) => historySteps(d).map((s) => s.title)
+
+  it("à examiner : compte créé, carte envoyée, en cours d'examen", () => {
+    const steps = historySteps({ ...base, tab: "a-examiner" })
+    expect(steps).toEqual([
+      { state: "done", title: "Compte créé", at: "2026-09-01", meta: "" },
+      { state: "done", title: "Carte envoyée", at: "2026-10-05", meta: "première demande" },
+      { state: "current", title: "En cours d'examen", at: null, meta: "" },
+    ])
+  })
+  it("renouvellement signalé", () => {
+    expect(historySteps({ ...base, tab: "a-examiner", verifiedUntil: "2026-11-01" })[1].meta).toBe("renouvellement du badge")
+  })
+  it("vérifiés : validation déduite de l'échéance", () => {
+    const steps = historySteps({ ...base, tab: "verifies", verifiedUntil: "2027-10-06" })
+    expect(steps.at(-1)).toEqual({ state: "done", title: "Badge validé", at: "2026-10-06", meta: "" })
+  })
+  it("expirés : validé puis expiré", () => {
+    expect(titles({ ...base, tab: "expires", verifiedUntil: "2026-09-01" })).toEqual([
+      "Compte créé",
+      "Carte envoyée",
+      "Badge validé",
+      "Badge expiré",
+    ])
+  })
+  it("refusés : motif sans date", () => {
+    const last = historySteps({ ...base, tab: "refuses", rejectionReason: " Photo floue " }).at(-1)
+    expect(last).toEqual({ state: "error", title: "Carte refusée", at: null, meta: "Photo floue" })
+  })
+  it("incomplets sans carte : compte créé seulement ; dates illisibles ignorées", () => {
+    expect(titles({ createdAt: base.createdAt, tab: "incomplets" })).toEqual(["Compte créé"])
+    expect(historySteps({ createdAt: "pas une date", tab: "incomplets" })).toEqual([])
+    expect(historySteps(null)).toEqual([])
   })
 })
