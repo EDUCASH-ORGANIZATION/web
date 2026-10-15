@@ -1,34 +1,33 @@
+// @ds-screen RD-ADMIN-01
 import { redirect } from "next/navigation"
-import { requireRole } from "@/lib/auth/require-role"
-import { createServiceClient } from "@/lib/supabase/service"
-import { AdminSidebar } from "@/components/admin/admin-sidebar"
-import { BottomNav } from "@/components/app-shell/bottom-nav"
-import { ADMIN_MOBILE_NAV } from "@/components/admin/admin-nav"
+import { isInternalPath } from "@/lib/auth/internal-path"
+import { getAdminShellData } from "@/lib/actions/admin-shell.actions"
+import { AppShell } from "@/components/app-shell/app-shell"
+import { ADMIN_NAV } from "@/components/admin-space/shell/admin-nav"
+import { ToastProvider } from "@/components/app-ui/toast"
+import { OfflineBanner } from "@/components/app-ui/offline-banner"
 
 export default async function AdminLayout({ children }) {
-  // Autorité : profiles.role (user_metadata est modifiable par l'utilisateur)
-  const auth = await requireRole(["admin"])
-  if (auth.error) redirect("/auth/login")
-
-  // Compte des étudiants non vérifiés pour le badge de la barre latérale et de la barre mobile (client service role après le contrôle admin)
-  const { count: pendingCount } = await createServiceClient()
-    .from("profiles")
-    .select("user_id", { count: "exact", head: true })
-    .eq("role", "student")
-    .eq("is_verified", false)
+  // Garde : getAdminShellData exige profiles.role = admin (jamais user_metadata), refuse un compte suspendu et
+  // renvoie la destination fail-closed (connexion, accueil ou tableau de bord du bon rôle).
+  const data = await getAdminShellData()
+  // La coquille est exigée : une réponse sans `shell` (refus, réponse vide) ne rend jamais les enfants.
+  // La destination n'est suivie que si c'est un chemin interne ; sinon accueil. redirect() hors try/catch.
+  if (!data?.shell) redirect(isInternalPath(data?.redirectTo) ? data.redirectTo : "/")
+  const { shell } = data
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <AdminSidebar pendingCount={pendingCount ?? 0} />
-      <main className="flex-1 min-w-0 overflow-auto">
-        {children}
-        <BottomNav
-          items={ADMIN_MOBILE_NAV.mobile}
-          more={ADMIN_MOBILE_NAV.mobileMore}
-          counts={{ verifications: pendingCount ?? 0 }}
-          reserveSpace
-        />
-      </main>
+    <div className="ds a2">
+      <ToastProvider>
+        <OfflineBanner title="Vous êtes hors connexion." text="Les actions sont désactivées." />
+        <AppShell
+          nav={ADMIN_NAV}
+          user={{ id: shell.userId, fullName: shell.fullName }}
+          counts={{ verifications: shell.pendingCount }}
+        >
+          {children}
+        </AppShell>
+      </ToastProvider>
     </div>
   )
 }

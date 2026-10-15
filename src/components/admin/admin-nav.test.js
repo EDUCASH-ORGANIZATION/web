@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { readdirSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 import { ADMIN_MOBILE_NAV } from "./admin-nav.js"
+import { ADMIN_NAV } from "../admin-space/shell/admin-nav.js"
 import { activeKey } from "../app-shell/nav-model.js"
 
 const APP = path.join(process.cwd(), "src/app")
@@ -26,8 +27,8 @@ const { mobile, mobileMore } = ADMIN_MOBILE_NAV
 const all = [...mobile, ...mobileMore.items]
 
 describe("ADMIN_MOBILE_NAV", () => {
-  it("compte 3 entrées visibles plus Plus (4 onglets), clés uniques", () => {
-    expect(mobile).toHaveLength(3)
+  it("compte 4 entrées visibles plus Plus (5 onglets), clés uniques", () => {
+    expect(mobile).toHaveLength(4)
     expect(mobileMore.label).toBe("Plus")
     expect(mobileMore.icon).toBe("i-more-h")
     const keys = [...all.map((i) => i.key), mobileMore.key]
@@ -49,10 +50,15 @@ describe("ADMIN_MOBILE_NAV", () => {
     }
   })
 
-  it("Vérifications porte le badge en attente", () => {
+  it("Vérifications porte le badge à examiner", () => {
     const v = mobile.find((i) => i.key === "verifications")
     expect(v.badge).toBe("verifications")
-    expect(v.badgeUnit).toBe("en attente")
+    expect(v.badgeUnit).toBe("à examiner")
+  })
+
+  it("reprend la configuration mobile de la coquille", () => {
+    expect(ADMIN_MOBILE_NAV.mobile).toEqual(ADMIN_NAV.mobile)
+    expect(ADMIN_MOBILE_NAV.mobileMore).toEqual(ADMIN_NAV.mobileMore)
   })
 
   it("ne définit pas de masquage", () => {
@@ -62,6 +68,7 @@ describe("ADMIN_MOBILE_NAV", () => {
   it("détermine l'entrée active", () => {
     expect(activeKey("/admin/verifications/x", mobile)).toBe("verifications")
     expect(activeKey("/admin/wallets", mobileMore.items)).toBe("portefeuilles")
+    expect(activeKey("/admin/missions", mobile)).toBe("missions")
     expect(activeKey("/admin/wallets", mobile)).toBeNull()
   })
 

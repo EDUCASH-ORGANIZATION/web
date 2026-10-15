@@ -1,27 +1,11 @@
-// Modèle de la barre mobile de l'espace admin (objet pur et sérialisable, passé du layout serveur
-// à BottomNav). Quatre entrées visibles : les deux dernières destinations de la barre latérale
-// passent par « Plus », ce qui garde les cinq destinations joignables sous 1024 px.
+// Modèle de la barre mobile de l'espace admin : réexporte la partie mobile de la configuration de la coquille
+// (`ADMIN_NAV`), pour garder une seule source de vérité.
+import { ADMIN_NAV } from "@/components/admin-space/shell/admin-nav"
 
 export const ADMIN_MOBILE_NAV = Object.freeze({
-  mobile: Object.freeze([
-    Object.freeze({ key: "accueil", label: "Accueil", href: "/admin/dashboard", icon: "i-home" }),
-    Object.freeze({
-      key: "verifications",
-      label: "Vérifications",
-      href: "/admin/verifications",
-      icon: "i-user-check",
-      badge: "verifications",
-      badgeUnit: "en attente",
-    }),
-    Object.freeze({ key: "utilisateurs", label: "Utilisateurs", href: "/admin/users", icon: "i-users" }),
-  ]),
+  mobile: Object.freeze(ADMIN_NAV.mobile.map((item) => Object.freeze({ ...item }))),
   mobileMore: Object.freeze({
-    key: "plus",
-    label: "Plus",
-    icon: "i-more-h",
-    items: Object.freeze([
-      Object.freeze({ key: "missions", label: "Missions", href: "/admin/missions", icon: "i-briefcase" }),
-      Object.freeze({ key: "portefeuilles", label: "Portefeuilles", href: "/admin/wallets", icon: "i-wallet" }),
-    ]),
+    ...ADMIN_NAV.mobileMore,
+    items: Object.freeze(ADMIN_NAV.mobileMore.items.map((item) => Object.freeze({ ...item }))),
   }),
 })
