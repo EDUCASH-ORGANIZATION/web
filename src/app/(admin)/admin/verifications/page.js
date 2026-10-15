@@ -21,8 +21,11 @@ export default async function AdminVerificationsPage({ searchParams } = {}) {
   if (auth.error) redirect("/auth/login")
 
   const params = (await searchParams) ?? {}
+  // Clé sans `id` : changer de dossier (ou passer au suivant après une décision) ne doit pas recréer le détail,
+  // sinon le focus placé sur le titre du dossier suivant serait perdu.
+  const { onglet, q, ecole, page } = params
   return (
-    <Suspense key={JSON.stringify(params)} fallback={<SkeletonRows count={6} />}>
+    <Suspense key={JSON.stringify({ onglet, q, ecole, page })} fallback={<SkeletonRows count={6} />}>
       <QueueContent params={params} />
     </Suspense>
   )

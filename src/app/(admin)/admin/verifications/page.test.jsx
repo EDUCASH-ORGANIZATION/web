@@ -69,6 +69,17 @@ describe("page admin verifications", () => {
     expect(getVerificationQueue).toHaveBeenCalledWith({})
   })
 
+  it("la clé du Suspense ignore l'identifiant du dossier (le focus survit au dossier suivant) mais suit onglet, recherche, école et page", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" } })
+    const key = async (params) => (await Page({ searchParams: Promise.resolve(params) })).key
+    const base = { onglet: "refuses", q: "kofi", ecole: "EPAC", page: "2" }
+    expect(await key({ ...base, id: "11111111-1111-4111-8111-111111111111" })).toBe(await key({ ...base, id: "22222222-2222-4222-8222-222222222222" }))
+    expect(await key(base)).toBe(await key({ ...base, id: "11111111-1111-4111-8111-111111111111" }))
+    for (const change of [{ onglet: "verifies" }, { q: "ama" }, { ecole: "ENEAM" }, { page: "3" }]) {
+      expect(await key({ ...base, ...change })).not.toBe(await key(base))
+    }
+  })
+
   it("la page n'importe aucun module Supabase ni ne cite le client service", () => {
     const source = readFileSync(path.join(import.meta.dirname, "page.js"), "utf8")
     expect(source).not.toMatch(/supabase|createServiceClient/)
