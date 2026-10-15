@@ -1,8 +1,8 @@
 -- =============================================================================
 -- État de référence de la production Educash après RD-SEC-01, RD-SEC-02 et
 -- RD-SEC-03b (relevé du 2026-10-14, puis scripts 60, 61 et 62 de RD-SEC-03b), puis
--- script 70 de RD-MISSION-02 (colonne missions.purchases_estimate, à appliquer avant le code).
--- Script 70 NON appliqué en production au 2026-10-15 : à retirer après application.
+-- script 70 de RD-MISSION-02 (colonne missions.purchases_estimate).
+-- Script 70 appliqué en production le 2026-10-15.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
