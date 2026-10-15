@@ -33,6 +33,7 @@ export const NOTIFICATION_TYPES = Object.freeze([
   "account_reactivated",
   "card_submitted",
   "message_received",
+  "completion_declared",
 ])
 
 export const NOTIFICATION_SPACES = Object.freeze(["client", "student", "admin"])
@@ -261,6 +262,18 @@ export function cardSubmitted({ studentId, studentName, at }) {
   })
 }
 
+/** Au client : l'étudiant retenu déclare avoir terminé. Au plus une par mission. */
+export function completionDeclared({ missionId, missionTitle, studentId, studentName }) {
+  return build({
+    type: "completion_declared",
+    title: "Fin de mission à confirmer",
+    body: `${shortName(studentName, "L'étudiant")} indique avoir terminé ${quoted(missionTitle)}. Vérifiez le travail puis confirmez la fin.`,
+    dedupeKey: `completion_declared:${missionId}`,
+    missionId,
+    actorId: studentId,
+  })
+}
+
 // ─── Validation (avant écriture) ─────────────────────────────────────────────────────────────
 
 /**
@@ -283,7 +296,7 @@ export function isValidNotification(n) {
 
 // Types propres à chaque espace (un type d'un autre espace n'a pas de lien : jamais de redirection croisée).
 const SPACE_TYPES = {
-  client: ["application_received", "review_received", "account_reactivated", "message_received"],
+  client: ["application_received", "review_received", "account_reactivated", "message_received", "completion_declared"],
   student: [
     "application_accepted",
     "application_rejected",
@@ -317,7 +330,7 @@ export function notificationHref(row, space) {
     if (type === "application_received") {
       return missionId ? clientMissionHref(missionId, actorId ? { candidat: actorId } : {}) : clientMissionHref(null)
     }
-    if (type === "review_received") return clientMissionHref(missionId)
+    if (type === "review_received" || type === "completion_declared") return clientMissionHref(missionId)
     if (type === "message_received") return clientConversationHref(missionId, actorId)
     return "/client/dashboard"
   }
@@ -359,6 +372,7 @@ const ICONS = {
   account_reactivated: "i-user-check",
   card_submitted: "i-id-card",
   message_received: "i-message",
+  completion_declared: "i-check-circle",
 }
 
 /** Icône du sprite (toujours une icône existante). */
@@ -372,6 +386,7 @@ const ACTION_LABELS = {
   payment_released: "Noter le client",
   verification_rejected: "Envoyer une nouvelle carte",
   card_submitted: "Examiner",
+  completion_declared: "Confirmer la fin",
 }
 
 /** Libellé de l'action d'une notification, ou `null` (l'élément entier est alors le lien). */
@@ -386,7 +401,7 @@ export function notificationTone() {
 
 // Action prioritaire (bouton encre, un seul par vue), dans l'ordre de priorité.
 const PRIMARY_TYPES = {
-  client: ["application_received"],
+  client: ["completion_declared", "application_received"],
   student: ["application_accepted", "verification_rejected"],
   admin: ["card_submitted"],
 }

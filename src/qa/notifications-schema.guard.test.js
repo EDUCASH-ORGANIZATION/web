@@ -22,6 +22,7 @@ const EXPECTED_TYPES = [
   "account_reactivated",
   "card_submitted",
   "message_received",
+  "completion_declared",
 ]
 
 const lines = SCHEMA.split("\n")

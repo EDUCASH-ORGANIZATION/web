@@ -229,7 +229,7 @@ describe("notificationHref : chemins internes seulement", () => {
   })
 
   it("lien de l'espace client sous /client, administrateur sous /admin", () => {
-    for (const type of ["application_received", "review_received", "account_reactivated", "message_received"]) {
+    for (const type of ["application_received", "review_received", "account_reactivated", "message_received", "completion_declared"]) {
       expect(catalog.notificationHref({ type, mission_id: M, actor_id: A }, "client")).toMatch(/^\/client(\/|\?|$)/)
     }
     for (const type of ["card_submitted", "account_reactivated"]) {

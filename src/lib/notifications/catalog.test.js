@@ -19,6 +19,7 @@ import {
   badgeRevoked,
   accountReactivated,
   cardSubmitted,
+  completionDeclared,
   isValidNotification,
   notificationHref,
   isInternalPath,
@@ -50,6 +51,7 @@ function allBuilt() {
     badgeRevoked({ at: new Date("2026-10-15T10:00:00Z") }),
     accountReactivated({ at: new Date("2026-10-15T10:00:00Z") }),
     cardSubmitted({ studentId: S, studentName: "Codjo Agbo", at: new Date("2026-10-15T10:00:00Z") }),
+    completionDeclared({ missionId: M, missionTitle: "Traduction d'un flyer", studentId: S, studentName: "Sèna Kpadonou" }),
   ]
 }
 
@@ -69,6 +71,7 @@ describe("catalogue des notifications", () => {
       "account_reactivated",
       "card_submitted",
       "message_received",
+      "completion_declared",
     ])
   })
 
@@ -105,6 +108,23 @@ describe("catalogue des notifications", () => {
       body: "Codjo A. a envoyé sa carte étudiante.",
       dedupeKey: `card_submitted:${S}:2026-10-15`,
     })
+  })
+
+  it("completion_declared : texte exact, clé unique par mission, destinataire client", () => {
+    const n = completionDeclared({ missionId: M, missionTitle: "Traduction d'un flyer", studentId: S, studentName: "Sèna Kpadonou" })
+    expect(n).toEqual({
+      type: "completion_declared",
+      title: "Fin de mission à confirmer",
+      body: "Sèna K. indique avoir terminé « Traduction d'un flyer ». Vérifiez le travail puis confirmez la fin.",
+      dedupeKey: `completion_declared:${M}`,
+      missionId: M,
+      actorId: S,
+    })
+    const other = completionDeclared({ missionId: M, missionTitle: "Autre", studentId: A, studentName: "X Y" })
+    expect(other.dedupeKey).toBe(n.dedupeKey)
+    expect(completionDeclared({ missionId: A, missionTitle: "T", studentId: S, studentName: "" }).body).toMatch(/^L'étudiant indique/)
+    const long = completionDeclared({ missionId: M, missionTitle: "x".repeat(300), studentId: S, studentName: "Sèna Kpadonou" })
+    expect(isValidNotification(long)).toBe(true)
   })
 
   it("payment_released : montant inconnu, nul ou négatif => titre générique, jamais « + 0 FCFA »", () => {
@@ -210,6 +230,9 @@ describe("liens recalculés à la lecture", () => {
     expect(notificationHref({ type: "application_received", mission_id: M, actor_id: S }, "client")).toBe(`/client/missions/${M}?candidat=${S}`)
     expect(notificationHref({ type: "review_received", mission_id: M }, "client")).toBe(`/client/missions/${M}`)
     expect(notificationHref({ type: "account_reactivated" }, "client")).toBe("/client/dashboard")
+    expect(notificationHref({ type: "completion_declared", mission_id: M, actor_id: S }, "client")).toBe(`/client/missions/${M}`)
+    expect(notificationHref({ type: "completion_declared", mission_id: M }, "student")).toBeNull()
+    expect(notificationHref({ type: "completion_declared", mission_id: M }, "admin")).toBeNull()
   })
 
   it("étudiant : mission, candidatures, avis à laisser, vérification", () => {
@@ -269,6 +292,7 @@ describe("présentation", () => {
     expect(notificationActionLabel("application_received")).toBe("Voir la candidature")
     expect(notificationActionLabel("verification_rejected")).toBe("Envoyer une nouvelle carte")
     expect(notificationActionLabel("card_submitted")).toBe("Examiner")
+    expect(notificationActionLabel("completion_declared")).toBe("Confirmer la fin")
     expect(notificationActionLabel("review_received")).toBeNull()
   })
 
@@ -280,6 +304,8 @@ describe("présentation", () => {
       { id: "4", type: "application_received", read_at: null },
     ]
     expect(primaryNotificationId(items, "client")).toBe("3")
+    const withDone = [...items, { id: "5", type: "completion_declared", read_at: null }]
+    expect(primaryNotificationId(withDone, "client")).toBe("5")
     expect(primaryNotificationId(items, "student")).toBeNull()
     expect(primaryNotificationId([], "admin")).toBeNull()
     expect(primaryNotificationId(null, "admin")).toBeNull()

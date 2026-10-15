@@ -271,7 +271,7 @@ alter table public.messages add constraint messages_sender_id_profiles_fkey FORE
 alter table public.mission_completions add constraint mission_completions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE;
 
 alter table public.notifications add constraint notifications_pkey PRIMARY KEY (id);
-alter table public.notifications add constraint notifications_type_check CHECK ((type = ANY (ARRAY['application_received'::text, 'application_accepted'::text, 'application_rejected'::text, 'mission_cancelled'::text, 'payment_released'::text, 'review_received'::text, 'verification_approved'::text, 'verification_rejected'::text, 'verification_reset'::text, 'badge_revoked'::text, 'account_reactivated'::text, 'card_submitted'::text, 'message_received'::text])));
+alter table public.notifications add constraint notifications_type_check CHECK ((type = ANY (ARRAY['application_received'::text, 'application_accepted'::text, 'application_rejected'::text, 'mission_cancelled'::text, 'payment_released'::text, 'review_received'::text, 'verification_approved'::text, 'verification_rejected'::text, 'verification_reset'::text, 'badge_revoked'::text, 'account_reactivated'::text, 'card_submitted'::text, 'message_received'::text, 'completion_declared'::text])));
 alter table public.notifications add constraint notifications_title_check CHECK (((char_length(title) >= 1) AND (char_length(title) <= 120)));
 alter table public.notifications add constraint notifications_body_check CHECK ((char_length(body) <= 280));
 alter table public.notifications add constraint notifications_dedupe_key_check CHECK (((char_length(dedupe_key) >= 1) AND (char_length(dedupe_key) <= 200)));
