@@ -92,6 +92,15 @@ export function CardViewer({ cardView, name }) {
         >
           <Icon name="i-rotate" />
         </button>
+        <a
+          className="btn-icon btn-icon--sm"
+          href={cardView.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Ouvrir la carte dans un nouvel onglet"
+        >
+          <Icon name="i-external" />
+        </a>
         <span aria-live="polite">Zoom {zoom} %</span>
       </div>
       <div className="a2-02-stage">
