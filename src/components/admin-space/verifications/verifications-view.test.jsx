@@ -14,9 +14,9 @@ vi.mock("@/lib/actions/admin-verifications.actions", () => ({
 const { ToastProvider } = await import("@/components/app-ui/toast")
 const { VerificationsView, queueSubtitle, dossierNeighbors } = await import("./verifications-view")
 const { runDecision, historyLine } = await import("./dossier-panel")
-const { RejectDialog, rejectFormError } = await import("./reject-dialog")
+const { RejectDialog, RejectFields, rejectFormError } = await import("./reject-dialog")
 const { ApproveDialog } = await import("./approve-dialog")
-const { ResetDialog, reasonError } = await import("./reset-dialog")
+const { ResetDialog, ReasonField, reasonError } = await import("./reset-dialog")
 const { RevokeDialog } = await import("./revoke-dialog")
 const { CardViewer, nextZoom, nextRotation } = await import("./card-viewer")
 const { QueueList, rowSubtitle } = await import("./queue-list")
@@ -327,6 +327,46 @@ describe("boîtes de dialogue", () => {
     expect(reset).not.toContain("btn btn--danger")
     expect(revoke).toContain("Révoquer le badge")
     expect(revoke).toContain("btn btn--danger")
+  })
+
+  it("refus : l'erreur du motif est reliée au groupe de radios, pas à une alerte séparée", () => {
+    const html = renderToStaticMarkup(
+      <RejectFields reason="" message="" error={{ field: "reason", text: "Choisissez un motif de la liste." }} onReason={() => {}} onMessage={() => {}} />,
+    )
+    const fieldset = html.match(/<fieldset[^>]*>/)[0]
+    const errorId = html.match(/<div id="([^"]+)" class="field__error" role="alert"/)[1]
+    expect(fieldset).toContain(`aria-describedby="${errorId}"`)
+    expect(fieldset).toContain('aria-invalid="true"')
+    expect(html.match(/role="alert"/g)).toHaveLength(1)
+    expect(html).toContain("Choisissez un motif de la liste.")
+    expect(html.match(/<textarea[^>]*>/)[0]).not.toContain("aria-invalid")
+  })
+
+  it("refus : « Précisez le motif » est relié à la zone de texte", () => {
+    const html = renderToStaticMarkup(
+      <RejectFields reason="Autre motif" message="" error={{ field: "message", text: "Précisez le motif du refus." }} onReason={() => {}} onMessage={() => {}} />,
+    )
+    const textarea = html.match(/<textarea[^>]*>/)[0]
+    const errorId = html.match(/<div id="([^"]+)" class="field__error" role="alert"/)[1]
+    expect(textarea).toContain('aria-invalid="true"')
+    expect(textarea.match(/aria-describedby="([^"]*)"/)[1].split(" ")).toContain(errorId)
+    expect(html.match(/role="alert"/g)).toHaveLength(1)
+    expect(html.match(/<fieldset[^>]*>/)[0]).not.toContain("aria-invalid")
+  })
+
+  it("motif de réinitialisation ou de révocation : l'erreur est reliée à la zone de texte", () => {
+    const html = renderToStaticMarkup(<ReasonField reason="ab" error="Le motif doit contenir au moins 5 caractères." onChange={() => {}} />)
+    const textarea = html.match(/<textarea[^>]*>/)[0]
+    const errorId = html.match(/<div id="([^"]+)" class="field__error" role="alert"/)[1]
+    expect(textarea).toContain('aria-invalid="true"')
+    expect(textarea.match(/aria-describedby="([^"]*)"/)[1].split(" ")).toContain(errorId)
+    expect(html.match(/role="alert"/g)).toHaveLength(1)
+    expect(renderToStaticMarkup(<ReasonField reason="" error="" onChange={() => {}} />)).not.toContain('role="alert"')
+  })
+
+  it("refus sans erreur : aucune alerte", () => {
+    const html = renderToStaticMarkup(<RejectFields reason="" message="" error={null} onReason={() => {}} onMessage={() => {}} />)
+    expect(html).not.toContain('role="alert"')
   })
 
   it("validation des saisies avant l'envoi", () => {

@@ -2,7 +2,6 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Icon } from "@/components/design/icon"
 import { Modal } from "@/components/app-ui/modal"
 import { TextareaField } from "@/components/app-ui/fields"
 import { confirmOnce } from "@/components/app-ui/confirm-dialog"
@@ -12,6 +11,21 @@ import { REASON_MAX, REASON_MIN } from "@/lib/admin-space/decision-schemas"
 export function reasonError(reason) {
   const text = reason.replace(/\s+/g, " ").trim()
   return text.length < REASON_MIN ? `Le motif doit contenir au moins ${REASON_MIN} caractères.` : ""
+}
+
+/** Zone de motif : l'erreur est reliée à la zone de texte (aria-describedby, aria-invalid). */
+export function ReasonField({ reason, error, onChange }) {
+  return (
+    <TextareaField
+      label="Motif"
+      required
+      maxLength={REASON_MAX}
+      value={reason}
+      onChange={(e) => onChange(e.target.value)}
+      error={error || undefined}
+      rows={3}
+    />
+  )
 }
 
 function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone }) {
@@ -66,23 +80,14 @@ function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone
       }
     >
       <div className="stack stack--3">
-        <TextareaField
-          label="Motif"
-          required
-          maxLength={REASON_MAX}
-          value={reason}
-          onChange={(e) => {
-            setReason(e.target.value)
+        <ReasonField
+          reason={reason}
+          error={error}
+          onChange={(value) => {
+            setReason(value)
             setError("")
           }}
-          rows={3}
         />
-        {error ? (
-          <div className="field__error" role="alert">
-            <Icon name="i-alert-circle" />
-            {error}
-          </div>
-        ) : null}
       </div>
     </Modal>
   )
