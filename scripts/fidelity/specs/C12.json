@@ -4,37 +4,196 @@
   "planche": "client/C12-messages.v2.html",
   "screen": "c12",
   "tolerance": 1,
-  "assume": { "color": "A1", "bg": "A1", "fontSize": "A2:1", "lineHeight": "A2:2" },
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1",
+    "lineHeight": "A2:2"
+  },
   "views": [
     {
       "name": "bureau",
-      "viewport": [1440, 880],
+      "viewport": [
+        1440,
+        880
+      ],
       "frame": "desk",
       "frameIndex": 0,
-      "assume": { "y": "A3:4" },
       "selectors": [
-        { "id": "MC-05", "label": "date de page", "board": ".head2__date", "props": ["x", "y", "fontSize", "fontWeight"] },
-        { "id": "MC-01", "label": "carte unique", "board": ".c-inbox", "props": ["x", "y", "w", "radius", "bg"], "lot": "ST-06" },
-        { "id": "MC-01", "label": "liste dans la carte", "board": ".c-inbox__list", "props": ["x", "w", "pad"], "lot": "ST-06" },
-        { "id": "MC-01", "label": "volet", "board": ".c-inbox__thread", "props": ["x", "w"], "lot": "ST-06" },
-        { "id": "MC-03", "label": "recherche", "board": ".c-inbox__list .search", "props": ["x", "w", "h", "radius"], "lot": "ST-06" },
-        { "id": "MC-03", "label": "filtre segmenté", "board": ".c-inbox__list .segmented", "props": ["x", "w", "h", "bg"], "lot": "ST-06" },
-        { "id": "MC-04", "label": "ligne", "board": ".c-inbox__list .convo", "props": ["x", "w", "h", "radius", "pad", "gap"], "lot": "ST-06", "assume": { "h": "A2:4" } },
-        { "id": "MC-04", "label": "avatar", "board": ".c-inbox__list .convo .av2", "props": ["w", "h", "radius"], "lot": "ST-06" },
-        { "id": "MC-04", "label": "nom", "board": ".c-inbox__list .convo__name", "props": ["fontSize", "fontWeight"], "lot": "ST-06" },
-        { "id": "MC-04", "label": "pastille non lue", "board": ".c-inbox__list .convo .count", "props": ["w", "h", "radius", "bg"], "lot": "ST-06" }
+        {
+          "id": "MC-05",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "fontSize",
+            "fontWeight",
+            "tw"
+          ]
+        },
+        {
+          "id": "MC-01",
+          "label": "carte unique",
+          "board": ".c-inbox",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-01",
+          "label": "liste dans la carte",
+          "board": ".c-inbox__list",
+          "props": [
+            "x",
+            "w",
+            "pad"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-01",
+          "label": "volet",
+          "board": ".c-inbox__thread",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-03",
+          "label": "recherche",
+          "board": ".c-inbox__list .search",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-03",
+          "label": "filtre segmenté",
+          "board": ".c-inbox__list .segmented",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "bg"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-04",
+          "label": "ligne",
+          "board": ".c-inbox__list .convo",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-06",
+          "assume": {
+            "h": "A2:4"
+          }
+        },
+        {
+          "id": "MC-04",
+          "label": "avatar",
+          "board": ".c-inbox__list .convo .av2",
+          "props": [
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-04",
+          "label": "nom",
+          "board": ".c-inbox__list .convo__name",
+          "props": [
+            "fontSize",
+            "fontWeight",
+            "tw"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-04",
+          "label": "pastille non lue",
+          "board": ".c-inbox__list .convo .count",
+          "props": [
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-06"
+        }
       ]
     },
     {
       "name": "mobile",
-      "viewport": [390, 844],
+      "viewport": [
+        390,
+        844
+      ],
       "frame": "phone",
       "frameIndex": 0,
-      "assume": { "y": "A3:4" },
       "selectors": [
-        { "id": "MC-13", "label": "filtre segmenté", "board": ".segmented", "props": ["x", "w", "h", "radius"], "assume": { "h": "A5:10" } },
-        { "id": "MC-13", "label": "ligne", "board": ".convo", "props": ["x", "w", "radius", "pad", "gap"] },
-        { "id": "MC-13", "label": "avatar", "board": ".convo .av2", "props": ["w", "h", "radius"] }
+        {
+          "id": "MC-13",
+          "label": "filtre segmenté",
+          "board": ".segmented",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "assume": {
+            "h": "A5:9",
+            "y": "L3:9"
+          },
+          "note": "A5 (+8 de hauteur) ; L3 : même décalage de coquille que E06 ME-19 pastilles (+8)",
+          "lot": "ST-03"
+        },
+        {
+          "id": "MC-13",
+          "label": "ligne",
+          "board": ".convo",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "pad",
+            "gap"
+          ]
+        },
+        {
+          "id": "MC-13",
+          "label": "avatar",
+          "board": ".convo .av2",
+          "props": [
+            "y",
+            "w",
+            "h",
+            "radius"
+          ]
+        }
       ]
     }
   ]

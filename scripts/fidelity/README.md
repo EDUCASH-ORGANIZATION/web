@@ -12,7 +12,13 @@ Le banc est hors `src/` (les garde-fous de textes ne le scannent pas) et `npm te
 - `FIDELITY_CHROMIUM` : chemin d'un Chromium headless déjà installé, par exemple
   `~/Library/Caches/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-mac-arm64/chrome-headless-shell`.
   Sans cette variable, le chemin par défaut de Playwright est essayé, sans téléchargement.
-- Optionnel : `FIDELITY_OUT` (défaut `/tmp/educash-fidelity`), `FIDELITY_MAQUETTES` (dossier des planches).
+- Réseau : la planche charge ses polices depuis Google Fonts. Hors réseau, la police de repli change les
+  largeurs de texte ; le banc compare alors la largeur (`w`, `tw`) et un écart dû à la police se déclare
+  `POLICE:n` (statut `ASSUMÉ-POLICE`, distinct de `OK`). Les mesures de référence de ce dépôt sont prises
+  avec les polices disponibles ; relancer en ligne avant de conclure sur une largeur de texte.
+- Compatibilité : `playwright-core` 1.56.1 pilote le Chromium de révision 1243
+  (`chromium_headless_shell-1243`, ou `chromium-1243`) : vérifié, le banc s'y connecte et mesure.
+- Optionnel : `FIDELITY_OUT` (défaut `/tmp/educash-fidelity`), `FIDELITY_MAQUETTES` (dossier des planches ; défaut : `design-rebrand/maquettes`, frère de `organization/`, résolu depuis la racine du dépôt, donc valable depuis `web/` et depuis `organization/web-*`).
 
 ## Utilisation
 
@@ -24,12 +30,13 @@ npm run fidelity -- E07 --report-only  # ne pas échouer sur les écarts
 
 Sortie dans `$FIDELITY_OUT/<ID>/` : `planche-bureau.png`, `code-bureau.png`, `planche-mobile.png`,
 `code-mobile.png`, `rapport.md`, `rapport.json`. Le rapport est aussi écrit sur la sortie standard :
-tableau Élément / Planche / Code / Écart / Statut, avec le statut `OK`, `ASSUMÉ Ax` ou `ÉCHEC`.
+tableau Élément / Planche / Code / Écart / Statut, avec le statut `OK`, `ASSUMÉ Ax`, `ASSUMÉ-POLICE` ou `ÉCHEC`.
 Code de sortie 1 s'il reste un `ÉCHEC` (sauf `--report-only`), 2 en cas d'erreur du banc.
 
-Sortie attendue pour `npm run fidelity -- E06` : les lignes ME-06 (liste, recherche, ligne, avatar,
-nom, aperçu, pastille non lue) et ME-07 (volet vide) en `OK` ou `ASSUMÉ`. Seule la pastille
-« En cours » (ME-04, lot ST-04) reste en `ÉCHEC` tant que le filtre n'existe pas.
+Sortie attendue pour `npm run fidelity -- E06` : toutes les lignes ME-04, ME-06, ME-07 en `ASSUMÉ` (écarts
+mesurés et déclarés), sauf la pastille « En cours » (ME-04, lot ST-04, filtre inexistant), la date de page
+bureau (contenu « Jeudi 8 octobre · » absent du code) et le titre mobile (30 px planche, 26 px code), qui
+restent en `ÉCHEC`.
 
 ## Structure
 
@@ -63,15 +70,20 @@ nom, aperçu, pastille non lue) et ME-07 (volet vide) en `OK` ou `ASSUMÉ`. Seul
   planche (900 - 60 px).
 - `board` : sélecteur dans le cadre de la planche ; `code` : sélecteur dans le rendu (défaut : `board`).
   Le premier élément correspondant est mesuré des deux côtés.
-- `props` : `x y w h` (tolérance 1 px), `fontSize fontWeight fontFamily lineHeight color bg radius pad
+- `props` : `x y w h` (tolérance 1 px) et `tw` (largeur du texte lui-même, utile quand la boîte épouse un
+  frère plus large ; à éviter sur les textes multilignes), `fontSize fontWeight fontFamily lineHeight color bg radius pad
   margin gap border shadow cols`.
 - `assume` : écarts assumés par propriété, fusionnés spécification < vue < sélecteur. `A1` à `A7` sont
   les écarts du plan RD-FIDELITE-01 :
   A1 couleurs de la charte (vérifiées par correspondance exacte), A2 taille minimale 13 px,
   A3 interligne des titres (tout ce qui suit descend de 3 px), A4 logo de sidebar, A5 cibles tactiles
-  44 px, A6 vouvoiement, A7 noms « Prénom N. ». Syntaxe `"Ax:n"` : écart toléré jusqu'à n px (obligatoire
+  44 px, A6 vouvoiement, A7 noms « Prénom N. ». Codes du banc : `L3` décalage vertical de la coquille
+  mobile (lot 3, déclaré avec `lot`), `POLICE` écart de largeur dû à la police de repli. Syntaxe `"Ax:n"` : écart toléré jusqu'à n px (obligatoire
   pour les propriétés numériques et en px) ; `"Ax"` seul : écart de chaîne (couleur, famille...).
 - `lot` : lot du plan qui corrige l'écart (information du rapport).
+- `note` : explication d'un écart cumulé (par exemple A2 + A3), reprise dans le rapport. Règle : la limite
+  d'une règle `"Ax:n"` est la valeur mesurée + 1 px, par sélecteur ; pas de limite large au niveau de la
+  vue pour `y`. Les `y` sont mesurés aussi en mobile.
 
 Pour étendre : ajouter la fixture (données de la planche) puis le fichier de spécification, lancer
 `npm run fidelity -- <ID>`, puis déclarer les écarts assumés justifiés.

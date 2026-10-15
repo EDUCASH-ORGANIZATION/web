@@ -1,6 +1,8 @@
 // Données de la planche C13 (conversation client, mission en cours avec achats) : service 5 000 FCFA
 // en séquestre, achats estimés 7 450 FCFA. Vouvoiement, noms « Prénom N. » (A7).
-// Les champs budget et purchasesEstimate seront fournis par ST-02 ; avant, la vue les ignore.
+// Contrat de ST-02 : conversation.relation ("selected" : étudiant retenu) et mission.{budget,
+// purchasesEstimate, net}, le net étant le gain de l'étudiant (netAmount du budget).
+import { netAmount } from "@/lib/constants/missions"
 import { NOW } from "./c12.js"
 
 const msg = (i, mine, content, extra = {}) => ({
@@ -26,7 +28,9 @@ export const conversation = {
     status: "in_progress",
     budget: 5000,
     purchasesEstimate: 7450,
+    net: netAmount(5000),
   },
+  relation: "selected",
   state: "in_progress",
   canWrite: true,
   messages: [

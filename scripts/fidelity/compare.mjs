@@ -14,14 +14,16 @@ import { measureSelectors } from "./measure.mjs"
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, "../..")
 const SPECS_DIR = path.join(HERE, "specs")
-const DEFAULT_MAQUETTES = "/Users/brandonmedehou/Desktop/EDUCASH/design-rebrand/maquettes"
+// Planches : dossier frère de organization/ (valable depuis web/ et depuis organization/web-*).
+const DEFAULT_MAQUETTES = path.resolve(ROOT, "../../design-rebrand/maquettes")
 const STATUS_BAR = 36
 
 // ---------------------------------------------------------------------------------------------
 // Comparaison (pure, testable)
 // ---------------------------------------------------------------------------------------------
 
-const NUMERIC = new Set(["x", "y", "w", "h"])
+// tw : largeur du texte lui-même (mesure.mjs), comparée comme w.
+const NUMERIC = new Set(["x", "y", "w", "h", "tw"])
 const PX_LIST = new Set(["fontSize", "lineHeight", "radius", "pad", "margin", "gap", "cols"])
 const COLOR = new Set(["color", "bg"])
 // A1 : couleurs des planches -> couleurs de la charte (encre, givre, ardoise, fond bleu clair).
@@ -95,7 +97,12 @@ export function compareEntry(board, code, { props, assume = {}, tolerance = 1 })
     diffs.push({ prop, label: diff.label, rule: accepted ? rule.name : null })
   }
   if (failed) return { status: "ÉCHEC", note: "", diffs }
-  if (rules.size) return { status: `ASSUMÉ ${[...rules].sort().join(", ")}`, note: "", diffs }
+  if (rules.size) {
+    const names = [...rules].sort()
+    // POLICE : écart de largeur dû à la police de repli (Google Fonts non chargées), statut distinct.
+    const status = names.length === 1 && names[0] === "POLICE" ? "ASSUMÉ-POLICE" : `ASSUMÉ ${names.join(", ")}`
+    return { status, note: "", diffs }
+  }
   return { status: "OK", note: "", diffs }
 }
 
@@ -105,16 +112,33 @@ export function compareEntry(board, code, { props, assume = {}, tolerance = 1 })
 
 const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".woff2": "font/woff2", ".json": "application/json" }
 
+/** Chemin absolu de `relative` sous `base`, ou null s'il en sort (traversée de dossier). */
+export function resolveInside(base, relative) {
+  const root = path.resolve(base)
+  const target = path.resolve(root, `.${relative.startsWith("/") ? "" : "/"}${relative}`)
+  return target === root || target.startsWith(root + path.sep) ? target : null
+}
+
+/** Fichier servi pour une URL brute, ou null (URL mal encodée, hors racine publique, octet nul). */
+export function fileForUrl({ out, maquettes, publicDir }, rawUrl) {
+  let url
+  try {
+    url = decodeURIComponent((rawUrl || "/").split("?")[0])
+  } catch {
+    return null
+  }
+  if (url.includes("\0")) return null
+  if (url === "/app.css") return path.join(out, "app.css")
+  if (url.startsWith("/screens/")) return resolveInside(out, url)
+  if (url.startsWith("/maquettes/")) return resolveInside(maquettes, url.slice("/maquettes/".length))
+  return resolveInside(publicDir, url)
+}
+
 function startServer({ out, maquettes }) {
   const publicDir = path.join(ROOT, "public")
   const server = createServer((req, res) => {
-    const url = decodeURIComponent((req.url || "/").split("?")[0])
-    let file
-    if (url === "/app.css") file = path.join(out, "app.css")
-    else if (url.startsWith("/screens/")) file = path.join(out, url)
-    else if (url.startsWith("/maquettes/")) file = path.join(maquettes, url.slice("/maquettes/".length))
-    else file = path.join(publicDir, url)
-    if (!existsSync(file) || !statSync(file).isFile()) {
+    const file = fileForUrl({ out, maquettes, publicDir }, req.url)
+    if (!file || !existsSync(file) || !statSync(file).isFile()) {
       res.writeHead(404).end()
       return
     }
@@ -204,18 +228,20 @@ async function runView({ browser, base, spec, view, outDir }) {
     const props = selector.props ?? view.props ?? spec.props ?? ["x", "y", "w", "h"]
     const assume = { ...(spec.assume ?? {}), ...(view.assume ?? {}), ...(selector.assume ?? {}) }
     const result = compareEntry(boardMeasures[key], codeMeasures[key], { props, assume, tolerance: spec.tolerance ?? 1 })
-    return { view: view.name, id: selector.id, label: selector.label ?? "", lot: selector.lot ?? "", board: boardMeasures[key], code: codeMeasures[key], ...result }
+    return { view: view.name, id: selector.id, label: selector.label ?? "", lot: selector.lot ?? "", specNote: selector.note ?? "", board: boardMeasures[key], code: codeMeasures[key], ...result }
   })
 }
 
 function reportMarkdown(spec, rows) {
   const lines = [`# ${spec.id} - ${spec.title}`, "", `Planche : \`${spec.planche}\``, "", "| Vue | Réf. | Élément | Planche | Code | Écart | Statut | Lot |", "|---|---|---|---|---|---|---|---|"]
   for (const row of rows) {
-    const gap = row.note || row.diffs.map((d) => (d.rule ? `${d.label} (${d.rule})` : d.label)).join(", ") || "-"
+    const diffs = row.note || row.diffs.map((d) => (d.rule ? `${d.label} (${d.rule})` : d.label)).join(", ") || "-"
+    const gap = row.specNote ? `${diffs} - ${row.specNote}` : diffs
     lines.push(`| ${row.view} | ${row.id} | ${row.label} | ${cell(row.board)} | ${cell(row.code)} | ${gap} | ${row.status} | ${row.lot || "-"} |`)
   }
   const count = (test) => rows.filter(test).length
-  lines.push("", `OK : ${count((r) => r.status === "OK")} - ASSUMÉ : ${count((r) => r.status.startsWith("ASSUMÉ"))} - ÉCHEC : ${count((r) => r.status === "ÉCHEC")}`, "")
+  const police = count((r) => r.status === "ASSUMÉ-POLICE")
+  lines.push("", `OK : ${count((r) => r.status === "OK")} - ASSUMÉ : ${count((r) => r.status.startsWith("ASSUMÉ ")) } - ASSUMÉ-POLICE : ${police} - ÉCHEC : ${count((r) => r.status === "ÉCHEC")}`, "")
   return lines.join("\n")
 }
 

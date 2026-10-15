@@ -21,11 +21,16 @@ export async function measureSelectors(page, rootSelector, selectors, dy = 0) {
         }
         const box = element.getBoundingClientRect()
         const style = getComputedStyle(element)
+        // Largeur du texte lui-même (indépendante de la boîte, qui peut épouser un frère plus large).
+        const range = document.createRange()
+        range.selectNodeContents(element)
+        const textBox = range.getBoundingClientRect()
         result[key] = {
           x: Math.round(box.left - rootBox.left),
           y: Math.round(box.top - rootBox.top) + dy,
           w: Math.round(box.width),
           h: Math.round(box.height),
+          tw: Math.round(textBox.width),
           fontFamily: style.fontFamily.split(",")[0].replace(/["']/g, "").trim(),
           fontSize: style.fontSize,
           fontWeight: style.fontWeight,

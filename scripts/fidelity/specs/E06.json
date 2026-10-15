@@ -19,9 +19,6 @@
       ],
       "frame": "desk",
       "frameIndex": 0,
-      "assume": {
-        "y": "A3:4"
-      },
       "selectors": [
         {
           "id": "ME-01",
@@ -34,7 +31,11 @@
             "cols",
             "gap"
           ],
-          "lot": ""
+          "lot": "",
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : le titre de page descend de 3 px (interligne), tout ce qui suit descend d'autant (+3 mesuré)"
         },
         {
           "id": "ME-02",
@@ -44,8 +45,10 @@
             "x",
             "y",
             "fontSize",
-            "fontWeight"
-          ]
+            "fontWeight",
+            "tw"
+          ],
+          "note": "contenu : la planche affiche « Jeudi 8 octobre · » avant le compteur, absent du code (écart de contenu, pas de police)"
         },
         {
           "id": "ME-02",
@@ -55,7 +58,8 @@
             "x",
             "y",
             "h",
-            "fontSize"
+            "fontSize",
+            "tw"
           ],
           "assume": {
             "h": "A3:4"
@@ -71,7 +75,11 @@
             "w",
             "h",
             "gap"
-          ]
+          ],
+          "assume": {
+            "y": "A3:5"
+          },
+          "note": "A3 (+3) et 1 px supplémentaire mesuré (+4), non expliqué par A3 seul"
         },
         {
           "id": "ME-04",
@@ -84,7 +92,11 @@
             "h",
             "radius",
             "bg"
-          ]
+          ],
+          "assume": {
+            "y": "A3:5"
+          },
+          "note": "A3 (+3) et 1 px supplémentaire mesuré (+4)"
         },
         {
           "id": "ME-04",
@@ -110,8 +122,10 @@
             "bg"
           ],
           "assume": {
-            "h": "A3:4"
-          }
+            "h": "A3:4",
+            "y": "A3:4"
+          },
+          "note": "A3 : +3 en y, hauteur -3 (même bas de liste)"
         },
         {
           "id": "ME-06",
@@ -124,7 +138,11 @@
             "h",
             "radius",
             "bg"
-          ]
+          ],
+          "assume": {
+            "y": "A3:5"
+          },
+          "note": "A3 (+3) et 1 px supplémentaire mesuré (+4)"
         },
         {
           "id": "ME-06",
@@ -140,8 +158,10 @@
             "gap"
           ],
           "assume": {
-            "h": "A2:4"
-          }
+            "h": "A2:4",
+            "y": "A3:5"
+          },
+          "note": "A3 (+3) et 1 px mesuré en y (+4) ; hauteur A2 : texte 13 px -> 14 px (+3)"
         },
         {
           "id": "ME-06",
@@ -156,7 +176,8 @@
           ],
           "assume": {
             "y": "A3:6"
-          }
+          },
+          "note": "cumul : A3 (+3), 1 px de pastilles (+4) et A2 (ligne +3 de haut, avatar centré : +1) = +5 mesuré"
         },
         {
           "id": "ME-06",
@@ -166,11 +187,14 @@
             "x",
             "w",
             "fontSize",
-            "fontWeight"
+            "fontWeight",
+            "tw"
           ],
           "assume": {
-            "w": "A2:4"
-          }
+            "w": "A2:4",
+            "tw": "A7:67"
+          },
+          "note": "A2 : largeur -3 (texte 13 -> 14 px) ; A7 : « Rosine H. » au lieu du nom complet de la planche (-66)"
         },
         {
           "id": "ME-06",
@@ -179,8 +203,13 @@
           "props": [
             "x",
             "fontSize",
-            "fontWeight"
-          ]
+            "fontWeight",
+            "tw"
+          ],
+          "assume": {
+            "tw": "A2:18"
+          },
+          "note": "A2 : texte 13 -> 14 px, largeur du texte +17 sur une ligne tronquée"
         },
         {
           "id": "ME-06",
@@ -204,7 +233,11 @@
             "w",
             "radius",
             "bg"
-          ]
+          ],
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : le titre de page descend de 3 px (interligne), tout ce qui suit descend d'autant (+3 mesuré)"
         }
       ]
     },
@@ -216,19 +249,57 @@
       ],
       "frame": "phone",
       "frameIndex": 0,
-      "assume": {
-        "y": "A3:4"
-      },
       "selectors": [
+        {
+          "id": "ME-19",
+          "label": "en-tête",
+          "board": ".head2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "assume": {
+            "y": "L3:13"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12)",
+          "lot": "ST-03"
+        },
         {
           "id": "ME-19",
           "label": "date de page",
           "board": ".head2__date",
           "props": [
             "x",
-            "fontSize"
+            "y",
+            "fontSize",
+            "tw"
           ],
-          "assume": {}
+          "assume": {
+            "y": "L3:13",
+            "tw": "A2:5"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; A2 : 13 -> 14 px (+4 de texte)",
+          "lot": "ST-03"
+        },
+        {
+          "id": "ME-19",
+          "label": "titre de page",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize",
+            "tw"
+          ],
+          "assume": {
+            "y": "L3:14"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+13). Écart NON assumé : titre 30 px dans la planche, 26 px dans le code (largeur -16)",
+          "lot": "ST-03"
         },
         {
           "id": "ME-19",
@@ -236,13 +307,17 @@
           "board": ".e2-pills",
           "props": [
             "x",
+            "y",
             "w",
             "gap",
             "h"
           ],
           "assume": {
-            "h": "A5:8"
-          }
+            "h": "A5:9",
+            "y": "L3:9"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué : +12 de coquille, -4 de titre plus petit = +8 mesuré",
+          "lot": "ST-03"
         },
         {
           "id": "ME-19",
@@ -250,13 +325,17 @@
           "board": ".e2-pill.is-active",
           "props": [
             "x",
+            "y",
             "w",
             "radius",
             "h"
           ],
           "assume": {
-            "h": "A5:8"
-          }
+            "h": "A5:9",
+            "y": "L3:9"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué : +12 de coquille, -4 de titre plus petit = +8 mesuré",
+          "lot": "ST-03"
         },
         {
           "id": "ME-19",
@@ -264,12 +343,19 @@
           "board": ".e2-06-convo",
           "props": [
             "x",
+            "y",
             "w",
             "radius",
             "pad",
-            "gap"
+            "gap",
+            "h"
           ],
-          "assume": {}
+          "assume": {
+            "y": "L3:13",
+            "h": "A2:4"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; hauteur A2 (+3)",
+          "lot": "ST-03"
         }
       ]
     }

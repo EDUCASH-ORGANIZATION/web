@@ -4,39 +4,220 @@
   "planche": "client/C13-conversation.v2.html",
   "screen": "c13",
   "tolerance": 1,
-  "assume": { "color": "A1", "bg": "A1", "fontSize": "A2:1", "lineHeight": "A2:2" },
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1",
+    "lineHeight": "A2:2"
+  },
   "views": [
     {
       "name": "bureau",
-      "viewport": [1440, 880],
+      "viewport": [
+        1440,
+        880
+      ],
       "frame": "desk",
       "frameIndex": 0,
-      "assume": { "y": "A3:4" },
       "selectors": [
-        { "id": "MC-02", "label": "carte unique", "board": ".c-inbox", "props": ["x", "y", "w", "radius", "bg"], "lot": "ST-06" },
-        { "id": "MC-02", "label": "liste dans la carte", "board": ".c-inbox__list", "props": ["x", "w"], "lot": "ST-06" },
-        { "id": "MC-02", "label": "ligne active", "board": ".c-inbox__list .convo.is-active", "props": ["x", "w", "h", "radius", "bg"], "lot": "ST-06", "assume": { "h": "A2:4" } },
-        { "id": "MC-05", "label": "titre de page", "board": ".head2__title", "props": ["x", "y"], "lot": "ST-06" },
-        { "id": "MC-06", "label": "en-tête de conversation", "board": ".c-inbox__head", "code": ".c-inbox__head, .conv2__head", "props": ["x", "w", "h", "pad", "gap"], "lot": "ST-07" },
-        { "id": "MC-06", "label": "nom", "board": ".c-inbox__head b", "code": ".c-inbox__head b, .conv2__name", "props": ["fontSize", "fontWeight"], "lot": "ST-07" },
-        { "id": "MC-07", "label": "bandeau mission", "board": ".chat-status", "props": ["x", "w", "h", "pad", "gap", "bg"], "lot": "ST-07" },
-        { "id": "MC-07", "label": "badge d'état", "board": ".chat-status .badge", "props": ["h", "radius", "bg"], "lot": "ST-07" },
-        { "id": "MC-07", "label": "lien Voir la mission", "board": ".chat-status .link2", "props": ["h"], "lot": "ST-07" },
-        { "id": "MC-11", "label": "saisie", "board": ".composer", "props": ["x", "w", "h", "pad", "gap"], "lot": "ST-07" },
-        { "id": "MC-11", "label": "champ de saisie", "board": ".composer__field", "props": ["h", "radius", "bg"], "lot": "" },
-        { "id": "MC-12", "label": "fond du fil", "board": ".chat", "props": ["pad", "gap", "bg"], "lot": "" }
+        {
+          "id": "MC-02",
+          "label": "carte unique",
+          "board": ".c-inbox",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-02",
+          "label": "liste dans la carte",
+          "board": ".c-inbox__list",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-02",
+          "label": "ligne active",
+          "board": ".c-inbox__list .convo.is-active",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-06",
+          "assume": {
+            "h": "A2:4"
+          }
+        },
+        {
+          "id": "MC-05",
+          "label": "titre de page",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-06",
+          "label": "en-tête de conversation",
+          "board": ".c-inbox__head",
+          "code": ".c-inbox__head, .conv2__head",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-07"
+        },
+        {
+          "id": "MC-06",
+          "label": "nom",
+          "board": ".c-inbox__head b",
+          "code": ".c-inbox__head b, .conv2__name",
+          "props": [
+            "fontSize",
+            "fontWeight",
+            "tw"
+          ],
+          "lot": "ST-07",
+          "assume": {
+            "tw": "A7:32"
+          },
+          "note": "A7 : « Prénom N. » (-31)"
+        },
+        {
+          "id": "MC-07",
+          "label": "bandeau mission",
+          "board": ".chat-status",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "pad",
+            "gap",
+            "bg"
+          ],
+          "lot": "ST-07"
+        },
+        {
+          "id": "MC-07",
+          "label": "badge d'état",
+          "board": ".chat-status .badge",
+          "props": [
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-07"
+        },
+        {
+          "id": "MC-07",
+          "label": "lien Voir la mission",
+          "board": ".chat-status .link2",
+          "props": [
+            "h"
+          ],
+          "lot": "ST-07"
+        },
+        {
+          "id": "MC-11",
+          "label": "saisie",
+          "board": ".composer",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-07"
+        },
+        {
+          "id": "MC-11",
+          "label": "champ de saisie",
+          "board": ".composer__field",
+          "props": [
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": ""
+        },
+        {
+          "id": "MC-12",
+          "label": "fond du fil",
+          "board": ".chat",
+          "props": [
+            "pad",
+            "gap",
+            "bg"
+          ],
+          "lot": ""
+        }
       ]
     },
     {
       "name": "mobile",
-      "viewport": [390, 844],
+      "viewport": [
+        390,
+        844
+      ],
       "frame": "phone",
       "frameIndex": 0,
-      "assume": { "y": "A3:4" },
       "selectors": [
-        { "id": "MC-10", "label": "fil pleine largeur", "board": ".chat", "props": ["x", "w"], "lot": "ST-07" },
-        { "id": "MC-09", "label": "bandeau mission", "board": ".chat-status", "props": ["x", "w", "h", "pad"], "lot": "ST-07" },
-        { "id": "MC-11", "label": "saisie sur une ligne", "board": ".composer", "props": ["x", "w", "h"], "lot": "ST-07", "assume": { "h": "A5:8" } }
+        {
+          "id": "MC-10",
+          "label": "fil pleine largeur",
+          "board": ".chat",
+          "props": [
+            "x",
+            "y",
+            "w"
+          ],
+          "lot": "ST-07"
+        },
+        {
+          "id": "MC-09",
+          "label": "bandeau mission",
+          "board": ".chat-status",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad"
+          ],
+          "lot": "ST-07"
+        },
+        {
+          "id": "MC-11",
+          "label": "saisie sur une ligne",
+          "board": ".composer",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-07",
+          "assume": {
+            "h": "A5:8"
+          }
+        }
       ]
     }
   ]
