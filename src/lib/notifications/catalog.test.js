@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { formatAmount } from "../app/format.js"
+import { OTHER_REASON } from "../admin-space/decision-schemas.js"
 import {
   NOTIFICATION_TYPES,
   TITLE_MAX,
@@ -27,6 +28,7 @@ import {
   primaryNotificationId,
   groupNotifications,
   emptyNotificationsText,
+  OTHER_REASON_LABEL,
 } from "./catalog.js"
 
 const DASHES = String.fromCharCode(0x2014, 0x2013)
@@ -113,6 +115,15 @@ describe("catalogue des notifications", () => {
     }
     expect(paymentReleased({ missionId: M, missionTitle: "Flyer", clientId: A, amount: 1 }).title)
       .toBe(`Paiement reçu : ${formatAmount(1, { sign: "credit" })}`)
+  })
+
+  it("verification_rejected « Autre motif » : pas de phrase Motif, l'invitation à renvoyer reste", () => {
+    expect(OTHER_REASON_LABEL).toBe(OTHER_REASON)
+    const n = verificationRejected({ reasonLabel: OTHER_REASON, submittedAt: "2026-10-14T09:00:00Z" })
+    expect(n.body).toBe("Vous pouvez envoyer une nouvelle carte.")
+    expect(n.body).not.toMatch(/motif/i)
+    expect(verificationRejected({ reasonLabel: "Photo floue ou illisible", submittedAt: "2026-10-14T09:00:00Z" }).body)
+      .toBe("Motif : photo floue ou illisible. Vous pouvez envoyer une nouvelle carte.")
   })
 
   it("chaque texte est vouvoyé, sans tiret cadratin ni mot banni", () => {

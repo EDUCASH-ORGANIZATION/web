@@ -74,10 +74,15 @@ function quoted(missionTitle) {
   return `« ${title || "Mission EduCash"} »`
 }
 
+// Même libellé que OTHER_REASON (decision-schemas, non importé ici pour garder ce module léger côté client).
+// Ce libellé seul n'apprend rien à l'étudiant : la phrase « Motif : ... » est omise.
+export const OTHER_REASON_LABEL = "Autre motif"
+
 /** Motif de refus : libellé de la liste fermée, première lettre en minuscule (sauf sigle). */
 function reasonSentence(reasonLabel) {
   const label = truncate(reasonLabel, 80)
   if (!label) return ""
+  if (label.toLocaleLowerCase("fr-FR") === OTHER_REASON_LABEL.toLocaleLowerCase("fr-FR")) return ""
   const [first, second] = Array.from(label)
   const lowered = second && second === second.toLocaleUpperCase("fr-FR") && second !== second.toLocaleLowerCase("fr-FR")
     ? label

@@ -1225,6 +1225,13 @@ describe("notifications in-app (RD-NOTIF-01)", () => {
     expect(`${n.title} ${n.body}`).not.toMatch(/confidentiel|0197|carte\.jpg/)
   })
 
+  it("refus « Autre motif » : ni la phrase Motif ni le texte libre, seulement l'invitation à renvoyer", async () => {
+    const id = addStudent(1)
+    const res = await rejectStudentCard(id, { reason: "Autre motif", message: "Carte d'un autre campus", expectedSubmittedAt: SUBMITTED })
+    expect(res).toMatchObject({ success: true })
+    expect(notifyInApp.mock.calls[0][0].body).toBe("Vous pouvez envoyer une nouvelle carte.")
+  })
+
   it("refus : notification envoyée même si l'e-mail échoue (emailSent inchangé)", async () => {
     sendEmail.mockResolvedValue({ error: "boom" })
     const id = addStudent(1)
