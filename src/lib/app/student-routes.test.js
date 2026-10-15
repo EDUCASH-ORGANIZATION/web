@@ -7,6 +7,7 @@ import {
   studentMessagesHref,
   studentConversationHref,
   studentWalletHref,
+  studentNotificationsHref,
   studentProfileHref,
   studentProfileEditHref,
   studentVerifyHref,
@@ -79,5 +80,13 @@ describe("fabriques d'URL étudiant", () => {
   it("publicTalentHref pointe vers la vitrine", () => {
     expect(publicTalentHref("u1")).toBe("/talents/u1")
     expect(publicTalentHref()).toBe("/talents")
+  })
+})
+
+describe("notifications étudiant", () => {
+  it("page des notifications, seul le filtre non-lues est accepté", () => {
+    expect(studentNotificationsHref()).toBe("/student/notifications")
+    expect(studentNotificationsHref({ filtre: "non-lues" })).toBe("/student/notifications?filtre=non-lues")
+    expect(studentNotificationsHref({ filtre: "x" })).toBe("/student/notifications")
   })
 })
