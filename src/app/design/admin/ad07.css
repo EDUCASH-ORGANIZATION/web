@@ -1,0 +1,23 @@
+/* @ds-screen RD-ADMIN-01 */
+/* AD07 Détail mission en lecture seule : résumé, parties, frise, argent. Aucune action d'argent, aucune conversation. */
+.a2-07 { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+.a2-07-parties { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5); }
+.a2-07-money { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); padding: var(--s-5) var(--s-6); display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+
+/* Frise (réutilisée par AD04) : sans citron ni bleu plein */
+.a2 .tl-item.is-done::before { background: var(--c-ligne); }
+.a2 .tl-item.is-done .tl-item__dot { background: var(--c-givre); border: 1px solid var(--c-ligne); color: var(--c-ardoise); }
+.a2 .tl-item.is-current .tl-item__dot { background: var(--c-blanc); border: 1.5px solid var(--c-encre); color: var(--c-encre); }
+.a2 .tl-item.is-error .tl-item__dot { border-width: 1px; }
+/* Vignettes de pièces réduites dans la colonne principale */
+.a2 .ad07-payreq .ad-payreq__proofs { grid-template-columns: repeat(3, 128px); }
+
+@media (max-width: 1023.98px) {
+  .a2-07 { gap: var(--s-4); }
+  .a2-07-money { padding: var(--s-4); }
+}
+
+@media (max-width: 767.98px) {
+  .a2-07-parties { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+  .a2 .ad07-payreq .ad-payreq__proofs { grid-template-columns: repeat(2, minmax(0, 128px)); }
+}

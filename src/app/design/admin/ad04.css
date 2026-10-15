@@ -1,0 +1,17 @@
+/* @ds-screen RD-ADMIN-01 */
+/* AD04 Fiche utilisateur : en-tête, indicateurs sobres, onglets, vérification, portefeuille en lecture seule. */
+.a2-04 { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+.a2-04-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-4); }
+.a2-04-id { display: flex; align-items: center; gap: var(--s-4); min-width: 0; }
+.a2-04-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-4); }
+.a2-04-card { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); padding: var(--s-5) var(--s-6); display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+
+@media (max-width: 1023.98px) {
+  .a2-04 { gap: var(--s-4); }
+  .a2-04-card { padding: var(--s-4); }
+}
+
+@media (max-width: 767.98px) {
+  .a2-04-head { flex-direction: column; align-items: stretch; }
+  .a2-04-stats { grid-template-columns: minmax(0, 1fr); gap: var(--s-3); }
+}

@@ -1,0 +1,42 @@
+/* @ds-screen RD-ADMIN-01 */
+/* AD02 File de vérification : maître et détail, dossier, carte (zoom et rotation), liste de contrôle.
+   Portée .a2-02 ; les classes .ad-idcard, .ad-viewer, .ad-stage, .ad-kbd, .ad-md, .ad-review viennent du système. */
+.a2-02 { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+.a2-02-list { display: flex; flex-direction: column; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); overflow: hidden; min-width: 0; }
+.a2-02-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-3); padding: 12px var(--s-4); min-height: 56px; color: var(--c-encre); }
+.a2-02-row + .a2-02-row { border-top: 1px solid var(--c-ligne-2); }
+.a2-02-row:hover { background: var(--c-givre); }
+.a2-02-row[aria-current="true"] { background: var(--c-givre); box-shadow: inset 3px 0 0 var(--c-bleu); }
+.a2-02-row:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+.a2-02-row__name { font-size: var(--t-body-s); font-weight: var(--fw-bold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.a2-02-row__sub { font-size: var(--t-caption); color: var(--c-ardoise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.a2-02-row__age { font-size: var(--t-caption); font-weight: var(--fw-semibold); color: var(--c-ardoise); white-space: nowrap; }
+.a2-02-dossier { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+.a2-02-actions { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.a2-02-checklist { display: flex; flex-direction: column; gap: 4px; }
+
+/* Carte : image ou PDF dans la scène, zoom (100 à 300 %) et rotation par 90° pilotés par des attributs, jamais par style local */
+.a2-02-stage { position: relative; overflow: auto; border-radius: var(--r-l); background: var(--c-givre); border: 1px solid var(--c-ligne); min-height: 320px; max-height: 70vh; display: grid; place-items: center; padding: var(--s-4); }
+.a2-02-img { max-width: 100%; height: auto; transform: rotate(var(--a2-rot, 0deg)) scale(var(--a2-zoom, 1)); transform-origin: center; transition: transform .15s; }
+.a2-02-img[data-zoom="150"] { --a2-zoom: 1.5; }
+.a2-02-img[data-zoom="200"] { --a2-zoom: 2; }
+.a2-02-img[data-zoom="300"] { --a2-zoom: 3; }
+.a2-02-img[data-rot="90"] { --a2-rot: 90deg; }
+.a2-02-img[data-rot="180"] { --a2-rot: 180deg; }
+.a2-02-img[data-rot="270"] { --a2-rot: 270deg; }
+.a2-02-tools { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+
+@media (max-width: 1023.98px) {
+  .a2-02 { gap: var(--s-4); }
+  .a2-02-dossier { gap: var(--s-4); }
+  .a2-02-row { min-height: 64px; padding: 12px var(--s-4); }
+  .a2-02-stage { min-height: 240px; max-height: 60vh; padding: var(--s-3); }
+  .a2-02-tools .btn-icon { width: 44px; height: 44px; }
+  /* Dossier ouvert : la liste cède la place au dossier plein écran, la barre d'action fixe reste visible */
+  .a2-02--open .a2-02-master { display: none; }
+  .a2-02-actions { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .a2-02-img { transition: none; }
+}

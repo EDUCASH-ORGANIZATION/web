@@ -287,6 +287,10 @@
 .e2 a.ds-skip-link { transform: translateY(-200%); box-shadow: none; }
 .e2 a.ds-skip-link:focus, .e2 a.ds-skip-link:focus-visible { transform: none; }
 .e2 a.ds-skip-link:focus-visible { position: fixed; left: var(--s-2); top: var(--s-2); z-index: var(--z-toast); outline: none; box-shadow: var(--sh-focus); }
+/* Meme lien d'evitement dans l'espace admin (.a2) : memes valeurs, specificite identique */
+.a2 a.ds-skip-link { transform: translateY(-200%); box-shadow: none; }
+.a2 a.ds-skip-link:focus, .a2 a.ds-skip-link:focus-visible { transform: none; }
+.a2 a.ds-skip-link:focus-visible { position: fixed; left: var(--s-2); top: var(--s-2); z-index: var(--z-toast); outline: none; box-shadow: var(--sh-focus); }
 /* Anneau de focus des boutons secondaires et accent : `.c2 .btn--secondary` impose box-shadow: none */
 .c2 .btn--secondary:focus-visible, .c2 .btn--accent:focus-visible { outline: none; box-shadow: var(--sh-focus); }
 
@@ -332,6 +336,12 @@
   .shell--v2:has(.e2-mtop) .shell__main { padding-bottom: calc(var(--s-8) + env(safe-area-inset-bottom, 0px)); }
   .shell--v2:has(.e2-mbar) .bottom-nav--v2 { display: none; }
   .shell--v2:has(.e2-mbar) .shell__main { padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+  /* Espace admin : un dossier ouvert (.a2-mtop) n'a pas de barre du bas ; avec la barre d'action fixe (.a2-mbar)
+     la hauteur de celle-ci est reservee (meme valeur que .mbar2). */
+  .shell--v2:has(.a2-mtop) .bottom-nav--v2 { display: none; }
+  .shell--v2:has(.a2-mtop) .shell__main { padding-bottom: calc(var(--s-8) + env(safe-area-inset-bottom, 0px)); }
+  .shell--v2:has(.a2-mbar) .bottom-nav--v2 { display: none; }
+  .shell--v2:has(.a2-mbar) .shell__main { padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
   .page2 { padding: 0 var(--s-4) var(--s-4); gap: var(--s-4); }
   .shell--v2 .page2 { padding: 0 0 var(--s-4); gap: var(--s-4); }
   .head2 { padding: 0 4px; }

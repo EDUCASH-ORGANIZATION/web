@@ -1,0 +1,19 @@
+/* @ds-screen RD-ADMIN-01 */
+/* AD01 Tableau de bord : file à traiter, carte argent, missions publiées. Portée .a2-01 (racine de l'écran).
+   Ne change ni couleur, ni ombre, ni transform d'un composant du système : disposition, display et largeur. */
+.a2-01 { display: flex; flex-direction: column; gap: var(--s-6); min-width: 0; }
+.a2-01-cols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--s-5); align-items: start; }
+.a2-01-side { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+
+@media (max-width: 1023.98px) {
+  .a2-01 { gap: var(--s-4); }
+  .a2-01-cols { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+  .a2-01-side { gap: var(--s-4); }
+}
+
+/* Mobile : élément prioritaire seul (le total à traiter est masqué), puis carte argent et liste */
+@media (max-width: 767.98px) {
+  .a2 .a2-01 .hero2 > .hero2__col:first-child { display: none; }
+  .a2 .a2-01 .hero2 > .hero2__col + .hero2__col { border-top: 0; }
+  .a2 .a2-01 .hero2__actions > .btn { width: 100%; }
+}

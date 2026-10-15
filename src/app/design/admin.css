@@ -1,0 +1,14 @@
+/* Espace admin v2.1 : feuilles reunies (ordre = ordre de la cascade).
+   Importe par globals.css dans la couche components, apres student.css.
+   Toutes les regles qui ciblent une classe existante sont sous .a2 (racine
+   de l'espace admin) ; les autres portent des classes .a2-* propres. */
+@import "./admin/base.css";
+@import "./admin/ad01.css";
+@import "./admin/ad02.css";
+@import "./admin/ad03.css";
+@import "./admin/ad04.css";
+@import "./admin/ad06.css";
+@import "./admin/ad07.css";
+@import "./admin/ad11.css";
+@import "./admin/ad12.css";
+@import "./admin/ad13.css";
