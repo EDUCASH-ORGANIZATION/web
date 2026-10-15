@@ -1,4 +1,3 @@
-import "server-only"
 import { createServiceClient } from "@/lib/supabase/service"
 import { isValidNotification } from "./catalog.js"
 
@@ -6,7 +5,8 @@ import { isValidNotification } from "./catalog.js"
 // d'écriture ne doit ni annuler ni faire échouer l'action métier. Le journal ne contient qu'un code d'erreur
 // (jamais d'adresse, de téléphone, de nom ni de texte de notification).
 // Les écritures passent par le client service role : la table n'a aucune politique d'insertion pour les
-// utilisateurs. À appeler seulement APRÈS le contrôle d'identité, de rôle et de propriété de l'action.
+// utilisateurs. Module serveur : `server-only` est importé par `@/lib/supabase/service`, qu'il ne peut pas
+// contourner. À appeler seulement APRÈS le contrôle d'identité, de rôle et de propriété de l'action.
 
 const MISSING_TABLE_CODES = new Set(["42P01", "PGRST205"])
 

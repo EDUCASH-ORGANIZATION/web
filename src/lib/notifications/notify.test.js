@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-vi.mock("server-only", () => ({}))
-
 let upsertResult = { error: null }
 let adminsResult = { data: [], error: null }
 let throwOnCreate = false

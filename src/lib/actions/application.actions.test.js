@@ -47,6 +47,8 @@ vi.mock("@/lib/actions/profile.actions", () => ({
   getMyStudentProfile: (...a) => getMyStudentProfile(...a),
 }))
 vi.mock("@/lib/email/index", () => ({ sendEmail: (...a) => sendEmail(...a) }))
+const notify = vi.fn()
+vi.mock("@/lib/notifications/notify", () => ({ notify: (...a) => notify(...a) }))
 
 import { apply, acceptApplication, rejectApplication, getMissionApplications } from "./application.actions"
 
@@ -64,6 +66,8 @@ beforeEach(() => {
   getUserById.mockReset()
   getUserById.mockResolvedValue({ data: { user: { email: "dest@example.com" } } })
   sendEmail.mockReset()
+  notify.mockReset()
+  notify.mockResolvedValue({ ok: true })
   requireRole.mockReset()
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
@@ -524,5 +528,168 @@ describe("registre des messages : vouvoiement partout (RD-VOUS-01)", () => {
     const res = await apply({ missionId: APPLY_MISSION, message: "Bonjour" })
     expect(res).toEqual({ error: "Une erreur est survenue. Réessayez dans un instant." })
     expect(res.error).not.toMatch(TUTOIEMENT)
+  })
+})
+
+describe("notifications in-app (RD-NOTIF-01)", () => {
+  const MISSION_ID = "11111111-1111-4111-8111-111111111111"
+  const STUDENT_ID = "22222222-2222-4222-8222-222222222222"
+  const OTHER_ID = "33333333-3333-4333-8333-333333333333"
+  const CLIENT_ID = "44444444-4444-4444-8444-444444444444"
+  const asStudent = () => requireRole.mockResolvedValue({ supabase, user: { id: STUDENT_ID }, role: "student" })
+  const asClient = () => requireRole.mockResolvedValue({ supabase, user: { id: CLIENT_ID }, role: "client" })
+
+  describe("apply", () => {
+    const openMission = { id: MISSION_ID, title: "Traduction d'un flyer", client_id: CLIENT_ID, status: "open" }
+    beforeEach(() => {
+      asStudent()
+      respond = (q) => {
+        if (q.table === "missions") return { data: openMission }
+        if (q.table === "profiles") return { data: { full_name: "Afiavi Dossou" } }
+        return { data: null, error: null }
+      }
+    })
+
+    it("notifie le client une seule fois après l'insertion, avec la clé attendue", async () => {
+      expect(await apply({ missionId: MISSION_ID, message: "Bonjour" })).toEqual({ success: true })
+      expect(notify).toHaveBeenCalledTimes(1)
+      expect(notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipientId: CLIENT_ID,
+          type: "application_received",
+          title: "Nouvelle candidature",
+          body: "Afiavi D. a postulé à « Traduction d'un flyer ».",
+          dedupeKey: `application_received:${MISSION_ID}:${STUDENT_ID}`,
+          missionId: MISSION_ID,
+          actorId: STUDENT_ID,
+        }),
+      )
+    })
+
+    it("aucune notification quand l'insertion échoue ou qu'une règle refuse", async () => {
+      respond = (q) => {
+        if (q.table === "missions") return { data: openMission }
+        if (q.table === "applications" && q.action === "insert") return { data: null, error: { message: "refusé" } }
+        return { data: null, error: null }
+      }
+      expect((await apply({ missionId: MISSION_ID, message: "Bonjour" })).error).toBeTruthy()
+      expect((await apply({ missionId: "pas-un-uuid", message: "Bonjour" })).error).toBeTruthy()
+      expect(notify).not.toHaveBeenCalled()
+    })
+
+    it("même résultat si notify renvoie { ok: false } ou lève une exception", async () => {
+      notify.mockResolvedValueOnce({ ok: false })
+      expect(await apply({ missionId: MISSION_ID, message: "Bonjour" })).toEqual({ success: true })
+      notify.mockRejectedValueOnce(new Error("boom"))
+      expect(await apply({ missionId: MISSION_ID, message: "Bonjour" })).toEqual({ success: true })
+      expect(sendEmail).toHaveBeenCalledTimes(2)
+    })
+
+    it("la notification est écrite avant l'email", async () => {
+      const order = []
+      notify.mockImplementation(async () => { order.push("notify"); return { ok: true } })
+      sendEmail.mockImplementation(async () => { order.push("email") })
+      await apply({ missionId: MISSION_ID, message: "Bonjour" })
+      expect(order).toEqual(["notify", "email"])
+    })
+  })
+
+  describe("acceptApplication", () => {
+    const params = { applicationId: "a1", studentId: STUDENT_ID, missionId: MISSION_ID }
+    const mission = { id: MISSION_ID, title: "Traduction d'un flyer", client_id: CLIENT_ID, status: "open" }
+    function happy({ missionUpdate, rejected = [{ student_id: OTHER_ID }] } = {}) {
+      return (q) => {
+        if (q.table === "missions" && q.action === "select") return { data: mission }
+        if (q.table === "missions" && q.action === "update") return missionUpdate ?? { data: [{ id: MISSION_ID }], error: null }
+        if (q.table === "applications" && q.action === "update" && q.values.status === "accepted") return { data: [{ id: "a1" }], error: null }
+        if (q.table === "applications" && q.action === "update" && q.values.status === "rejected") return { data: rejected, error: null }
+        if (q.table === "applications" && q.action === "update" && q.values.status === "pending") return { data: [{ id: "a1" }], error: null }
+        if (q.table === "profiles") return { data: { full_name: "Rosine Hounkpatin" } }
+        return { data: null, error: null }
+      }
+    }
+    beforeEach(asClient)
+
+    it("notifie l'étudiant retenu et chaque étudiant non retenu", async () => {
+      respond = happy()
+      expect(await acceptApplication(params)).toEqual({ success: true })
+      expect(notify).toHaveBeenCalledTimes(2)
+      const accepted = notify.mock.calls.map((c) => c[0]).find((n) => n.type === "application_accepted")
+      expect(accepted).toMatchObject({
+        recipientId: STUDENT_ID,
+        body: "Rosine H. vous a retenu pour « Traduction d'un flyer ». La mission démarre.",
+        dedupeKey: `application_accepted:${MISSION_ID}:${STUDENT_ID}`,
+        actorId: CLIENT_ID,
+      })
+      const rejected = notify.mock.calls.map((c) => c[0]).find((n) => n.type === "application_rejected")
+      expect(rejected).toMatchObject({
+        recipientId: OTHER_ID,
+        dedupeKey: `application_rejected:${MISSION_ID}:${OTHER_ID}`,
+      })
+    })
+
+    it("aucune notification quand la candidature n'est plus disponible ou que la mission ne démarre pas (compensation)", async () => {
+      respond = (q) => {
+        if (q.table === "missions" && q.action === "select") return { data: mission }
+        if (q.table === "applications" && q.action === "update") return { data: [], error: null }
+        return { data: null, error: null }
+      }
+      expect((await acceptApplication(params)).error).toBeTruthy()
+      respond = happy({ missionUpdate: { data: [], error: null } })
+      expect((await acceptApplication(params)).error).toBeTruthy()
+      expect(notify).not.toHaveBeenCalled()
+    })
+
+    it("même résultat si notify échoue ou lève", async () => {
+      respond = happy()
+      notify.mockRejectedValue(new Error("boom"))
+      expect(await acceptApplication(params)).toEqual({ success: true })
+      notify.mockResolvedValue({ ok: false })
+      expect(await acceptApplication(params)).toEqual({ success: true })
+      expect(sendEmail).toHaveBeenCalled()
+    })
+
+    it("sans autre candidature : une seule notification", async () => {
+      respond = happy({ rejected: [] })
+      await acceptApplication(params)
+      expect(notify).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe("rejectApplication", () => {
+    beforeEach(asClient)
+    const reading = (rejectedResult) => (q) => {
+      if (q.table === "applications" && q.action === "select") return { data: { id: "a1", mission_id: MISSION_ID, student_id: STUDENT_ID, status: "pending" } }
+      if (q.table === "applications") return rejectedResult ?? { data: [{ id: "a1" }], error: null }
+      return { data: { id: MISSION_ID, title: "Traduction d'un flyer" } }
+    }
+
+    it("notifie l'étudiant non retenu après le rejet", async () => {
+      respond = reading()
+      expect(await rejectApplication("a1")).toEqual({ success: true })
+      expect(notify).toHaveBeenCalledTimes(1)
+      expect(notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipientId: STUDENT_ID,
+          type: "application_rejected",
+          body: "Votre candidature à « Traduction d'un flyer » n'a pas été retenue.",
+          dedupeKey: `application_rejected:${MISSION_ID}:${STUDENT_ID}`,
+        }),
+      )
+    })
+
+    it("aucune notification quand le rejet échoue ou ne touche aucune ligne", async () => {
+      respond = reading({ data: null, error: { message: "refus" } })
+      expect((await rejectApplication("a1")).error).toBeTruthy()
+      respond = reading({ data: [], error: null })
+      expect((await rejectApplication("a1")).error).toBeTruthy()
+      expect(notify).not.toHaveBeenCalled()
+    })
+
+    it("même résultat si notify lève", async () => {
+      respond = reading()
+      notify.mockRejectedValue(new Error("boom"))
+      expect(await rejectApplication("a1")).toEqual({ success: true })
+    })
   })
 })

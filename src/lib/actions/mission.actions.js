@@ -8,6 +8,8 @@ import { requireRole } from "@/lib/auth/require-role"
 import { callWalletRpc } from "@/lib/wallet/wallet-rpc"
 import { paymentsEnabled } from "@/lib/constants/payments"
 import { PURCHASES_ESTIMATE_MAX } from "@/lib/app/purchases"
+import { notify, notifyMany } from "@/lib/notifications/notify"
+import { missionCancelled, paymentReleased } from "@/lib/notifications/catalog"
 import {
   CITIES,
   COMMISSION_RATE,
@@ -355,7 +357,22 @@ export async function confirmMission(missionId) {
     return { error: ERR_GENERIC, code: "generic" }
   }
 
-  // 5. Notification email à l'étudiant (adresse lue via l'API admin du client service role)
+  // 5. Notification in-app à l'étudiant (échec sans conséquence : les fonds sont déjà libérés)
+  try {
+    await notify({
+      recipientId: mission.selected_student_id,
+      ...paymentReleased({
+        missionId,
+        missionTitle: mission.title,
+        clientId: mission.client_id,
+        amount: amountStudent,
+      }),
+    })
+  } catch (notifyErr) {
+    console.error("[confirmMission] notification ignorée:", notifyErr?.code ?? "erreur")
+  }
+
+  // 6. Notification email à l'étudiant (adresse lue via l'API admin du client service role)
   try {
     const { data: userData } = await service.auth.admin.getUserById(mission.selected_student_id)
     const studentEmail = userData?.user?.email
@@ -407,7 +424,7 @@ export async function updateMissionStatus(id, status) {
 
   const { data: mission, error: missionError } = await service
     .from("missions")
-    .select("id, client_id")
+    .select("id, title, client_id")
     .eq("id", id)
     .maybeSingle()
 
@@ -418,6 +435,25 @@ export async function updateMissionStatus(id, status) {
     if (cancelled.code === "invalid_status") return { error: ERR_NOT_CANCELLABLE }
     if (cancelled.code === "forbidden") return { error: "Mission introuvable." }
     return { error: ERR_GENERIC }
+  }
+
+  // Notification in-app aux étudiants dont la candidature était en attente (échec sans conséquence)
+  try {
+    const { data: pending, error: pendingError } = await service
+      .from("applications")
+      .select("student_id")
+      .eq("mission_id", id)
+      .eq("status", "pending")
+    if (pendingError) {
+      console.error("[updateMissionStatus] candidatures en attente illisibles:", pendingError.code ?? "erreur")
+    } else {
+      await notifyMany(
+        (pending ?? []).map((row) => row.student_id),
+        missionCancelled({ missionId: id, missionTitle: mission.title, clientId: user.id }),
+      )
+    }
+  } catch (notifyErr) {
+    console.error("[updateMissionStatus] notification ignorée:", notifyErr?.code ?? "erreur")
   }
 
   revalidatePath("/client/missions/" + id)
