@@ -127,3 +127,10 @@ describe("STUDENT_NAV", () => {
     expect(JSON.parse(JSON.stringify(STUDENT_NAV))).toEqual(STUDENT_NAV)
   })
 })
+
+describe("STUDENT_NAV : notifications", () => {
+  it("la cloche pointe vers la page des notifications de l'espace, qui existe", () => {
+    expect(STUDENT_NAV.notifications).toEqual({ space: "student", href: "/student/notifications" })
+    expect(routes).toContain("/student/notifications")
+  })
+})

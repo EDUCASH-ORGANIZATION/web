@@ -1,13 +1,15 @@
 // @ds-screen RD-CLIENT-01
-// Configuration de la coquille de l'espace client. Agenda et Paramètres restent masqués (pas de page),
-// et il n'y a pas de cloche tant qu'aucune notification n'existe. Chaque lien vise une route existante.
+// Configuration de la coquille de l'espace client. Agenda et Paramètres restent masqués (pas de page).
+// La cloche pointe vers la page des notifications (`notifications`). Chaque lien vise une route existante.
 import { PUBLISH_PATH } from "../../../lib/utils/publish-prefill.js"
+import { clientNotificationsHref } from "../../../lib/app/client-routes.js"
 
 export const CLIENT_NAV = {
   space: "Espace client",
   identityLabel: "Client",
   homeHref: "/client/dashboard",
   profileHref: "/client/profile",
+  notifications: { space: "client", href: clientNotificationsHref() },
   cta: { label: "Publier une mission", href: PUBLISH_PATH, icon: "i-plus" },
   search: {
     action: "/client/missions",

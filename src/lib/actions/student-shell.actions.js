@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { requireRole } from "@/lib/auth/require-role"
 import { getServerRole } from "@/lib/auth/server-role"
 import { dashboardFor } from "@/lib/auth/destinations"
+import { shellNotificationCount } from "@/lib/notifications/actions-core"
 
 // Plafonds : au plus LINKED_LIMIT missions liées (candidatures, puis missions où l'étudiant est retenu) et
 // UNREAD_SCAN_LIMIT messages non lus examinés. Au-delà, le compteur est une borne basse (la pastille reste
@@ -91,7 +92,7 @@ async function refusalDestination() {
  * avec `redirectTo`, la destination que le layout applique.
  *
  * @returns {Promise<
- *   { shell: { userId: string, fullName: string, unreadCount: number } } |
+ *   { shell: { userId: string, fullName: string, unreadCount: number, notificationCount: number } } |
  *   { error: string, redirectTo: string }
  * >}
  */
@@ -102,11 +103,14 @@ export async function getStudentShellData() {
 
     const { supabase, user, profile } = auth
     let unreadCount = 0
-    try {
-      unreadCount = await countLegitimateUnread(supabase, user.id)
-    } catch (err) {
-      unstable_rethrow(err)
-      console.error("[getStudentShellData] compteur", err)
+    const [unread, notificationCount] = await Promise.allSettled([
+      countLegitimateUnread(supabase, user.id),
+      shellNotificationCount(supabase, user.id),
+    ])
+    if (unread.status === "fulfilled") unreadCount = unread.value
+    else {
+      unstable_rethrow(unread.reason)
+      console.error("[getStudentShellData] compteur", unread.reason)
     }
 
     return {
@@ -114,6 +118,7 @@ export async function getStudentShellData() {
         userId: user.id,
         fullName: typeof profile.full_name === "string" ? profile.full_name : "",
         unreadCount,
+        notificationCount: notificationCount.status === "fulfilled" ? notificationCount.value : 0,
       },
     }
   } catch (err) {

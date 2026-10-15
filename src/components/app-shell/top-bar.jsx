@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { Icon } from "@/components/design/icon"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 import { isSearchShortcut } from "./nav-model"
 
 const MAX_ECHO = 100
@@ -49,8 +50,8 @@ function EchoKeptFilters({ search }) {
 
 // Barre du haut du bureau : recherche en GET vers l'URL de la configuration, raccourci « / ».
 // Avec search.echo, le champ affiche la recherche courante ; sans, le rendu reste inchangé.
-// Pas de cloche tant qu'aucune notification n'existe.
-export function TopBar({ search }) {
+// Cloche des notifications après la recherche (`notificationsHref` : page de l'espace) ; sans lien, pas de cloche.
+export function TopBar({ search, notificationsHref }) {
   const input = useRef(null)
 
   useEffect(() => {
@@ -83,6 +84,11 @@ export function TopBar({ search }) {
           <kbd aria-hidden="true">/</kbd>
         </label>
       </form>
+      {notificationsHref ? (
+        <div className="top2__actions">
+          <NotificationBell allHref={notificationsHref} />
+        </div>
+      ) : null}
     </header>
   )
 }

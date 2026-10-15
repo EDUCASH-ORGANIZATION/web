@@ -89,3 +89,8 @@ export function publicTalentHref(id) {
   if (!hasId(id)) return "/talents"
   return `/talents/${encodeURIComponent(id)}`
 }
+
+/** Centre de notifications de l'étudiant. Seul le filtre « non-lues » est accepté. */
+export function studentNotificationsHref({ filtre } = {}) {
+  return withQuery("/student/notifications", [["filtre", filtre === "non-lues" ? filtre : undefined]])
+}

@@ -20,6 +20,7 @@ vi.mock("@/lib/supabase/server", async () => {
   return { createClient: async () => makeFakeSupabase(ctx) }
 })
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn(async () => ({ ok: true })) }))
 vi.mock("next/navigation", () => ({
   redirect: (to) => { throw Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT", to }) },
   notFound: () => { throw Object.assign(new Error("NEXT_NOT_FOUND"), { digest: "NEXT_NOT_FOUND" }) },

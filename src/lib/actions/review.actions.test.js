@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
+vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn(async () => ({ ok: true })), notifyAdmins: vi.fn(async () => ({ ok: true })), notifyMany: vi.fn(async () => ({ ok: true })) }))
 
 import { revalidatePath } from "next/cache"
 import { requireRole } from "@/lib/auth/require-role"
+import { notify } from "@/lib/notifications/notify"
 import { createClientReview, getClientReviewPage, createStudentReview, getStudentReviewPage } from "./review.actions"
 
 const ME = "11111111-1111-4111-8111-111111111111"
@@ -603,5 +605,72 @@ describe("getStudentReviewPage", () => {
     const db2 = makeDb({ missions: [studentMission], errors: { profiles: true } })
     asStudent(db2)
     await expect(getStudentReviewPage(MISSION)).rejects.toThrow("Impossible de charger cette page.")
+  })
+})
+
+describe("notifications in-app (RD-NOTIF-01)", () => {
+  const asStudentOf = (db) =>
+    requireRole.mockResolvedValue({ supabase: db.client, user: { id: STUDENT }, role: "student", profile: { full_name: "Rosine Hounkpatin" } })
+  const asNamedClient = (db) =>
+    requireRole.mockResolvedValue({ supabase: db.client, user: { id: ME }, role: "client", profile: { full_name: "Afiavi Dossou" } })
+  const titled = { ...doneMission, title: "Traduction d'un flyer" }
+
+  it("createClientReview : notifie l'étudiant noté, une seule fois, avec la clé attendue", async () => {
+    const db = makeDb({ missions: [titled] })
+    asNamedClient(db)
+    notify.mockResolvedValue({ ok: true })
+    const res = await createClientReview({ missionId: MISSION, rating: 5, comment: "Très bien" })
+    expect(res).toMatchObject({ success: true })
+    expect(notify).toHaveBeenCalledTimes(1)
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: STUDENT,
+        type: "review_received",
+        title: "Nouvel avis",
+        body: "Afiavi D. vous a laissé un avis sur « Traduction d'un flyer ».",
+        dedupeKey: `review_received:${MISSION}:${ME}`,
+        missionId: MISSION,
+        actorId: ME,
+      }),
+    )
+  })
+
+  it("createStudentReview : notifie le client noté", async () => {
+    const db = makeDb({ missions: [{ ...titled, selected_student_id: STUDENT }] })
+    asStudentOf(db)
+    notify.mockResolvedValue({ ok: true })
+    expect(await createStudentReview({ missionId: MISSION, rating: 4 })).toMatchObject({ success: true })
+    expect(notify).toHaveBeenCalledTimes(1)
+    expect(notify.mock.calls[0][0]).toMatchObject({
+      recipientId: ME,
+      type: "review_received",
+      body: "Rosine H. vous a laissé un avis sur « Traduction d'un flyer ».",
+      dedupeKey: `review_received:${MISSION}:${STUDENT}`,
+    })
+  })
+
+  it("aucune notification quand l'avis est refusé (note invalide, déjà noté, erreur d'insertion)", async () => {
+    const db = makeDb({ missions: [titled], reviews: [{ mission_id: MISSION, reviewer_id: ME, id: "r1" }] })
+    asNamedClient(db)
+    expect((await createClientReview({ missionId: MISSION, rating: 9 })).error).toBeTruthy()
+    expect((await createClientReview({ missionId: MISSION, rating: 5 })).error).toBeTruthy()
+    const failing = makeDb({ missions: [titled], insertError: { code: "XX000", message: "boom" } })
+    asNamedClient(failing)
+    expect((await createClientReview({ missionId: MISSION, rating: 5 })).error).toBeTruthy()
+    const dup = makeDb({ missions: [titled], insertError: { code: "23505", message: "dup" } })
+    asNamedClient(dup)
+    expect((await createClientReview({ missionId: MISSION, rating: 5 })).error).toBeTruthy()
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it("même résultat si notify échoue ou lève", async () => {
+    const db = makeDb({ missions: [titled] })
+    asNamedClient(db)
+    notify.mockRejectedValueOnce(new Error("boom"))
+    expect(await createClientReview({ missionId: MISSION, rating: 5 })).toMatchObject({ success: true })
+    const db2 = makeDb({ missions: [{ ...titled, selected_student_id: STUDENT }] })
+    asStudentOf(db2)
+    notify.mockResolvedValueOnce({ ok: false })
+    expect(await createStudentReview({ missionId: MISSION, rating: 5 })).toMatchObject({ success: true })
   })
 })

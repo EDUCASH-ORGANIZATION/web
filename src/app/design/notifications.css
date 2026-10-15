@@ -1,0 +1,62 @@
+/* =====================================================================
+   EduCash - notifications.css (RD-NOTIF-01)
+   Centre de notifications v2.1 « calme » : cloche, panneau (bureau) et page
+   (mobile et « Voir toutes les notifications »). Les classes .notif,
+   .notif-panel*, .segmented, .iconbtn2, .ic-sq, .btn--dark et .link viennent
+   du systeme ; seules les classes ntf-* sont propres a cette feuille.
+   Aucune couleur en dur : tokens var(--c-*) uniquement. Aucun rouge : les
+   pastilles sont grises, la marque des non lues est un point bleu.
+   ===================================================================== */
+
+/* ---------- Cloche et panneau (bureau) ---------- */
+.ntf-anchor { position: relative; display: inline-flex; }
+.ntf-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: var(--z-menu); width: min(420px, calc(100vw - 32px)); }
+.ntf-pop .notif-panel { width: 100%; max-height: min(640px, calc(100dvh - 120px)); }
+.ntf-pop__title:focus { outline: none; }
+.ntf-pop__title:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: var(--r-xs); }
+.ntf-pop__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: 0 var(--s-4) var(--s-2); }
+.ntf-pop__body { padding: 0 var(--s-2) var(--s-2); overflow-y: auto; min-height: 0; }
+
+/* ---------- Elements ---------- */
+/* Le point bleu marque la non lue : pas de fond bleu (planche v2.1 corrigee). */
+.notif.ntf-item { cursor: auto; align-items: flex-start; }
+.notif.ntf-item.is-unread { background: transparent; }
+.notif.ntf-item:hover { background: var(--c-givre); }
+.notif.ntf-item:has(.ntf-stretch:focus-visible) { box-shadow: var(--sh-focus); }
+.ntf-item .ic-sq { margin-top: 2px; }
+.ntf-item .notif__title { margin: 0; overflow-wrap: anywhere; }
+.ntf-item .notif__text { margin: 2px 0 0; overflow-wrap: anywhere; }
+.ntf-item .notif__time { margin: 4px 0 0; }
+.ntf-item .notif__actions { flex-wrap: wrap; align-items: center; }
+.ntf-title-link { color: inherit; text-decoration: none; }
+.ntf-title-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.ntf-stretch:focus-visible { outline: 2px solid transparent; }
+.ntf-stretch::after { content: ""; position: absolute; inset: 0; border-radius: var(--r-m); }
+.ntf-stretch.btn::after { border-radius: var(--r-m); }
+
+/* ---------- Liste et groupes ---------- */
+.ntf-list { list-style: none; margin: 0; padding: 0 var(--s-1); display: flex; flex-direction: column; gap: 2px; }
+.ntf-group__label { margin: 0; padding: var(--s-3) var(--s-4) var(--s-1); font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
+
+/* ---------- Page ---------- */
+.ntf-page { display: flex; flex-direction: column; gap: var(--s-4); width: 100%; max-width: 760px; }
+.ntf-page__bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--s-3); }
+.ntf-card { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); padding: var(--s-2); }
+.ntf-more { display: flex; justify-content: center; padding: var(--s-3); }
+
+/* ---------- Squelette ---------- */
+.ntf-skeleton { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-2); }
+.ntf-skeleton__row { height: 64px; border-radius: var(--r-m); }
+
+/* ---------- Mobile : sous 1024 px, cloche lien (en-tete mobile) et zones de toucher de 44 px ---------- */
+@media (max-width: 1023.98px) {
+  .ntf-bell-link.iconbtn2 { width: 44px; height: 44px; }
+  .ntf-item .link, .ntf-item .btn { min-height: 44px; align-items: center; }
+  .ntf-page .segmented__item { height: 44px; }
+  .ntf-page .btn--ghost, .ntf-page .btn { min-height: 44px; }
+}
+
+@media (max-width: 479.98px) {
+  .ntf-page__bar { align-items: stretch; }
+  .ntf-item .notif__actions { gap: var(--s-2); }
+}

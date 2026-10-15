@@ -1,14 +1,18 @@
 // @ds-screen RD-STUDENT-01
-// Configuration de la coquille de l'espace étudiant. Agenda, Paramètres et cloche restent masqués
-// (aucune page, aucune notification). Chaque lien vise une route existante (routes actuelles, décision D1).
+// Configuration de la coquille de l'espace étudiant. Agenda et Paramètres restent masqués (aucune page).
+// La cloche pointe vers la page des notifications (`notifications`). Chaque lien vise une route existante
+// (routes actuelles, décision D1).
 // Barre mobile : 5 onglets (Accueil, Missions, Candidatures, Messages, Portefeuille), sans bouton central.
 // Elle reste visible sur le détail de mission et se masque sur les enfants stricts de /messages (conversation).
+
+import { studentNotificationsHref } from "../../../lib/app/student-routes.js"
 
 export const STUDENT_NAV = {
   space: "Espace étudiant",
   identityLabel: "Étudiant",
   homeHref: "/dashboard",
   profileHref: "/profile",
+  notifications: { space: "student", href: studentNotificationsHref() },
   search: {
     action: "/student/missions",
     param: "q",

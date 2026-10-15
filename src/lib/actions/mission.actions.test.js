@@ -5,11 +5,16 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 vi.mock("@/lib/email/index", () => ({ sendEmail: vi.fn(async () => ({})) }))
+vi.mock("@/lib/notifications/notify", () => ({
+  notify: vi.fn(async () => ({ ok: true })),
+  notifyMany: vi.fn(async () => ({ ok: true })),
+}))
 
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { sendEmail } from "@/lib/email/index"
+import { notify, notifyMany } from "@/lib/notifications/notify"
 import { MISSION_TYPES } from "@/lib/supabase/database.constants"
 import { createMission, confirmMission, updateMissionStatus, getMissions } from "./mission.actions"
 
@@ -660,5 +665,142 @@ describe("createMission : mission avec achats", () => {
     const { client } = makeService({ wallets: { data: { balance: 5000, reserved: 0 }, error: null }, "missions:insert": { data: { id: "m-1" }, error: null } })
     createServiceClient.mockReturnValue(client)
     expect(await createMission({ ...validData, with_purchases: true, purchases_estimate: 90000 })).toEqual({ id: "m-1" })
+  })
+})
+
+describe("notifications in-app (RD-NOTIF-01)", () => {
+  const MISSION_ID = "11111111-1111-4111-8111-111111111111"
+  const STUDENT_ID = "22222222-2222-4222-8222-222222222222"
+  const OTHER_ID = "33333333-3333-4333-8333-333333333333"
+  const CLIENT_ID = "44444444-4444-4444-8444-444444444444"
+
+  beforeEach(() => {
+    requireRole.mockResolvedValue({ user: { id: CLIENT_ID }, role: "client" })
+    notify.mockReset()
+    notify.mockResolvedValue({ ok: true })
+    notifyMany.mockReset()
+    notifyMany.mockResolvedValue({ ok: true })
+    sendEmail.mockReset()
+    sendEmail.mockResolvedValue({})
+  })
+
+  describe("confirmMission : payment_released", () => {
+    const mission = {
+      id: MISSION_ID, title: "Traduction d'un flyer", budget: 25000, client_id: CLIENT_ID,
+      selected_student_id: STUDENT_ID, status: "in_progress",
+    }
+    const done = (releaseResult) => makeService(
+      {
+        wallet_transactions: { data: [{ type: "reserve" }], error: null },
+        missions: (st) => (st.op === "update" ? { data: [{ id: MISSION_ID }], error: null } : { data: mission, error: null }),
+        profiles: { data: { full_name: "Awa K" }, error: null },
+      },
+      async () => releaseResult ?? { data: { success: true, amount_student: 22000 }, error: null },
+    )
+
+    it("notifie l'étudiant avec le montant renvoyé par la libération", async () => {
+      createServiceClient.mockReturnValue(done().client)
+      expect(await confirmMission(MISSION_ID)).toEqual({ success: true, amountStudent: 22000 })
+      expect(notify).toHaveBeenCalledTimes(1)
+      const input = notify.mock.calls[0][0]
+      expect(input).toMatchObject({
+        recipientId: STUDENT_ID,
+        type: "payment_released",
+        body: "Le client a validé « Traduction d'un flyer ».",
+        dedupeKey: `payment_released:${MISSION_ID}`,
+        missionId: MISSION_ID,
+      })
+      expect(input.title).toMatch(/^Paiement reçu : \+22\s000\sFCFA$/u)
+    })
+
+    it("montant absent dans la réponse de libération : titre générique, sans montant inventé", async () => {
+      createServiceClient.mockReturnValue(done({ data: { success: true }, error: null }).client)
+      expect(await confirmMission(MISSION_ID)).toEqual({ success: true, amountStudent: 0 })
+      expect(notify).toHaveBeenCalledTimes(1)
+      expect(notify.mock.calls[0][0].title).toBe("Paiement reçu")
+    })
+
+    it("la notification précède l'email", async () => {
+      const order = []
+      notify.mockImplementation(async () => { order.push("notify"); return { ok: true } })
+      sendEmail.mockImplementation(async () => { order.push("email") })
+      createServiceClient.mockReturnValue(done().client)
+      await confirmMission(MISSION_ID)
+      expect(order).toEqual(["notify", "email"])
+    })
+
+    it("aucune notification quand la libération est refusée ou que le statut done n'est pas écrit", async () => {
+      createServiceClient.mockReturnValue(done({ data: { success: false }, error: null }).client)
+      expect((await confirmMission(MISSION_ID)).error).toBeTruthy()
+      const { client } = makeService(
+        {
+          wallet_transactions: { data: [{ type: "reserve" }], error: null },
+          missions: (st) => (st.op === "update" ? { data: [], error: null } : { data: mission, error: null }),
+        },
+        async () => ({ data: { success: true, amount_student: 22000 }, error: null }),
+      )
+      createServiceClient.mockReturnValue(client)
+      expect((await confirmMission(MISSION_ID)).error).toBeTruthy()
+      expect(notify).not.toHaveBeenCalled()
+    })
+
+    it("même résultat si notify échoue ou lève", async () => {
+      notify.mockResolvedValueOnce({ ok: false })
+      createServiceClient.mockReturnValue(done().client)
+      expect(await confirmMission(MISSION_ID)).toEqual({ success: true, amountStudent: 22000 })
+      notify.mockRejectedValueOnce(new Error("boom"))
+      createServiceClient.mockReturnValue(done().client)
+      expect(await confirmMission(MISSION_ID)).toEqual({ success: true, amountStudent: 22000 })
+    })
+  })
+
+  describe("updateMissionStatus : mission_cancelled", () => {
+    const owned = { data: { id: MISSION_ID, title: "Traduction d'un flyer", client_id: CLIENT_ID }, error: null }
+    const cancelOk = async () => ({ data: { success: true, refunded: 25000 }, error: null })
+
+    it("notifie les étudiants dont la candidature était en attente, après l'annulation", async () => {
+      const { client, calls } = makeService(
+        { missions: owned, applications: { data: [{ student_id: STUDENT_ID }, { student_id: OTHER_ID }], error: null } },
+        cancelOk,
+      )
+      createServiceClient.mockReturnValue(client)
+      expect(await updateMissionStatus(MISSION_ID, "cancelled")).toEqual({ success: true })
+      const read = calls.find((c) => c.table === "applications")
+      expect(read.filters).toEqual([["mission_id", MISSION_ID], ["status", "pending"]])
+      expect(notifyMany).toHaveBeenCalledTimes(1)
+      const [recipients, built] = notifyMany.mock.calls[0]
+      expect(recipients).toEqual([STUDENT_ID, OTHER_ID])
+      expect(built).toMatchObject({
+        type: "mission_cancelled",
+        body: "La mission « Traduction d'un flyer » a été annulée par le client.",
+        dedupeKey: `mission_cancelled:${MISSION_ID}`,
+      })
+    })
+
+    it("aucune lecture ni notification quand l'annulation échoue", async () => {
+      const { client, calls } = makeService(
+        { missions: owned },
+        async () => ({ data: { success: false, error: "invalid_status" }, error: null }),
+      )
+      createServiceClient.mockReturnValue(client)
+      expect((await updateMissionStatus(MISSION_ID, "cancelled")).error).toBeTruthy()
+      expect(calls.some((c) => c.table === "applications")).toBe(false)
+      expect(notifyMany).not.toHaveBeenCalled()
+    })
+
+    it("même résultat si la lecture des candidatures échoue, ou si notifyMany échoue ou lève", async () => {
+      const failing = makeService({ missions: owned, applications: { data: null, error: { code: "XX000", message: "boom" } } }, cancelOk)
+      createServiceClient.mockReturnValue(failing.client)
+      expect(await updateMissionStatus(MISSION_ID, "cancelled")).toEqual({ success: true })
+      expect(notifyMany).not.toHaveBeenCalled()
+
+      notifyMany.mockResolvedValueOnce({ ok: false })
+      createServiceClient.mockReturnValue(makeService({ missions: owned, applications: { data: [{ student_id: STUDENT_ID }], error: null } }, cancelOk).client)
+      expect(await updateMissionStatus(MISSION_ID, "cancelled")).toEqual({ success: true })
+
+      notifyMany.mockRejectedValueOnce(new Error("boom"))
+      createServiceClient.mockReturnValue(makeService({ missions: owned, applications: { data: [{ student_id: STUDENT_ID }], error: null } }, cancelOk).client)
+      expect(await updateMissionStatus(MISSION_ID, "cancelled")).toEqual({ success: true })
+    })
   })
 })

@@ -14,6 +14,8 @@ import {
   parseUserTab,
   verificationLabel,
 } from "@/lib/admin-space/users"
+import { notify } from "@/lib/notifications/notify"
+import { accountReactivated } from "@/lib/notifications/catalog"
 import { inChunks, logAdminAction, requireAdminService } from "./admin-context"
 
 const ERR_READ = "Les comptes n'ont pas pu être chargés. Réessayez dans un instant."
@@ -372,7 +374,7 @@ function revalidateUsers(userId) {
 /**
  * Change l'état de suspension d'un compte. Refus : identifiant ou motif invalide, soi-même, compte administrateur,
  * compte déjà dans l'état demandé. Écriture conditionnelle (rôle non administrateur, état attendu) sur une ligne.
- * Aucun e-mail n'est envoyé au compte concerné.
+ * Aucun e-mail n'est envoyé au compte concerné ; une réactivation lui laisse une notification in-app.
  */
 async function changeSuspension(service, admin, id, reason, suspend) {
   const parsedId = uuidSchema.safeParse(id)
@@ -419,6 +421,14 @@ async function changeSuspension(service, admin, id, reason, suspend) {
       after: { isSuspended: suspend },
       reason: parsedReason.data,
     })
+    // Notification in-app à la réactivation seulement (un compte suspendu ne peut plus se connecter).
+    if (!suspend) {
+      try {
+        await notify({ recipientId: userId, ...accountReactivated({ at: new Date() }) })
+      } catch {
+        console.error("[admin-users] notification non écrite")
+      }
+    }
     revalidateUsers(userId)
     return { success: true }
   } catch (err) {

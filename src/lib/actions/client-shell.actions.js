@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { requireRole } from "@/lib/auth/require-role"
 import { getServerRole } from "@/lib/auth/server-role"
 import { dashboardFor } from "@/lib/auth/destinations"
+import { shellNotificationCount } from "@/lib/notifications/actions-core"
 
 /**
  * Où renvoyer un visiteur refusé par `requireRole(["client"])`. Fail-closed : tout cas douteux
@@ -30,13 +31,13 @@ async function refusalDestination() {
 }
 
 /**
- * Données de la coquille de l'espace client : identité d'affichage et messages non lus.
+ * Données de la coquille de l'espace client : identité d'affichage, messages non lus et notifications non lues.
  * Champs publics seulement (jamais de téléphone, de carte ni de `user_metadata`).
  * Le rôle vient de `profiles.role` (`requireRole`) ; un compte suspendu ou sans rôle client est refusé
  * avec `redirectTo`, la destination que le layout applique.
  *
  * @returns {Promise<
- *   { shell: { userId: string, fullName: string, unreadCount: number } } |
+ *   { shell: { userId: string, fullName: string, unreadCount: number, notificationCount: number } } |
  *   { error: string, redirectTo: string }
  * >}
  */
@@ -46,11 +47,14 @@ export async function getClientShellData() {
     if (auth.error) return { error: auth.error, redirectTo: await refusalDestination() }
 
     const { supabase, user, profile } = auth
-    const { count, error } = await supabase
-      .from("messages")
-      .select("*", { count: "exact", head: true })
-      .eq("receiver_id", user.id)
-      .eq("read", false)
+    const [{ count, error }, notificationCount] = await Promise.all([
+      supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("read", false),
+      shellNotificationCount(supabase, user.id),
+    ])
     // Un compteur illisible ne bloque pas la coquille : la pastille reste simplement vide.
     if (error) console.error("[getClientShellData]", error.message)
 
@@ -59,6 +63,7 @@ export async function getClientShellData() {
         userId: user.id,
         fullName: typeof profile.full_name === "string" ? profile.full_name : "",
         unreadCount: error ? 0 : (count ?? 0),
+        notificationCount,
       },
     }
   } catch (err) {

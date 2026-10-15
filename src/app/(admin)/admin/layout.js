@@ -2,6 +2,12 @@
 import { redirect } from "next/navigation"
 import { isInternalPath } from "@/lib/auth/internal-path"
 import { getAdminShellData } from "@/lib/actions/admin-shell.actions"
+import {
+  getAdminNotifications,
+  getAdminUnreadNotificationCount,
+  markAdminNotificationRead,
+  markAllAdminNotificationsRead,
+} from "@/lib/actions/admin-notifications.actions"
 import { AppShell } from "@/components/app-shell/app-shell"
 import { ADMIN_NAV } from "@/components/admin-space/shell/admin-nav"
 import { ToastProvider } from "@/components/app-ui/toast"
@@ -24,6 +30,15 @@ export default async function AdminLayout({ children }) {
           nav={ADMIN_NAV}
           user={{ id: shell.userId, fullName: shell.fullName }}
           counts={{ verifications: shell.pendingCount }}
+          notifications={{
+            count: shell.notificationCount,
+            actions: {
+              list: getAdminNotifications,
+              count: getAdminUnreadNotificationCount,
+              markRead: markAdminNotificationRead,
+              markAll: markAllAdminNotificationsRead,
+            },
+          }}
         >
           {children}
         </AppShell>
