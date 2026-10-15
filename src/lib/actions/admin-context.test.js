@@ -249,25 +249,26 @@ describe("countPendingVerifications", () => {
     }
   })
 
-  it("compte un renouvellement anticipé et une carte renvoyée après l'échéance, pas une carte antérieure", async () => {
+  it("compte un renouvellement anticipé et une carte déposée depuis la dernière validation, pas une carte antérieure", async () => {
     const { service } = pendingService({
       cardIds: ["a", "b", "c"],
       profile: (id) => ({ verified_until: { a: "2027-03-01", b: "2026-10-01", c: "2026-10-01" }[id] }),
-      submitted: { b: "2026-10-10T08:00:00Z", c: "2026-09-01T08:00:00Z" },
+      submitted: { b: "2026-10-10T08:00:00Z", c: "2025-09-01T08:00:00Z" },
     })
     expect(await countPendingVerifications(service, TODAY)).toBe(2)
   })
 
   it("la frontière du jour de l'échéance suit le fuseau du Bénin, comme classifyDossier", async () => {
-    // 14 octobre 23:30 UTC = 15 octobre 00:30 au Bénin : après l'échéance du 14 ; 22:30 UTC : encore le 14.
+    // Échéance au 14 octobre 2026 : dernière validation le 14 octobre 2025. 13 octobre 23:30 UTC = 14 octobre
+    // 00:30 au Bénin : depuis la validation ; 22:30 UTC : encore le 13.
     const { service, calls } = pendingService({
       cardIds: ["a", "b"],
       profile: () => ({ verified_until: "2026-10-14" }),
-      submitted: { a: "2026-10-14T23:30:00Z", b: "2026-10-14T22:30:00Z" },
+      submitted: { a: "2025-10-13T23:30:00Z", b: "2025-10-13T22:30:00Z" },
     })
     expect(await countPendingVerifications(service, TODAY)).toBe(1)
     const gte = calls.flatMap((c) => c.filters).find((f) => f[0] === "gte")
-    expect(gte).toEqual(["gte", "verification_submitted_at", "2026-10-15T00:00:00+01:00"])
+    expect(gte).toEqual(["gte", "verification_submitted_at", "2025-10-14T00:00:00+01:00"])
   })
 
   it("ne lit jamais la date de dépôt dans un select", async () => {

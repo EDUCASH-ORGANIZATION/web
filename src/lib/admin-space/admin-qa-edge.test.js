@@ -24,12 +24,12 @@ describe("QA classifyDossier : minuit au Bénin (UTC+1)", () => {
   it("le jour de l'échéance, le badge est encore valide", () => {
     expect(classifyDossier({ isVerified: true, verifiedUntil: "2026-10-15" }, "2026-10-15")).toBe("verifies")
   })
-  it("carte renvoyée à 23:30 UTC le jour J+0 de l'échéance = J+1 au Bénin : à examiner", () => {
-    const d = { isVerified: false, verifiedUntil: "2026-10-14", hasCard: true, submittedAt: "2026-10-14T23:30:00Z" }
+  it("carte déposée à 23:30 UTC la veille du jour de validation = jour de validation au Bénin : à examiner", () => {
+    const d = { isVerified: false, verifiedUntil: "2026-10-14", hasCard: true, submittedAt: "2025-10-13T23:30:00Z" }
     expect(classifyDossier(d, "2026-10-20")).toBe("a-examiner")
   })
-  it("carte renvoyée à 22:59 UTC le jour de l'échéance = encore le jour de l'échéance au Bénin : expiré", () => {
-    const d = { isVerified: false, verifiedUntil: "2026-10-14", hasCard: true, submittedAt: "2026-10-14T22:59:59Z" }
+  it("carte déposée à 22:59 UTC la veille du jour de validation = encore la veille au Bénin : expiré", () => {
+    const d = { isVerified: false, verifiedUntil: "2026-10-14", hasCard: true, submittedAt: "2025-10-13T22:59:59Z" }
     expect(classifyDossier(d, "2026-10-20")).toBe("expires")
   })
   it("badgeUntil à 23:30 UTC le 28 février 2027 (1er mars au Bénin) donne le 1er mars 2028", async () => {
@@ -49,8 +49,8 @@ describe("QA classifyDossier : minuit au Bénin (UTC+1)", () => {
 
 describe("QA classifyDossier : dossiers expirés et cas limites", () => {
   const today = "2026-10-15"
-  it("expiré la veille, non vérifié, sans carte renvoyée : expiré, aucune décision", () => {
-    const tab = classifyDossier({ isVerified: false, verifiedUntil: "2026-10-14", hasCard: true, submittedAt: "2026-09-01T10:00:00Z" }, today)
+  it("expiré la veille, non vérifié, sans carte depuis la dernière validation : expiré, aucune décision", () => {
+    const tab = classifyDossier({ isVerified: false, verifiedUntil: "2026-10-14", hasCard: true, submittedAt: "2025-09-01T10:00:00Z" }, today)
     expect(tab).toBe("expires")
     expect(allowedActions(tab)).toEqual([])
   })
@@ -97,10 +97,21 @@ describe("QA classifyDossier : dossiers expirés et cas limites", () => {
         expect(VERIFICATION_TABS).toContain(classifyDossier({ isVerified, verifiedUntil, rejectionReason, hasCard, submittedAt }, today))
       }
   })
-  it("LIMITE CONNUE (plan) : renouvellement anticipé non traité avant l'échéance devient « expirés », sans décision possible", () => {
-    // Carte renvoyée le 5 pour un badge qui expire le 10 : au 15, l'étudiant attend toujours, mais le dossier
-    // n'est ni à examiner ni décidable. Voir le rapport QA.
+  it("renouvellement anticipé non traité avant l'échéance : reste « à examiner » et décidable le lendemain", () => {
+    // Carte renvoyée le 5 pour un badge qui expire le 10 : au 11 (lendemain) et au 15, le dossier est à examiner.
     const d = { isVerified: false, verifiedUntil: "2026-10-10", hasCard: true, submittedAt: "2026-10-05T10:00:00Z" }
+    for (const day of ["2026-10-11", "2026-10-15"]) {
+      const tab = classifyDossier(d, day)
+      expect(tab).toBe("a-examiner")
+      expect(allowedActions(tab)).toEqual(["approve", "reject"])
+    }
+  })
+  it("carte envoyée le jour même de l'échéance, vue le lendemain : à examiner", () => {
+    const d = { isVerified: false, verifiedUntil: "2026-10-10", hasCard: true, submittedAt: "2026-10-10T10:00:00Z" }
+    expect(classifyDossier(d, "2026-10-11")).toBe("a-examiner")
+  })
+  it("carte déposée avant la dernière validation : toujours « expirés », sans décision", () => {
+    const d = { isVerified: false, verifiedUntil: "2026-10-10", hasCard: true, submittedAt: "2025-10-09T10:00:00Z" }
     const tab = classifyDossier(d, "2026-10-15")
     expect(tab).toBe("expires")
     expect(allowedActions(tab)).toEqual([])

@@ -238,16 +238,21 @@ describe("QA double clic et concurrence", () => {
 })
 
 describe("QA dossiers expirés", () => {
-  it("valider un dossier expiré sans carte renvoyée : refusé, aucune écriture", async () => {
-    const id = addStudent(1, { verified_until: "2026-10-01", verification_submitted_at: "2026-09-01T10:00:00Z" })
-    const r = await approveStudentCard(id, { expectedSubmittedAt: "2026-09-01T10:00:00Z" })
+  it("valider un dossier expiré sans carte depuis la dernière validation : refusé, aucune écriture", async () => {
+    const id = addStudent(1, { verified_until: "2026-10-01", verification_submitted_at: "2025-09-01T10:00:00Z" })
+    const r = await approveStudentCard(id, { expectedSubmittedAt: "2025-09-01T10:00:00Z" })
     expect(r.error).toBeTruthy()
     expect(updates()).toHaveLength(0)
   })
   it("refuser un dossier expiré : refusé", async () => {
-    const id = addStudent(1, { verified_until: "2026-10-01", verification_submitted_at: "2026-09-01T10:00:00Z" })
-    expect((await rejectStudentCard(id, { reason: "Photo floue ou illisible", expectedSubmittedAt: "2026-09-01T10:00:00Z" })).error).toBeTruthy()
+    const id = addStudent(1, { verified_until: "2026-10-01", verification_submitted_at: "2025-09-01T10:00:00Z" })
+    expect((await rejectStudentCard(id, { reason: "Photo floue ou illisible", expectedSubmittedAt: "2025-09-01T10:00:00Z" })).error).toBeTruthy()
     expect(updates()).toHaveLength(0)
+  })
+  it("renouvellement anticipé non traité avant l'échéance, vu après : validable, nouveau badge d'un an", async () => {
+    const id = addStudent(1, { verified_until: "2026-10-01", verification_submitted_at: "2026-09-20T10:00:00Z" })
+    const r = await approveStudentCard(id, { expectedSubmittedAt: "2026-09-20T10:00:00Z" })
+    expect(r).toMatchObject({ success: true, verifiedUntil: "2027-10-15" })
   })
   it("renouvellement après expiration (carte renvoyée après l'échéance) : validable, nouveau badge d'un an", async () => {
     const id = addStudent(1, { verified_until: "2026-10-01", verification_submitted_at: "2026-10-12T10:00:00Z" })
@@ -263,18 +268,20 @@ describe("QA dossiers expirés", () => {
   it("compteurs : le compte « à examiner » de la liste égale countPendingVerifications (mêmes données, dossiers expirés mêlés)", async () => {
     addStudent(1) // première demande
     addStudent(2, { verified_until: "2026-12-01" }) // renouvellement anticipé
-    addStudent(3, { verified_until: "2026-10-01", verification_submitted_at: "2026-09-01T10:00:00Z" }) // expiré
+    addStudent(3, { verified_until: "2026-10-01", verification_submitted_at: "2025-09-01T10:00:00Z" }) // expiré
     addStudent(4, { verified_until: "2026-10-01", verification_submitted_at: "2026-10-12T10:00:00Z" }) // renvoyé après
-    addStudent(5, { verified_until: "2026-10-14", verification_submitted_at: "2026-10-14T23:30:00Z" }) // renvoyé à minuit Bénin
-    addStudent(6, { verified_until: "2026-10-14", verification_submitted_at: "2026-10-14T22:59:00Z" }) // la veille au Bénin
+    addStudent(5, { verified_until: "2026-10-14", verification_submitted_at: "2025-10-13T23:30:00Z" }) // jour de validation à minuit Bénin
+    addStudent(6, { verified_until: "2026-10-14", verification_submitted_at: "2025-10-13T22:59:00Z" }) // la veille au Bénin
     addStudent(7, { rejection_reason: "Flou" })
     addStudent(8, { is_verified: true, verified_until: "2027-01-01" })
     addStudent(9, {}, false)
+    addStudent(10, { verified_until: "2026-10-01", verification_submitted_at: "2026-09-20T10:00:00Z" }) // renouvellement anticipé non traité
+    addStudent(11, { verified_until: "2026-10-10", verification_submitted_at: "2026-10-10T10:00:00Z" }) // envoyé le jour de l'échéance
     const queue = await getVerificationQueue({})
     const count = await countPendingVerifications(createServiceClient(), queue.today)
-    expect(queue.counts["a-examiner"]).toBe(4) // 1, 2, 4, 5
+    expect(queue.counts["a-examiner"]).toBe(6) // 1, 2, 4, 5, 10, 11
     expect(count).toBe(queue.counts["a-examiner"])
-    expect(Object.values(queue.counts).reduce((a, b) => a + b, 0)).toBe(9)
+    expect(Object.values(queue.counts).reduce((a, b) => a + b, 0)).toBe(11)
   })
   it("compteurs avec 2 300 étudiants (pagination de lecture) : somme des onglets = total", async () => {
     for (let i = 1; i <= 2300; i++) addStudent(i, i % 3 === 0 ? { is_verified: true, verified_until: "2027-01-01" } : {}, i % 5 !== 0)
@@ -299,8 +306,8 @@ describe("QA minuit au Bénin", () => {
   })
   it("un badge au 14 est échu à 23:30 UTC le 14 (jour du Bénin = 15) : valider ce dossier non vérifié est refusé", async () => {
     vi.setSystemTime(new Date("2026-10-14T23:30:00Z"))
-    const id = addStudent(1, { verified_until: "2026-10-14", verification_submitted_at: "2026-10-01T10:00:00Z" })
-    expect((await approveStudentCard(id, { expectedSubmittedAt: "2026-10-01T10:00:00Z" })).error).toBeTruthy()
+    const id = addStudent(1, { verified_until: "2026-10-14", verification_submitted_at: "2025-10-01T10:00:00Z" })
+    expect((await approveStudentCard(id, { expectedSubmittedAt: "2025-10-01T10:00:00Z" })).error).toBeTruthy()
   })
   it("29 février 2028 : badge au 28 février 2029", async () => {
     vi.setSystemTime(new Date("2028-02-29T10:00:00Z"))

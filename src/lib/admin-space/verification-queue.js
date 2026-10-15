@@ -37,12 +37,25 @@ function hasText(value) {
 }
 
 /**
+ * Jour de la dernière validation d'après l'échéance du badge : fonction inverse de `badgeUntil` (échéance moins un an,
+ * 29 février ramené au 28). Une carte déposée à partir de ce jour est un renouvellement à examiner.
+ * @param {string} until "AAAA-MM-JJ" valide
+ */
+export function renewalSinceDay(until) {
+  const [y, m, d] = until.split("-").map(Number)
+  const lastDay = new Date(Date.UTC(y - 1, m, 0)).getUTCDate()
+  const pad = (n) => String(n).padStart(2, "0")
+  return `${y - 1}-${pad(m)}-${pad(Math.min(d, lastDay))}`
+}
+
+/**
  * Onglet d'un dossier étudiant.
  * - refuses : un motif de refus est présent.
  * - verifies : vérifié et badge non échu.
- * - expires : badge échu (vérifié ou non), sauf carte renvoyée après l'échéance.
- * - a-examiner : carte présente, non vérifié, sans motif, jamais échu ou carte renvoyée après l'échéance
- *   (ou renouvellement anticipé : échéance future et badge déjà retiré à l'envoi).
+ * - expires : badge échu (vérifié ou non), sauf carte déposée depuis le début de la dernière validation.
+ * - a-examiner : carte présente, non vérifié, sans motif, jamais échu, ou carte déposée depuis le jour de la
+ *   dernière validation (échéance moins un an, jour du Bénin) : renouvellement anticipé ou envoi le jour même
+ *   de l'échéance compris.
  * - incomplets : le reste (pas de carte).
  * @param {{ isVerified?: boolean, verifiedUntil?: string|null, rejectionReason?: string|null, hasCard?: boolean, submittedAt?: string|null }} dossier
  * @param {string} today "AAAA-MM-JJ" (jour du Bénin)
@@ -59,8 +72,8 @@ export function classifyDossier(dossier, today) {
   if (isVerified === true) return expired ? "expires" : "verifies"
 
   if (expired) {
-    const resentAfter = beninDay(submittedAt)
-    return hasCard && resentAfter !== null && resentAfter > until ? "a-examiner" : "expires"
+    const sentOn = beninDay(submittedAt)
+    return hasCard && sentOn !== null && sentOn >= renewalSinceDay(until) ? "a-examiner" : "expires"
   }
   return hasCard ? "a-examiner" : "incomplets"
 }

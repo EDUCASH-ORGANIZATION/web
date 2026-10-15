@@ -250,11 +250,11 @@ describe("getAdminDashboard", () => {
     expect(JSON.stringify(res)).not.toMatch(/phone|fcm|token-secret|c\.jpg|@/)
   })
 
-  it("badge échu : à examiner seulement si la carte a été renvoyée après l'échéance", async () => {
+  it("badge échu : à examiner seulement si la carte a été déposée depuis la dernière validation", async () => {
     seedQuietPlatform()
     state.tables.profiles = [
       student(1, { verified_until: "2026-09-01", verification_submitted_at: "2026-10-05T09:00:00+00:00" }), // renvoyée : à examiner
-      student(2, { verified_until: "2026-09-01", verification_submitted_at: "2026-08-20T09:00:00+00:00" }), // pas renvoyée : expiré
+      student(2, { verified_until: "2026-09-01", verification_submitted_at: "2025-08-20T09:00:00+00:00" }), // pas renvoyée : expiré
     ]
     state.tables.student_profiles = [
       { user_id: uid(1), card_url: `${uid(1)}/c.jpg` },

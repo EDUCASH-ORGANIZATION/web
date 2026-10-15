@@ -3,7 +3,7 @@
 import { requireRole } from "@/lib/auth/require-role"
 import { createServiceClient } from "@/lib/supabase/service"
 import { toOwnedStoragePath } from "@/lib/storage/owned-paths"
-import { classifyDossier } from "@/lib/admin-space/verification-queue"
+import { classifyDossier, renewalSinceDay } from "@/lib/admin-space/verification-queue"
 
 const ERR_CONFIG = "Le service est momentanément indisponible. Réessayez dans un instant."
 const CARDS_BUCKET = "student-cards"
@@ -107,18 +107,15 @@ export async function signStudentCard(service, userId, rawCardUrl, ttlSeconds = 
   return { kind: /\.pdf$/i.test(path) ? "pdf" : "image", url: data.signedUrl }
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
-/** Début (heure du Bénin, UTC+1) du jour qui suit `day` ("AAAA-MM-JJ"), en ISO : seuil « déposée après l'échéance ». */
-function dayAfterStartISO(day) {
-  const next = new Date(Date.parse(`${day}T00:00:00Z`) + DAY_MS).toISOString().slice(0, 10)
-  return `${next}T00:00:00+01:00`
+/** Début (heure du Bénin, UTC+1) du jour de la dernière validation d'un badge échu au `day` : seuil « déposée depuis ». */
+function renewalSinceISO(day) {
+  return `${renewalSinceDay(day)}T00:00:00+01:00`
 }
 
 /**
  * Nombre de dossiers « À examiner » : même règle que `classifyDossier`. Lit les étudiants ayant une carte, puis
  * leurs profils par paquets de 100. La date de dépôt (colonne privée) n'est jamais lue : pour un badge échu, elle
- * sert de filtre (`gte`) afin de savoir si la carte a été renvoyée après l'échéance. Lève une erreur si une
+ * sert de filtre (`gte`) afin de savoir si la carte a été déposée depuis la dernière validation. Lève une erreur si une
  * lecture échoue (l'appelant décide du repli).
  * @param {{ from: Function }} service
  * @param {string} today "AAAA-MM-JJ" (jour du Bénin)
@@ -146,7 +143,7 @@ export async function countPendingVerifications(service, today) {
         .is("rejection_reason", null)
       if (profilesError) throw new Error("Lecture des profils impossible.")
 
-      // Badge échu : à examiner seulement si la carte a été renvoyée après l'échéance (un filtre par date d'échéance).
+      // Badge échu : à examiner seulement si la carte a été déposée depuis la dernière validation (un filtre par échéance).
       const expiredByDay = new Map()
       for (const profile of profiles ?? []) {
         const tab = classifyDossier({ isVerified: false, verifiedUntil: profile.verified_until, hasCard: true }, today)
@@ -161,7 +158,7 @@ export async function countPendingVerifications(service, today) {
           .from("profiles")
           .select("user_id")
           .in("user_id", expiredIds)
-          .gte("verification_submitted_at", dayAfterStartISO(day))
+          .gte("verification_submitted_at", renewalSinceISO(day))
         if (resentError) throw new Error("Lecture des profils impossible.")
         pending += (resent ?? []).length
       }

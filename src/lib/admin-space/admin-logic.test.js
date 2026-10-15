@@ -4,6 +4,7 @@ import {
   allowedActions,
   badgeUntil,
   classifyDossier,
+  renewalSinceDay,
   dossierHints,
   parseVerificationParams,
   sortQueue,
@@ -36,8 +37,8 @@ describe("classifyDossier", () => {
     expect(classifyDossier({ isVerified: true, verifiedUntil: "2026-10-14" }, TODAY)).toBe("expires")
   })
 
-  it("expiré non vérifié sans carte renvoyée après l'échéance", () => {
-    expect(classifyDossier({ isVerified: false, verifiedUntil: "2026-10-01", hasCard: true, submittedAt: "2026-09-01T10:00:00Z" }, TODAY)).toBe("expires")
+  it("expiré non vérifié sans carte déposée depuis la dernière validation", () => {
+    expect(classifyDossier({ isVerified: false, verifiedUntil: "2026-10-01", hasCard: true, submittedAt: "2025-09-01T10:00:00Z" }, TODAY)).toBe("expires")
     expect(classifyDossier({ isVerified: false, verifiedUntil: "2026-10-01", hasCard: false }, TODAY)).toBe("expires")
   })
 
@@ -67,10 +68,23 @@ describe("classifyDossier", () => {
 
   it("fuseau du Bénin à minuit : 23 h 30 UTC la veille est déjà le jour suivant au Bénin", () => {
     const dossier = { isVerified: false, verifiedUntil: "2026-10-14", hasCard: true }
-    // 14 octobre 23:30 UTC = 15 octobre 00:30 au Bénin : après l'échéance du 14.
-    expect(classifyDossier({ ...dossier, submittedAt: "2026-10-14T23:30:00Z" }, TODAY)).toBe("a-examiner")
-    // 14 octobre 22:30 UTC = 14 octobre 23:30 au Bénin : le jour de l'échéance, pas après.
-    expect(classifyDossier({ ...dossier, submittedAt: "2026-10-14T22:30:00Z" }, TODAY)).toBe("expires")
+    // Dernière validation le 14 octobre 2025. 13 octobre 23:30 UTC = 14 octobre 00:30 au Bénin : depuis la validation.
+    expect(classifyDossier({ ...dossier, submittedAt: "2025-10-13T23:30:00Z" }, TODAY)).toBe("a-examiner")
+    // 13 octobre 22:30 UTC = 13 octobre 23:30 au Bénin : avant la validation.
+    expect(classifyDossier({ ...dossier, submittedAt: "2025-10-13T22:30:00Z" }, TODAY)).toBe("expires")
+  })
+
+  it("renouvellement anticipé non traité : vu après l'échéance, il reste à examiner", () => {
+    const dossier = { isVerified: false, verifiedUntil: "2026-10-14", hasCard: true }
+    expect(classifyDossier({ ...dossier, submittedAt: "2026-10-05T10:00:00Z" }, TODAY)).toBe("a-examiner")
+    expect(classifyDossier({ ...dossier, submittedAt: "2026-10-14T10:00:00Z" }, "2026-10-15")).toBe("a-examiner")
+  })
+
+  it("renewalSinceDay : inverse de badgeUntil, 29 février ramené au 28", () => {
+    expect(renewalSinceDay("2026-10-14")).toBe("2025-10-14")
+    expect(renewalSinceDay("2029-02-28")).toBe("2028-02-28")
+    expect(renewalSinceDay("2025-03-01")).toBe("2024-03-01")
+    expect(renewalSinceDay(badgeUntil("2026-03-05"))).toBe("2026-03-05")
   })
 
   it("horodatage de dépôt illisible : pas de renvoi détecté", () => {
