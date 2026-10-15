@@ -38,6 +38,12 @@ describe("compareEntry", () => {
     expect(result.status).toBe("ASSUMÉ A2, A3")
   })
 
+  it("A8 (élément omis par décision) : accepté dans sa limite, ÉCHEC au-delà, cumul accepté", () => {
+    expect(compareEntry(box(), box({ x: 52 }), { props: ["x"], assume: { x: "A8:52" } }).status).toBe("ASSUMÉ A8")
+    expect(compareEntry(box(), box({ x: 53 }), { props: ["x"], assume: { x: "A8:52" } }).status).toBe("ÉCHEC")
+    expect(compareEntry(box(), box({ w: 112 }), { props: ["w"], assume: { w: "A5+A8:12" } }).status).toBe("ASSUMÉ A5, A8")
+  })
+
   it("X1 donne un statut distinct, jamais ASSUMÉ", () => {
     const result = compareEntry(box(), box({ y: 4 }), { props: ["y"], assume: { y: "A3+X1:4" } })
     expect(result.status).toBe("NON EXPLIQUÉ A3, X1")
@@ -84,6 +90,11 @@ describe("parseAssume", () => {
 
 describe("validateSpec", () => {
   const spec = (selector, extra = {}) => ({ id: "T", views: [{ name: "v", selectors: [selector] }], ...extra })
+
+  it("A8 sans note est refusé, avec note accepté", () => {
+    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { x: "A8:52" } }))).toThrow(/sans note/)
+    expect(validateSpec(spec({ id: "X", label: "a", assume: { x: "A8:52" }, note: "menu omis" }))).toBeTruthy()
+  })
 
   it("refuse une règle Ax:n sans note", () => {
     expect(() => validateSpec(spec({ id: "X", label: "a", assume: { h: "A2:4" } }))).toThrow(/sans note/)
