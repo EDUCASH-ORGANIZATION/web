@@ -6,10 +6,12 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
 vi.mock("@/lib/auth/require-role", () => ({ requireUser: vi.fn(), requireRole: vi.fn() }))
+vi.mock("@/lib/notifications/notify", () => ({ notifyAdmins: vi.fn() }))
 
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireUser, requireRole } from "@/lib/auth/require-role"
 import { createClient } from "@/lib/supabase/server"
+import { notifyAdmins } from "@/lib/notifications/notify"
 import { verificationFromRows } from "@/lib/student-space/verification-status"
 import {
   getMyProfile,
@@ -369,6 +371,52 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     }
     expect(captured.student_profiles).not.toHaveProperty("card_url")
     expect(Object.keys(captured.student_profiles).sort()).toEqual(["availability", "level", "school", "skills", "user_id"])
+  })
+})
+
+describe("notifications in-app : dossier à examiner (RD-NOTIF-01)", () => {
+  const STUDENT = "11111111-1111-4111-8111-111111111111"
+  const asNamedStudent = (supabase) =>
+    requireRole.mockResolvedValue({ supabase, user: { id: STUDENT }, role: "student", profile: { full_name: "Codjo Agbo" } })
+
+  it("notifie les administrateurs après la dernière écriture, avec une clé par étudiant et par jour", async () => {
+    const order = []
+    const supabase = {
+      from: (table) => ({
+        update: () => ({ eq: () => { order.push(`update:${table}`); return Promise.resolve({ error: null, count: 1 }) } }),
+        upsert: () => { order.push(`upsert:${table}`); return Promise.resolve({ error: null }) },
+      }),
+    }
+    asNamedStudent(supabase)
+    notifyAdmins.mockImplementation(async () => { order.push("notify"); return { ok: true } })
+    expect(await saveStudentCardUrl(`${STUDENT}/card.jpg`)).toEqual({ success: true })
+    expect(order).toEqual(["update:profiles", "upsert:student_profiles", "update:student_profiles", "update:profiles", "notify"])
+    expect(notifyAdmins).toHaveBeenCalledTimes(1)
+    const n = notifyAdmins.mock.calls[0][0]
+    expect(n).toMatchObject({
+      type: "card_submitted",
+      title: "Nouveau dossier à examiner",
+      body: "Codjo A. a envoyé sa carte étudiante.",
+      actorId: STUDENT,
+    })
+    expect(n.dedupeKey).toMatch(new RegExp(`^card_submitted:${STUDENT}:\\d{4}-\\d{2}-\\d{2}$`))
+  })
+
+  it("aucune notification quand une écriture échoue ou que le chemin est refusé", async () => {
+    asNamedStudent(session({ failOn: "profiles", captured: {} }))
+    expect((await saveStudentCardUrl(`${STUDENT}/card.jpg`)).error).toBeTruthy()
+    asNamedStudent(session({ captured: {} }))
+    expect((await saveStudentCardUrl("u2/card.jpg")).error).toBeTruthy()
+    expect(notifyAdmins).not.toHaveBeenCalled()
+  })
+
+  it("même résultat si notifyAdmins échoue ou lève", async () => {
+    asNamedStudent(session({ captured: {} }))
+    notifyAdmins.mockRejectedValueOnce(new Error("boom"))
+    expect(await saveStudentCardUrl(`${STUDENT}/card.jpg`)).toEqual({ success: true })
+    asNamedStudent(session({ captured: {} }))
+    notifyAdmins.mockResolvedValueOnce({ ok: false })
+    expect(await saveStudentCardUrl(`${STUDENT}/card.jpg`)).toEqual({ success: true })
   })
 })
 

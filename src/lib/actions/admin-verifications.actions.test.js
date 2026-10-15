@@ -15,6 +15,7 @@ const state = {
   updateError: null,
 }
 const sendEmail = vi.fn()
+const notifyInApp = vi.fn()
 const createServiceClient = vi.fn(() => makeService())
 const revalidatePath = vi.fn()
 
@@ -116,6 +117,7 @@ function makeService() {
 
 vi.mock("next/cache", () => ({ revalidatePath: (...a) => revalidatePath(...a) }))
 vi.mock("@/lib/email/index", () => ({ sendEmail: (...a) => sendEmail(...a) }))
+vi.mock("@/lib/notifications/notify", () => ({ notify: (...a) => notifyInApp(...a) }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: (...a) => createServiceClient(...a) }))
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
@@ -182,6 +184,8 @@ beforeEach(() => {
   state.updateError = null
   sendEmail.mockReset()
   sendEmail.mockResolvedValue({ success: true })
+  notifyInApp.mockReset()
+  notifyInApp.mockResolvedValue({ ok: true })
   createServiceClient.mockClear()
   revalidatePath.mockClear()
   vi.spyOn(console, "error").mockImplementation(() => {})
@@ -1172,5 +1176,111 @@ describe("resetStudentRejection : scenarios adverses (tester final RD-ADMIN-01)"
     await resetStudentRejection(id, { reason: "Erreur de notre part" })
     const reads = state.queries.filter((q) => q.op === "select").map((q) => q.table)
     expect(reads.slice(0, 2)).toEqual(["student_profiles", "profiles"])
+  })
+})
+
+describe("notifications in-app (RD-NOTIF-01)", () => {
+  it("approbation : notifie l'étudiant (échéance du badge), avant l'e-mail", async () => {
+    const order = []
+    notifyInApp.mockImplementation(async () => { order.push("notify"); return { ok: true } })
+    sendEmail.mockImplementation(async () => { order.push("email"); return { success: true } })
+    const id = addStudent(1)
+    expect(await approveStudentCard(id, { expectedSubmittedAt: SUBMITTED })).toMatchObject({ success: true, emailSent: true })
+    expect(order).toEqual(["notify", "email"])
+    expect(notifyInApp).toHaveBeenCalledTimes(1)
+    expect(notifyInApp.mock.calls[0][0]).toMatchObject({
+      recipientId: id,
+      type: "verification_approved",
+      title: "Profil vérifié",
+      body: "Votre badge est valable jusqu'au 15 octobre 2027.",
+      dedupeKey: "verification_approved:2027-10-15",
+    })
+  })
+
+  it("double clic d'approbation (ERR_STATE) : aucune notification", async () => {
+    const id = addStudent(1)
+    await approveStudentCard(id, { expectedSubmittedAt: SUBMITTED })
+    notifyInApp.mockClear()
+    const again = await approveStudentCard(id, { expectedSubmittedAt: SUBMITTED })
+    expect(again.error).toBeTruthy()
+    expect(notifyInApp).not.toHaveBeenCalled()
+  })
+
+  it("refus : le libellé de la liste, jamais le message libre ni une donnée de carte", async () => {
+    const id = addStudent(1)
+    const res = await rejectStudentCard(id, {
+      reason: "Photo floue ou illisible",
+      message: "Message interne confidentiel 0197000000",
+      expectedSubmittedAt: SUBMITTED,
+    })
+    expect(res).toMatchObject({ success: true })
+    const n = notifyInApp.mock.calls[0][0]
+    expect(n).toMatchObject({
+      recipientId: id,
+      type: "verification_rejected",
+      title: "Carte étudiante refusée",
+      body: "Motif : photo floue ou illisible. Vous pouvez envoyer une nouvelle carte.",
+      dedupeKey: `verification_rejected:${SUBMITTED}`,
+    })
+    expect(`${n.title} ${n.body}`).not.toMatch(/confidentiel|0197|carte\.jpg/)
+  })
+
+  it("refus : notification envoyée même si l'e-mail échoue (emailSent inchangé)", async () => {
+    sendEmail.mockResolvedValue({ error: "boom" })
+    const id = addStudent(1)
+    expect(await rejectStudentCard(id, { reason: "Photo floue ou illisible", expectedSubmittedAt: SUBMITTED })).toEqual({
+      success: true,
+      emailSent: false,
+    })
+    expect(notifyInApp).toHaveBeenCalledTimes(1)
+  })
+
+  it("réinitialisation : notifie que le refus est levé", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    expect(await resetStudentRejection(id, { reason: "Erreur de notre part" })).toEqual({ success: true })
+    expect(notifyInApp).toHaveBeenCalledTimes(1)
+    expect(notifyInApp.mock.calls[0][0]).toMatchObject({
+      recipientId: id,
+      type: "verification_reset",
+      title: "Vous pouvez renvoyer votre carte",
+      body: "Le refus de votre carte a été levé.",
+      dedupeKey: `verification_reset:${SUBMITTED}`,
+    })
+  })
+
+  it("retrait du badge : notifie avec le motif enregistré", async () => {
+    const id = addStudent(1, { is_verified: true, verified_until: "2027-05-01" })
+    expect(await revokeStudentBadge(id, { reason: "Carte déclarée perdue" })).toMatchObject({ success: true })
+    expect(notifyInApp).toHaveBeenCalledTimes(1)
+    const n = notifyInApp.mock.calls[0][0]
+    expect(n).toMatchObject({ recipientId: id, type: "badge_revoked", title: "Badge retiré" })
+    expect(n.body).toBe("Motif : carte déclarée perdue. Envoyez une nouvelle carte pour le retrouver.")
+    expect(n.dedupeKey).toMatch(/^badge_revoked:2026-10-15:\d+$/)
+  })
+
+  it("aucune notification quand la décision est refusée (rôle, état, écriture en échec)", async () => {
+    const id = addStudent(1)
+    state.updateError = { message: "boom" }
+    expect((await approveStudentCard(id, { expectedSubmittedAt: SUBMITTED })).error).toBeTruthy()
+    expect((await rejectStudentCard(id, { reason: "Photo floue ou illisible", expectedSubmittedAt: SUBMITTED })).error).toBeTruthy()
+    state.updateError = null
+    expect((await revokeStudentBadge(id, { reason: "Carte déclarée perdue" })).error).toBeTruthy()
+    expect((await resetStudentRejection(id, { reason: "Erreur de notre part" })).error).toBeTruthy()
+    state.sessionProfile = { role: "student", full_name: "A", city: "Cotonou", is_suspended: false }
+    expect((await approveStudentCard(id, { expectedSubmittedAt: SUBMITTED })).error).toBeTruthy()
+    expect(notifyInApp).not.toHaveBeenCalled()
+  })
+
+  it("même résultat si notify échoue ou lève (décision conservée, e-mail envoyé)", async () => {
+    notifyInApp.mockRejectedValue(new Error("boom"))
+    const id = addStudent(1)
+    expect(await approveStudentCard(id, { expectedSubmittedAt: SUBMITTED })).toEqual({
+      success: true,
+      verifiedUntil: "2027-10-15",
+      emailSent: true,
+    })
+    notifyInApp.mockResolvedValue({ ok: false })
+    const id2 = addStudent(2)
+    expect(await approveStudentCard(id2, { expectedSubmittedAt: SUBMITTED })).toMatchObject({ success: true, emailSent: true })
   })
 })

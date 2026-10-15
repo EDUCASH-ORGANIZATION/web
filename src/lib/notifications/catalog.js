@@ -194,7 +194,7 @@ export function verificationRejected({ reasonLabel, submittedAt }) {
     type: "verification_rejected",
     title: "Carte étudiante refusée",
     body: `${reason ? `${reason} ` : ""}Vous pouvez envoyer une nouvelle carte.`,
-    dedupeKey: `verification_rejected:${oneLine(String(submittedAt ?? "sans-date"))}`,
+    dedupeKey: `verification_rejected:${oneLine(String(submittedAt ?? Date.now()))}`,
   })
 }
 

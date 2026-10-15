@@ -5,6 +5,8 @@ import { requireRole } from "@/lib/auth/require-role"
 import { isUuid } from "@/lib/vitrine/ids"
 import { publicDisplayName } from "@/lib/vitrine/public-name"
 import { toProjectAvatarUrl } from "@/lib/storage/owned-paths"
+import { notify } from "@/lib/notifications/notify"
+import { reviewReceived } from "@/lib/notifications/catalog"
 
 // Avis du client sur l'étudiant retenu d'une de ses missions terminées (C10).
 // La personne notée est toujours déduite de la mission (selected_student_id), jamais d'un paramètre.
@@ -29,6 +31,22 @@ const ERR_STUDENT_ALREADY = "Vous avez déjà noté le client pour cette mission
 // Codes de contrôle (sauf tabulation et sauts de ligne) et marques de direction du texte.
 const FORBIDDEN_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F​-‏‪-‮⁦-⁩﻿]/
 const UNIQUE_VIOLATION = "23505"
+
+/**
+ * Notification in-app « Nouvel avis » au profil noté. Ne lève jamais : l'avis est déjà enregistré, un échec
+ * d'écriture ou de construction du texte ne doit pas le transformer en erreur.
+ * @param {{ recipientId: string, missionId: string, missionTitle: string|null, reviewerId: string, reviewerName: string|null }} params
+ */
+async function notifyReview({ recipientId, missionId, missionTitle, reviewerId, reviewerName }) {
+  try {
+    await notify({
+      recipientId,
+      ...reviewReceived({ missionId, missionTitle, reviewerId, reviewerName }),
+    })
+  } catch (err) {
+    console.error("[review.actions] notification ignorée:", err?.code ?? "erreur")
+  }
+}
 
 /**
  * Valide le commentaire : texte facultatif, borné, sans caractère de contrôle.
@@ -75,7 +93,7 @@ export async function createClientReview(input) {
 
     const { data: mission, error: missionError } = await supabase
       .from("missions")
-      .select("id, status, selected_student_id")
+      .select("id, title, status, selected_student_id")
       .eq("id", missionId)
       .eq("client_id", user.id)
       .maybeSingle()
@@ -112,6 +130,14 @@ export async function createClientReview(input) {
       console.error("[createClientReview] insert", insertError.message)
       return { error: ERR_SAVE }
     }
+
+    await notifyReview({
+      recipientId: mission.selected_student_id,
+      missionId: mission.id,
+      missionTitle: mission.title,
+      reviewerId: user.id,
+      reviewerName: auth.profile?.full_name,
+    })
 
     // La note moyenne du profil noté est recalculée en base (trigger recompute_profile_rating).
     revalidatePath(`/talents/${mission.selected_student_id}`)
@@ -232,7 +258,7 @@ export async function createStudentReview(input) {
 
     const { data: mission, error: missionError } = await supabase
       .from("missions")
-      .select("id, status, client_id")
+      .select("id, title, status, client_id")
       .eq("id", missionId)
       .eq("selected_student_id", user.id)
       .maybeSingle()
@@ -268,6 +294,14 @@ export async function createStudentReview(input) {
       console.error("[createStudentReview] insert", insertError.message)
       return { error: ERR_SAVE }
     }
+
+    await notifyReview({
+      recipientId: mission.client_id,
+      missionId: mission.id,
+      missionTitle: mission.title,
+      reviewerId: user.id,
+      reviewerName: auth.profile?.full_name,
+    })
 
     // La note moyenne du profil noté est recalculée en base (trigger recompute_profile_rating).
     revalidatePath(`/student/missions/${mission.id}`)
