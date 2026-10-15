@@ -127,7 +127,14 @@ vi.mock("@/lib/supabase/server", () => ({
 }))
 
 const actions = await import("./admin-verifications.actions")
-const { approveStudentCard, rejectStudentCard, resetStudentRejection, revokeStudentBadge, getVerificationQueue } = actions
+const { approveStudentCard: rawApprove, rejectStudentCard: rawReject, resetStudentRejection, revokeStudentBadge, getVerificationQueue } = actions
+// Le jeton est composite (date de dépôt + chemin de la carte) : par défaut l'appel porte le chemin actuellement
+// stocké ; un test peut fournir `expectedCardPath` pour simuler une carte remplacée depuis l'affichage.
+const currentCardPath = (id) => state.studentProfiles.find((s) => s.user_id === id)?.card_url ?? undefined
+const withPath = (id, opts = {}) => ({ expectedCardPath: currentCardPath(id), ...opts })
+const approveStudentCard = (id, opts) => rawApprove(id, withPath(id, opts))
+const rejectStudentCard = (id, opts) => rawReject(id, withPath(id, opts))
+
 
 const SUBMITTED = "2026-10-10T09:00:00.123456+00:00"
 
@@ -735,5 +742,84 @@ describe("getVerificationQueue", () => {
     addStudent(1, { verified_until: "2027-03-01", is_verified: false })
     const res = await getVerificationQueue({})
     expect(res.rows[0]).toMatchObject({ tab: "a-examiner", kind: "renouvellement" })
+  })
+})
+
+describe("jeton composite : date de dépôt et chemin de la carte", () => {
+  const OLD = (id) => `${id}/carte.jpg`
+
+  it("carte remplacée (même jeton de date, chemin différent) : validation refusée sans écriture ni e-mail", async () => {
+    const id = addStudent(1)
+    const seen = OLD(id)
+    state.studentProfiles[0].card_url = `${id}/card-0b9c7f4e-1111-4222-8333-444455556666.jpg`
+    const res = await rawApprove(id, { expectedSubmittedAt: SUBMITTED, expectedCardPath: seen })
+    expect(res.error).toMatch(/déjà été traité|a changé/)
+    expect(updates()).toHaveLength(0)
+    expect(profileOf(id).is_verified).toBe(false)
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it("carte remplacée : refus aussi pour le rejet, aucune écriture ni e-mail", async () => {
+    const id = addStudent(1)
+    const seen = OLD(id)
+    state.studentProfiles[0].card_url = `${id}/card-aaaa.jpg`
+    const res = await rawReject(id, { reason: "Photo floue ou illisible", expectedSubmittedAt: SUBMITTED, expectedCardPath: seen })
+    expect(res.error).toBeTruthy()
+    expect(updates()).toHaveLength(0)
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it("deux envois successifs : seule la décision portant le dernier chemin passe", async () => {
+    const id = addStudent(1)
+    const first = `${id}/card-1.jpg`
+    const second = `${id}/card-2.jpg`
+    state.studentProfiles[0].card_url = first
+    state.studentProfiles[0].card_url = second
+    expect((await rawApprove(id, { expectedSubmittedAt: SUBMITTED, expectedCardPath: first })).error).toBeTruthy()
+    expect(updates()).toHaveLength(0)
+    expect((await rawApprove(id, { expectedSubmittedAt: SUBMITTED, expectedCardPath: second })).success).toBe(true)
+  })
+
+  it("chemin attendu absent, vide ou hostile : refus sans lecture d'écriture", async () => {
+    const id = addStudent(1)
+    for (const p of [undefined, "", null, 42, { a: 1 }, "x".repeat(400), `${uid(99)}/carte.jpg`]) {
+      const res = await rawApprove(id, { expectedSubmittedAt: SUBMITTED, expectedCardPath: p })
+      expect(res.error, String(p)).toBeTruthy()
+    }
+    expect(updates()).toHaveLength(0)
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it("carte stockée sous forme d'URL du projet : le chemin normalisé est comparé", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co")
+    const id = addStudent(1)
+    state.studentProfiles[0].card_url = `https://example.supabase.co/storage/v1/object/public/student-cards/${id}/card-9.jpg`
+    expect((await rawApprove(id, { expectedSubmittedAt: SUBMITTED, expectedCardPath: `${id}/card-9.jpg` })).success).toBe(true)
+    vi.unstubAllEnvs()
+  })
+
+  it("étudiant suspendu : validation et rejet refusés, aucune écriture ni e-mail", async () => {
+    const id = addStudent(1, { is_suspended: true })
+    const a = await approveStudentCard(id, { expectedSubmittedAt: SUBMITTED })
+    expect(a.error).toMatch(/suspendu/)
+    const r = await rejectStudentCard(id, { reason: "Photo floue ou illisible", expectedSubmittedAt: SUBMITTED })
+    expect(r.error).toMatch(/suspendu/)
+    expect(updates()).toHaveLength(0)
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it("le dossier ouvert porte le chemin de la carte et la date de dépôt", async () => {
+    const id = addStudent(1)
+    const q = await getVerificationQueue({ id })
+    expect(q.dossier).toMatchObject({ cardPath: OLD(id), submittedAt: SUBMITTED })
+  })
+
+  it("ancien chemin fixe card.png : toujours signé pour le dossier ouvert", async () => {
+    const id = addStudent(1)
+    state.studentProfiles[0].card_url = `${id}/card.png`
+    const q = await getVerificationQueue({ id })
+    expect(state.signed).toEqual([{ bucket: "student-cards", path: `${id}/card.png`, ttl: 300 }])
+    expect(q.dossier.cardView.kind).toBe("image")
+    expect(q.dossier.cardPath).toBe(`${id}/card.png`)
   })
 })

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { sendEmail } from "@/lib/email/index"
 import { todayInBenin } from "@/lib/vitrine/dates"
+import { toOwnedStoragePath } from "@/lib/storage/owned-paths"
 import { escapeLike } from "@/lib/student-space/explore-query"
 import {
   OTHER_REASON,
@@ -34,6 +35,8 @@ const ERR_STATE = "Ce dossier a déjà été traité ou a changé. Rechargez la 
 const ERR_WRITE = "La décision n'a pas pu être enregistrée. Réessayez dans un instant."
 const ERR_READ = "Les dossiers n'ont pas pu être chargés. Réessayez dans un instant."
 const ERR_TOKEN = "Ce dossier a changé. Rechargez la page."
+const ERR_SUSPENDED = "Ce compte est suspendu : sa carte ne peut pas être traitée. Réactivez le compte avant de décider."
+const CARDS_BUCKET = "student-cards"
 
 const PROFILE_COLUMNS =
   "user_id, full_name, avatar_url, is_verified, verified_until, rejection_reason, verification_submitted_at, created_at"
@@ -55,20 +58,31 @@ function readToken(value) {
   return { token: value }
 }
 
+/** Chemin de carte attendu : une chaîne non vide et bornée, sinon refus (le chemin fait partie du jeton). */
+function readCardPath(value) {
+  if (typeof value !== "string" || value === "" || value.length > 300) return { invalid: true }
+  return { path: value }
+}
+
 /** Dossier tel que lu avant une décision : profil de l'étudiant (rôle étudiant seulement) et présence de la carte. */
 async function readDossier(service, userId) {
   const [profileRes, cardRes] = await Promise.all([
     service
       .from("profiles")
-      .select("user_id, full_name, is_verified, verified_until, rejection_reason, verification_submitted_at")
+      .select("user_id, full_name, is_verified, is_suspended, verified_until, rejection_reason, verification_submitted_at")
       .eq("user_id", userId)
       .eq("role", "student")
       .maybeSingle(),
-    service.from("student_profiles").select("school").eq("user_id", userId).not("card_url", "is", null).maybeSingle(),
+    service.from("student_profiles").select("school, card_url").eq("user_id", userId).not("card_url", "is", null).maybeSingle(),
   ])
   if (profileRes.error || cardRes.error) return { failed: true }
   if (!profileRes.data) return { missing: true }
-  return { profile: profileRes.data, hasCard: Boolean(cardRes.data), school: cardRes.data?.school ?? null }
+  return {
+    profile: profileRes.data,
+    hasCard: Boolean(cardRes.data),
+    school: cardRes.data?.school ?? null,
+    cardPath: cardRes.data ? toOwnedStoragePath(cardRes.data.card_url, CARDS_BUCKET, userId) : null,
+  }
 }
 
 /** Nom, établissement et adresse du destinataire de l'e-mail de décision (adresse lue côté serveur). */
@@ -128,14 +142,17 @@ function pendingConditions(token) {
   }
 }
 
-/** Valide l'identifiant et lit le dossier ; renvoie le dossier « À examiner » ou un refus. */
-async function pendingDossier(service, userId, today) {
+/** Valide l'identifiant et lit le dossier ; renvoie le dossier « À examiner » (même carte que celle affichée) ou un refus. */
+async function pendingDossier(service, userId, today, expectedCardPath) {
   const id = uuidSchema.safeParse(userId)
   if (!id.success) return { error: ERR_INVALID }
   const dossier = await readDossier(service, id.data)
   if (dossier.failed) return { error: ERR_WRITE }
   if (dossier.missing || !dossier.hasCard) return { error: ERR_STATE }
   const { profile } = dossier
+  if (profile.is_suspended === true) return { error: ERR_SUSPENDED }
+  // Jeton composite : la carte lue maintenant doit être celle que l'administrateur a vue.
+  if (!dossier.cardPath || dossier.cardPath !== expectedCardPath) return { error: ERR_STATE }
   const tab = classifyDossier(
     {
       isVerified: profile.is_verified === true,
@@ -152,22 +169,27 @@ async function pendingDossier(service, userId, today) {
 
 /**
  * Valide la carte d'un étudiant : badge d'un an (date du Bénin), e-mail `verification-approved` envoyé une seule fois,
- * après l'écriture. Écriture conditionnelle : un double clic, un autre administrateur ou une carte remplacée
- * depuis l'affichage (jeton différent) donnent un refus sans écriture ni e-mail.
+ * après l'écriture. Le jeton est composite : date de dépôt ET chemin de la carte affichés. Le chemin est relu avant
+ * l'écriture (refus si la carte a changé) et la date garde l'UPDATE conditionnel ; un double clic, un autre
+ * administrateur ou une carte remplacée depuis l'affichage donnent un refus sans écriture ni e-mail. Un étudiant
+ * suspendu n'est pas validé. La relecture du chemin et l'UPDATE restent deux requêtes : une carte envoyée entre les
+ * deux est neutralisée par l'enregistrement de l'étudiant, qui écrit la carte puis remet `is_verified` à faux.
  * @param {string} userId
- * @param {{ expectedSubmittedAt?: string | null }} [options]
+ * @param {{ expectedSubmittedAt?: string | null, expectedCardPath?: string }} [options]
  * @returns {Promise<{ success: true, verifiedUntil: string, emailSent: boolean } | { error: string }>}
  */
-export async function approveStudentCard(userId, { expectedSubmittedAt } = {}) {
+export async function approveStudentCard(userId, { expectedSubmittedAt, expectedCardPath } = {}) {
   const ctx = await requireAdminService()
   if (ctx.error) return { error: ctx.error }
   const { admin, service } = ctx
 
   const token = readToken(expectedSubmittedAt)
   if (token.invalid) return { error: ERR_TOKEN }
+  const cardPath = readCardPath(expectedCardPath)
+  if (cardPath.invalid) return { error: ERR_TOKEN }
   try {
     const today = todayInBenin()
-    const found = await pendingDossier(service, userId, today)
+    const found = await pendingDossier(service, userId, today, cardPath.path)
     if (found.error) return { error: found.error }
 
     const verifiedUntil = badgeUntil(today)
@@ -204,10 +226,10 @@ export async function approveStudentCard(userId, { expectedSubmittedAt } = {}) {
 /**
  * Refuse la carte d'un étudiant avec un motif de la liste fermée (message facultatif, obligatoire pour « Autre motif »).
  * @param {string} userId
- * @param {{ reason?: string, message?: string, expectedSubmittedAt?: string | null }} [input]
+ * @param {{ reason?: string, message?: string, expectedSubmittedAt?: string | null, expectedCardPath?: string }} [input]
  * @returns {Promise<{ success: true, emailSent: boolean } | { error: string }>}
  */
-export async function rejectStudentCard(userId, { reason, message, expectedSubmittedAt } = {}) {
+export async function rejectStudentCard(userId, { reason, message, expectedSubmittedAt, expectedCardPath } = {}) {
   const ctx = await requireAdminService()
   if (ctx.error) return { error: ctx.error }
   const { admin, service } = ctx
@@ -216,8 +238,10 @@ export async function rejectStudentCard(userId, { reason, message, expectedSubmi
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Motif invalide." }
   const token = readToken(expectedSubmittedAt)
   if (token.invalid) return { error: ERR_TOKEN }
+  const cardPath = readCardPath(expectedCardPath)
+  if (cardPath.invalid) return { error: ERR_TOKEN }
   try {
-    const found = await pendingDossier(service, userId, todayInBenin())
+    const found = await pendingDossier(service, userId, todayInBenin(), cardPath.path)
     if (found.error) return { error: found.error }
 
     const { reason: label, message: note } = parsed.data
@@ -478,6 +502,7 @@ async function openDossier(service, { profile, dossier, tab }, now) {
     ageDays: hints.ageDays,
     age: ageLabel(now, dossier.submittedAt ?? dossier.createdAt),
     submittedAt: profile.verification_submitted_at ?? null,
+    cardPath: toOwnedStoragePath(declaredRes.data?.card_url, CARDS_BUCKET, profile.user_id),
     createdAt: profile.created_at ?? null,
     verifiedUntil: profile.verified_until ?? null,
     rejectionReason: profile.rejection_reason ?? null,

@@ -45,7 +45,7 @@ const { DossierPanel } = await import("./dossier-panel")
 const ID1 = "11111111-1111-4111-8111-111111111111"
 const ID2 = "22222222-2222-4222-8222-222222222222"
 const dossier = (over) => ({
-  userId: ID1, name: "Codjo Ahouansou", tab: "a-examiner", kind: "premiere", overdue48h: false, submittedAt: "2026-10-12T09:12:00Z",
+  userId: ID1, name: "Codjo Ahouansou", tab: "a-examiner", kind: "premiere", overdue48h: false, submittedAt: "2026-10-12T09:12:00Z", cardPath: "id/card-1.jpg",
   createdAt: "2026-10-10T18:40:00Z", verifiedUntil: null, rejectionReason: null, hasCard: true,
   cardView: { kind: "none", url: null }, actions: ["approve", "reject"], ...over,
 })
@@ -91,7 +91,7 @@ describe("DossierPanel : focus après décision", () => {
 
     const approve = find(render(dossier({ userId: ID2 })), (n) => typeof n.props.onConfirm === "function" && "badgeUntil" in n.props)[0]
     await approve.props.onConfirm()
-    expect(approveStudentCard).toHaveBeenCalledWith(ID2, { expectedSubmittedAt: "2026-10-12T09:12:00Z" })
+    expect(approveStudentCard).toHaveBeenCalledWith(ID2, { expectedSubmittedAt: "2026-10-12T09:12:00Z", expectedCardPath: "id/card-1.jpg" })
     expect(replace).toHaveBeenCalledWith(hrefs.afterDecision)
 
     // Le dossier suivant arrive dans la même instance : le titre est focalisé.
