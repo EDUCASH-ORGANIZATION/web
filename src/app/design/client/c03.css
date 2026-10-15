@@ -43,6 +43,10 @@
   .wizard2__choices2 > .ds-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
+/* Case « Mission avec achats » : toute la ligne est la cible (44 px au moins), le texte revient à la ligne. */
+.wizard2__purchases .check { min-height: 44px; padding-block: 8px; width: 100%; }
+.wizard2__purchases [aria-live] > .note2 { margin-top: 4px; }
+
 /* Carte du formulaire : conteneur nommé. Récapitulatif : libellés au-dessus des valeurs tant que la carte est étroite
    (entre 1024 et 1150 px d'écran le contenu de la carte mesure 267 à 336 px), deux colonnes dès 400 px de contenu. */
 .wizard2 .form2 { container: wizard2card / inline-size; }
