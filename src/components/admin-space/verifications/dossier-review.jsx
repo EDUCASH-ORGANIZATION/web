@@ -85,7 +85,6 @@ export function DossierReview({ dossier, today, showChecklist = false, children 
           onChange={(event) => setTyped(event.target.value)}
           autoComplete="off"
           maxLength={120}
-          name="card-name-check"
         />
         <div aria-live="polite">
           <NameVerdict verdict={verdict} />

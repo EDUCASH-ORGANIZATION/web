@@ -70,11 +70,17 @@ describe("DossierReview", () => {
     expect(html).not.toMatch(/\b(tu|ta|ton|tes|vérifie|zoome|recopie)\b/i)
   })
 
-  it("visionneuse : lien d'ouverture sécurisé, même URL signée", () => {
+  it("visionneuse : l'URL signée n'est que la source de l'image, jamais un lien (planche v1 : « Plein écran »)", () => {
     const html = renderToStaticMarkup(<CardViewer cardView={{ kind: "image", url: SIGNED }} name="Codjo" />)
-    expect(html).toMatch(/<a [^>]*href="https:\/\/storage\.example[^"]*"[^>]*aria-label="Ouvrir la carte dans un nouvel onglet"/s)
-    expect(html).toContain('rel="noopener noreferrer"')
-    expect(html).toContain('target="_blank"')
+    expect(html).toContain(`src="${SIGNED.replace(/&/g, "&amp;")}"`)
+    expect(html).not.toMatch(/<a [^>]*href="https:\/\/storage\.example/s)
+    expect(html).not.toContain("Ouvrir la carte dans un nouvel onglet")
     expect(html).toContain('data-zoom="100"')
+  })
+
+  it("nom lu sur la carte : champ sans attribut name (rien à soumettre ni à mémoriser)", () => {
+    const html = render()
+    expect(html).toMatch(/autoComplete="off"/i)
+    expect(html).not.toContain('name="card-name-check"')
   })
 })

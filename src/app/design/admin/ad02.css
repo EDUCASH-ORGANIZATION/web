@@ -50,10 +50,11 @@
 .a2 .a2-02 .tl-item.is-done .tl-item__dot { background: var(--c-encre); border: 1px solid var(--c-encre); color: var(--c-citron); }
 .a2 .a2-02 .tl-item.is-current .tl-item__dot { background: var(--c-citron); border: 1.5px solid var(--c-encre); color: var(--c-encre); }
 .a2 .a2-02 .tl-item.is-error .tl-item__dot { background: var(--c-erreur-bg); border: 1px solid var(--c-erreur); color: var(--c-erreur); }
-.a2 .a2-02 .switch input:focus-visible { outline: none; box-shadow: var(--sh-focus); }
 
 /* Carte : image ou PDF dans la scène, zoom (100 à 300 %) et rotation par 90° pilotés par des attributs, jamais par style local */
 .a2-02-stage { position: relative; overflow: auto; border-radius: var(--r-l); background: var(--c-givre); border: 1px solid var(--c-ligne); min-height: 320px; max-height: 70vh; display: grid; place-items: center; padding: var(--s-4); }
+/* Plein écran (outil de la visionneuse) : la scène occupe tout l'écran, sans bordure ni hauteur maximale */
+.a2-02-stage:fullscreen { max-height: none; min-height: 100vh; border: 0; border-radius: 0; background: var(--c-givre); }
 .a2-02-img { max-width: 100%; height: auto; transform: rotate(var(--a2-rot, 0deg)) scale(var(--a2-zoom, 1)); transform-origin: center; transition: transform .15s; }
 .a2-02-img[data-zoom="150"] { --a2-zoom: 1.5; }
 .a2-02-img[data-zoom="200"] { --a2-zoom: 2; }
