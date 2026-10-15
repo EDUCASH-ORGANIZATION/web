@@ -33,9 +33,10 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh, push: 
 vi.mock("@/components/app-ui/toast", () => ({ useAppToast: () => ({ success: vi.fn() }) }))
 vi.mock("./use-queue-shortcuts", () => ({ useQueueShortcuts: vi.fn() }))
 const approveStudentCard = vi.fn()
+const rejectStudentCard = vi.fn()
 vi.mock("@/lib/actions/admin-verifications.actions", () => ({
   approveStudentCard: (...a) => approveStudentCard(...a),
-  rejectStudentCard: vi.fn(),
+  rejectStudentCard: (...a) => rejectStudentCard(...a),
   resetStudentRejection: vi.fn(),
   revokeStudentBadge: vi.fn(),
 }))
@@ -97,5 +98,17 @@ describe("DossierPanel : focus après décision", () => {
     // Le dossier suivant arrive dans la même instance : le titre est focalisé.
     render(dossier({ userId: ID1, name: "Autre Étudiant" }))
     expect(focus).toHaveBeenCalledTimes(1)
+  })
+
+  it("la décision n'envoie que le jeton (date et chemin de carte), le motif et le message : aucune saisie de revue", async () => {
+    rejectStudentCard.mockReset()
+    rejectStudentCard.mockResolvedValue({ success: true, emailSent: true })
+    const reject = find(render(dossier()), (n) => typeof n.props.onConfirm === "function" && !("badgeUntil" in n.props) && "name" in n.props)[0]
+    await reject.props.onConfirm({ reason: "Photo floue ou illisible", message: "" })
+    expect(rejectStudentCard).toHaveBeenCalledTimes(1)
+    const [id, payload] = rejectStudentCard.mock.calls[0]
+    expect(id).toBe(ID1)
+    expect(Object.keys(payload).sort()).toEqual(["expectedCardPath", "expectedSubmittedAt", "message", "reason"])
+    expect(payload).toMatchObject({ expectedSubmittedAt: "2026-10-12T09:12:00Z", expectedCardPath: "id/card-1.jpg" })
   })
 })

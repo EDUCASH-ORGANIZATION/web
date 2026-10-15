@@ -13,7 +13,7 @@ vi.mock("@/lib/actions/admin-verifications.actions", () => ({
 
 const { ToastProvider } = await import("@/components/app-ui/toast")
 const { VerificationsView, queueSubtitle, dossierNeighbors } = await import("./verifications-view")
-const { runDecision, historyLine } = await import("./dossier-panel")
+const { runDecision, dossierCaption, DecisionTimeline } = await import("./dossier-panel")
 const { RejectDialog, RejectFields, rejectFormError } = await import("./reject-dialog")
 const { ApproveDialog } = await import("./approve-dialog")
 const { ResetDialog, ReasonField, reasonError } = await import("./reset-dialog")
@@ -49,6 +49,8 @@ const dossier = (over = {}) => ({
   overdue48h: true,
   ageDays: 3,
   age: "3 j",
+  today: "2026-10-15",
+  submittedOn: "2026-10-12",
   submittedAt: "2026-10-12T09:12:00Z",
   createdAt: "2026-10-10T18:40:00Z",
   verifiedUntil: null,
@@ -124,8 +126,11 @@ describe("VerificationsView : file avec dossier ouvert", () => {
     expect(list).not.toContain("<img")
   })
 
-  it("dossier : étiquette de délai, carte (image sans référent), décisions Valider et Refuser seulement", () => {
-    expect(html).toContain("Délai de 48 h dépassé")
+  it("dossier : en-tête (avatar, soumis le, état), carte (image sans référent), décisions Valider et Refuser seulement", () => {
+    expect(html).toContain("a2-02-avatar")
+    expect(html).toContain("Licence 3 · EPAC · soumis le 12 oct. (3 jours)")
+    expect(html).toContain("En cours d&#x27;examen")
+    expect(html).not.toContain("Délai de 48 h dépassé")
     expect(html).toContain('<img class="a2-02-img"')
     expect(html).toMatch(/<img[^>]*referrerPolicy="no-referrer"/)
     expect(html).toContain('alt="Carte étudiante de Codjo Ahouansou"')
@@ -139,11 +144,20 @@ describe("VerificationsView : file avec dossier ouvert", () => {
     expect(html).not.toContain("Révoquer le badge")
   })
 
-  it("liste de contrôle à trois cases indicatives, lien vers la fiche, historique", () => {
-    expect(html.match(/type="checkbox"/g)).toHaveLength(3)
+  it("liste de contrôle à trois cases non enregistrées, bascule, lien vers la fiche, frise d'historique", () => {
+    expect(html.match(/type="checkbox"/g)).toHaveLength(3 + 1)
+    expect(html).toContain("Contrôle")
+    expect(html).toContain("Elles ne sont pas enregistrées.")
     expect(html).toContain(`href="/admin/users/${ID1}"`)
     expect(html).toContain("Ouvrir la fiche")
-    expect(html).toContain("Historique : compte créé le")
+    expect(html).toContain("Historique des décisions")
+    expect(html).toContain("Compte créé")
+    expect(html).toContain("Carte envoyée")
+    expect(html).not.toContain("Historique :")
+  })
+
+  it("bascule « Passer au dossier suivant après décision » cochée par défaut", () => {
+    expect(html).toMatch(/<label class="switch"><input type="checkbox" checked=""[^>]*\/>Passer au dossier suivant après décision<\/label>/)
   })
 
   it("mobile : en-tête de sous-page avec retour, barre d'action fixe, liste masquée par la classe d'état", () => {
@@ -153,9 +167,12 @@ describe("VerificationsView : file avec dossier ouvert", () => {
     expect(html).toContain('class="a2-mbar"')
   })
 
-  it("un seul bouton encre par cadre côté bureau, aucune carte colorée", () => {
-    const desktop = html.match(/<div class="a2-02-actions">[\s\S]*?<\/div>/)[0]
-    expect(desktop.match(/btn--dark/g)).toHaveLength(1)
+  it("un seul bouton bleu a2-02-cta par barre côté bureau, aucune carte colorée", () => {
+    const start = html.indexOf('class="a2-02-actions"')
+    const desktop = html.slice(start, html.indexOf('class="a2-mbar"'))
+    expect(desktop.match(/a2-02-cta/g)).toHaveLength(1)
+    expect(desktop).not.toContain("btn--dark")
+    expect(desktop).toContain("btn btn--danger-outline")
     expect(html).not.toMatch(/card--(lavande|citron|menthe|rose|peche)/)
   })
 
@@ -179,7 +196,7 @@ describe("VerificationsView : décisions selon l'onglet", () => {
     expect(labels).toEqual([])
     expect(html).toContain("En attente d&#x27;une carte de l&#x27;étudiant.")
     expect(html).not.toContain("a2-mbar")
-    expect(html).not.toContain("Contrôle (indicatif)")
+    expect(html).not.toContain("Contrôle")
   })
 
   it("refusés : seulement réinitialiser, avec le motif affiché", () => {
@@ -319,6 +336,14 @@ describe("boîtes de dialogue", () => {
     expect(html).toContain("btn btn--dark")
   })
 
+  it("validation : libellé « Valider la carte » quand le passage au suivant est désactivé", () => {
+    const html = renderToStaticMarkup(
+      <ApproveDialog open onClose={() => {}} onConfirm={() => {}} name="Codjo" badgeUntil="2027-10-15" advance={false} />,
+    )
+    expect(html).toContain("Valider la carte")
+    expect(html).not.toContain("Valider et passer au suivant")
+  })
+
   it("réinitialisation et révocation : motif obligatoire, la révocation est en ton danger", () => {
     const reset = renderToStaticMarkup(<ResetDialog open onClose={() => {}} onConfirm={() => {}} name="Codjo" />)
     const revoke = renderToStaticMarkup(<RevokeDialog open onClose={() => {}} onConfirm={() => {}} name="Codjo" />)
@@ -445,12 +470,22 @@ describe("aides pures", () => {
     expect(dossierNeighbors(data({ dossier: dossier({ userId: "autre" }) })).position).toBeNull()
   })
 
-  it("sous-titres de ligne et historique", () => {
+  it("sous-titres de ligne, légende d'en-tête et frise", () => {
     expect(rowSubtitle(row({ kind: "renouvellement" }))).toBe("EPAC · renouvellement du badge")
     expect(rowSubtitle(row({ kind: null, tab: "refuses", school: null }))).toBe("Établissement non renseigné · Carte refusée")
     expect(rowSubtitle(row({ kind: null, tab: "xyz" }))).toBe("EPAC")
-    expect(historyLine(dossier())).toMatch(/^Historique : compte créé le .* · carte envoyée le .*, première demande\.$/)
-    expect(historyLine({ createdAt: null, submittedAt: null })).toBe("")
+    expect(dossierCaption(dossier())).toBe("Licence 3 · EPAC · soumis le 12 oct. (3 jours)")
+    expect(dossierCaption(dossier({ ageDays: 0 }))).toContain("(aujourd'hui)")
+    expect(dossierCaption(dossier({ ageDays: 1 }))).toContain("(1 jour)")
+    expect(dossierCaption(dossier({ submittedOn: null, level: null, school: null }))).toBe("Profil étudiant")
+  })
+
+  it("frise : une étape par date connue, état porté par la classe", () => {
+    const html = renderToStaticMarkup(<DecisionTimeline dossier={dossier()} />)
+    expect(html).toContain("tl-item is-done")
+    expect(html).toContain("tl-item is-current")
+    expect(html).toContain("première demande")
+    expect(renderToStaticMarkup(<DecisionTimeline dossier={{ tab: "incomplets" }} />)).toBe("")
   })
 
   it("liste : jamais d'URL signée même si la ligne en portait une par erreur de données", () => {

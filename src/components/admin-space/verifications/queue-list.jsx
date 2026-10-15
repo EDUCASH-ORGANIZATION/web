@@ -18,7 +18,7 @@ const KIND_SUB = {
 const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/
 
 /** « 5 oct. » à partir d'un jour "AAAA-MM-JJ" ; vide si le jour est illisible. */
-function shortDay(day) {
+export function shortDay(day) {
   if (typeof day !== "string" || !DAY_ONLY.test(day)) return ""
   const date = new Date(`${day}T00:00:00Z`)
   if (Number.isNaN(date.getTime())) return ""
