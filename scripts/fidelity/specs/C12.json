@@ -1,0 +1,219 @@
+{
+  "id": "C12",
+  "title": "Messages client (liste des conversations)",
+  "planche": "client/C12-messages.v2.html",
+  "screen": "c12",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        880
+      ],
+      "frame": "desk",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "MC-05",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "fontSize",
+            "fontWeight",
+            "tw"
+          ]
+        },
+        {
+          "id": "MC-01",
+          "label": "carte unique",
+          "board": ".c-inbox",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-01",
+          "label": "liste dans la carte",
+          "board": ".c-inbox__list",
+          "props": [
+            "x",
+            "w",
+            "pad"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-01",
+          "label": "volet",
+          "board": ".c-inbox__thread",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-03",
+          "label": "recherche",
+          "board": ".c-inbox__list .search",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-03",
+          "label": "filtre segmenté",
+          "board": ".c-inbox__list .segmented",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "bg"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-04",
+          "label": "ligne",
+          "board": ".c-inbox__list .convo",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-06",
+          "assume": {
+            "h": "A2:3"
+          },
+          "note": "A2 : texte 13 -> 14 px, hauteur de ligne +3 (mesure de E06 ME-06, même composant ; la ligne n'est pas mesurable dans le code avant le lot ST-06)"
+        },
+        {
+          "id": "MC-04",
+          "label": "avatar",
+          "board": ".c-inbox__list .convo .av2",
+          "props": [
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-04",
+          "label": "nom",
+          "board": ".c-inbox__list .convo__name",
+          "props": [
+            "fontSize",
+            "fontWeight",
+            "tw"
+          ],
+          "lot": "ST-06"
+        },
+        {
+          "id": "MC-04",
+          "label": "pastille non lue",
+          "board": ".c-inbox__list .convo .count",
+          "props": [
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-06"
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        844
+      ],
+      "frame": "phone",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "MC-13",
+          "label": "titre de page",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize",
+            "tw"
+          ],
+          "assume": {
+            "y": "L3+X1:13"
+          },
+          "note": "L3 (+12) et 1 px non expliqué (X1), mêmes valeurs que E06 ME-19 titre ; la taille du titre mobile (30 px planche, 26 px code) reste visible en ÉCHEC",
+          "lot": "ST-03"
+        },
+        {
+          "id": "MC-13",
+          "label": "filtre segmenté",
+          "board": ".segmented",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "assume": {
+            "h": "A5:8",
+            "y": "L3:12"
+          },
+          "note": "A5 : cible tactile (+8 de hauteur mesuré) ; L3 : décalage de coquille (+12), compensé en partie par le titre de page plus petit (-4, voir la ligne titre), +8 mesuré au total",
+          "lot": "ST-03"
+        },
+        {
+          "id": "MC-13",
+          "label": "ligne",
+          "board": ".convo",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "pad",
+            "gap"
+          ]
+        },
+        {
+          "id": "MC-13",
+          "label": "avatar",
+          "board": ".convo .av2",
+          "props": [
+            "y",
+            "w",
+            "h",
+            "radius"
+          ]
+        }
+      ]
+    }
+  ],
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)"
+}

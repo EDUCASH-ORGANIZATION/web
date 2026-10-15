@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "fidelity": "node scripts/fidelity/compare.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -36,6 +37,7 @@
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
+    "playwright-core": "^1.56.1",
     "tailwindcss": "^4",
     "vite": "^8.3.3",
     "vitest": "^5.0.3"
