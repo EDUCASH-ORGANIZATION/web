@@ -36,4 +36,9 @@ describe("états des notifications", () => {
     expect(out.match(/ntf-skeleton__row/g)).toHaveLength(3)
     expect(renderToStaticMarkup(<NotificationsSkeleton count={5} />).match(/ntf-skeleton__row/g)).toHaveLength(5)
   })
+
+  it("titres des états portés par la classe de titre stylée empty2__title", () => {
+    expect(renderToStaticMarkup(<NotificationsEmpty space="client" />)).toMatch(/<p class="empty2__title">Aucune notification/)
+    expect(renderToStaticMarkup(<NotificationsUnavailable />)).toMatch(/<p class="empty2__title">Notifications indisponibles/)
+  })
 })

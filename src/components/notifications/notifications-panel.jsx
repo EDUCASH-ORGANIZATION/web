@@ -81,7 +81,7 @@ export function NotificationsPanel({ id, allHref, onClose }) {
     <section id={id} className="ntf-pop" aria-labelledby={titleId}>
       <div className="notif-panel">
         <div className="notif-panel__head">
-          <h2 id={titleId} ref={titleRef} tabIndex={-1} className="ntf-pop__title">
+          <h2 id={titleId} ref={titleRef} tabIndex={-1} className="ds-h4 ntf-pop__title">
             Notifications
           </h2>
           {state.status === "ready" && state.count > 0 ? (

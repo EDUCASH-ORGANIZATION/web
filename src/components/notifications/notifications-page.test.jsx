@@ -36,6 +36,7 @@ describe("NotificationsPage", () => {
   it("liste groupée, un seul bouton encre, titre h1 unique", () => {
     const out = page({ space: "client", initial: data([row("1"), row("2"), row("3", { created_at: "2026-10-01T10:00:00Z" })]) })
     expect(out.match(/<h1 /g)).toHaveLength(1)
+    expect(out).toMatch(/<h1 class="head2__title">Notifications<\/h1>/)
     expect(out).toContain("Aujourd&#x27;hui")
     expect(out).toContain("Plus tôt")
     expect(out.match(/btn--dark/g)).toHaveLength(1)
