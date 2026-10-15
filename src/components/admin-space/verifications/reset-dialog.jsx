@@ -33,7 +33,7 @@ export function ReasonField({ reason, error, onChange, visible = false }) {
   )
 }
 
-function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone, visible }) {
+function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone, icon, consequences, visible }) {
   const [reason, setReason] = useState("")
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
@@ -67,6 +67,7 @@ function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone
       description={description}
       size="sm"
       tone={tone}
+      icon={icon}
       footer={
         <>
           <button type="button" className="btn btn--secondary" onClick={onClose} disabled={pending}>
@@ -74,7 +75,7 @@ function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone
           </button>
           <button
             type="button"
-            className={tone === "danger" ? "btn btn--danger" : "btn btn--dark"}
+            className={tone === "danger" ? "btn btn--danger" : "btn btn--primary a2-02-cta"}
             onClick={submit}
             disabled={pending}
             aria-busy={pending ? "true" : undefined}
@@ -85,6 +86,13 @@ function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone
       }
     >
       <div className="stack stack--3">
+        {consequences ? (
+          <ul className="checklist">
+            {consequences.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
         <ReasonField
           visible={visible}
           reason={reason}
@@ -100,7 +108,7 @@ function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone
 }
 
 /** Boîte à motif obligatoire, commune à la réinitialisation d'un refus et à la révocation d'un badge. */
-export function ReasonDialog({ open, onClose, onConfirm, title, description, confirmLabel, tone = "default", visible = false }) {
+export function ReasonDialog({ open, onClose, onConfirm, title, description, confirmLabel, tone = "default", icon, consequences, visible = false }) {
   if (!open) return null
   return (
     <ReasonForm
@@ -110,10 +118,18 @@ export function ReasonDialog({ open, onClose, onConfirm, title, description, con
       description={description}
       confirmLabel={confirmLabel}
       tone={tone}
+      icon={icon}
+      consequences={consequences}
       visible={visible}
     />
   )
 }
+
+const RESET_CONSEQUENCES = [
+  "La carte refusée est retirée du dossier.",
+  "L'étudiant peut renvoyer une carte.",
+  "L'action est inscrite au journal d'audit avec votre motif.",
+]
 
 /** Réinitialisation d'un refus : l'étudiant pourra renvoyer une carte. Le motif de l'administrateur est journalisé. */
 export function ResetDialog({ open, onClose, onConfirm, name }) {
@@ -122,7 +138,9 @@ export function ResetDialog({ open, onClose, onConfirm, name }) {
       open={open}
       onClose={onClose}
       onConfirm={onConfirm}
-      title={`Réinitialiser le refus de ${name}`}
+      title={`Réinitialiser le dossier de ${name} ?`}
+      icon={{ name: "i-refresh", tone: "lavande" }}
+      consequences={RESET_CONSEQUENCES}
       description="Le motif de refus et la carte refusée sont retirés : le dossier passe en Incomplets et l'étudiant pourra renvoyer une carte. Indiquez pourquoi vous le faites."
       confirmLabel="Réinitialiser le refus"
     />

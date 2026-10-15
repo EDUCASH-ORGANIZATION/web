@@ -350,7 +350,7 @@ describe("boîtes de dialogue", () => {
     expect(html).toContain("Valider la carte de Codjo ?")
     expect(html).toContain("15 octobre 2027")
     expect(html).toContain("Valider et passer au suivant")
-    expect(html).toContain("btn btn--dark")
+    expect(html).toContain("btn btn--primary a2-02-cta")
   })
 
   it("validation : libellé « Valider la carte » quand le passage au suivant est désactivé", () => {
