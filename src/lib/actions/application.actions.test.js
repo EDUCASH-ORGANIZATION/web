@@ -585,6 +585,14 @@ describe("notifications in-app (RD-NOTIF-01)", () => {
       expect(sendEmail).toHaveBeenCalledTimes(2)
     })
 
+    it("le nom de l'étudiant n'est lu qu'une fois pour la notification et l'e-mail", async () => {
+      expect(await apply({ missionId: MISSION_ID, message: "Bonjour" })).toEqual({ success: true })
+      const reads = calls.filter((q) => q.table === "profiles" && filterOf(q, "user_id") === STUDENT_ID)
+      expect(reads).toHaveLength(1)
+      expect(notify.mock.calls[0][0].body).toBe("Afiavi D. a postulé à « Traduction d'un flyer ».")
+      expect(sendEmail.mock.calls[0][2]).toMatchObject({ studentName: "Afiavi Dossou", clientName: "Afiavi Dossou" })
+    })
+
     it("la notification est écrite avant l'email", async () => {
       const order = []
       notify.mockImplementation(async () => { order.push("notify"); return { ok: true } })

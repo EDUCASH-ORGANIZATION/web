@@ -162,9 +162,13 @@ export async function apply({ missionId, message }) {
     return { error: ERR_GENERIC }
   }
 
+  // Nom de l'étudiant lu une seule fois, à la première demande, puis partagé par la notification et l'e-mail.
+  let studentNameRead = null
+  const readStudentName = () => (studentNameRead ??= getFullName(supabase, user.id))
+
   // Notification in-app au client (échec sans conséquence sur la candidature)
   await safeNotify(async () => {
-    const studentName = await getFullName(supabase, user.id)
+    const studentName = await readStudentName()
     await notify({
       recipientId: mission.client_id,
       ...applicationReceived({
@@ -179,7 +183,7 @@ export async function apply({ missionId, message }) {
   // Notifie le client (échec d'email sans conséquence sur la candidature)
   try {
     const [studentName, clientName, clientEmail] = await Promise.all([
-      getFullName(supabase, user.id),
+      readStudentName(),
       getFullName(supabase, mission.client_id),
       getAuthEmail(mission.client_id),
     ])
