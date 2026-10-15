@@ -1,66 +1,60 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+import { readFileSync } from "node:fs"
+import path from "node:path"
 
 const requireRole = vi.fn()
-const createServiceClient = vi.fn()
+const getAdminWallets = vi.fn()
 const redirect = vi.fn((url) => {
   throw new Error(`REDIRECT:${url}`)
 })
 
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: (...a) => requireRole(...a) }))
-vi.mock("@/lib/supabase/service", () => ({ createServiceClient: (...a) => createServiceClient(...a) }))
-vi.mock("next/navigation", () => ({ redirect: (...a) => redirect(...a) }))
-vi.mock("next/image", () => ({ default: () => null }))
-vi.mock("next/link", () => ({ default: () => null }))
-vi.mock("@/components/admin/verifications-tabs", () => ({ VerificationsTabs: () => null }))
-vi.mock("@/components/admin/suspend-button", () => ({ SuspendButton: () => null }))
+vi.mock("@/lib/actions/admin-finance.actions", () => ({ getAdminWallets: (...a) => getAdminWallets(...a) }))
+vi.mock("next/navigation", () => ({ redirect: (...a) => redirect(...a), useRouter: () => ({ refresh: vi.fn() }) }))
+vi.mock("@/components/admin-space/wallets/wallets-view", () => ({ WalletsView: (props) => ({ marker: "view", props }) }))
 
-import Wallets from "./page.js"
+import Page from "./page.js"
 
-/** Constructeur de requête chaînable et attendable. */
-function query(result) {
-  const q = {}
-  for (const m of ["select", "eq", "order", "range", "limit", "gte", "is", "in"]) q[m] = () => q
-  q.then = (resolve) => resolve(result)
-  return q
+// Le contenu est un composant asynchrone dans un <Suspense> : on l'appelle directement pour lire ses props.
+async function render(searchParams) {
+  const tree = await Page({ searchParams: Promise.resolve(searchParams) })
+  const content = tree.props.children
+  return content.type(content.props)
 }
 
-describe("page admin wallets : contrôle de rôle fail-closed", () => {
+describe("page admin wallets", () => {
   beforeEach(() => {
     requireRole.mockReset()
-    createServiceClient.mockReset()
+    getAdminWallets.mockReset()
     redirect.mockClear()
+  })
+
+  it("redirige sans lire de données si requireRole refuse", async () => {
     requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
-  })
-
-  it("wallets redirige sans lire de données si requireRole refuse", async () => {
-    await expect(Wallets()).rejects.toThrow("REDIRECT:/auth/login")
+    await expect(Page({ searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT:/auth/login")
     expect(requireRole).toHaveBeenCalledWith(["admin"])
-    expect(createServiceClient).not.toHaveBeenCalled()
-  })
-})
-
-describe("page admin wallets : lectures via le client service role", () => {
-  beforeEach(() => {
-    requireRole.mockReset()
-    createServiceClient.mockReset()
+    expect(getAdminWallets).not.toHaveBeenCalled()
   })
 
-  it("wallets lit avec le client service et jamais avec la session", async () => {
-    const session = { from: vi.fn(() => { throw new Error("lecture avec la session interdite") }) }
-    requireRole.mockResolvedValue({ supabase: session, user: { id: "a" }, role: "admin", profile: {} })
-    const ranges = []
-    const service = {
-      from: () => {
-        const q = query({ data: [], error: null, count: 0 })
-        const range = q.range
-        q.range = (...a) => { ranges.push(a); return range() }
-        return q
-      },
-      auth: { admin: { getUserById: async () => ({ data: null }) } },
-    }
-    createServiceClient.mockReturnValue(service)
-    await Wallets()
-    expect(session.from).not.toHaveBeenCalled()
-    for (const r of ranges) expect(r[0]).toBe(0)
+  it("transmet les paramètres bruts à l'action (validés côté action) et rend la réponse", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" }, profile: {} })
+    const data = { now: "2026-10-15T10:00:00Z", rows: [] }
+    getAdminWallets.mockResolvedValue(data)
+    const view = await render({ q: "%' or 1=1", page: "-3" })
+    expect(getAdminWallets).toHaveBeenCalledWith({ q: "%' or 1=1", page: "-3" })
+    expect(view.props).toEqual({ data, error: undefined })
+  })
+
+  it("une erreur de l'action est rendue comme erreur, jamais comme liste vide", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" }, profile: {} })
+    getAdminWallets.mockResolvedValue({ error: "Le service est momentanément indisponible. Réessayez dans un instant." })
+    const view = await render({})
+    expect(view.props.data).toBeNull()
+    expect(view.props.error).toMatch(/indisponible/)
+  })
+
+  it("la page n'importe aucun module Supabase ni ne cite le client service", () => {
+    const source = readFileSync(path.join(import.meta.dirname, "page.js"), "utf8")
+    expect(source).not.toMatch(/supabase|createServiceClient|lucide|className/)
   })
 })
