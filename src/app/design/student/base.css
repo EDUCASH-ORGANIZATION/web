@@ -228,6 +228,8 @@
 
 /* Mobile : en-tête de sous-page (retour + titre court). Masqué au bureau (la page porte alors son lien retour). */
 .e2-mtop { height: 60px; flex: none; display: none; align-items: center; gap: var(--s-2); margin: 0 0 0 calc(-1 * var(--s-2)); padding: 0; }
+/* En-tête de sous-page : remplace .mtop2 sous 1024 et reste en haut comme lui (RD-FIX-11) */
+.e2-mtop { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--c-givre); }
 .e2-mtop__spacer { width: 40px; height: 40px; flex: none; }
 .e2-mtop__title { flex: 1; min-width: 0; font-size: var(--t-body); font-weight: var(--fw-xbold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Mobile : barre d'action fixe (remplace la barre du bas sur les sous-pages, voir app-shell.css). Masquée au bureau. */
@@ -290,6 +292,7 @@
 
   /* Les contenus collants du bureau ne collent plus : une seule colonne */
   .e2 .e2-02-filters, .e2 .e2-03-aside, .e2 .e2-05-aside { position: static; }
+  .e2 .e2-02-filters, .e2 .e2-03-aside, .e2 .e2-05-aside { max-height: none; overflow: visible; }
 
   /* Cibles tactiles de 44 px (liens et pastilles isolés, boutons icône, fermeture des fenêtres) */
   .e2-back, .e2-link { min-height: 44px; }

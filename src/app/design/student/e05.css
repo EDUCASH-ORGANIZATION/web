@@ -6,7 +6,8 @@
 .e2-05-meta > span:not(.badge) { display: inline-flex; align-items: center; gap: 6px; }
 .e2-05-meta > span:not(.badge) .ic { width: 16px; height: 16px; stroke-width: 1.75; }
 .e2-05-min { min-width: 0; }
-.e2-05-aside { position: sticky; top: 0; }
+/* Collée sous la barre du haut collée de la coquille (--shell-sticky-top, app-shell.css) ; hauteur bornée à la fenêtre et défilement interne pour que le bas reste accessible */
+.e2-05-aside { position: sticky; top: var(--shell-sticky-top); max-height: calc(100vh - var(--shell-sticky-top) - var(--s-4)); max-height: calc(100dvh - var(--shell-sticky-top) - var(--s-4)); overflow-y: auto; overscroll-behavior: contain; }
 .e2-05-caption { font-size: var(--t-caption); color: var(--c-ardoise); line-height: 1.5; }
 .e2-05-actions { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
 .e2-05-client { display: flex; align-items: center; gap: 12px; }
