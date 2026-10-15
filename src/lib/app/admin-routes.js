@@ -28,13 +28,14 @@ export function adminHomeHref() {
   return "/admin/dashboard"
 }
 
-/** @param {{ onglet?: string, id?: string, q?: string, ecole?: string, page?: number|string }} [params] */
-export function adminVerificationsHref({ onglet, id, q, ecole, page } = {}) {
+/** @param {{ onglet?: string, id?: string, q?: string, ecole?: string, delai?: string, page?: number|string }} [params] */
+export function adminVerificationsHref({ onglet, id, q, ecole, delai, page } = {}) {
   return withQuery("/admin/verifications", [
     ["onglet", onglet === DEFAULT_VERIFICATION_TAB ? undefined : onglet],
     ["id", id],
     ["q", q],
     ["ecole", ecole],
+    ["delai", delai],
     ["page", pageParam(page)],
   ])
 }
