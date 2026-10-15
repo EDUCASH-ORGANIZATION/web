@@ -56,3 +56,19 @@ describe("MissionHeader étudiant", () => {
     expect(without).not.toContain("Publiée")
   })
 })
+
+// Cas limites complémentaires (RD-FIDELITE-01 ST-03, tester) : estimation décimale ou en chaîne.
+describe("badge « Avec achats » : estimations décimales", () => {
+  it.each([[1500.75], ["1500.75"], [0.5], ["2500.00"]])("présent pour %s (arrondi positif)", (purchasesEstimate) => {
+    expect(render(mission({ purchasesEstimate }))).toContain("Avec achats")
+  })
+
+  it.each([[0.4], ["0.2"], [0], [-1.5], ["abc"], [NaN], [true], [1e12]])("absent pour %s", (purchasesEstimate) => {
+    expect(render(mission({ purchasesEstimate }))).not.toContain("Avec achats")
+  })
+
+  it("un seul badge « Avec achats » même avec une estimation décimale", () => {
+    const html = render(mission({ purchasesEstimate: 1500.75 }))
+    expect(html.match(/Avec achats/g)).toHaveLength(1)
+  })
+})
