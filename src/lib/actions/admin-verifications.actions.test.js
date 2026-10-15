@@ -504,10 +504,47 @@ describe("resetStudentRejection", () => {
     const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
     expect(await resetStudentRejection(id, { reason: "Erreur de notre part" })).toEqual({ success: true })
     const entry = JSON.parse(console.info.mock.calls[0][1])
-    expect(entry.before).toEqual({ rejectionReason: "Photo floue ou illisible", fileRef: "carte.jpg" })
+    // `carte.jpg` n'est pas un nom généré par l'application : seule une référence courte et l'extension restent.
+    expect(entry.before).toEqual({ rejectionReason: "Photo floue ou illisible", fileRef: expect.stringMatching(/^fichier-[0-9a-f]{8}\.jpg$/) })
     expect(entry.after).toEqual({ rejectionReason: null })
     expect(JSON.stringify(entry.before)).not.toContain(id)
+    expect(JSON.stringify(entry.before)).not.toContain("carte")
     expect(JSON.stringify(entry)).not.toMatch(/card_url|cardUrl/)
+  })
+
+  it.each([
+    ["inscription", "card-3f2b8c1a-9d4e-4b7a-8c6f-1e2d3c4b5a69.jpg"],
+    ["renvoi depuis l'espace étudiant", "1760520000000-3f2b8c1a.png"],
+  ])("journal : un nom de fichier généré (%s) est gardé tel quel", async (_n, name) => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    state.studentProfiles.find((s) => s.user_id === id).card_url = `${id}/${name}`
+    expect(await resetStudentRejection(id, { reason: "Erreur de notre part" })).toEqual({ success: true })
+    expect(JSON.parse(console.info.mock.calls[0][1]).before.fileRef).toBe(name)
+  })
+
+  it("journal : un nom de fichier d'origine (donnée personnelle) n'est jamais écrit, seuls une référence et l'extension restent", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    state.studentProfiles.find((s) => s.user_id === id).card_url = `${id}/Jean_Dupont_carte.png`
+    expect(await resetStudentRejection(id, { reason: "Erreur de notre part" })).toEqual({ success: true })
+    const line = console.info.mock.calls[0][1]
+    const ref = JSON.parse(line).before.fileRef
+    expect(ref).toMatch(/^fichier-[0-9a-f]{8}\.png$/)
+    expect(line).not.toMatch(/Jean|Dupont|carte/i)
+    // Référence stable : le même nom donne la même référence (rapprochement possible avec le fichier orphelin).
+    console.info.mockClear()
+    const id2 = addStudent(2, { rejection_reason: "Photo floue ou illisible" })
+    state.studentProfiles.find((s) => s.user_id === id2).card_url = `${id2}/Jean_Dupont_carte.png`
+    expect(await resetStudentRejection(id2, { reason: "Erreur de notre part" })).toEqual({ success: true })
+    expect(JSON.parse(console.info.mock.calls[0][1]).before.fileRef).toBe(ref)
+  })
+
+  it("journal : nom sans extension lisible, seule la référence reste", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    state.studentProfiles.find((s) => s.user_id === id).card_url = `${id}/Jean_Dupont.carte-identite`
+    expect(await resetStudentRejection(id, { reason: "Erreur de notre part" })).toEqual({ success: true })
+    const line = console.info.mock.calls[0][1]
+    expect(JSON.parse(line).before.fileRef).toMatch(/^fichier-[0-9a-f]{8}$/)
+    expect(line).not.toMatch(/Jean|Dupont|carte/i)
   })
 
   it("D1 : le dossier passe en Incomplets (carte retirée) et le compteur À examiner n'augmente pas", async () => {
@@ -1000,9 +1037,14 @@ describe("resetStudentRejection : scenarios adverses (tester final RD-ADMIN-01)"
     expect(card.filters.every((f) => f(cardRow))).toBe(true)
     expect(card.filters.every((f) => f({ ...cardRow, card_url: `${id}/nouvelle.jpg` }))).toBe(false)
     expect(profile.table).toBe("profiles")
-    const base = { user_id: id, role: "student", rejection_reason: "x", verification_submitted_at: SUBMITTED }
+    const base = { user_id: id, role: "student", is_verified: false, rejection_reason: "x", verification_submitted_at: SUBMITTED }
     expect(profile.filters.every((f) => f(base))).toBe(true)
-    for (const bad of [{ rejection_reason: null }, { verification_submitted_at: "2026-10-15T10:00:00+00:00" }, { role: "client" }]) {
+    for (const bad of [
+      { rejection_reason: null },
+      { verification_submitted_at: "2026-10-15T10:00:00+00:00" },
+      { role: "client" },
+      { is_verified: true },
+    ]) {
       expect(profile.filters.every((f) => f({ ...base, ...bad }))).toBe(false)
     }
   })
@@ -1011,8 +1053,81 @@ describe("resetStudentRejection : scenarios adverses (tester final RD-ADMIN-01)"
     const id = addStudent(1, { rejection_reason: "x motif", verification_submitted_at: null })
     expect(await resetStudentRejection(id, { reason: "Motif valable" })).toEqual({ success: true })
     const profile = updates().find((q) => q.table === "profiles")
-    const base = { user_id: id, role: "student", rejection_reason: "x", verification_submitted_at: null }
+    const base = { user_id: id, role: "student", is_verified: false, rejection_reason: "x", verification_submitted_at: null }
     expect(profile.filters.every((f) => f(base))).toBe(true)
     expect(profile.filters.every((f) => f({ ...base, verification_submitted_at: SUBMITTED }))).toBe(false)
+    expect(profile.filters.every((f) => f({ ...base, is_verified: true }))).toBe(false)
+  })
+
+  it("défense en profondeur : un étudiant vérifié portant un motif (incohérence) garde son badge et son motif", async () => {
+    const id = addStudent(1, { rejection_reason: "x motif", is_verified: true, verified_until: "2027-10-15" })
+    const res = await resetStudentRejection(id, { reason: "Motif valable" })
+    expect(res.error).toMatch(/déjà été traité|a changé/)
+    expect(profileOf(id)).toMatchObject({ is_verified: true, rejection_reason: "x motif", verification_submitted_at: SUBMITTED })
+    expect(console.info).not.toHaveBeenCalled()
+  })
+
+  // Renvoi de carte pendant les relectures : le faux client intercepte la lecture de `student_profiles.card_url`
+  // (jamais l'écriture, qui relit `user_id`) et déclenche le renvoi juste avant ou juste après cette lecture.
+  const resubmitAroundCardRead = (id, when) => {
+    let done = false
+    createServiceClient.mockImplementation(() => {
+      const s = makeService()
+      return {
+        ...s,
+        from(table) {
+          const b = s.from(table)
+          if (table !== "student_profiles") return b
+          const select = b.select
+          b.select = (cols) => {
+            if (done || !String(cols).includes("card_url")) return select(cols)
+            done = true
+            if (when === "before") {
+              resubmit(id)
+              return select(cols)
+            }
+            const read = b.maybeSingle
+            b.maybeSingle = async () => {
+              const r = await read()
+              resubmit(id)
+              return r
+            }
+            return select(cols)
+          }
+          return b
+        },
+      }
+    })
+  }
+
+  it("concurrence : carte renvoyée entre les deux relectures (relecture du profil avant celle de card_url dans l'ancien ordre) : aucune écriture, nouvelle carte conservée", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    // Lectures parallèles : le profil était lu en premier (motif présent), puis card_url après le renvoi
+    // (nouvelle carte), et l'étape 2 effaçait la nouvelle carte. Lectures successives : card_url d'abord.
+    resubmitAroundCardRead(id, "before")
+    const res = await resetStudentRejection(id, { reason: "Erreur de notre part" })
+    expect(res.error).toMatch(/déjà été traité|a changé/)
+    expect(updates()).toHaveLength(0)
+    expect(state.studentProfiles.find((s) => s.user_id === id).card_url).toBe(`${id}/nouvelle.jpg`)
+    expect(profileOf(id)).toMatchObject({ rejection_reason: null, verification_submitted_at: "2026-10-15T10:00:00+00:00" })
+    expect(console.info).not.toHaveBeenCalled()
+  })
+
+  it("concurrence : carte renvoyée juste après la relecture de card_url, avant celle du profil : aucune écriture, nouvelle carte conservée", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    resubmitAroundCardRead(id, "after")
+    const res = await resetStudentRejection(id, { reason: "Erreur de notre part" })
+    expect(res.error).toMatch(/déjà été traité|a changé/)
+    expect(updates()).toHaveLength(0)
+    expect(state.studentProfiles.find((s) => s.user_id === id).card_url).toBe(`${id}/nouvelle.jpg`)
+    expect(profileOf(id)).toMatchObject({ rejection_reason: null, verification_submitted_at: "2026-10-15T10:00:00+00:00" })
+    expect(console.info).not.toHaveBeenCalled()
+  })
+
+  it("les relectures sont successives : card_url d'abord, le profil ensuite", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    await resetStudentRejection(id, { reason: "Erreur de notre part" })
+    const reads = state.queries.filter((q) => q.op === "select").map((q) => q.table)
+    expect(reads.slice(0, 2)).toEqual(["student_profiles", "profiles"])
   })
 })

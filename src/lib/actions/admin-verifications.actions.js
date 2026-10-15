@@ -1,5 +1,6 @@
 "use server"
 
+import { createHash } from "node:crypto"
 import { revalidatePath } from "next/cache"
 import { sendEmail } from "@/lib/email/index"
 import { todayInBenin } from "@/lib/vitrine/dates"
@@ -87,11 +88,29 @@ async function readDossier(service, userId) {
   }
 }
 
-/** Nom du fichier de carte seul (sans dossier ni identifiant de l'utilisateur), pour le journal. */
+// Noms de fichiers générés par l'application : `card-<uuid>.<ext>` (inscription) et `<horodatage>-<uuid8>.<ext>`
+// (renvoi depuis l'espace étudiant). Ils ne contiennent aucune donnée personnelle.
+const GENERATED_CARD_NAME = [
+  /^card-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,5}$/i,
+  /^\d{10,16}-[0-9a-f]{8}\.[a-z0-9]{1,5}$/i,
+]
+
+/**
+ * Référence du fichier de carte pour le journal, sans dossier ni identifiant de l'utilisateur. Règle : un nom généré
+ * par l'application (voir GENERATED_CARD_NAME) est gardé tel quel ; tout autre nom (un ancien `card_url` peut porter
+ * le nom d'origine du fichier, donc une donnée personnelle) est remplacé par `fichier-<8 premiers caractères du
+ * SHA-256 du nom>` suivi de l'extension si elle est lisible (1 à 5 lettres ou chiffres). Le nom d'origine n'est
+ * jamais écrit dans le journal.
+ */
 function fileRef(cardUrl) {
   if (typeof cardUrl !== "string" || cardUrl === "") return null
   const name = cardUrl.split(/[?#]/)[0].split("/").pop()
-  return name ? name.slice(0, 120) : null
+  if (!name) return null
+  if (GENERATED_CARD_NAME.some((re) => re.test(name))) return name
+  const dot = name.lastIndexOf(".")
+  const ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : ""
+  const short = createHash("sha256").update(name).digest("hex").slice(0, 8)
+  return /^[a-z0-9]{1,5}$/.test(ext) ? `fichier-${short}.${ext}` : `fichier-${short}`
 }
 
 /** Nom, établissement et adresse du destinataire de l'e-mail de décision (adresse lue côté serveur). */
@@ -294,19 +313,24 @@ export async function rejectStudentCard(userId, { reason, message, expectedSubmi
  * motif existe ; un compte suspendu n'est pas réinitialisé (comme pour la validation et le refus).
  *
  * Ordre et conditions (aucune écriture inconditionnelle) :
- * 1. relecture du profil (motif non nul, jeton `verification_submitted_at`) et du chemin de carte actuel ;
- * 2. effacement de la carte seulement si le chemin est toujours celui lu (exactement une ligne, sinon refus
+ * 1. relectures SUCCESSIVES (deux requêtes, donc deux instantanés) : d'abord le chemin de carte actuel (`old`),
+ *    PUIS le profil (motif non nul, jeton `verification_submitted_at`, compte non suspendu). L'ordre compte : le
+ *    renvoi d'une carte passe par `student_profiles_card_guard`, qui efface le motif dans la même transaction. Un
+ *    renvoi entre les deux lectures laisse donc un profil relu sans motif : refus sans aucune écriture. Des lectures
+ *    parallèles pourraient voir l'ancien motif et la nouvelle carte, et l'étape 2 effacerait la nouvelle carte ;
+ * 2. effacement de la carte seulement si le chemin est toujours `old` (exactement une ligne, sinon refus
  *    sans autre écriture) ; étape sautée s'il n'y a plus de carte ;
- * 3. effacement du motif seulement si le motif est toujours présent ET le jeton inchangé (exactement une ligne).
- * Une carte renvoyée entre 1 et 2 fait échouer l'étape 2 ; une carte renvoyée entre 2 et 3 déclenche
- * `student_profiles_card_guard`, qui efface le motif et date le dépôt : l'étape 3 ne trouve aucune ligne et la
- * nouvelle carte est conservée. Si l'étape 3 échoue, le dossier reste « Refusés » sans carte (côté étudiant :
- * carte refusée, aucune candidature possible, renvoi possible) et l'action peut être relancée.
+ * 3. effacement du motif seulement si le motif est toujours présent, le jeton inchangé et l'étudiant non vérifié
+ *    (exactement une ligne).
+ * Une carte renvoyée après les deux lectures et avant 2 fait échouer l'étape 2 (chemin différent de `old`) ; une
+ * carte renvoyée entre 2 et 3 efface le motif et date le dépôt : l'étape 3 ne trouve aucune ligne et la nouvelle
+ * carte est conservée. Si l'étape 3 échoue, le dossier reste « Refusés » sans carte (côté étudiant : carte
+ * refusée, aucune candidature possible, renvoi possible) et l'action peut être relancée.
  *
  * La garde SQL de production autorise `card_url` NULL (supabase/schema.sql, `student_profiles_card_guard` :
  * `if new.card_url is null then return new`, sans toucher au profil). La preuve du refus reste dans le journal `verification.reject`. Le fichier refusé
- * reste dans le bucket (orphelin accepté, aucune suppression) ; le journal `verification.reset` n'en garde que le
- * nom, sans l'identifiant de l'utilisateur.
+ * reste dans le bucket (orphelin accepté, aucune suppression) ; le journal `verification.reset` n'en garde qu'une
+ * référence (`fileRef`), sans l'identifiant de l'utilisateur ni un nom de fichier d'origine.
  * @param {string} userId
  * @param {{ reason?: string }} [input] motif de l'administrateur (journal seulement)
  * @returns {Promise<{ success: true } | { error: string }>}
@@ -321,18 +345,21 @@ export async function resetStudentRejection(userId, { reason } = {}) {
   const why = reasonSchema.safeParse(reason)
   if (!why.success) return { error: why.error.issues[0]?.message ?? "Motif invalide." }
   try {
-    // 1. Relecture : profil étudiant refusé et chemin de la carte refusée.
-    const [profileRes, cardRes] = await Promise.all([
-      service
-        .from("profiles")
-        .select("user_id, is_suspended, rejection_reason, verification_submitted_at")
-        .eq("user_id", id.data)
-        .eq("role", "student")
-        .maybeSingle(),
-      service.from("student_profiles").select("card_url").eq("user_id", id.data).maybeSingle(),
-    ])
-    if (profileRes.error || cardRes.error) {
-      console.error("[admin-verifications] reset-read:", (profileRes.error ?? cardRes.error).message)
+    // 1. Relectures successives, jamais en parallèle : le chemin de la carte d'abord, le profil ensuite. Une carte
+    // renvoyée entre les deux efface le motif (déclencheur) : le profil relu n'a plus de motif, refus sans écriture.
+    const cardRes = await service.from("student_profiles").select("card_url").eq("user_id", id.data).maybeSingle()
+    if (cardRes.error) {
+      console.error("[admin-verifications] reset-read:", cardRes.error.message)
+      return { error: ERR_WRITE }
+    }
+    const profileRes = await service
+      .from("profiles")
+      .select("user_id, is_suspended, rejection_reason, verification_submitted_at")
+      .eq("user_id", id.data)
+      .eq("role", "student")
+      .maybeSingle()
+    if (profileRes.error) {
+      console.error("[admin-verifications] reset-read:", profileRes.error.message)
       return { error: ERR_WRITE }
     }
     const profile = profileRes.data
@@ -357,13 +384,14 @@ export async function resetStudentRejection(userId, { reason } = {}) {
       if (!Array.isArray(data) || data.length !== 1) return { error: ERR_STATE }
     }
 
-    // 3. Le motif n'est effacé que si le dossier n'a pas changé depuis la relecture (même motif présent, même jeton).
+    // 3. Le motif n'est effacé que si le dossier n'a pas changé depuis la relecture (motif présent, même jeton) et
+    // si l'étudiant n'est pas vérifié (défense en profondeur : « motif non nul » ne l'assure que par convention).
     const written = await writeOne(
       service,
       id.data,
       { rejection_reason: null, verification_submitted_at: null },
       (q) => {
-        const c = q.not("rejection_reason", "is", null)
+        const c = q.not("rejection_reason", "is", null).eq("is_verified", false)
         return token === null ? c.is("verification_submitted_at", null) : c.eq("verification_submitted_at", token)
       },
       "reset",
