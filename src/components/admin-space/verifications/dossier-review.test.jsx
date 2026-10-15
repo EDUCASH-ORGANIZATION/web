@@ -103,6 +103,19 @@ describe("DossierReview", () => {
     expect(html).not.toContain("Noms concordants")
   })
 
+  it("À examiner, renouvellement : échéance du badge actuel au tableau (bureau) et dans la liste kv (mobile)", () => {
+    const html = render({ dossier: dossier({ tab: "a-examiner", kind: "renouvellement", verifiedUntil: "2026-10-30" }) })
+    const table = html.slice(html.indexOf('<table class="ad-compare'), html.indexOf("</table>"))
+    expect(table).toContain('<td data-label="Champ">Badge actuel</td><td colSpan="2" data-label="Échéance">jusqu&#x27;au <b>30 octobre 2026</b></td>')
+    const kv = html.slice(html.indexOf('<dl class="kv a2-02-mkv">'), html.indexOf("</dl>"))
+    expect(kv).toContain("<dt>Badge actuel jusqu&#x27;au</dt><dd>30 octobre 2026</dd>")
+  })
+
+  it("À examiner, première demande : aucune ligne de badge actuel", () => {
+    const html = render({ dossier: dossier({ tab: "a-examiner", kind: "premiere", verifiedUntil: null }) })
+    expect(html).not.toContain("Badge actuel")
+  })
+
   it("daysSinceExpiry et expiredTitle : 0, 1, N, date illisible", () => {
     expect(daysSinceExpiry("2026-10-15", "2026-10-15")).toBe(0)
     expect(daysSinceExpiry("2026-10-14", "2026-10-15")).toBe(1)

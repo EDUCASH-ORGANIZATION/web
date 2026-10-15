@@ -100,7 +100,7 @@ function NameVerdict({ verdict }) {
 /**
  * Colonne de revue d'un dossier, selon l'onglet (`dossier.tab`) :
  * - À examiner : carte, légende numérotée, nom lu sur la carte, tableau déclaré / saisi (bureau) ou liste « kv »
- *   (mobile) et liste de contrôle ;
+ *   (mobile) et liste de contrôle ; un renouvellement rappelle l'échéance du badge actuel (« Badge actuel jusqu'au ») ;
  * - Refusés : motif du refus ; Vérifiés : échéance du badge ; Expirés : durée depuis l'échéance ;
  * - Incomplets : carte manquante et explication.
  * Le nom saisi et les cases restent dans le navigateur : ils ne sont ni envoyés au serveur, ni enregistrés, ni placés
@@ -114,6 +114,8 @@ export function DossierReview({ dossier, today, showChecklist = false, children 
   const years = expectedAcademicYears(today)
   const verdict = compareNames(dossier.name, typed)
   const typedText = typed.trim()
+  // Renouvellement : le dossier à examiner a encore un badge ; son échéance actuelle est rappelée (bureau et mobile).
+  const currentUntil = dossier.verifiedUntil ? formatDateFr(dossier.verifiedUntil) : ""
 
   if (tab === "incomplets") {
     return (
@@ -203,6 +205,12 @@ export function DossierReview({ dossier, today, showChecklist = false, children 
                 <dd>{submitted}</dd>
               </>
             ) : null}
+            {currentUntil ? (
+              <>
+                <dt>Badge actuel jusqu&apos;au</dt>
+                <dd>{currentUntil}</dd>
+              </>
+            ) : null}
           </dl>
           <Legend years={years} />
         </div>
@@ -261,6 +269,14 @@ export function DossierReview({ dossier, today, showChecklist = false, children 
                 <td data-label="Champ">Année</td>
                 <td colSpan={2} data-label="Année attendue">
                   <b>{years.current}</b> <span className="caption">(année en cours)</span>
+                </td>
+              </tr>
+            ) : null}
+            {currentUntil ? (
+              <tr>
+                <td data-label="Champ">Badge actuel</td>
+                <td colSpan={2} data-label="Échéance">
+                  jusqu&apos;au <b>{currentUntil}</b>
                 </td>
               </tr>
             ) : null}
