@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { readdirSync, readFileSync, statSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
@@ -714,7 +714,6 @@ const SERVER_ALLOWLIST = [
   "lib/actions/admin-verifications.actions.js",
   "lib/actions/admin-dashboard.actions.js",
   "lib/actions/admin-users.actions.js",
-  "app/(admin)/admin/verifications/page.js",
 ]
 
 const SELECT_ARG = /\.select\(\s*(`[^`]*`|"[^"]*"|'[^']*')/g
@@ -768,6 +767,18 @@ describe("garde-fou colonnes privées de profiles", () => {
       { file: "lib/actions/profile.actions.js", source: 'x.from("profiles").select("phone, rejection_reason")' },
     ]
     expect(findPrivateColumnReads(files)).toEqual([])
+  })
+
+  it("chaque entrée de la liste blanche vise un fichier existant qui cite une colonne privée", () => {
+    for (const entry of SERVER_ALLOWLIST) {
+      const full = path.join(SRC, entry)
+      expect(existsSync(full), `${entry} : fichier introuvable`).toBe(true)
+      const source = readFileSync(full, "utf8")
+      expect(
+        PRIVATE_COLUMNS.some((c) => new RegExp(`\\b${c}\\b`).test(source)),
+        `${entry} : aucune colonne privée citée`,
+      ).toBe(true)
+    }
   })
 
   it("aucun module de src ne lit une colonne privée avec la session", () => {
