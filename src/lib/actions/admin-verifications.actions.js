@@ -36,6 +36,8 @@ const ERR_WRITE = "La décision n'a pas pu être enregistrée. Réessayez dans u
 const ERR_READ = "Les dossiers n'ont pas pu être chargés. Réessayez dans un instant."
 const ERR_TOKEN = "Ce dossier a changé. Rechargez la page."
 const ERR_SUSPENDED = "Ce compte est suspendu : sa carte ne peut pas être traitée. Réactivez le compte avant de décider."
+const ERR_SUSPENDED_RESET =
+  "Ce compte est suspendu : son refus ne peut pas être réinitialisé. Réactivez le compte avant de décider."
 const CARDS_BUCKET = "student-cards"
 
 const PROFILE_COLUMNS =
@@ -83,6 +85,13 @@ async function readDossier(service, userId) {
     school: cardRes.data?.school ?? null,
     cardPath: cardRes.data ? toOwnedStoragePath(cardRes.data.card_url, CARDS_BUCKET, userId) : null,
   }
+}
+
+/** Nom du fichier de carte seul (sans dossier ni identifiant de l'utilisateur), pour le journal. */
+function fileRef(cardUrl) {
+  if (typeof cardUrl !== "string" || cardUrl === "") return null
+  const name = cardUrl.split(/[?#]/)[0].split("/").pop()
+  return name ? name.slice(0, 120) : null
 }
 
 /** Nom, établissement et adresse du destinataire de l'e-mail de décision (adresse lue côté serveur). */
@@ -279,7 +288,23 @@ export async function rejectStudentCard(userId, { reason, message, expectedSubmi
 
 /**
  * Efface le motif d'un refus et retire la carte refusée : le dossier passe en « Incomplets » jusqu'à ce que
- * l'étudiant renvoie une carte (il ne revient jamais en « À examiner » avec l'ancienne carte). Seulement si un motif existe.
+ * l'étudiant renvoie une carte (il ne revient jamais en « À examiner » avec l'ancienne carte). Seulement si un
+ * motif existe ; un compte suspendu n'est pas réinitialisé (comme pour la validation et le refus).
+ *
+ * Ordre et conditions (aucune écriture inconditionnelle) :
+ * 1. relecture du profil (motif non nul, jeton `verification_submitted_at`) et du chemin de carte actuel ;
+ * 2. effacement de la carte seulement si le chemin est toujours celui lu (exactement une ligne, sinon refus
+ *    sans autre écriture) ; étape sautée s'il n'y a plus de carte ;
+ * 3. effacement du motif seulement si le motif est toujours présent ET le jeton inchangé (exactement une ligne).
+ * Une carte renvoyée entre 1 et 2 fait échouer l'étape 2 ; une carte renvoyée entre 2 et 3 déclenche
+ * `student_profiles_card_guard`, qui efface le motif et date le dépôt : l'étape 3 ne trouve aucune ligne et la
+ * nouvelle carte est conservée. Si l'étape 3 échoue, le dossier reste « Refusés » sans carte (côté étudiant :
+ * carte refusée, aucune candidature possible, renvoi possible) et l'action peut être relancée.
+ *
+ * La garde SQL de production autorise `card_url` NULL (supabase/schema.sql, `student_profiles_card_guard` :
+ * `if new.card_url is null then return new`, sans toucher au profil). La preuve du refus reste dans le journal `verification.reject`. Le fichier refusé
+ * reste dans le bucket (orphelin accepté, aucune suppression) ; le journal `verification.reset` n'en garde que le
+ * nom, sans l'identifiant de l'utilisateur.
  * @param {string} userId
  * @param {{ reason?: string }} [input] motif de l'administrateur (journal seulement)
  * @returns {Promise<{ success: true } | { error: string }>}
@@ -294,21 +319,63 @@ export async function resetStudentRejection(userId, { reason } = {}) {
   const why = reasonSchema.safeParse(reason)
   if (!why.success) return { error: why.error.issues[0]?.message ?? "Motif invalide." }
   try {
+    // 1. Relecture : profil étudiant refusé et chemin de la carte refusée.
+    const [profileRes, cardRes] = await Promise.all([
+      service
+        .from("profiles")
+        .select("user_id, is_suspended, rejection_reason, verification_submitted_at")
+        .eq("user_id", id.data)
+        .eq("role", "student")
+        .maybeSingle(),
+      service.from("student_profiles").select("card_url").eq("user_id", id.data).maybeSingle(),
+    ])
+    if (profileRes.error || cardRes.error) {
+      console.error("[admin-verifications] reset-read:", (profileRes.error ?? cardRes.error).message)
+      return { error: ERR_WRITE }
+    }
+    const profile = profileRes.data
+    if (!profile || profile.rejection_reason === null || profile.rejection_reason === undefined) return { error: ERR_STATE }
+    if (profile.is_suspended === true) return { error: ERR_SUSPENDED_RESET }
+    const motif = profile.rejection_reason
+    const token = profile.verification_submitted_at ?? null
+    const old = cardRes.data?.card_url ?? null
+
+    // 2. La carte n'est effacée que si elle est toujours celle qui a été refusée.
+    if (old !== null) {
+      const { data, error } = await service
+        .from("student_profiles")
+        .update({ card_url: null })
+        .eq("user_id", id.data)
+        .eq("card_url", old)
+        .select("user_id")
+      if (error) {
+        console.error("[admin-verifications] reset-card:", error.message)
+        return { error: ERR_WRITE }
+      }
+      if (!Array.isArray(data) || data.length !== 1) return { error: ERR_STATE }
+    }
+
+    // 3. Le motif n'est effacé que si le dossier n'a pas changé depuis la relecture (même motif présent, même jeton).
     const written = await writeOne(
       service,
       id.data,
       { rejection_reason: null, verification_submitted_at: null },
-      (q) => q.not("rejection_reason", "is", null),
+      (q) => {
+        const c = q.not("rejection_reason", "is", null)
+        return token === null ? c.is("verification_submitted_at", null) : c.eq("verification_submitted_at", token)
+      },
       "reset",
     )
     if (written.error) return { error: written.error }
-    // Après l'écriture conditionnelle seulement : une carte renvoyée entre-temps n'est jamais effacée.
-    const { error: cardError } = await service.from("student_profiles").update({ card_url: null }).eq("user_id", id.data)
-    if (cardError) {
-      console.error("[admin-verifications] reset-card:", cardError.message)
-      return { error: ERR_WRITE }
-    }
-    logAdminAction({ adminId: admin.userId, action: "verification.reset", targetId: id.data, reason: why.data })
+
+    logAdminAction({
+      adminId: admin.userId,
+      action: "verification.reset",
+      targetId: id.data,
+      before: { rejectionReason: motif, fileRef: fileRef(old) },
+      after: { rejectionReason: null },
+      reason: why.data,
+    })
     revalidateQueue()
     return { success: true }
   } catch (err) {

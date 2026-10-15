@@ -229,7 +229,8 @@ describe("contrôle admin de chaque action", () => {
     expect(await resetStudentRejection(id, { reason: "Motif valable" })).toMatchObject({ error: expect.any(String) })
     profileOf(id).rejection_reason = "Photo floue ou illisible"
     expect(await resetStudentRejection(id, { reason: "Motif valable" })).toEqual({ success: true })
-    expect(updates().filter((q) => q.table === "profiles")).toHaveLength(2)
+    // Le premier appel (aucun motif) est refusé à la relecture, sans écriture : seule la seconde réinitialisation écrit.
+    expect(updates().filter((q) => q.table === "profiles")).toHaveLength(1)
   })
 })
 
@@ -497,6 +498,16 @@ describe("resetStudentRejection", () => {
     expect(profileOf(id).rejection_reason).toBeNull()
     expect(sendEmail).not.toHaveBeenCalled()
     expect(JSON.parse(console.info.mock.calls[0][1])).toMatchObject({ action: "verification.reset", reason: "Erreur de notre part" })
+  })
+
+  it("journal : motif du refus effacé et nom du fichier seul, jamais le chemin ni l'identifiant dans fileRef", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    expect(await resetStudentRejection(id, { reason: "Erreur de notre part" })).toEqual({ success: true })
+    const entry = JSON.parse(console.info.mock.calls[0][1])
+    expect(entry.before).toEqual({ rejectionReason: "Photo floue ou illisible", fileRef: "carte.jpg" })
+    expect(entry.after).toEqual({ rejectionReason: null })
+    expect(JSON.stringify(entry.before)).not.toContain(id)
+    expect(JSON.stringify(entry)).not.toMatch(/card_url|cardUrl/)
   })
 
   it("D1 : le dossier passe en Incomplets (carte retirée) et le compteur À examiner n'augmente pas", async () => {
@@ -848,19 +859,6 @@ describe("resetStudentRejection : scenarios adverses (tester final RD-ADMIN-01)"
     createServiceClient.mockImplementation(() => makeService())
   })
 
-  const wrapService = (onStudentProfiles) => {
-    createServiceClient.mockImplementation(() => {
-      const real = makeService()
-      return {
-        ...real,
-        from(table) {
-          if (table === "student_profiles") onStudentProfiles()
-          return real.from(table)
-        },
-      }
-    })
-  }
-
   it("double appel : le second est refusé et n'efface pas une carte renvoyée entre-temps", async () => {
     const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
     expect(await resetStudentRejection(id, { reason: "Erreur de notre part" })).toEqual({ success: true })
@@ -879,44 +877,142 @@ describe("resetStudentRejection : scenarios adverses (tester final RD-ADMIN-01)"
     expect(profileOf(id).is_verified).toBe(true)
   })
 
-  it("échec de la 2e écriture : erreur renvoyée, pas de journal, dossier restant exploitable (carte conservée, non refusé)", async () => {
-    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
-    const real = state.studentProfiles
+  // Échec de la dernière écriture (profiles) : la carte refusée est déjà retirée, le motif reste.
+  const failProfilesUpdate = () => {
     createServiceClient.mockImplementation(() => {
       const s = makeService()
       return {
         ...s,
         from(table) {
           const b = s.from(table)
-          if (table !== "student_profiles") return b
-          return { ...b, update: () => ({ eq: () => Promise.resolve({ error: { message: "boom secret" } }) }) }
+          if (table !== "profiles") return b
+          const fail = {
+            eq: () => fail,
+            is: () => fail,
+            not: () => fail,
+            select: () => Promise.resolve({ data: null, error: { message: "boom secret" } }),
+          }
+          return { ...b, update: () => fail }
         },
       }
     })
+  }
+
+  it("échec de la dernière écriture : erreur, pas de journal, dossier « Refusés » sans carte (jamais « À examiner »), relance possible", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    failProfilesUpdate()
     const res = await resetStudentRejection(id, { reason: "Erreur de notre part" })
     expect(res.error).toBeTruthy()
     expect(res.error).not.toMatch(/boom|secret/)
     expect(console.info).not.toHaveBeenCalled()
-    expect(real.find((s) => s.user_id === id).card_url).toBe(`${id}/carte.jpg`)
-    expect(profileOf(id).rejection_reason).toBeNull()
-    // état intermédiaire : le dossier réapparaît dans À examiner (et non bloqué)
-    const q = await getVerificationQueue({ onglet: "a-examiner" })
+    expect(state.studentProfiles.find((s) => s.user_id === id).card_url).toBeNull()
+    expect(profileOf(id).rejection_reason).toBe("Photo floue ou illisible")
+    createServiceClient.mockImplementation(() => makeService())
+    const q = await getVerificationQueue({ onglet: "refuses" })
+    expect(q.counts["a-examiner"]).toBe(0)
+    expect(q.counts.refuses).toBe(1)
+    expect(q.rows.map((r) => r.userId)).toEqual([id])
+    // L'administrateur relance : la carte est déjà absente, seule l'écriture du profil reste à faire.
+    expect(await resetStudentRejection(id, { reason: "Erreur de notre part" })).toEqual({ success: true })
+    const after = await getVerificationQueue({ onglet: "incomplets" })
+    expect(after.counts).toMatchObject({ "a-examiner": 0, refuses: 0, incomplets: 1 })
+  })
+
+  it("échec de l'effacement de la carte : aucune écriture du profil, dossier toujours « Refusés » avec sa carte", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    state.updateError = { message: "boom secret" }
+    const res = await resetStudentRejection(id, { reason: "Erreur de notre part" })
+    expect(res.error).toBeTruthy()
+    expect(res.error).not.toMatch(/boom|secret/)
+    expect(updates().map((q) => q.table)).toEqual(["student_profiles"])
+    expect(profileOf(id).rejection_reason).toBe("Photo floue ou illisible")
+    expect(state.studentProfiles.find((s) => s.user_id === id).card_url).toBe(`${id}/carte.jpg`)
+    expect(console.info).not.toHaveBeenCalled()
+  })
+
+  it("un compte suspendu refusé n'est pas réinitialisé (comme la validation et le refus), aucune écriture", async () => {
+    const id = addStudent(1, { rejection_reason: "x motif", is_suspended: true })
+    const before = { ...profileOf(id) }
+    const res = await resetStudentRejection(id, { reason: "Motif valable" })
+    expect(res.error).toMatch(/suspendu/)
+    expect(res.error).toMatch(/Réactivez/)
+    expect(updates()).toHaveLength(0)
+    expect(profileOf(id)).toEqual(before)
+    expect(state.studentProfiles.find((s) => s.user_id === id).card_url).toBe(`${id}/carte.jpg`)
+  })
+
+  // Le renvoi d'une carte par l'étudiant passe par le déclencheur student_profiles_card_guard : nouvelle carte,
+  // motif effacé et dépôt daté. Le faux client le simule au moment choisi de la réinitialisation.
+  const resubmit = (id) => {
+    state.studentProfiles.find((s) => s.user_id === id).card_url = `${id}/nouvelle.jpg`
+    Object.assign(profileOf(id), { is_verified: false, rejection_reason: null, verification_submitted_at: "2026-10-15T10:00:00+00:00" })
+  }
+  const resubmitOnUpdate = (id, onTable) => {
+    createServiceClient.mockImplementation(() => {
+      const s = makeService()
+      return {
+        ...s,
+        from(table) {
+          const b = s.from(table)
+          if (table !== onTable) return b
+          const update = b.update
+          b.update = (values) => {
+            resubmit(id)
+            return update(values)
+          }
+          return b
+        },
+      }
+    })
+  }
+
+  it("concurrence : une carte renvoyée entre les deux écritures ne doit jamais être effacée", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    // Carte renvoyée après l'effacement de l'ancienne carte, juste avant l'écriture du profil.
+    resubmitOnUpdate(id, "profiles")
+    const res = await resetStudentRejection(id, { reason: "Erreur de notre part" })
+    expect(res.error).toMatch(/déjà été traité|a changé/)
+    expect(state.studentProfiles.find((s) => s.user_id === id).card_url).toBe(`${id}/nouvelle.jpg`)
+    expect(profileOf(id).verification_submitted_at).toBe("2026-10-15T10:00:00+00:00")
+    expect(console.info).not.toHaveBeenCalled()
+    createServiceClient.mockImplementation(() => makeService())
+    const q = await getVerificationQueue({})
     expect(q.counts["a-examiner"]).toBe(1)
   })
 
-  it("un compte suspendu refusé peut être réinitialisé (pas de garde de suspension, état documenté)", async () => {
-    const id = addStudent(1, { rejection_reason: "x motif", is_suspended: true })
-    expect(await resetStudentRejection(id, { reason: "Motif valable" })).toEqual({ success: true })
+  it("concurrence : une carte renvoyée entre la relecture et l'effacement de la carte n'est jamais effacée", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    resubmitOnUpdate(id, "student_profiles")
+    const res = await resetStudentRejection(id, { reason: "Erreur de notre part" })
+    expect(res.error).toMatch(/déjà été traité|a changé/)
+    expect(state.studentProfiles.find((s) => s.user_id === id).card_url).toBe(`${id}/nouvelle.jpg`)
+    expect(updates().filter((q) => q.table === "profiles")).toHaveLength(0)
+    expect(profileOf(id).verification_submitted_at).toBe("2026-10-15T10:00:00+00:00")
   })
 
-  // DEFAUT CONNU (IMPORTANT) : l'effacement de card_url n'est pas conditionnel ; une carte renvoyée entre les
-  // deux écritures est effacée. it.fails : passe tant que le défaut existe, échouera une fois corrigé (retirer .fails).
-  it.fails("concurrence : une carte renvoyée entre les deux écritures ne doit jamais être effacée", async () => {
+  it("l'effacement de la carte et du motif sont conditionnels (chemin lu, motif présent, jeton lu)", async () => {
     const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
-    wrapService(() => {
-      state.studentProfiles.find((s) => s.user_id === id).card_url = `${id}/nouvelle.jpg`
-    })
     await resetStudentRejection(id, { reason: "Erreur de notre part" })
-    expect(state.studentProfiles.find((s) => s.user_id === id).card_url).toBe(`${id}/nouvelle.jpg`)
+    const [card, profile] = updates()
+    expect(card.table).toBe("student_profiles")
+    expect(card.cols).toBe("user_id")
+    const cardRow = { user_id: id, card_url: `${id}/carte.jpg` }
+    expect(card.filters.every((f) => f(cardRow))).toBe(true)
+    expect(card.filters.every((f) => f({ ...cardRow, card_url: `${id}/nouvelle.jpg` }))).toBe(false)
+    expect(profile.table).toBe("profiles")
+    const base = { user_id: id, role: "student", rejection_reason: "x", verification_submitted_at: SUBMITTED }
+    expect(profile.filters.every((f) => f(base))).toBe(true)
+    for (const bad of [{ rejection_reason: null }, { verification_submitted_at: "2026-10-15T10:00:00+00:00" }, { role: "client" }]) {
+      expect(profile.filters.every((f) => f({ ...base, ...bad }))).toBe(false)
+    }
+  })
+
+  it("dossier refusé sans date de dépôt : jeton nul exigé à l'écriture", async () => {
+    const id = addStudent(1, { rejection_reason: "x motif", verification_submitted_at: null })
+    expect(await resetStudentRejection(id, { reason: "Motif valable" })).toEqual({ success: true })
+    const profile = updates().find((q) => q.table === "profiles")
+    const base = { user_id: id, role: "student", rejection_reason: "x", verification_submitted_at: null }
+    expect(profile.filters.every((f) => f(base))).toBe(true)
+    expect(profile.filters.every((f) => f({ ...base, verification_submitted_at: SUBMITTED }))).toBe(false)
   })
 })
