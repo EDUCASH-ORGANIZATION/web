@@ -142,7 +142,7 @@ function PurchasesToggle({ checked, error, onChange }) {
     <div className="wizard2__purchases">
       <CheckboxField
         label="Mission avec achats"
-        help="L'étudiant achète des articles pour vous, par exemple au marché ou en boutique."
+        help="L'étudiant fait des achats pour vous (marché, boutique) : vous payez le vendeur directement par MoMo."
         checked={checked}
         error={error}
         aria-controls={regionId}

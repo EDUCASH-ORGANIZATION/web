@@ -637,7 +637,11 @@ describe("mission avec achats", () => {
     expect(html).toMatch(/<input[^>]*type="checkbox"/)
     expect(html).toMatch(/<label[^>]*for="[^"]+"[^>]*class="check|<label[^>]*class="check[^"]*"[^>]*for=/)
     expect(text(html)).toContain("Mission avec achats")
-    expect(text(html)).toContain("L'étudiant achète des articles pour vous")
+    expect(text(html)).toContain(
+      "L'étudiant fait des achats pour vous (marché, boutique) : vous payez le vendeur directement par MoMo."
+    )
+    // L'aide ne laisse pas croire que l'étudiant avance l'argent des achats.
+    expect(text(html)).not.toMatch(/étudiant (achète|avance|paie)/)
     expect(html).not.toMatch(/<input[^>]*type="checkbox"[^>]*checked/)
   })
 
