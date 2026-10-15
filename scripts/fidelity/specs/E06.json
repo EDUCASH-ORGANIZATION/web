@@ -1,0 +1,364 @@
+{
+  "id": "E06",
+  "title": "Messages étudiant (liste des conversations)",
+  "planche": "etudiant/E06-messages.v2.html",
+  "screen": "e06",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        880
+      ],
+      "frame": "desk",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "ME-01",
+          "label": "grille liste + volet",
+          "board": ".e2-06-inbox",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "cols",
+            "gap"
+          ],
+          "lot": "",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : le titre de page descend de 3 px (interligne), tout ce qui suit descend d'autant (+3 mesuré)"
+        },
+        {
+          "id": "ME-02",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "fontSize",
+            "fontWeight",
+            "tw"
+          ],
+          "note": "contenu : la planche affiche « Jeudi 8 octobre · » avant le compteur, absent du code (écart de contenu, pas de police)"
+        },
+        {
+          "id": "ME-02",
+          "label": "titre de page",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "h",
+            "fontSize",
+            "tw"
+          ],
+          "assume": {
+            "h": "A3:3"
+          },
+          "note": "A3 : interligne du titre de page, hauteur +3 mesuré (40 -> 43)"
+        },
+        {
+          "id": "ME-04",
+          "label": "pastilles de filtre",
+          "board": ".e2-pills",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "gap"
+          ],
+          "assume": {
+            "y": "A3+X1:4"
+          },
+          "note": "A3 (+3) et 1 px non expliqué (X1), +4 mesuré"
+        },
+        {
+          "id": "ME-04",
+          "label": "pastille active",
+          "board": ".e2-pill.is-active",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "y": "A3+X1:4"
+          },
+          "note": "A3 (+3) et 1 px non expliqué (X1), +4 mesuré"
+        },
+        {
+          "id": "ME-04",
+          "label": "pastille « En cours »",
+          "board": ".e2-pills > :nth-child(3)",
+          "props": [
+            "x",
+            "w",
+            "h"
+          ],
+          "lot": "ST-04"
+        },
+        {
+          "id": "ME-06",
+          "label": "liste",
+          "board": ".e2-06-list",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "h": "A3:3",
+            "y": "A3:3"
+          },
+          "note": "A3 : +3 en y, hauteur -3 (même bas de liste)"
+        },
+        {
+          "id": "ME-06",
+          "label": "recherche",
+          "board": ".e2-06-list .search2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "y": "A3+X1:4"
+          },
+          "note": "A3 (+3) et 1 px non expliqué (X1), +4 mesuré"
+        },
+        {
+          "id": "ME-06",
+          "label": "ligne",
+          "board": ".e2-06-convo",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad",
+            "gap"
+          ],
+          "assume": {
+            "h": "A2:3",
+            "y": "A3+X1:4"
+          },
+          "note": "A3 (+3) et 1 px non expliqué (X1) en y (+4 mesuré) ; hauteur A2 : texte 13 px -> 14 px (+3)"
+        },
+        {
+          "id": "ME-06",
+          "label": "avatar",
+          "board": ".e2-06-convo .av2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "assume": {
+            "y": "A2+A3+X1:5"
+          },
+          "note": "cumul : A3 (+3), 1 px non expliqué (X1, +4 des pastilles) et A2 (ligne +3 de haut, avatar centré : +1) = +5 mesuré"
+        },
+        {
+          "id": "ME-06",
+          "label": "nom",
+          "board": ".e2-06-convo__name",
+          "props": [
+            "x",
+            "w",
+            "fontSize",
+            "fontWeight",
+            "tw"
+          ],
+          "assume": {
+            "w": "A2:3",
+            "tw": "A7:66"
+          },
+          "note": "A2 : largeur -3 (texte 13 -> 14 px) ; A7 : « Rosine H. » au lieu du nom complet de la planche (-66)"
+        },
+        {
+          "id": "ME-06",
+          "label": "aperçu",
+          "board": ".e2-06-convo__preview",
+          "props": [
+            "x",
+            "fontSize",
+            "fontWeight",
+            "tw"
+          ],
+          "assume": {
+            "tw": "A2:17"
+          },
+          "note": "A2 : texte 13 -> 14 px, largeur du texte +17 sur une ligne tronquée"
+        },
+        {
+          "id": "ME-06",
+          "label": "pastille non lue",
+          "board": ".e2-06-count",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ]
+        },
+        {
+          "id": "ME-07",
+          "label": "volet vide",
+          "board": ".e2-06-pane",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : le titre de page descend de 3 px (interligne), tout ce qui suit descend d'autant (+3 mesuré)"
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        844
+      ],
+      "frame": "phone",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "ME-19",
+          "label": "en-tête",
+          "board": ".head2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "assume": {
+            "y": "L3:12"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12)",
+          "lot": "ST-03"
+        },
+        {
+          "id": "ME-19",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "fontSize",
+            "tw"
+          ],
+          "assume": {
+            "y": "L3:12",
+            "tw": "A2:4"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; A2 : 13 -> 14 px (+4 de texte)",
+          "lot": "ST-03"
+        },
+        {
+          "id": "ME-19",
+          "label": "titre de page",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize",
+            "tw"
+          ],
+          "assume": {
+            "y": "L3+X1:13"
+          },
+          "note": "L3 (+12) et 1 px non expliqué (X1), +13 mesuré. Écart NON assumé : titre 30 px dans la planche, 26 px dans le code (fontSize -4, largeur -16, hauteur -2), visible en ÉCHEC",
+          "lot": "ST-03"
+        },
+        {
+          "id": "ME-19",
+          "label": "pastilles",
+          "board": ".e2-pills",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "gap",
+            "h"
+          ],
+          "assume": {
+            "h": "A5:8",
+            "y": "L3:12"
+          },
+          "note": "A5 : cible tactile 44 px (+8 de hauteur mesuré) ; L3 : coquille mobile (+12), compensée en partie par le titre de page plus petit (-4, voir la ligne titre), +8 mesuré au total",
+          "lot": "ST-03"
+        },
+        {
+          "id": "ME-19",
+          "label": "pastille active",
+          "board": ".e2-pill.is-active",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "h"
+          ],
+          "assume": {
+            "h": "A5:8",
+            "y": "L3:12"
+          },
+          "note": "A5 : cible tactile 44 px (+8 de hauteur mesuré) ; L3 : coquille mobile (+12), compensée en partie par le titre de page plus petit (-4, voir la ligne titre), +8 mesuré au total",
+          "lot": "ST-03"
+        },
+        {
+          "id": "ME-19",
+          "label": "ligne",
+          "board": ".e2-06-convo",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "pad",
+            "gap",
+            "h"
+          ],
+          "assume": {
+            "y": "L3:12",
+            "h": "A2:3"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; hauteur A2 (+3)",
+          "lot": "ST-03"
+        }
+      ]
+    }
+  ],
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)"
+}

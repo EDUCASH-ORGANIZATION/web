@@ -50,6 +50,13 @@ describe("MissionFollowupView (E05)", () => {
     expect(html).toContain("Quand c&#x27;est fini, prévenez le client dans la messagerie : il confirme la fin et votre part est versée sur votre portefeuille.")
   })
 
+  it("le sequestre reste le seul budget : l'estimation d'achats n'est jamais ajoutee", () => {
+    const html = render(detail("in_progress", {}, { budget: 8000, purchasesEstimate: 15000 }))
+    expect(html).toContain(formatFcfa(escrowSplit(8000).total))
+    expect(html).not.toContain(formatFcfa(23000))
+    expect(html).toContain("Achats estimés : environ")
+  })
+
   it("en cours, paiements ouverts : badge et phrase du sequestre", () => {
     const html = render(detail("in_progress"), paymentsOn)
     expect(html).toContain("En séquestre")
