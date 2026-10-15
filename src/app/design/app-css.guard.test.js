@@ -1994,6 +1994,64 @@ describe("admin : barre d'action fixe, en-tete de sous-page et coquille", () => 
     expect(ad02).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/)
   })
 
+  it("AD02 v1 fidele : onglet actif bleu, liste en lignes givre arrondies, ligne ouverte bordure encre et ombre dure", () => {
+    const ad02 = stripComments(read("admin/ad02.css"))
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.tab\.is-active \{ border-bottom-color: var\(--c-bleu\); \}/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.tab\.is-active \.count \{ background: var\(--c-bleu\); color: var\(--c-blanc\); \}/)
+    expect(ad02).toMatch(/\.a2-02-list \{[^}]*gap: var\(--s-2\)/)
+    expect(ad02).not.toMatch(/\.a2-02-list \{[^}]*(?:background|border)/)
+    expect(ad02).toMatch(/\.a2-02-row \{[^}]*background: var\(--c-givre\);[^}]*border: 2px solid transparent;[^}]*border-radius: 18px/)
+    expect(ad02).not.toMatch(/\.a2-02-row \+ \.a2-02-row/)
+    expect(ad02).toMatch(/\.a2-02-row\[aria-current="true"\] \{[^}]*border-color: var\(--c-encre\);[^}]*box-shadow: var\(--sh-dur-s\)/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.a2-02-row \.lrow__ic \{ background: var\(--c-blanc\); color: var\(--c-encre\); \}/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.search \{ width: 300px; max-width: 100%; \}/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.a2-02-sort \{ cursor: default; \}/)
+  })
+
+  it("AD02 v1 fidele : carte du dossier a bordure encre, visionneuse sur encre, cases bleues, Refuser a bordure erreur", () => {
+    const ad02 = stripComments(read("admin/ad02.css"))
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.a2-02-dossier \{ border: var\(--b-encre\); \}/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.ad-viewer \{ background: var\(--c-encre\); border: 0; \}/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.ad-viewer__tools \{ color: var\(--c-brume\); \}/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.ad-viewer__tools \.btn-icon \{ background: transparent; border-color: var\(--c-blanc\); color: var\(--c-blanc\); \}/)
+    expect(ad02).toMatch(/\.btn-icon:focus-visible \{[^}]*box-shadow: var\(--sh-focus-sombre\)/)
+    expect(ad02).toMatch(/\.btn-icon:disabled \{[^}]*color: var\(--c-brume\)/)
+    expect(ad02).toMatch(/\.a2-02-stage \{[^}]*background: var\(--c-encre-700\);[^}]*border: 0/)
+    expect(ad02).toMatch(/\.a2-02-viewer:fullscreen \{[^}]*background: var\(--c-encre\)/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.check input:checked, \.a2 \.a2-02 \.check\.is-checked input \{ background-color: var\(--c-bleu\); border-color: var\(--c-bleu\); \}/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.btn--danger-outline \{ border: 2px solid var\(--c-erreur\);/)
+    expect(ad02).not.toMatch(/\.btn--primary/)
+  })
+
+  it("AD02 v1 fidele : bannieres, etat vide menthe et modales avec icone, bordure encre et ombre du systeme", () => {
+    const ad02 = stripComments(read("admin/ad02.css"))
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.banner--erreur \{ background: var\(--c-erreur-bg\); border-color: var\(--c-erreur\); \}/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.banner--info \{ background: var\(--c-bleu-50\)/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.banner--alerte-doux \{ background: var\(--c-alerte-bg\)/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.empty__art \.ic-sq--menthe \{ background: var\(--c-menthe\); color: var\(--c-encre\); border: var\(--b-encre\);/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.modal__icon \{ display: inline-grid;/)
+    expect(ad02).not.toMatch(/\.modal__icon \{[^}]*display: none/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.modal \{ border: var\(--b-encre\); box-shadow: var\(--sh-dur-xl\);/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.modal--danger \{ border-color: var\(--c-erreur\); box-shadow: var\(--sh-dur-xl\); \}/)
+    expect(ad02).toMatch(/\.a2-02-missing \{/)
+    expect(ad02).toMatch(/\.a2-02-mkv \{/)
+  })
+
+  it("AD02 v1 fidele : sous 1024 le dossier ouvert est pleine largeur, sans avatar ni lien, titre de la taille ad-mtitle", () => {
+    const tablet = tabletOf(stripComments(read("admin/ad02.css")))
+    expect(tablet).toMatch(/\.a2 \.a2-02 \.a2-02-dossier \{ border: 0; background: transparent; padding: 0; \}/)
+    expect(tablet).toMatch(/\.a2 \.a2-02 \.a2-02-avatar, \.a2 \.a2-02 \.a2-02-dossier__status \.link \{ display: none; \}/)
+    expect(tablet).toMatch(/\.a2 \.a2-02 \.a2-02-dossier__name \{ font-size: var\(--t-h3\); font-weight: var\(--fw-xbold\); \}/)
+    expect(tablet).toMatch(/\.a2 \.a2-02 \.search \{ width: 100%; \}/)
+  })
+
+  it("AD02 v1 fidele : contrastes de la visionneuse sombre et des fonds v1 >= 4,5:1", () => {
+    const colors = parseColorTokens(read("tokens.css"))
+    for (const [fg, bg] of [["--c-brume", "--c-encre"], ["--c-blanc", "--c-encre-700"], ["--c-encre", "--c-lavande"], ["--c-encre", "--c-menthe"], ["--c-ardoise", "--c-givre"]]) {
+      expect(contrastRatio(colors[fg], colors[bg]), `${fg} sur ${bg}`).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
   it("couleurs semantiques : les anomalies restent en citron/erreur par tokens, jamais d'accent hors tokens", () => {
     const colors = parseColorTokens(read("tokens.css"))
     expect(contrastRatio(colors["--c-ardoise"], colors["--c-blanc"])).toBeGreaterThanOrEqual(4.5)
