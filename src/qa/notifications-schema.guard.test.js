@@ -43,9 +43,9 @@ describe("schéma de référence : table notifications", () => {
     expect(found).toEqual(EXPECTED_TYPES)
   })
 
-  it("la liste du CHECK reste alignée sur le catalogue du code quand il existe", async () => {
+  it("la liste du CHECK reste alignée sur le catalogue du code", async () => {
     const catalog = path.join(process.cwd(), "src/lib/notifications/catalog.js")
-    if (!existsSync(catalog)) return
+    expect(existsSync(catalog), "catalogue des notifications déplacé ou supprimé").toBe(true)
     const mod = await import("@/lib/notifications/catalog")
     expect([...mod.NOTIFICATION_TYPES].sort()).toEqual([...EXPECTED_TYPES].sort())
   })
