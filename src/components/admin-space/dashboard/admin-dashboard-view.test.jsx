@@ -73,7 +73,7 @@ const baseData = (over = {}) => ({
   now: NOW,
   today: "2026-10-15",
   alerts: { ok: true, total: 0, items: [] },
-  withdrawals: { ok: true, items: [] },
+  withdrawals: { ok: true, total: 0, items: [] },
   dossiers: { ok: true, total: 0, dossiers: [] },
   escrow: { ok: true, total: 185000, fundedMissions: 14 },
   commissions: { ok: true, month: "2026-10", total: 48300 },
@@ -101,7 +101,7 @@ describe("AdminDashboardView : avec alerte d'argent", () => {
         { reason: "reserved-over-balance", userId: ID2, name: "Sèna Agossou", balance: 1000, reserved: 8000, gap: 7000 },
       ],
     },
-    withdrawals: { ok: true, items: [{ id: "w1", userId: ID3, name: "Koffi Dossou", amount: 15000, createdAt: "2026-10-14T08:00:00Z" }] },
+    withdrawals: { ok: true, total: 1, items: [{ id: "w1", userId: ID3, name: "Koffi Dossou", amount: 15000, createdAt: "2026-10-14T08:00:00Z" }] },
     dossiers: { ok: true, total: 4, dossiers: [dossier(ID1, "Codjo Ahouansou"), dossier(ID2, "Nadège Kpadonou", "2026-10-14T10:00:00Z")] },
   })
   const html = render({ data })

@@ -54,21 +54,34 @@ async function walletAlerts(service) {
 }
 
 // Retrait débité sans virement créé : `fedapay_id` est écrit par `process-withdrawal` après la création du virement ;
-// absent depuis plus de 24 h, le portefeuille a été débité sans que le virement parte.
+// absent depuis plus de 24 h, le portefeuille a été débité sans que le virement parte. Un retrait déjà recrédité
+// (une ligne `reverses_id` pointe vers lui, cf. `wallet_withdraw_reverse`) n'est plus bloqué : il est écarté.
+// Total exact, les WITHDRAWAL_LIMIT plus anciens renvoyés.
 async function stuckWithdrawals(service, now) {
   const cutoff = new Date(now.getTime() - WITHDRAWAL_STUCK_HOURS * HOUR_MS).toISOString()
-  const { data, error } = await service
-    .from("wallet_transactions")
-    .select("id, user_id, amount, created_at")
-    .eq("type", "withdrawal")
-    .is("fedapay_id", null)
-    .lt("created_at", cutoff)
-    .order("created_at", { ascending: true })
-    .limit(WITHDRAWAL_LIMIT)
-  if (error) throw new Error("Lecture impossible.")
-  const rows = data ?? []
+  const candidates = await readAllRows(
+    () =>
+      service
+        .from("wallet_transactions")
+        .select("id, user_id, amount, created_at")
+        .eq("type", "withdrawal")
+        .is("fedapay_id", null)
+        .lt("created_at", cutoff)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true }),
+    "retraits bloqués",
+  )
+  const reversed = new Set()
+  for (const chunk of inChunks(candidates.map((r) => r.id))) {
+    const { data, error } = await service.from("wallet_transactions").select("reverses_id").in("reverses_id", chunk)
+    if (error) throw new Error("Lecture impossible.")
+    for (const row of data ?? []) reversed.add(row.reverses_id)
+  }
+  const open = candidates.filter((r) => !reversed.has(r.id))
+  const rows = open.slice(0, WITHDRAWAL_LIMIT)
   const names = await readNames(service, rows.map((r) => r.user_id))
   return {
+    total: open.length,
     items: rows.map((r) => ({
       id: r.id,
       userId: r.user_id,
@@ -164,11 +177,12 @@ async function latestSignups(service) {
 /**
  * Données du tableau de bord admin. Chaque bloc est indépendant : un bloc en erreur vaut `{ ok: false }` et
  * n'empêche pas les autres. Aucune donnée privée (ni téléphone, ni e-mail, ni carte). Les éléments de la file
- * (alertes, retraits, dossiers) se combinent avec `buildQueue` côté vue, `dossiers.total` donnant le total exact.
+ * (alertes, retraits, dossiers) se combinent avec `buildQueue` côté vue, les `total` donnant les totaux exacts
+ * au-delà des 50 alertes et 50 retraits listés.
  * @returns {Promise<{ error: string } | {
  *   now: string, today: string,
  *   alerts: { ok: boolean, total?: number, items?: object[] },
- *   withdrawals: { ok: boolean, items?: object[] },
+ *   withdrawals: { ok: boolean, total?: number, items?: object[] },
  *   dossiers: { ok: boolean, total?: number, dossiers?: object[] },
  *   escrow: { ok: boolean, total?: number, fundedMissions?: number | null },
  *   commissions: { ok: boolean, month?: string, total?: number },
@@ -193,7 +207,7 @@ export async function getAdminDashboard() {
   ])
 
   const queueEmpty =
-    alerts.ok && alerts.total === 0 && withdrawals.ok && withdrawals.items.length === 0 && dossiers.ok && dossiers.total === 0
+    alerts.ok && alerts.total === 0 && withdrawals.ok && withdrawals.total === 0 && dossiers.ok && dossiers.total === 0
   const recent = queueEmpty ? await block("inscrits", () => latestSignups(service)) : null
 
   return {

@@ -96,13 +96,27 @@ describe("QA getAdminDashboard", () => {
     expect(d.withdrawals.items.map((i) => i.id)).toEqual(["b"])
     expect(d.withdrawals.items[0].amount).toBe(6000)
   })
-  it("LIMITE CONNUE : un retrait déjà recrédité (reverses_id) sans référence reste signalé comme bloqué", async () => {
+  it("un retrait déjà recrédité (reverses_id) n'est plus signalé comme bloqué, un retrait non recrédité l'est", async () => {
     state.tables.wallet_transactions = [
       { id: "orig", type: "withdrawal", user_id: uid(1), amount: -5000, fedapay_id: null, created_at: "2026-10-01T10:00:00Z" },
       { id: "rev", type: "refund", user_id: uid(1), amount: 5000, reverses_id: "orig", fedapay_id: null, created_at: "2026-10-01T11:00:00Z" },
+      { id: "open", type: "withdrawal", user_id: uid(2), amount: -3000, fedapay_id: null, created_at: "2026-10-02T10:00:00Z" },
     ]
     const d = await getAdminDashboard()
-    expect(d.withdrawals.items.map((i) => i.id)).toEqual(["orig"])
+    expect(d.withdrawals.items.map((i) => i.id)).toEqual(["open"])
+    expect(d.withdrawals.total).toBe(1)
+  })
+  it("120 retraits bloqués : total exact, liste bornée à 50, les plus anciens d'abord, recrédités exclus du total", async () => {
+    const day = (n) => new Date(Date.parse("2026-09-01T00:00:00Z") + n * 3600e3).toISOString()
+    const withdrawals = Array.from({ length: 120 }, (_, i) => ({
+      id: `w${String(i).padStart(3, "0")}`, type: "withdrawal", user_id: uid(i + 1), amount: -1000, fedapay_id: null, created_at: day(i),
+    }))
+    const reversals = [0, 1, 2, 3, 4].map((i) => ({ id: `r${i}`, type: "refund", amount: 1000, reverses_id: `w00${i}`, created_at: day(500 + i) }))
+    state.tables.wallet_transactions = [...withdrawals, ...reversals]
+    const d = await getAdminDashboard()
+    expect(d.withdrawals.total).toBe(115)
+    expect(d.withdrawals.items).toHaveLength(50)
+    expect(d.withdrawals.items[0].id).toBe("w005")
   })
   it("réponse sans téléphone, e-mail, jeton ni carte", async () => {
     state.tables.wallets = [{ user_id: uid(1), balance: -5, reserved: 0 }]

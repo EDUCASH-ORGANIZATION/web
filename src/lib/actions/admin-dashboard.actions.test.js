@@ -222,6 +222,7 @@ describe("getAdminDashboard", () => {
     const res = await getAdminDashboard()
     expect(res.withdrawals).toEqual({
       ok: true,
+      total: 1,
       items: [{ id: "w1", userId: uid(1), name: "Client Un", amount: 5000, createdAt: "2026-10-13T10:00:00+00:00" }],
     })
   })

@@ -87,7 +87,7 @@ export function describeItem(item, now) {
 
 /**
  * Modèle de l'écran : file à traiter (alertes d'argent, retraits, dossiers), totaux exacts fournis par le serveur
- * (`alerts.total`, `dossiers.total`), blocs en erreur.
+ * (`alerts.total`, `withdrawals.total`, `dossiers.total`), blocs en erreur.
  */
 export function buildDashboardModel(data) {
   const now = new Date(data.now)
@@ -100,7 +100,7 @@ export function buildDashboardModel(data) {
     },
     now,
   )
-  const moneyCount = (alerts.ok ? alerts.total : 0) + (withdrawals.ok ? withdrawals.items.length : 0)
+  const moneyCount = (alerts.ok ? alerts.total : 0) + (withdrawals.ok ? withdrawals.total : 0)
   const dossierCount = dossiers.ok ? dossiers.total : 0
   const blocks = { alerts, withdrawals, dossiers, escrow: data.escrow, commissions: data.commissions, missions: data.missions }
   const failed = Object.entries(blocks).filter(([, block]) => !block.ok).map(([key]) => key)

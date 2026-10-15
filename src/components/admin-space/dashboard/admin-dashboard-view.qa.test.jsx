@@ -11,7 +11,7 @@ const base = (over = {}) => ({
   now: NOW,
   today: "2026-10-15",
   alerts: ok({ items: [], total: 0 }),
-  withdrawals: ok({ items: [] }),
+  withdrawals: ok({ total: 0, items: [] }),
   dossiers: ok({ dossiers: [], total: 0 }),
   escrow: ok({ total: 125000, fundedMissions: 3 }),
   commissions: ok({ month: "2026-10", total: 4800 }),
@@ -77,7 +77,7 @@ describe("QA AdminDashboardView", () => {
     const out = html({
       data: base({
         alerts: ok({ items: [{ reason: "reserved-over-balance", userId: "u1", name: "Koffi", balance: 10, reserved: 90, gap: 80 }], total: 1 }),
-        withdrawals: ok({ items: [{ id: "w1", userId: "u2", name: "Awa", amount: 5000, createdAt: "2026-10-10T00:00:00Z" }] }),
+        withdrawals: ok({ total: 1, items: [{ id: "w1", userId: "u2", name: "Awa", amount: 5000, createdAt: "2026-10-10T00:00:00Z" }] }),
         dossiers: ok({ dossiers: [dossier(1)], total: 1 }),
       }),
       firstName: "Awa",
