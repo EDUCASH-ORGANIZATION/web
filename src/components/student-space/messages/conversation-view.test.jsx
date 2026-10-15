@@ -44,6 +44,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs())
 
 const h1Count = (html) => (html.match(/<h1[\s>]/g) ?? []).length
+const h2Count = (html) => (html.match(/<h2[\s>]/g) ?? []).length
 
 const msg = (over) => ({
   id: "m1",
@@ -75,27 +76,30 @@ const view = (over) => renderToStaticMarkup(<StudentConversationView conversatio
 describe("StudentConversationView : conversation vide, candidature en cours", () => {
   const html = view()
 
-  it("affiche l'en-tête (retour, nom du client, mission), un seul h1 et l'invitation à écrire", () => {
-    expect(html).toContain('<h1 class="e2-07-name">Rosine H.</h1>')
+  it("affiche l'en-tête (retour, nom du client en h2, mission), aucun h1 et l'invitation à écrire", () => {
+    expect(html).toContain('<h2 class="e2-who__name e2-07-name">Rosine H.</h2>')
     expect(html).toContain("Cours de maths niveau 3e")
     expect(html).toContain('href="/messages"')
     expect(html).toContain('aria-label="Retour aux messages"')
     expect(html).toContain("Aucun message pour l&#x27;instant. Écrivez à Rosine H. pour démarrer la discussion.")
-    expect(h1Count(html)).toBe(1)
+    expect(h1Count(html)).toBe(0)
+    expect(h2Count(html)).toBe(1)
   })
 
-  it("montre le bandeau « Voir la mission » vers la mission", () => {
-    expect(html).toContain("Candidature en attente de la réponse du client")
-    expect(html).toContain(`href="/student/missions/${M1}"`)
-    expect(html).toContain("Voir la mission")
+  it("place « Voir la mission » dans l'en-tête, pas dans le bandeau", () => {
+    const head = html.slice(html.indexOf("<header"), html.indexOf("</header>"))
+    const banner = html.slice(html.indexOf('class="e2-07-status"'), html.indexOf('class="chat e2-07-chat"'))
+    expect(head).toContain(`href="/student/missions/${M1}"`)
+    expect(head).toContain("Voir la mission")
+    expect(banner).toContain("Candidature en attente de la réponse du client")
+    expect(banner).not.toContain("Voir la mission")
   })
 
   it("propose un compositeur vouvoyé avec image, message vocal et position", () => {
-    expect(html).toContain("Écrivez un message...")
+    expect(html).toContain("Écrivez un message…")
     expect(html).toContain('aria-label="Joindre une image"')
     expect(html).toContain('aria-label="Enregistrer un message vocal"')
     expect(html).toContain('aria-label="Partager une position"')
-    expect(html).toContain('aria-label="Envoyer"')
     expect(html).toMatch(/maxLength="2000"/i)
   })
 
@@ -177,6 +181,45 @@ describe("StudentConversationView : mission en cours", () => {
     expect(html).toContain('class="chat__day"')
     expect(html).toContain("Aujourd&#x27;hui")
     expect(html).toContain("10:00")
+  })
+})
+
+describe("StudentConversationView : bandeau de mission avec montants", () => {
+  const mission = (over) => ({ title: "Courses du mois", status: "in_progress", budget: 8000, net: 7040, purchasesEstimate: 7450, ...over })
+  const banner = (html) => html.slice(html.indexOf('class="e2-07-status"'), html.indexOf('class="chat e2-07-chat"'))
+  const withState = (over, paymentsEnabled) =>
+    renderToStaticMarkup(
+      <StudentConversationView
+        conversation={conversation({ state: "in_progress", mission: mission(over) })}
+        now={NOW}
+        paymentsEnabled={paymentsEnabled}
+      />,
+    )
+
+  it("affiche « Avec achats », le service en séquestre, le net touché et la règle des achats", () => {
+    const text = banner(withState({}, true)).replace(/<[^>]+>/g, "").replace(/\u202f|\u00a0/g, " ")
+    expect(banner(withState({}, true))).toContain("Avec achats")
+    expect(text).toContain("Service : 8 000 FCFA en séquestre · vous touchez 7 040 FCFA · les achats se paient hors EduCash")
+    expect(text).toContain("8 000 FCFA en séquestre")
+  })
+
+  it("sans estimation : pas de badge ni de règle des achats", () => {
+    const html = banner(withState({ purchasesEstimate: null }, true))
+    expect(html).not.toContain("Avec achats")
+    expect(html).not.toContain("hors EduCash")
+    expect(html.replace(/\u202f|\u00a0/g, " ")).toContain("vous touchez")
+  })
+
+  it("paiements fermés : montants indicatifs, aucune promesse de séquestre", () => {
+    const text = banner(withState({}, false)).replace(/<[^>]+>/g, "").replace(/\u202f|\u00a0/g, " ")
+    expect(text).toContain("Service : 8 000 FCFA · vous touchez 7 040 FCFA (montants indicatifs)")
+    expect(text).not.toContain("séquestre")
+  })
+
+  it("sans budget ou sans net : texte d'état seul, aucun montant", () => {
+    const html = banner(withState({ budget: null, net: null }, true))
+    expect(html).toContain("Mission en cours. Prévenez le client par message quand c&#x27;est terminé.")
+    expect(html).not.toContain("FCFA")
   })
 })
 
@@ -297,7 +340,9 @@ describe("StatusBanner", () => {
 describe("Composer et dialogues", () => {
   it("désactive l'envoi tant que le champ est vide et borne la longueur et le type de fichier", () => {
     const html = renderToStaticMarkup(<Composer onSend={vi.fn()} />)
-    expect(html).toMatch(/<button type="submit" class="composer__send" aria-label="Envoyer" disabled/)
+    // Au repos, le micro occupe la place de l'envoi (il est remplacé dès qu'il y a du texte, voir composer.test.jsx).
+    expect(html).not.toContain('type="submit"')
+    expect(html).toContain('aria-label="Enregistrer un message vocal"')
     expect(html).toMatch(/maxLength="2000"|maxlength="2000"/i)
     expect(html).toContain('accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"')
   })
@@ -447,5 +492,31 @@ describe("structure et sécurité", () => {
     expect(page).not.toMatch(/<Suspense[\s>]/)
     expect(page).not.toContain("searchParams")
     expect(page).toContain("getStudentConversation({ missionId })")
+  })
+})
+
+describe("e07.css : saisie et bandeau (règles statiques)", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/design/student/e07.css"), "utf8")
+  const tablet = css.slice(css.indexOf("@media (max-width: 1023.98px)"))
+
+  it("la saisie ne passe jamais à la ligne (aucun flex-wrap sous 480 px)", () => {
+    expect(css).not.toMatch(/\.e2-07-composer \{[^}]*flex-wrap: wrap/)
+    expect(css).not.toMatch(/\.e2-07-composer \.composer__tools \{[^}]*flex: 1 1 100%/)
+  })
+
+  it("outils de 40 px au bureau, 44 px sous 1024", () => {
+    expect(css).toContain(".e2-07-composer .iconbtn2, .e2-07-composer .composer__send { width: 40px; height: 40px; }")
+    expect(tablet).toContain(".e2-07-composer .iconbtn2, .e2-07-composer .composer__send { width: 44px; height: 44px; }")
+  })
+
+  it("bandeau sur une ligne sous 1024 et volet pleine largeur sans rayon", () => {
+    expect(tablet).toContain(".e2-07-status { flex-wrap: nowrap; }")
+    expect(tablet).toMatch(/\.e2-07-pane \{[^}]*border-radius: 0;/)
+    expect(tablet).toMatch(/\.e2-07-pane \{[^}]*margin-inline: calc\(-1 \* var\(--s-4\)\)/)
+  })
+
+  it("le retour n'existe que sous 1024", () => {
+    expect(css.slice(0, css.indexOf("@media"))).toMatch(/\.e2-07-back[^{]*\{ display: none; \}/)
+    expect(tablet).toMatch(/\.e2-07-back[^{]*\{ display: inline-grid; \}/)
   })
 })

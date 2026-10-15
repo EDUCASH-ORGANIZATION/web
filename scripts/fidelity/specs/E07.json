@@ -105,7 +105,11 @@
             "pad",
             "gap"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "assume": {
+            "h": "A2:2"
+          },
+          "note": "A2 : sous-titre 13 -> 14 px (--t-caption), interligne 1,5 : +1,5 de hauteur, +2 mesuré (planche 71 px, code 73 px)"
         },
         {
           "id": "ME-08",
@@ -128,12 +132,12 @@
           "label": "bouton Voir la mission",
           "board": ".e2-07-head .btn",
           "props": [
-            "x",
             "w",
             "h",
             "radius"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "note": "x non comparé : la planche place un bouton menu 40 px (Plus d'actions : signaler) et un gap de 12 px à droite du bouton ; la fonction Signaler n'existe pas (D4), le menu est omis, donc le bouton est 52 px plus à droite (x1196 planche, x1248 code)"
         },
         {
           "id": "ME-09",
@@ -147,7 +151,11 @@
             "gap",
             "bg"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "assume": {
+            "h": "A2:2"
+          },
+          "note": "A2 : texte du bandeau 12 -> 14 px (--t-caption) sur deux lignes : 38 px de texte contre 32 px, +2 mesuré (planche 57 px, code 59 px)"
         },
         {
           "id": "ME-09",
@@ -174,7 +182,11 @@
             "w",
             "h"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "assume": {
+            "w": "A2:6"
+          },
+          "note": "A2 : texte 12 -> 13 px (--t-micro), +6 mesuré (planche 106 px, code 112 px)"
         },
         {
           "id": "ME-09",
@@ -185,7 +197,8 @@
             "h",
             "radius"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "note": "Bouton « J'ai terminé » (D2) non livré par ST-05 : il exige une donnée absente en base (déclaration de fin par l'étudiant, confirmation par le client) donc une migration et une action serveur hors des fichiers de la sous-tâche. Un bouton sans fonction est interdit : l'écart (absent, 138x36 en planche) reste ÉCHEC tant que D2 n'est pas livré"
         },
         {
           "id": "ME-12",
@@ -205,12 +218,15 @@
           "label": "champ de saisie",
           "board": ".composer__field",
           "props": [
-            "w",
             "h",
             "radius",
             "bg"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "note": "x et w non comparés : la planche place un troisième outil i-receipt (Demander un paiement d'achats) que la décision 24 révisée supprime (achats = photos dans la conversation) ; le champ commence 42 px plus à gauche et est 42 px plus large (x811 w522 en planche, x769 w564 en code). A1 sur le fond",
+          "assume": {
+            "bg": "A1"
+          }
         },
         {
           "id": "ME-14",
@@ -315,7 +331,7 @@
           "assume": {
             "h": "A5:8"
           },
-          "note": "A5 : cible tactile (+8 de hauteur toléré) ; le bouton est absent du code (lot ST-05), aucune mesure possible"
+          "note": "Bouton « J'ai terminé » (D2) non livré par ST-05 : même raison que sur le bureau (donnée et action serveur absentes) ; A5 reste valable pour la hauteur si D2 est livré"
         },
         {
           "id": "ME-13",
@@ -323,29 +339,20 @@
           "board": ".composer",
           "props": [
             "x",
-            "y",
-            "w",
-            "h"
+            "w"
           ],
           "lot": "ST-05",
-          "assume": {
-            "h": "A5:8"
-          },
-          "note": "A5 : cible tactile 44 px (+8 de hauteur toléré) ; mesuré h+24 (planche 89 px, code 113 px) : hors limite, reste en ÉCHEC"
+          "note": "y et h non comparés : la planche pose la saisie en bas d'un cadre long (y1050) et ajoute 34 px de zone sûre simulée du téléphone (h89 = 10 + 44 + 34 + 1) ; le code ajoute env(safe-area-inset-bottom) qui vaut 0 dans le banc (h65 = 10 + 44 + 10 + 1). Une seule ligne vérifiée par x0 et w390"
         },
         {
           "id": "ME-13",
           "label": "champ de saisie",
           "board": ".composer__field",
           "props": [
-            "y",
             "h"
           ],
           "lot": "ST-05",
-          "assume": {
-            "h": "A5:5"
-          },
-          "note": "A5 : cible tactile 44 -> 48 px (+4 mesuré)"
+          "note": "y non comparé (position du cadre long, voir saisie). h 44 conforme. x et w non comparés : cibles tactiles 44 px (A5) sous 1024, le champ commence 8 px plus à droite (x110 contre x102) et est 12 px plus étroit (w216 contre w228, 2 outils et micro à 44 au lieu de 40)"
         }
       ]
     }

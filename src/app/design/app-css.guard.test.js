@@ -1458,22 +1458,22 @@ describe("E01 et E02 : champ de recherche mobile blanc au repos, sous-lignes san
 })
 
 describe("E06 et E07 : exception documentee aux composants du systeme (fond, bordure, ombre)", () => {
-  // Exception limitee a ces trois regles, meme precedent que le client (client/c13.css sous .c2) : elles modifient
+  // Exception limitee a ces deux regles, meme precedent que le client (client/c13.css sous .c2) : elles modifient
   // le fond, la bordure ou l'ombre d'un composant du systeme parce que le rendu par defaut est inutilisable ici.
   // - .e2-06-search : le champ givre de .shell--v2 .search2 est invisible sur le fond givre de la liste mobile ;
-  // - .composer__field:focus-within : le champ de saisie doit montrer son focus (filet bleu et anneau) ;
-  // - .composer__send:disabled : le bouton desactive restait encre, donc paraissait actif.
+  // - .composer__field:focus-within : le champ de saisie doit montrer son focus (filet bleu et anneau).
+  // Le bouton d'envoi n'est plus desactive : il remplace le micro des que le champ contient du texte (RD-FIDELITE-01).
   // Toute autre regle de ce type dans e06.css ou e07.css reste a justifier : ne pas elargir cette liste.
   const e06 = stripComments(read("student/e06.css"))
   const e07 = stripComments(read("student/e07.css"))
 
-  it("garde les trois regles necessaires, portees sur des classes de l'espace etudiant", () => {
+  it("garde les deux regles necessaires, portees sur des classes de l'espace etudiant", () => {
     expect(e06).toContain(".e2 .e2-06-search:not(:focus-within) { background: var(--c-blanc); border-color: var(--c-ligne); }")
     expect(e07).toContain(".e2-07-composer .composer__field:focus-within { background: var(--c-blanc); border-color: var(--c-bleu); box-shadow: var(--sh-champ-focus); }")
-    expect(e07).toContain(".e2-07-composer .composer__send:disabled { background: var(--c-off-bg); color: var(--c-off-txt); }")
+    expect(e07).not.toContain(".composer__send:disabled")
   })
 
-  it("l'exception reste limitee a EXACTEMENT trois regles : aucune autre regle d'etat d'un composant du systeme ne pose fond, bordure ou ombre", () => {
+  it("l'exception reste limitee a EXACTEMENT deux regles : aucune autre regle d'etat d'un composant du systeme ne pose fond, bordure ou ombre", () => {
     // Une regle d'exception restyle l'etat d'un composant du systeme (champ ou bouton) : sa cible porte l'etat
     // :focus-within ou :disabled et elle pose un fond, une bordure ou une ombre. Les regles de mise en page propres a
     // .e2-06-* et .e2-07-* (cartes, bulles, fenetre) ne portent jamais ces etats.
@@ -1484,7 +1484,6 @@ describe("E06 et E07 : exception documentee aux composants du systeme (fond, bor
     expect(exceptions.map(({ selector }) => selector)).toEqual([
       ".e2 .e2-06-search:not(:focus-within)",
       ".e2-07-composer .composer__field:focus-within",
-      ".e2-07-composer .composer__send:disabled",
     ])
     // Le detecteur voit une quatrieme regle du meme type (cas temoin).
     const witness = rulesOf(".e2-07-composer .composer__field:disabled { background: red; } .e2-07-pane { background: red; }")
@@ -1658,7 +1657,8 @@ describe("recette finale : portefeuille, recapitulatif, compteur, edition du pro
     const tablet = block(base, "@media (max-width: 1023.98px)")
     expect(tablet).toContain(".e2 .item2__action { min-width: 44px; }")
     expect(tablet).toMatch(/\.e2-op \.item2__title \.link::after \{ content: ""; position: absolute; inset: -12px 0; \}/)
-    expect(e07).toContain(".e2-07-composer .composer__input2 { min-height: 44px; box-sizing: border-box; }")
+    expect(e07).toContain(".e2-07-composer .composer__field { box-sizing: border-box; min-height: 44px; padding: 0 16px; }")
+    expect(block(e07, "@media (max-width: 1023.98px)")).toContain(".e2-07-composer .iconbtn2, .e2-07-composer .composer__send { width: 44px; height: 44px; }")
     // la zone des pastilles de filtres actives est elargie par ::after (inset -7px 0 sur 32 px = 46 px)
     expect(stripComments(read("student/e02.css"))).toMatch(/\.e2-pill\.e2-02-tag::after \{ content: ""; position: absolute; inset: -7px 0; \}/)
     // le logo et l'avatar de la barre du haut (coquille partagee) gardent leur regle existante

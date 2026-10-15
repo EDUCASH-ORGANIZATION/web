@@ -214,11 +214,8 @@ export function Composer({ onSend }) {
             <button type="button" className="iconbtn2" aria-label="Joindre une image" onClick={() => imageInput.current?.click()}>
               <Icon name="i-image" />
             </button>
-            <button type="button" className="iconbtn2" aria-label="Enregistrer un message vocal" onClick={startRecording}>
-              <Icon name="i-mic" />
-            </button>
             <button type="button" className="iconbtn2" aria-label="Partager une position" onClick={() => setLocating(true)}>
-              <Icon name="i-map-pin" />
+              <Icon name="i-navigation" />
             </button>
           </div>
           <label className="composer__field">
@@ -229,14 +226,20 @@ export function Composer({ onSend }) {
               value={text}
               rows={1}
               maxLength={MESSAGE_MAX_LENGTH}
-              placeholder="Écrivez un message..."
+              placeholder="Écrivez un message…"
               onChange={(e) => setText(e.target.value)}
               onKeyDown={onKeyDown}
             />
           </label>
-          <button type="submit" className="composer__send" aria-label="Envoyer" disabled={!text.trim()}>
-            <Icon name="i-send" />
-          </button>
+          {text.trim() ? (
+            <button type="submit" className="composer__send" aria-label="Envoyer">
+              <Icon name="i-send" />
+            </button>
+          ) : (
+            <button type="button" className="iconbtn2" aria-label="Enregistrer un message vocal" onClick={startRecording}>
+              <Icon name="i-mic" />
+            </button>
+          )}
         </form>
       </div>
       {preview ? <ImageDialog file={preview.file} previewUrl={preview.url} onConfirm={confirmImage} onCancel={() => setPreview(null)} /> : null}

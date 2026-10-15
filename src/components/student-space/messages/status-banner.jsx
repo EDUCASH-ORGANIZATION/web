@@ -2,7 +2,8 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { StatusBadge } from "@/components/app-ui/status-badge"
-import { studentMissionHref, studentReviewHref } from "@/lib/app/student-routes"
+import { formatFcfa } from "@/lib/app/format"
+import { studentReviewHref } from "@/lib/app/student-routes"
 
 const BANNERS = {
   candidate: {
@@ -19,26 +20,73 @@ const BANNERS = {
   closed: { badge: { label: "Attribuée", tone: "neutre", icon: "i-lock" }, text: "Un autre étudiant a été retenu, conversation en lecture seule" },
 }
 
-// Action du bandeau : candidature et mission en cours -> la mission, terminée -> noter le client (le seul bouton encre).
+// Seule action du bandeau : mission terminée -> noter le client (le seul bouton encre). « Voir la mission »
+// est dans l'en-tête de la conversation.
 function actionOf(state, missionId) {
-  if (state === "candidate" || state === "in_progress") {
-    return { label: "Voir la mission", href: studentMissionHref(missionId), className: "btn btn--soft btn--sm" }
-  }
   if (state === "done") {
     return { label: "Noter le client", href: studentReviewHref(missionId), className: "btn btn--dark btn--sm" }
   }
   return null
 }
 
-// Bandeau de statut de la conversation, toujours visible sous l'en-tête.
-export function StatusBanner({ state, missionId }) {
+// Montants de la mission en cours : budget du client (retenu en séquestre) et net de l'étudiant. Aucun montant
+// quand le budget ou le net manque. Paiements fermés : formulation indicative, jamais une promesse de séquestre.
+function amountsOf({ state, budget, net, purchases, paymentsEnabled }) {
+  if (state !== "in_progress" || !Number.isFinite(budget) || !Number.isFinite(net)) return null
+  const service = <b>{formatFcfa(budget)}</b>
+  const touched = <b>{formatFcfa(net)}</b>
+  const tail = purchases ? " · les achats se paient hors EduCash" : ""
+  return {
+    long: paymentsEnabled ? (
+      <>
+        Service : {service} en séquestre · vous touchez {touched}
+        {tail}
+      </>
+    ) : (
+      <>
+        Service : {service} · vous touchez {touched} (montants indicatifs)
+        {tail}
+      </>
+    ),
+    short: paymentsEnabled ? <>{service} en séquestre</> : <>{service} (indicatif)</>,
+  }
+}
+
+/**
+ * Bandeau de statut de la conversation, toujours visible sous l'en-tête. `mission` : { budget, net,
+ * purchasesEstimate } de getStudentConversation ; `paymentsEnabled` est lu côté serveur (page).
+ * Le badge « Avec achats » suit l'estimation d'achats de la mission.
+ * @param {{ state: string, missionId: string, mission?: object, paymentsEnabled?: boolean }} props
+ */
+export function StatusBanner({ state, missionId, mission, paymentsEnabled = false }) {
   const banner = BANNERS[state]
   if (!banner) return null
   const action = actionOf(state, missionId)
+  const purchases = Number.isFinite(mission?.purchasesEstimate) && mission.purchasesEstimate > 0
+  const amounts = amountsOf({
+    state,
+    budget: mission?.budget,
+    net: mission?.net,
+    purchases,
+    paymentsEnabled,
+  })
   return (
     <div className="e2-07-status">
       <StatusBadge {...banner.badge} />
-      <span className="e2-07-status__text">{banner.text}</span>
+      {purchases ? (
+        <span className="badge badge--neutre badge--sm e2-07-status__achats">
+          <Icon name="i-receipt" />
+          Avec achats
+        </span>
+      ) : null}
+      {amounts ? (
+        <>
+          <span className="e2-07-status__text e2-07-status__text--long">{amounts.long}</span>
+          <span className="e2-07-status__text e2-07-status__text--short">{amounts.short}</span>
+        </>
+      ) : (
+        <span className="e2-07-status__text">{banner.text}</span>
+      )}
       {action ? (
         <Link className={action.className} href={action.href}>
           {action.label}
