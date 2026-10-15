@@ -301,10 +301,11 @@ describe("compteur de l'accueil, de la coquille et de l'onglet À examiner : mê
         student(4, { rejection_reason: "Photo floue ou illisible" }),
         student(5, { is_verified: true, verified_until: "2027-01-01" }),
         student(6),
-        student(7, { verified_until: "2026-06-01", verification_submitted_at: "2026-05-01T09:00:00+00:00" }),
+        student(7, { verified_until: "2026-06-01", verification_submitted_at: "2025-05-01T09:00:00+00:00" }),
         student(8, { verified_until: "2026-06-01", verification_submitted_at: "2026-09-20T09:00:00+00:00" }),
+        student(9, { verified_until: "2026-06-01", verification_submitted_at: "2026-05-20T09:00:00+00:00" }),
       ],
-      student_profiles: [1, 2, 3, 4, 5, 7, 8].map((n) => ({ user_id: uid(n), school: "EPAC", level: "L3", card_url: `${uid(n)}/card.jpg` })),
+      student_profiles: [1, 2, 3, 4, 5, 7, 8, 9].map((n) => ({ user_id: uid(n), school: "EPAC", level: "L3", card_url: `${uid(n)}/card.jpg` })),
       wallets: [],
       wallet_transactions: [],
       missions: [],
@@ -317,8 +318,9 @@ describe("compteur de l'accueil, de la coquille et de l'onglet À examiner : mê
     const shell = await getAdminShellData()
     const queue = await getVerificationQueue({})
     const expected = queue.counts["a-examiner"]
-    // 1, 2, 3 et 8 (carte renvoyée après l'échéance) sont à examiner ; 4 refusé, 5 vérifié, 6 incomplet, 7 expiré.
-    expect(expected).toBe(4)
+    // 1, 2, 3, 8 (carte renvoyée après l'échéance) et 9 (renouvellement anticipé non traité) sont à examiner ;
+    // 4 refusé, 5 vérifié, 6 incomplet, 7 expiré (carte antérieure à la dernière validation).
+    expect(expected).toBe(5)
     expect(dashboard.dossiers.total).toBe(expected)
     expect(shell.shell.pendingCount).toBe(expected)
     const html = render({ data: dashboard })
