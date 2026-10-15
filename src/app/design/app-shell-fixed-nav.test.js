@@ -11,13 +11,57 @@ const rulesOf = (selector) =>
     .join(" ")
 
 describe("coquille connectee : navigation fixe", () => {
-  it("la sidebar est collee a la fenetre, 100dvh, avec defilement interne", () => {
+  it("la sidebar est collee a la fenetre, 100dvh, sans aucun defilement interne (RD-FIX-13)", () => {
     const r = rulesOf(".shell--v2 .sidebar")
     expect(r).toMatch(/position:\s*sticky/)
     expect(r).toMatch(/top:\s*calc\(/)
     expect(r).toMatch(/height:\s*calc\(100dvh/)
     expect(r).toMatch(/align-self:\s*start/)
-    expect(r).toMatch(/overflow-y:\s*auto/)
+    // overflow-y: auto rendait aussi overflow-x auto : la sidebar defilait dans les deux sens.
+    expect(r).not.toMatch(/overflow(?:-[xy])?:\s*(?:auto|scroll)/)
+    expect(r).not.toMatch(/overscroll-behavior/)
+    expect(r).toContain("overflow: hidden; overflow: clip;")
+  })
+
+  it("le contenu de la sidebar est compact par construction : espacements et entrees se resserrent avec la hauteur de fenetre", () => {
+    const fluid = /clamp\([^;]*100dvh[^;]*\)/
+    // Marge haute, bas du logo, titres de groupe et entrees : valeur fixe en repli puis clamp() sur 100dvh.
+    expect(rulesOf(".shell--v2 .sidebar")).toMatch(new RegExp(`padding-top: var\\(--s-6\\); padding-top: ${fluid.source}`))
+    expect(rulesOf(".shell--v2 .sidebar__brand")).toMatch(new RegExp(`padding-bottom: ${fluid.source}`))
+    expect(rulesOf(".shell--v2 .sidebar__group")).toMatch(new RegExp(`padding-top: ${fluid.source}`))
+    const item = rulesOf(".shell--v2 .nav-item")
+    expect(item).toContain("height: 42px; height: clamp(32px, calc((100dvh - 600px) / 8 + 34px), 42px);")
+    expect(item).toMatch(/flex:\s*none/)
+    // La liste prend la place restante et se rogne (jamais de defilement) ; logo, CTA et identite ne retrecissent pas.
+    const nav = rulesOf(".shell--v2 .sidebar__nav")
+    expect(nav).toMatch(/flex:\s*1 1 auto/)
+    expect(nav).toMatch(/min-height:\s*0/)
+    expect(nav).toContain("overflow: hidden; overflow: clip;")
+    // Marge de 6 px pour les anneaux de focus (5 px) des entrees, alignement inchange.
+    expect(nav).toContain("margin: -6px; padding: 6px;")
+    for (const sel of [".shell--v2 .sidebar__brand", ".shell--v2 .sidebar__cta", ".shell--v2 .sidebar__me"]) {
+      expect(rulesOf(sel), sel).toMatch(/flex:\s*none/)
+    }
+  })
+
+  it("budget de hauteur : 8 entrees et un titre (etudiant) tiennent a 1024 x 600 et jusqu'a 520 px de haut", () => {
+    // Valeurs des clamp() de la feuille, a hauteur de fenetre h (px). Disponible : h - 2 * (16 + 2 + 12).
+    const clamp = (lo, v, hi) => Math.min(hi, Math.max(lo, v))
+    const used = (h, items, groups) => {
+      const padTop = clamp(12, (h - 600) / 4 + 12, 24)
+      const brand = 40 + 6 + 18 + clamp(8, (h - 600) / 4 + 8, 24)
+      const group = clamp(8, (h - 600) / 4 + 8, 20) + 18 + 6
+      const item = clamp(32, (h - 600) / 8 + 34, 42)
+      const nav = items * item + groups * group + (items + groups - 1) * 2
+      const me = 12 + 36 + 2 + 2
+      return padTop + brand + 2 + nav + 2 + me + 12
+    }
+    for (const h of [900, 700, 600, 520]) {
+      expect(used(h, 8, 1), `etudiant a ${h}`).toBeLessThanOrEqual(h - 60)
+      expect(used(h, 7, 2), `admin a ${h}`).toBeLessThanOrEqual(h - 60)
+    }
+    // A 900 px et plus, rien n'est resserre : rendu identique a la planche.
+    expect(used(900, 8, 1)).toBe(24 + 88 + 2 + (8 * 42 + 44 + 16) + 2 + 52 + 12)
   })
 
   it("le cadre ne bloque pas le sticky (overflow: clip, jamais hidden/auto/scroll)", () => {
@@ -98,13 +142,14 @@ describe("coquille connectee : navigation fixe", () => {
     expect(offenders).toEqual([])
   })
 
-  it("les colonnes collantes de page sont bornees a la fenetre avec defilement interne, et liberees sous 1024", () => {
+  it("les colonnes collantes de page sont bornees a la fenetre, defilent seulement en vertical, et liberees sous 1024", () => {
     for (const [file, sel] of [["student/e02.css", ".e2-02-filters"], ["student/e03.css", ".e2-03-aside"], ["student/e05.css", ".e2-05-aside"]]) {
       const r = sheetRules(file).find((x) => x.selector === sel && /position:\s*sticky/.test(x.body))
       expect(r, sel).toBeTruthy()
       expect(r.body).toContain("top: var(--shell-sticky-top);")
       expect(r.body).toContain("max-height: calc(100vh - var(--shell-sticky-top) - var(--s-4)); max-height: calc(100dvh - var(--shell-sticky-top) - var(--s-4));")
-      expect(r.body).toMatch(/overflow-y:\s*auto/)
+      expect(r.body).toContain("overflow-x: hidden; overflow-y: auto;")
+      expect(r.body).not.toMatch(/overflow-x:\s*(?:auto|scroll)/)
     }
     const base = readFileSync(path.join(import.meta.dirname, "student/base.css"), "utf8")
     const tablet = base.slice(base.indexOf("@media (max-width: 1023.98px)"))
@@ -119,5 +164,21 @@ describe("coquille connectee : navigation fixe", () => {
       expect(r).toMatch(/z-index:\s*var\(--z-sticky\)/)
       expect(r).toMatch(/background:\s*var\(--c-givre\)/)
     }
+  })
+  it("aucune barre de la coquille ne defile ni ne deborde en interne (sidebar, top2, mtop2, e2-mtop, a2-mtop, barre du bas)", () => {
+    const BAR_CLASSES = ["sidebar", "sidebar__nav", "top2", "mtop2", "e2-mtop", "a2-mtop", "bottom-nav--v2"]
+    const all = [...shellSheets, "layouts.css"].flatMap(sheetRules)
+    // Selecteur dont le dernier compose vise la barre elle-meme (pas un descendant).
+    const targetsBar = (selector) =>
+      selector.split(",").some((part) => {
+        const last = part.trim().split(/[\s>+~]+/).pop()
+        return BAR_CLASSES.some((c) => new RegExp(`\\.${c}(?![\\w-])`).test(last))
+      })
+    const bars = all.filter((r) => targetsBar(r.selector))
+    expect(bars.length).toBeGreaterThan(5)
+    const offenders = bars
+      .filter((r) => /overflow(?:-[xy])?:\s*(?:auto|scroll)/.test(r.body))
+      .map((r) => `${r.file} ${r.selector}`)
+    expect(offenders).toEqual([])
   })
 })

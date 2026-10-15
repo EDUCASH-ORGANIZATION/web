@@ -14,7 +14,7 @@
 .e2-03-badges { display: flex; flex-wrap: wrap; gap: 8px; }
 .e2-03-caption { font-size: var(--t-caption); color: var(--c-ardoise); line-height: 1.5; overflow-wrap: anywhere; }
 /* Collée sous la barre du haut collée de la coquille (--shell-sticky-top, app-shell.css) ; hauteur bornée à la fenêtre et défilement interne pour que le bas reste accessible */
-.e2-03-aside { position: sticky; top: var(--shell-sticky-top); max-height: calc(100vh - var(--shell-sticky-top) - var(--s-4)); max-height: calc(100dvh - var(--shell-sticky-top) - var(--s-4)); overflow-y: auto; overscroll-behavior: contain; }
+.e2-03-aside { position: sticky; top: var(--shell-sticky-top); max-height: calc(100vh - var(--shell-sticky-top) - var(--s-4)); max-height: calc(100dvh - var(--shell-sticky-top) - var(--s-4)); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
 .e2-03-desc { white-space: pre-line; overflow-wrap: anywhere; }
 /* Récapitulatif du gain : la valeur passe sous le libellé plutôt que de déborder (montants jusqu'à 10 chiffres à 320 px) */
 .e2-03-recap .e2-kv__row { flex-wrap: wrap; }
