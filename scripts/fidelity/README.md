@@ -14,7 +14,7 @@ Le banc est hors `src/` (les garde-fous de textes ne le scannent pas) et `npm te
   Sans cette variable, le chemin par défaut de Playwright est essayé, sans téléchargement.
 - Réseau : la planche charge ses polices depuis Google Fonts. Hors réseau, la police de repli change les
   largeurs de texte ; le banc compare alors la largeur (`w`, `tw`) et un écart dû à la police se déclare
-  `POLICE:n` (statut `ASSUMÉ-POLICE`, distinct de `OK`). Les mesures de référence de ce dépôt sont prises
+  `POLICE:n` (statut `ASSUMÉ-POLICE`, distinct de `OK` ; `POLICE` n'est admis que sur `w` et `tw`, avec limite). Les mesures de référence de ce dépôt sont prises
   avec les polices disponibles ; relancer en ligne avant de conclure sur une largeur de texte.
 - Compatibilité : `playwright-core` 1.56.1 pilote le Chromium de révision 1243
   (`chromium_headless_shell-1243`, ou `chromium-1243`) : vérifié, le banc s'y connecte et mesure.
@@ -30,13 +30,15 @@ npm run fidelity -- E07 --report-only  # ne pas échouer sur les écarts
 
 Sortie dans `$FIDELITY_OUT/<ID>/` : `planche-bureau.png`, `code-bureau.png`, `planche-mobile.png`,
 `code-mobile.png`, `rapport.md`, `rapport.json`. Le rapport est aussi écrit sur la sortie standard :
-tableau Élément / Planche / Code / Écart / Statut, avec le statut `OK`, `ASSUMÉ Ax`, `ASSUMÉ-POLICE` ou `ÉCHEC`.
+tableau Élément / Planche / Code / Écart / Statut, avec le statut `OK`, `ASSUMÉ Ax` (tous les codes appliqués,
+par exemple `ASSUMÉ A2, A3`), `ASSUMÉ-POLICE` (police seule), `NON EXPLIQUÉ ... X1` ou `ÉCHEC`. Le récapitulatif compte
+à part chaque statut ; un statut mixte `ASSUMÉ A3, POLICE` est compté dans ASSUMÉ (rappelé par « dont avec POLICE »).
 Code de sortie 1 s'il reste un `ÉCHEC` (sauf `--report-only`), 2 en cas d'erreur du banc.
 
 Sortie attendue pour `npm run fidelity -- E06` : toutes les lignes ME-04, ME-06, ME-07 en `ASSUMÉ` (écarts
 mesurés et déclarés), sauf la pastille « En cours » (ME-04, lot ST-04, filtre inexistant), la date de page
 bureau (contenu « Jeudi 8 octobre · » absent du code) et le titre mobile (30 px planche, 26 px code), qui
-restent en `ÉCHEC`.
+restent en `ÉCHEC` ; les lignes avec 1 px non expliqué sont en `NON EXPLIQUÉ`.
 
 ## Structure
 
@@ -78,12 +80,17 @@ restent en `ÉCHEC`.
   A1 couleurs de la charte (vérifiées par correspondance exacte), A2 taille minimale 13 px,
   A3 interligne des titres (tout ce qui suit descend de 3 px), A4 logo de sidebar, A5 cibles tactiles
   44 px, A6 vouvoiement, A7 noms « Prénom N. ». Codes du banc : `L3` décalage vertical de la coquille
-  mobile (lot 3, déclaré avec `lot`), `POLICE` écart de largeur dû à la police de repli. Syntaxe `"Ax:n"` : écart toléré jusqu'à n px (obligatoire
-  pour les propriétés numériques et en px) ; `"Ax"` seul : écart de chaîne (couleur, famille...).
+  mobile (lot 3, déclaré avec `lot`), `POLICE` écart de largeur dû à la police de repli, `X1` écart
+  NON expliqué (le pixel reste visible : statut `NON EXPLIQUÉ`, compté à part, à résorber). Liste blanche :
+  tout autre code (par exemple `A9`) est refusé au chargement. Syntaxe `"Ax:n"` : écart toléré jusqu'à n px
+  (obligatoire pour les propriétés numériques et en px) ; `"A2+A3:5"` : cumul, tous les codes sont affichés ;
+  `"Ax"` seul : écart de chaîne (couleur, famille...).
 - `lot` : lot du plan qui corrige l'écart (information du rapport).
-- `note` : explication d'un écart cumulé (par exemple A2 + A3), reprise dans le rapport. Règle : la limite
-  d'une règle `"Ax:n"` est la valeur mesurée + 1 px, par sélecteur ; pas de limite large au niveau de la
-  vue pour `y`. Les `y` sont mesurés aussi en mobile.
+- `note` : explication des écarts du sélecteur (écart mesuré, cumul A2 + A3), reprise dans le rapport.
+  Obligatoire dès qu'un sélecteur porte une règle `"Ax:n"` ; au niveau de la spécification ou de la vue,
+  le champ `assumeNote` joue ce rôle. Le chargeur refuse une règle à limite sans note. Règle : la limite
+  d'une règle `"Ax:n"` est la valeur mesurée EXACTE, par sélecteur ; un pixel non expliqué se déclare
+  `X1`, jamais en élargissant la limite. Les `y` sont mesurés aussi en mobile.
 
 Pour étendre : ajouter la fixture (données de la planche) puis le fichier de spécification, lancer
 `npm run fidelity -- <ID>`, puis déclarer les écarts assumés justifiés.

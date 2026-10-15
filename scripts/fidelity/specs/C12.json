@@ -7,8 +7,7 @@
   "assume": {
     "color": "A1",
     "bg": "A1",
-    "fontSize": "A2:1",
-    "lineHeight": "A2:2"
+    "fontSize": "A2:1"
   },
   "views": [
     {
@@ -105,7 +104,8 @@
           "lot": "ST-06",
           "assume": {
             "h": "A2:4"
-          }
+          },
+          "note": "A2 : texte 13 -> 14 px, hauteur de ligne +3 (mesure de E06 ME-06, même composant ; la ligne n'est pas mesurable dans le code avant le lot ST-06)"
         },
         {
           "id": "MC-04",
@@ -154,6 +154,24 @@
       "selectors": [
         {
           "id": "MC-13",
+          "label": "titre de page",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize",
+            "tw"
+          ],
+          "assume": {
+            "y": "L3+X1:13"
+          },
+          "note": "L3 (+12) et 1 px non expliqué (X1), mêmes valeurs que E06 ME-19 titre ; la taille du titre mobile (30 px planche, 26 px code) reste visible en ÉCHEC",
+          "lot": "ST-03"
+        },
+        {
+          "id": "MC-13",
           "label": "filtre segmenté",
           "board": ".segmented",
           "props": [
@@ -164,10 +182,10 @@
             "radius"
           ],
           "assume": {
-            "h": "A5:9",
-            "y": "L3:9"
+            "h": "A5:8",
+            "y": "L3:12"
           },
-          "note": "A5 (+8 de hauteur) ; L3 : même décalage de coquille que E06 ME-19 pastilles (+8)",
+          "note": "A5 : cible tactile (+8 de hauteur mesuré) ; L3 : décalage de coquille (+12), compensé en partie par le titre de page plus petit (-4, voir la ligne titre), +8 mesuré au total",
           "lot": "ST-03"
         },
         {
@@ -196,5 +214,6 @@
         }
       ]
     }
-  ]
+  ],
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)"
 }

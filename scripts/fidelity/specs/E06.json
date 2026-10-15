@@ -7,8 +7,7 @@
   "assume": {
     "color": "A1",
     "bg": "A1",
-    "fontSize": "A2:1",
-    "lineHeight": "A2:2"
+    "fontSize": "A2:1"
   },
   "views": [
     {
@@ -33,7 +32,7 @@
           ],
           "lot": "",
           "assume": {
-            "y": "A3:4"
+            "y": "A3:3"
           },
           "note": "A3 : le titre de page descend de 3 px (interligne), tout ce qui suit descend d'autant (+3 mesuré)"
         },
@@ -62,8 +61,9 @@
             "tw"
           ],
           "assume": {
-            "h": "A3:4"
-          }
+            "h": "A3:3"
+          },
+          "note": "A3 : interligne du titre de page, hauteur +3 mesuré (40 -> 43)"
         },
         {
           "id": "ME-04",
@@ -77,9 +77,9 @@
             "gap"
           ],
           "assume": {
-            "y": "A3:5"
+            "y": "A3+X1:4"
           },
-          "note": "A3 (+3) et 1 px supplémentaire mesuré (+4), non expliqué par A3 seul"
+          "note": "A3 (+3) et 1 px non expliqué (X1), +4 mesuré"
         },
         {
           "id": "ME-04",
@@ -94,9 +94,9 @@
             "bg"
           ],
           "assume": {
-            "y": "A3:5"
+            "y": "A3+X1:4"
           },
-          "note": "A3 (+3) et 1 px supplémentaire mesuré (+4)"
+          "note": "A3 (+3) et 1 px non expliqué (X1), +4 mesuré"
         },
         {
           "id": "ME-04",
@@ -122,8 +122,8 @@
             "bg"
           ],
           "assume": {
-            "h": "A3:4",
-            "y": "A3:4"
+            "h": "A3:3",
+            "y": "A3:3"
           },
           "note": "A3 : +3 en y, hauteur -3 (même bas de liste)"
         },
@@ -140,9 +140,9 @@
             "bg"
           ],
           "assume": {
-            "y": "A3:5"
+            "y": "A3+X1:4"
           },
-          "note": "A3 (+3) et 1 px supplémentaire mesuré (+4)"
+          "note": "A3 (+3) et 1 px non expliqué (X1), +4 mesuré"
         },
         {
           "id": "ME-06",
@@ -158,10 +158,10 @@
             "gap"
           ],
           "assume": {
-            "h": "A2:4",
-            "y": "A3:5"
+            "h": "A2:3",
+            "y": "A3+X1:4"
           },
-          "note": "A3 (+3) et 1 px mesuré en y (+4) ; hauteur A2 : texte 13 px -> 14 px (+3)"
+          "note": "A3 (+3) et 1 px non expliqué (X1) en y (+4 mesuré) ; hauteur A2 : texte 13 px -> 14 px (+3)"
         },
         {
           "id": "ME-06",
@@ -175,9 +175,9 @@
             "radius"
           ],
           "assume": {
-            "y": "A3:6"
+            "y": "A2+A3+X1:5"
           },
-          "note": "cumul : A3 (+3), 1 px de pastilles (+4) et A2 (ligne +3 de haut, avatar centré : +1) = +5 mesuré"
+          "note": "cumul : A3 (+3), 1 px non expliqué (X1, +4 des pastilles) et A2 (ligne +3 de haut, avatar centré : +1) = +5 mesuré"
         },
         {
           "id": "ME-06",
@@ -191,8 +191,8 @@
             "tw"
           ],
           "assume": {
-            "w": "A2:4",
-            "tw": "A7:67"
+            "w": "A2:3",
+            "tw": "A7:66"
           },
           "note": "A2 : largeur -3 (texte 13 -> 14 px) ; A7 : « Rosine H. » au lieu du nom complet de la planche (-66)"
         },
@@ -207,7 +207,7 @@
             "tw"
           ],
           "assume": {
-            "tw": "A2:18"
+            "tw": "A2:17"
           },
           "note": "A2 : texte 13 -> 14 px, largeur du texte +17 sur une ligne tronquée"
         },
@@ -235,7 +235,7 @@
             "bg"
           ],
           "assume": {
-            "y": "A3:4"
+            "y": "A3:3"
           },
           "note": "A3 : le titre de page descend de 3 px (interligne), tout ce qui suit descend d'autant (+3 mesuré)"
         }
@@ -261,7 +261,7 @@
             "h"
           ],
           "assume": {
-            "y": "L3:13"
+            "y": "L3:12"
           },
           "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12)",
           "lot": "ST-03"
@@ -277,8 +277,8 @@
             "tw"
           ],
           "assume": {
-            "y": "L3:13",
-            "tw": "A2:5"
+            "y": "L3:12",
+            "tw": "A2:4"
           },
           "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; A2 : 13 -> 14 px (+4 de texte)",
           "lot": "ST-03"
@@ -296,9 +296,9 @@
             "tw"
           ],
           "assume": {
-            "y": "L3:14"
+            "y": "L3+X1:13"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+13). Écart NON assumé : titre 30 px dans la planche, 26 px dans le code (largeur -16)",
+          "note": "L3 (+12) et 1 px non expliqué (X1), +13 mesuré. Écart NON assumé : titre 30 px dans la planche, 26 px dans le code (fontSize -4, largeur -16, hauteur -2), visible en ÉCHEC",
           "lot": "ST-03"
         },
         {
@@ -313,10 +313,10 @@
             "h"
           ],
           "assume": {
-            "h": "A5:9",
-            "y": "L3:9"
+            "h": "A5:8",
+            "y": "L3:12"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué : +12 de coquille, -4 de titre plus petit = +8 mesuré",
+          "note": "A5 : cible tactile 44 px (+8 de hauteur mesuré) ; L3 : coquille mobile (+12), compensée en partie par le titre de page plus petit (-4, voir la ligne titre), +8 mesuré au total",
           "lot": "ST-03"
         },
         {
@@ -331,10 +331,10 @@
             "h"
           ],
           "assume": {
-            "h": "A5:9",
-            "y": "L3:9"
+            "h": "A5:8",
+            "y": "L3:12"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué : +12 de coquille, -4 de titre plus petit = +8 mesuré",
+          "note": "A5 : cible tactile 44 px (+8 de hauteur mesuré) ; L3 : coquille mobile (+12), compensée en partie par le titre de page plus petit (-4, voir la ligne titre), +8 mesuré au total",
           "lot": "ST-03"
         },
         {
@@ -351,13 +351,14 @@
             "h"
           ],
           "assume": {
-            "y": "L3:13",
-            "h": "A2:4"
+            "y": "L3:12",
+            "h": "A2:3"
           },
           "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; hauteur A2 (+3)",
           "lot": "ST-03"
         }
       ]
     }
-  ]
+  ],
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)"
 }

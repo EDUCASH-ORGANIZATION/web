@@ -4,7 +4,7 @@
 // Variables : FIDELITY_OUT (défaut /tmp/educash-fidelity), FIDELITY_CHROMIUM (chemin du Chromium,
 // obligatoire hors cache Playwright), FIDELITY_MAQUETTES (dossier des planches).
 import { spawnSync } from "node:child_process"
-import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs"
+import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs"
 import { createServer } from "node:http"
 import { createRequire } from "node:module"
 import path from "node:path"
@@ -42,10 +42,63 @@ function parsePxList(value) {
   return numbers.every((n) => n !== null) ? numbers : null
 }
 
-function parseAssume(rule) {
+// Codes autorisés : A1..A7 (plan), L3 (coquille mobile), POLICE (police de repli), X1 (écart non expliqué).
+const RULES = new Set(["A1", "A2", "A3", "A4", "A5", "A6", "A7", "L3", "POLICE", "X1"])
+const POLICE_PROPS = new Set(["w", "tw"])
+
+/**
+ * Analyse une règle assumée : "A3:4", "A2+A3:5" (cumul : plusieurs codes pour une limite), "A1".
+ * Refuse tout code hors liste blanche, POLICE hors w/tw ou sans limite, une limite absente ou invalide
+ * pour une propriété numérique ou en px. `prop` est facultatif (validation des spécifications).
+ */
+export function parseAssume(rule, prop) {
   if (!rule) return null
-  const [name, limit] = String(rule).split(":")
-  return { name, max: limit === undefined ? null : Number(limit) }
+  const [codes, limit, ...extra] = String(rule).split(":")
+  const names = codes.split("+").filter(Boolean)
+  if (!names.length || extra.length) throw new Error(`Règle assumée invalide : « ${rule} »`)
+  for (const name of names) {
+    if (!RULES.has(name)) throw new Error(`Règle assumée inconnue : « ${name} » (« ${rule} »). Autorisées : ${[...RULES].join(", ")}`)
+  }
+  const max = limit === undefined ? null : Number(limit)
+  if (max !== null && (!Number.isFinite(max) || max < 0)) throw new Error(`Limite invalide dans « ${rule} »`)
+  if (names.includes("POLICE")) {
+    if (names.length > 1) throw new Error(`POLICE ne se cumule pas (« ${rule} »)`)
+    if (max === null) throw new Error(`POLICE exige une limite (« ${rule} »)`)
+    if (prop && !POLICE_PROPS.has(prop)) throw new Error(`POLICE est limité à w et tw, pas « ${prop} » (« ${rule} »)`)
+  }
+  if (prop && (NUMERIC.has(prop) || PX_LIST.has(prop)) && max === null) {
+    throw new Error(`Limite obligatoire pour la propriété numérique « ${prop} » (« ${rule} »)`)
+  }
+  return { name: names[0], names, max }
+}
+
+/**
+ * Valide une spécification : règles reconnues et toute règle à limite (« Ax:n ») accompagnée d'une
+ * explication (`note` du sélecteur, ou `assumeNote` pour les règles de la spécification ou de la vue).
+ */
+export function validateSpec(spec) {
+  const problems = []
+  const check = (assume, prop, where, hasNote) => {
+    const rule = assume[prop]
+    try {
+      const parsed = parseAssume(rule, prop)
+      if (parsed && parsed.max !== null && !hasNote) problems.push(`${where} : règle « ${prop}: ${rule} » sans note`)
+    } catch (error) {
+      problems.push(`${where} : ${error.message}`)
+    }
+  }
+  const scan = (assume, where, hasNote) => {
+    for (const prop of Object.keys(assume ?? {})) check(assume, prop, where, hasNote)
+  }
+  scan(spec.assume, `${spec.id}`, Boolean(spec.assumeNote))
+  for (const view of spec.views ?? []) {
+    scan(view.assume, `${spec.id}/${view.name}`, Boolean(view.assumeNote || spec.assumeNote))
+    for (const selector of view.selectors ?? []) {
+      scan(selector.assume, `${spec.id}/${view.name}/${selector.id} ${selector.label ?? ""}`.trim(), Boolean(selector.note))
+    }
+  }
+  if (problems.length) throw new Error(`Spécification invalide :\n- ${problems.join("\n- ")}`)
+  return spec
 }
 
 /** Écart d'une propriété : { equal, delta, label } ; delta numérique quand elle existe. */
@@ -81,26 +134,31 @@ export function compareEntry(board, code, { props, assume = {}, tolerance = 1 })
   for (const prop of props) {
     const diff = diffProp(prop, board[prop], code[prop], tolerance)
     if (diff.equal) continue
-    const rule = parseAssume(assume[prop])
+    const rule = parseAssume(assume[prop], prop)
     let accepted = false
     if (rule) {
-      if (COLOR.has(prop) && rule.name === "A1") {
-        accepted = A1[rgbKey(board[prop])] === rgbKey(code[prop]) && alphaOf(board[prop]) === alphaOf(code[prop])
+      if (rule.names.includes("A1")) {
+        accepted = COLOR.has(prop) && rule.names.length === 1 && A1[rgbKey(board[prop])] === rgbKey(code[prop]) && alphaOf(board[prop]) === alphaOf(code[prop])
       } else if (diff.delta !== null) {
         accepted = rule.max !== null && Math.abs(diff.delta) <= rule.max
       } else {
         accepted = rule.max === null
       }
     }
-    if (accepted) rules.add(rule.name)
+    if (accepted) rule.names.forEach((name) => rules.add(name))
     else failed = true
-    diffs.push({ prop, label: diff.label, rule: accepted ? rule.name : null })
+    diffs.push({ prop, label: diff.label, rule: accepted ? rule.names.join("+") : null })
   }
   if (failed) return { status: "ÉCHEC", note: "", diffs }
   if (rules.size) {
     const names = [...rules].sort()
     // POLICE : écart de largeur dû à la police de repli (Google Fonts non chargées), statut distinct.
-    const status = names.length === 1 && names[0] === "POLICE" ? "ASSUMÉ-POLICE" : `ASSUMÉ ${names.join(", ")}`
+    // X1 : écart non expliqué, jamais mélangé aux écarts assumés (compté à part).
+    const status = names.includes("X1")
+      ? `NON EXPLIQUÉ ${names.join(", ")}`
+      : names.length === 1 && names[0] === "POLICE"
+        ? "ASSUMÉ-POLICE"
+        : `ASSUMÉ ${names.join(", ")}`
     return { status, note: "", diffs }
   }
   return { status: "OK", note: "", diffs }
@@ -116,7 +174,15 @@ const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript
 export function resolveInside(base, relative) {
   const root = path.resolve(base)
   const target = path.resolve(root, `.${relative.startsWith("/") ? "" : "/"}${relative}`)
-  return target === root || target.startsWith(root + path.sep) ? target : null
+  if (target !== root && !target.startsWith(root + path.sep)) return null
+  // Étanche aux liens symboliques : la cible réelle doit rester sous la racine réelle.
+  try {
+    const realRoot = realpathSync(root)
+    const realTarget = realpathSync(target)
+    return realTarget === realRoot || realTarget.startsWith(realRoot + path.sep) ? target : null
+  } catch {
+    return null
+  }
 }
 
 /** Fichier servi pour une URL brute, ou null (URL mal encodée, hors racine publique, octet nul). */
@@ -180,7 +246,7 @@ async function launchBrowser() {
 }
 
 const loadSpecs = (ids) => {
-  const all = readdirSync(SPECS_DIR).filter((name) => name.endsWith(".json")).map((name) => JSON.parse(readFileSync(path.join(SPECS_DIR, name), "utf8")))
+  const all = readdirSync(SPECS_DIR).filter((name) => name.endsWith(".json")).map((name) => validateSpec(JSON.parse(readFileSync(path.join(SPECS_DIR, name), "utf8"))))
   if (!ids.length) return all
   const unknown = ids.filter((id) => !all.some((spec) => spec.id === id))
   if (unknown.length) throw new Error(`Spécification inconnue : ${unknown.join(", ")}. Disponibles : ${all.map((s) => s.id).join(", ")}`)
@@ -240,8 +306,13 @@ function reportMarkdown(spec, rows) {
     lines.push(`| ${row.view} | ${row.id} | ${row.label} | ${cell(row.board)} | ${cell(row.code)} | ${gap} | ${row.status} | ${row.lot || "-"} |`)
   }
   const count = (test) => rows.filter(test).length
-  const police = count((r) => r.status === "ASSUMÉ-POLICE")
-  lines.push("", `OK : ${count((r) => r.status === "OK")} - ASSUMÉ : ${count((r) => r.status.startsWith("ASSUMÉ ")) } - ASSUMÉ-POLICE : ${police} - ÉCHEC : ${count((r) => r.status === "ÉCHEC")}`, "")
+  const assumed = count((r) => r.status.startsWith("ASSUMÉ "))
+  const withPolice = count((r) => r.status.startsWith("ASSUMÉ ") && r.status.includes("POLICE"))
+  lines.push(
+    "",
+    `OK : ${count((r) => r.status === "OK")} - ASSUMÉ : ${assumed} (dont avec POLICE : ${withPolice}) - ASSUMÉ-POLICE : ${count((r) => r.status === "ASSUMÉ-POLICE")} - NON EXPLIQUÉ (X1) : ${count((r) => r.status.startsWith("NON EXPLIQUÉ"))} - ÉCHEC : ${count((r) => r.status === "ÉCHEC")}`,
+    "",
+  )
   return lines.join("\n")
 }
 

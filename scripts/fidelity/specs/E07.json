@@ -7,8 +7,7 @@
   "assume": {
     "color": "A1",
     "bg": "A1",
-    "fontSize": "A2:1",
-    "lineHeight": "A2:2"
+    "fontSize": "A2:1"
   },
   "views": [
     {
@@ -80,7 +79,8 @@
           "lot": "ST-04",
           "assume": {
             "h": "A2:4"
-          }
+          },
+          "note": "A2 : texte 13 -> 14 px, hauteur de ligne +3 (mesure de E06 ME-06, même composant ; la ligne n'est pas mesurable dans le code avant le lot ST-04)"
         },
         {
           "id": "ME-08",
@@ -222,7 +222,8 @@
             "pad",
             "fontSize",
             "lineHeight",
-            "bg"
+            "bg",
+            "tw"
           ],
           "lot": ""
         },
@@ -301,7 +302,8 @@
           "lot": "ST-05",
           "assume": {
             "h": "A5:8"
-          }
+          },
+          "note": "A5 : cible tactile (+8 de hauteur toléré) ; le bouton est absent du code (lot ST-05), aucune mesure possible"
         },
         {
           "id": "ME-13",
@@ -316,7 +318,8 @@
           "lot": "ST-05",
           "assume": {
             "h": "A5:8"
-          }
+          },
+          "note": "A5 : cible tactile 44 px (+8 de hauteur toléré) ; mesuré h+24 (planche 89 px, code 113 px) : hors limite, reste en ÉCHEC"
         },
         {
           "id": "ME-13",
@@ -334,5 +337,6 @@
         }
       ]
     }
-  ]
+  ],
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)"
 }
