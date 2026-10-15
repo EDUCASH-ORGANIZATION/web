@@ -669,9 +669,21 @@ describe("getVerificationQueue", () => {
     const json = JSON.stringify(res.rows)
     expect(json).not.toMatch(/signed\.example|exemple\.bj|phone|fcm|token-secret|rejection|submittedAt|carte\.jpg|\+229/)
     expect(Object.keys(res.rows[0]).sort()).toEqual(
-      ["age", "avatarUrl", "kind", "level", "name", "overdue48h", "school", "submittedOn", "tab", "userId"].sort(),
+      ["age", "avatarUrl", "kind", "level", "name", "overdue48h", "school", "submittedOn", "tab", "userId", "verifiedUntil"].sort(),
     )
     expect(state.signed).toHaveLength(0)
+  })
+
+  it("jour d'échéance du badge : jour seul pour vérifiés et expirés, null pour les autres onglets", async () => {
+    seed()
+    addStudent(7, { is_verified: true, verified_until: "2027-03-12T00:00:00+00:00" })
+    const verifies = await getVerificationQueue({ onglet: "verifies" })
+    expect(verifies.rows.map((r) => r.verifiedUntil).sort()).toEqual(["2027-03-12", "2027-06-01"])
+    expect((await getVerificationQueue({ onglet: "expires" })).rows[0].verifiedUntil).toBe("2026-09-01")
+    expect((await getVerificationQueue({ onglet: "incomplets" })).rows[0].verifiedUntil).toBeNull()
+    expect((await getVerificationQueue({ onglet: "refuses" })).rows[0].verifiedUntil).toBeNull()
+    expect((await getVerificationQueue({})).rows.every((r) => r.verifiedUntil === null)).toBe(true)
+    expect(JSON.stringify(verifies.rows)).not.toMatch(/T00:00|signed\.example|exemple\.bj/)
   })
 
   it("liste l'onglet demandé et ignore un onglet hors liste", async () => {

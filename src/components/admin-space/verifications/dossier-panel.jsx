@@ -28,7 +28,7 @@ import { leaveFullscreen } from "./card-viewer"
 const ACTION_LABELS = {
   approve: { label: "Valider", icon: "i-check", className: "btn btn--primary a2-02-cta", key: "V" },
   reject: { label: "Refuser", icon: "i-x", className: "btn btn--danger-outline", key: "R" },
-  reset: { label: "Réinitialiser le refus", icon: "i-undo", className: "btn btn--dark" },
+  reset: { label: "Réinitialiser le dossier", icon: "i-refresh", className: "btn btn--secondary" },
   revoke: { label: "Révoquer le badge", icon: "i-ban", className: "btn btn--danger-outline" },
 }
 
@@ -40,6 +40,9 @@ const TAB_STATUS = {
   expires: { label: "Badge expiré", tone: "neutre" },
   incomplets: { label: "Non vérifié", tone: "neutre" },
 }
+
+// Ordre d'affichage des décisions (planche v1 : Refuser à gauche de Valider) ; l'ensemble vient de `dossier.actions`.
+const ACTION_ORDER = ["reject", "approve", "reset", "revoke"]
 
 const STEP_ICONS = { done: "i-check", current: "i-clock", error: "i-x" }
 
@@ -134,15 +137,18 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
     onReject: () => openDialog("reject"),
   })
 
-  const decide = async (run, title, text) => {
-    const outcome = await runDecision({ run, title, text, router, notify: success, afterHref: advance ? hrefs.afterDecision : hrefs.self })
+  // Valider et Refuser suivent la bascule (visible seulement sur À examiner) ; Réinitialiser et Révoquer restent sur le
+  // dossier (`self`) quel que soit l'état mémorisé de la bascule, qu'ils n'affichent pas.
+  const decide = async (run, title, text, { followAdvance = true } = {}) => {
+    const afterHref = followAdvance && advance ? hrefs.afterDecision : hrefs.self
+    const outcome = await runDecision({ run, title, text, router, notify: success, afterHref })
     if (outcome.done) refocus.current = true
     return outcome.error ? { error: outcome.error } : undefined
   }
 
   // Bureau : icône et raccourci ; mobile (barre fixe) : libellé seul. La décision elle-même passe par une confirmation.
   const buttons = (compact) =>
-    actions.map((action) => {
+    ACTION_ORDER.filter((action) => actions.includes(action)).map((action) => {
       const spec = ACTION_LABELS[action]
       return (
         <button key={action} type="button" className={spec.className} onClick={() => openDialog(action)}>
@@ -164,6 +170,11 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
           <h2 className="ds-h3 a2-02-dossier__name" ref={headingRef} tabIndex={-1}>
             {dossier.name || "Étudiant sans nom"}
           </h2>
+          {dossier.overdue48h ? (
+            <div className="ds-mob-only">
+              <span className="badge badge--erreur badge--sm">+48 h</span>
+            </div>
+          ) : null}
           <div className="caption">{dossierCaption(dossier)}</div>
         </div>
         <div className="a2-02-dossier__status">
@@ -185,27 +196,23 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
       {actions.length > 0 ? (
         <>
           <div className="a2-02-actions">
-            <label className="switch">
-              <input type="checkbox" checked={advance} onChange={(event) => setAdvance(event.target.checked)} />
-              Passer au dossier suivant après décision
-            </label>
+            {actions.includes("approve") ? (
+              <label className="switch">
+                <input type="checkbox" checked={advance} onChange={(event) => setAdvance(event.target.checked)} />
+                Passer au dossier suivant après décision
+              </label>
+            ) : null}
             <div className="a2-02-actions__btns">{buttons(false)}</div>
           </div>
           <div className="a2-mbar">{buttons(true)}</div>
         </>
-      ) : (
-        <div className="a2-note">
-          <Icon name="i-info" className="ic" />
-          <span>
-            {dossier.tab === "expires" ? "En attente d'une nouvelle carte de l'étudiant." : "En attente d'une carte de l'étudiant."}
-          </span>
-        </div>
-      )}
+      ) : null}
 
       <ApproveDialog
         open={dialog === "approve"}
         onClose={() => setDialog(null)}
         name={name}
+        caption={[dossier.level, dossier.school].filter(Boolean).join(" · ")}
         badgeUntil={badgeUntil}
         advance={advance}
         onConfirm={() =>
@@ -228,14 +235,16 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
         onClose={() => setDialog(null)}
         name={name}
         onConfirm={({ reason }) =>
-          decide(() => resetStudentRejection(dossier.userId, { reason }), `Refus de ${name} réinitialisé`)
+          decide(() => resetStudentRejection(dossier.userId, { reason }), `Dossier de ${name} réinitialisé`, undefined, { followAdvance: false })
         }
       />
       <RevokeDialog
         open={dialog === "revoke"}
         onClose={() => setDialog(null)}
         name={name}
-        onConfirm={({ reason }) => decide(() => revokeStudentBadge(dossier.userId, { reason }), `Badge de ${name} révoqué`)}
+        onConfirm={({ reason }) =>
+          decide(() => revokeStudentBadge(dossier.userId, { reason }), `Badge de ${name} révoqué`, undefined, { followAdvance: false })
+        }
       />
     </div>
   )

@@ -11,7 +11,7 @@ vi.mock("@/lib/actions/admin-verifications.actions", () => ({
 
 const { ToastProvider } = await import("@/components/app-ui/toast")
 const { VerificationsView } = await import("./verifications-view")
-const { QueueList, rowSubtitle, submittedLabel } = await import("./queue-list")
+const { QueueList, rowSubtitle, submittedLabel, longDay } = await import("./queue-list")
 
 const ID1 = "11111111-1111-4111-8111-111111111111"
 const ID2 = "22222222-2222-4222-8222-222222222222"
@@ -132,5 +132,56 @@ describe("aides de la liste", () => {
     const html = renderToStaticMarkup(<QueueList rows={[row()]} openId={ID1} onglet="a-examiner" q="" ecole="" page={1} today="2026-10-15" />)
     expect(html).toContain(`href="/admin/verifications?id=${ID1}"`)
     expect(html).toMatch(/aria-current="true"/)
+  })
+})
+
+describe("pastilles et sous-titres des autres onglets", () => {
+  const html = (tab, over = {}) =>
+    renderToStaticMarkup(
+      <QueueList rows={[row({ tab, kind: null, ...over })]} openId={null} onglet={tab} q="" ecole="" page={1} today="2026-10-15" />,
+    )
+
+  it("pastille propre à chaque onglet, plus d'âge en texte gris", () => {
+    expect(html("incomplets")).toMatch(/badge badge--neutre badge--sm"><svg[^>]*><use href="[^"]*#i-id-card"[^>]*><\/use><\/svg>Non vérifié</)
+    expect(html("refuses")).toMatch(/badge badge--erreur badge--sm"><svg[^>]*><use href="[^"]*#i-x"[^>]*><\/use><\/svg>Carte refusée</)
+    expect(html("verifies")).toMatch(/class="verified verified--sm"><svg class=""[^>]*><use href="[^"]*#seal-citron"[^>]*><\/use><\/svg>Vérifié</)
+    expect(html("expires")).toMatch(/badge badge--encre badge--sm"><svg[^>]*><use href="[^"]*#i-history"[^>]*><\/use><\/svg>Badge expiré</)
+    for (const tab of ["incomplets", "refuses", "verifies", "expires"]) expect(html(tab)).not.toContain("a2-02-row__age")
+  })
+
+  it("sous-titres : jusqu'au (vérifiés) et expiré le (expirés), repli sans jour", () => {
+    expect(html("verifies", { verifiedUntil: "2027-03-12" })).toContain("EPAC · jusqu&#x27;au 12 mars 2027")
+    expect(html("expires", { verifiedUntil: "2026-09-30" })).toContain("EPAC · expiré le 30 sept.")
+    expect(html("verifies", { verifiedUntil: null })).toContain("EPAC · Badge valide")
+    expect(html("expires", { verifiedUntil: "n'importe quoi" })).toContain("EPAC · Badge expiré")
+    expect(longDay("2027-03-12")).toBe("12 mars 2027")
+    expect(longDay("2027-13-45")).toBe("")
+  })
+})
+
+describe("pagination numérotée et puce de tri", () => {
+  const render2 = (over) => render({ data: data({ rows: [row()], total: 100, pageSize: 25, ...over }) })
+  const pager = (h) => h.match(/<nav class="pagination"[\s\S]*?<\/nav>/)?.[0] ?? ""
+
+  it("bornes désactivées sans lien, page courante marquée", () => {
+    const first = pager(render2({ page: 1, pageCount: 4 }))
+    expect(first).toMatch(/<span class="page-btn page-btn--nav is-disabled" aria-disabled="true">/)
+    expect(first).toMatch(/class="page-btn is-active" aria-current="page"[^>]*href="\/admin\/verifications"/)
+    const last = pager(render2({ page: 4, pageCount: 4 }))
+    expect(last).toContain('aria-label="Page précédente"')
+    expect(last).not.toContain('aria-label="Page suivante"')
+  })
+
+  it("liens conservant q, ecole et delai ; au plus 5 numéros avec saut", () => {
+    const mid = pager(render2({ page: 5, pageCount: 10, q: "ko", ecole: "EPAC", delai: "plus-48h" }))
+    expect(mid).toContain('href="/admin/verifications?q=ko&amp;ecole=EPAC&amp;delai=plus-48h&amp;page=6"')
+    expect(mid.match(/<a class="page-btn(?: is-active)?"/g)).toHaveLength(5)
+    expect(mid).toContain("page-btn--gap")
+  })
+
+  it("puce de tri statique : ni bouton ni menu", () => {
+    const h = render2({ page: 1, pageCount: 1 })
+    expect(h).toContain('<span class="chip a2-02-sort">Plus anciens d&#x27;abord</span>')
+    expect(h).not.toMatch(/<button[^>]*a2-02-sort|a2-02-sort[^>]*role="menu"/)
   })
 })
