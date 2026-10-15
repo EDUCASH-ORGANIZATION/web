@@ -78,7 +78,7 @@
           ],
           "lot": "ST-04",
           "assume": {
-            "h": "A2:4"
+            "h": "A2:3"
           },
           "note": "A2 : texte 13 -> 14 px, hauteur de ligne +3 (mesure de E06 ME-06, même composant ; la ligne n'est pas mesurable dans le code avant le lot ST-04)"
         },

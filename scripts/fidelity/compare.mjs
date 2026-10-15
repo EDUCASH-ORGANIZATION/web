@@ -54,13 +54,17 @@ const POLICE_PROPS = new Set(["w", "tw"])
 export function parseAssume(rule, prop) {
   if (!rule) return null
   const [codes, limit, ...extra] = String(rule).split(":")
-  const names = codes.split("+").filter(Boolean)
-  if (!names.length || extra.length) throw new Error(`Règle assumée invalide : « ${rule} »`)
+  const names = codes.split("+")
+  if (!codes || names.some((name) => !name) || extra.length || limit === "") throw new Error(`Règle assumée invalide : « ${rule} »`)
   for (const name of names) {
     if (!RULES.has(name)) throw new Error(`Règle assumée inconnue : « ${name} » (« ${rule} »). Autorisées : ${[...RULES].join(", ")}`)
   }
   const max = limit === undefined ? null : Number(limit)
   if (max !== null && (!Number.isFinite(max) || max < 0)) throw new Error(`Limite invalide dans « ${rule} »`)
+  if (names.includes("A1")) {
+    if (names.length > 1) throw new Error(`A1 ne se cumule pas (« ${rule} »)`)
+    if (prop && !COLOR.has(prop)) throw new Error(`A1 est limité aux couleurs, pas « ${prop} » (« ${rule} »)`)
+  }
   if (names.includes("POLICE")) {
     if (names.length > 1) throw new Error(`POLICE ne se cumule pas (« ${rule} »)`)
     if (max === null) throw new Error(`POLICE exige une limite (« ${rule} »)`)
@@ -179,7 +183,7 @@ export function resolveInside(base, relative) {
   try {
     const realRoot = realpathSync(root)
     const realTarget = realpathSync(target)
-    return realTarget === realRoot || realTarget.startsWith(realRoot + path.sep) ? target : null
+    return realTarget === realRoot || realTarget.startsWith(realRoot + path.sep) ? realTarget : null
   } catch {
     return null
   }
@@ -331,6 +335,7 @@ async function main() {
   const base = `http://127.0.0.1:${server.address().port}`
   let browser = null
   let failures = 0
+  let unexplained = 0
   try {
     browser = await launchBrowser()
     for (const spec of specs) {
@@ -342,12 +347,14 @@ async function main() {
       writeFileSync(path.join(outDir, "rapport.json"), JSON.stringify(rows, null, 1))
       process.stdout.write(`${reportMarkdown(spec, rows)}\n`)
       failures += rows.filter((r) => r.status === "ÉCHEC").length
+      unexplained += rows.filter((r) => r.status.startsWith("NON EXPLIQUÉ")).length
     }
   } finally {
     if (browser) await browser.close()
     server.close()
   }
   process.stdout.write(`Captures et rapports : ${out}\n`)
+  process.stdout.write(`Total : ÉCHEC ${failures} - NON EXPLIQUÉ (X1) ${unexplained}\n`)
   if (failures && !reportOnly) {
     process.stdout.write(`${failures} écart(s) hors tolérance (code de sortie 1 ; --report-only pour l'ignorer).\n`)
     process.exitCode = 1

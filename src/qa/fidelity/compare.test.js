@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
@@ -43,6 +43,12 @@ describe("compareEntry", () => {
     expect(result.status).toBe("NON EXPLIQUÉ A3, X1")
   })
 
+  it("cumul A2+A3+X1:5 : 5 accepté, 6 refusé", () => {
+    const rule = { y: "A2+A3+X1:5" }
+    expect(compareEntry(box(), box({ y: 5 }), { props: ["y"], assume: rule }).status).toBe("NON EXPLIQUÉ A2, A3, X1")
+    expect(compareEntry(box(), box({ y: 6 }), { props: ["y"], assume: rule }).status).toBe("ÉCHEC")
+  })
+
   it("la limite exacte est respectée : +4 hors de A3:3", () => {
     const result = compareEntry(box(), box({ y: 4 }), { props: ["y"], assume: { y: "A3:3" } })
     expect(result.status).toBe("ÉCHEC")
@@ -53,6 +59,15 @@ describe("parseAssume", () => {
   it("refuse un code hors liste blanche", () => {
     expect(() => parseAssume("A9:100", "y")).toThrow(/inconnue/)
     expect(() => parseAssume("Z", "color")).toThrow(/inconnue/)
+  })
+
+  it("refuse limite vide, code vide, A1 cumulé ou hors couleur", () => {
+    expect(() => parseAssume("A3:", "y")).toThrow(/invalide/)
+    expect(() => parseAssume("+A3:2", "y")).toThrow(/invalide/)
+    expect(() => parseAssume("A3+:2", "y")).toThrow(/invalide/)
+    expect(() => parseAssume("A1+A3", "color")).toThrow(/ne se cumule pas/)
+    expect(() => parseAssume("A1", "fontFamily")).toThrow(/couleurs/)
+    expect(parseAssume("A1", "bg").names).toEqual(["A1"])
   })
 
   it("POLICE : seulement w et tw, limite obligatoire", () => {
@@ -85,7 +100,7 @@ describe("validateSpec", () => {
   })
 })
 
-const tmp = mkdtempSync(path.join(os.tmpdir(), "fidelity-test-"))
+const tmp = realpathSync(mkdtempSync(path.join(os.tmpdir(), "fidelity-test-")))
 afterAll(() => rmSync(tmp, { recursive: true, force: true }))
 const pub = path.join(tmp, "pub")
 const maq = path.join(tmp, "maq")
@@ -122,6 +137,11 @@ describe("resolveInside", () => {
     mkdirSync(path.join(tmp, "pub-evil"), { recursive: true })
     expect(resolveInside(pub, "/a/b.css")).toBe(path.join(pub, "a/b.css"))
     expect(resolveInside(pub, "/../pub-evil/x")).toBeNull()
+  })
+
+  it("renvoie le chemin réel d'un lien interne à la racine", () => {
+    symlinkSync(path.join(pub, "a"), path.join(pub, "inner"))
+    expect(resolveInside(pub, "/inner/b.css")).toBe(path.join(pub, "a/b.css"))
   })
 
   it("refuse un lien symbolique pointant hors de la racine, et un fichier absent", () => {
