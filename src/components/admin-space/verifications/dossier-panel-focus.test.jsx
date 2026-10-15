@@ -152,7 +152,7 @@ describe("DossierPanel : focus après décision", () => {
     const other = renderReview(render(dossier({ userId: ID2, name: "Nadège Kpadonou" })))
     expect(other.identity).not.toBe(first.identity)
     expect(nameField(other.tree).props.value).toBe("")
-    expect(find(typedCell(other.tree), (n) => n.type === "b")[0].props.children).toBe("Non renseigné")
+    expect(find(typedCell(other.tree), (n) => n.type === "b")[0].props.children).toBe("À lire sur la carte (zone 3)")
     expect(find(other.tree, (n) => n.props.className?.includes?.("a2-02-namecheck"))).toHaveLength(0)
     // Cases non contrôlées, recréées avec la nouvelle instance : aucune n'arrive cochée.
     const boxes = find(other.tree, (n) => n.type === CheckboxField)

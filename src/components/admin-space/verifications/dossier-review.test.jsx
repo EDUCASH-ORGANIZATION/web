@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 
-const { DossierReview } = await import("./dossier-review")
+const { DossierReview, daysSinceExpiry, expiredTitle } = await import("./dossier-review")
 const { CardViewer } = await import("./card-viewer")
 
 const SIGNED = "https://storage.example/sign/cards/u1.jpg?token=SECRET"
@@ -22,7 +22,8 @@ const render = (props) => renderToStaticMarkup(<DossierReview dossier={dossier()
 describe("DossierReview", () => {
   it("légende numérotée 1 à 4 avec l'année calculée", () => {
     const html = render()
-    expect(html.match(/<li><b>\d<\/b>/g)).toHaveLength(4)
+    // Rendue deux fois : au bureau (sous la carte) et sur mobile (après la liste kv).
+    expect(html.match(/<li><b>\d<\/b>/g)).toHaveLength(8)
     expect(html).toContain("Année universitaire : 2025-2026 ou 2026-2027.")
   })
 
@@ -35,7 +36,9 @@ describe("DossierReview", () => {
     expect(html).toContain("<b>Licence 3</b>")
     expect(html).toContain("2026-2027")
     expect(html).toContain("(année en cours)")
-    expect(html.match(/Non renseigné/g)).toHaveLength(3)
+    expect(html).toContain("À lire sur la carte (zone 3)")
+    expect(html).toContain("À lire sur la carte (zone 1)")
+    expect(html).not.toContain("Non renseigné")
   })
 
   it("aucun encart des noms sans saisie", () => {
@@ -59,10 +62,58 @@ describe("DossierReview", () => {
     expect(html).toContain('autoComplete="off"')
   })
 
-  it("motif de refus et échéance du badge conservés", () => {
-    const html = render({ dossier: dossier({ rejectionReason: "Photo floue ou illisible", verifiedUntil: "2027-10-01" }) })
-    expect(html).toContain("Photo floue ou illisible")
+  it("Refusés : bannière du motif, ni champ nom, ni tableau, ni Contrôle", () => {
+    const html = render({ dossier: dossier({ tab: "refuses", rejectionReason: "Photo floue ou illisible" }) })
+    expect(html).toContain("banner banner--erreur")
+    expect(html).toContain("Motif : Photo floue ou illisible")
+    expect(html).not.toContain("<table")
+    expect(html).not.toContain("Nom lu sur la carte")
+    expect(html).not.toContain('type="checkbox"')
+  })
+
+  it("Vérifiés : échéance en kv et bannière de révocation, sans tableau", () => {
+    const html = render({ dossier: dossier({ tab: "verifies", verifiedUntil: "2027-10-01" }) })
+    expect(html).toContain("Badge valable jusqu&#x27;au")
     expect(html).toContain("1 octobre 2027")
+    expect(html).toContain("banner banner--info")
+    expect(html).toContain("La révocation retire le badge tout de suite.")
+    expect(html).not.toContain("<table")
+  })
+
+  it("Expirés : bannière avec la durée depuis l'échéance", () => {
+    const html = render({ dossier: dossier({ tab: "expires", verifiedUntil: "2026-10-03" }) })
+    expect(html).toContain("banner banner--alerte-doux")
+    expect(html).toContain("Badge expiré depuis 12 jours")
+    expect(html).not.toContain("<table")
+  })
+
+  it("Incomplets : carte manquante et bannière, sans visionneuse", () => {
+    const html = render({ dossier: dossier({ tab: "incomplets", cardView: null }) })
+    expect(html).toContain("ad-idcard--missing")
+    expect(html).toContain("Aucune carte fournie")
+    expect(html).toContain("Validation impossible sans carte")
+    expect(html).not.toContain("ad-viewer")
+  })
+
+  it("À examiner : liste kv mobile, un seul champ de saisie du nom, aucun bandeau sans saisie", () => {
+    const html = render({ dossier: dossier({ tab: "a-examiner", submittedOn: "2026-10-14" }) })
+    expect(html).toContain("ds-mob-only")
+    expect(html).toContain('<dl class="kv a2-02-mkv">')
+    expect(html.match(/Nom lu sur la carte<span/g)).toHaveLength(1)
+    expect(html).not.toContain("Noms concordants")
+  })
+
+  it("daysSinceExpiry et expiredTitle : 0, 1, N, date illisible", () => {
+    expect(daysSinceExpiry("2026-10-15", "2026-10-15")).toBe(0)
+    expect(daysSinceExpiry("2026-10-14", "2026-10-15")).toBe(1)
+    expect(daysSinceExpiry("2026-09-15", "2026-10-15")).toBe(30)
+    expect(daysSinceExpiry("2026-10-20", "2026-10-15")).toBe(0)
+    expect(daysSinceExpiry("n'importe quoi", "2026-10-15")).toBeNull()
+    expect(daysSinceExpiry(null, "2026-10-15")).toBeNull()
+    expect(expiredTitle(0)).toBe("Badge expiré aujourd'hui")
+    expect(expiredTitle(1)).toBe("Badge expiré depuis 1 jour")
+    expect(expiredTitle(30)).toBe("Badge expiré depuis 30 jours")
+    expect(expiredTitle(null)).toBe("Badge expiré")
   })
 
   it("vouvoiement : aucun tutoiement", () => {
