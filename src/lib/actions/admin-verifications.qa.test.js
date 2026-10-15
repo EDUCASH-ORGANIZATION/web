@@ -362,14 +362,14 @@ describe("QA e-mail, journal et données privées", () => {
     expect(q.rows).toHaveLength(25)
     expect(q.pageCount).toBe(2)
   })
-  it("dossier ouvert : une seule URL signée de 300 s, e-mail seulement pour ce dossier, jamais le téléphone", async () => {
+  it("dossier ouvert : une seule URL signée de 300 s, aucune adresse e-mail renvoyée au navigateur, jamais le téléphone", async () => {
     for (let i = 1; i <= 3; i++) addStudent(i)
     const q = await getVerificationQueue({ id: uid(2) })
     expect(state.signed).toHaveLength(1)
     expect(state.signed[0]).toMatchObject({ bucket: "student-cards", ttl: 300 })
-    expect(q.dossier.email).toBe("etudiant2@exemple.bj")
+    expect(q.dossier).not.toHaveProperty("email")
     const text = JSON.stringify(q)
-    expect(text).not.toMatch(/22997|token-secret|etudiant1@|etudiant3@/)
+    expect(text).not.toMatch(/22997|token-secret|etudiant\d@|exemple\.bj/)
   })
   it("carte d'un autre utilisateur ou chemin hostile en base : kind none, aucune signature", async () => {
     const id = addStudent(1)

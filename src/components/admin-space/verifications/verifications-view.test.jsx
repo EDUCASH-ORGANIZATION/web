@@ -42,7 +42,6 @@ const dossier = (over = {}) => ({
   userId: ID1,
   name: "Codjo Ahouansou",
   avatarUrl: null,
-  email: "codjo@example.com",
   school: "EPAC",
   level: "Licence 3",
   tab: "a-examiner",

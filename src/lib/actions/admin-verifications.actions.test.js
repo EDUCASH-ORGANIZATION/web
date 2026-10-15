@@ -640,14 +640,13 @@ describe("getVerificationQueue", () => {
     expect(res.counts["a-examiner"]).toBe(2)
   })
 
-  it("dossier ouvert : une seule URL signée de 300 s, e-mail et date de dépôt de ce dossier seulement", async () => {
+  it("dossier ouvert : une seule URL signée de 300 s, date de dépôt de ce dossier, aucune adresse e-mail", async () => {
     seed()
     const res = await getVerificationQueue({ id: uid(1) })
     expect(state.signed).toEqual([{ bucket: "student-cards", path: `${uid(1)}/carte.jpg`, ttl: 300 }])
     expect(res.dossier).toMatchObject({
       userId: uid(1),
       name: "Etudiant 1 Nom",
-      email: "etudiant1@exemple.bj",
       school: "UAC",
       level: "L3",
       tab: "a-examiner",
@@ -655,9 +654,10 @@ describe("getVerificationQueue", () => {
       cardView: { kind: "image", url: expect.stringContaining("ttl=300") },
       actions: ["approve", "reject"],
     })
+    expect(res.dossier).not.toHaveProperty("email")
     const listJson = JSON.stringify(res.rows)
     expect(listJson).not.toMatch(/signed\.example|exemple\.bj/)
-    expect(JSON.stringify(res)).not.toMatch(/etudiant2@|etudiant3@|phone|fcm|token-secret/)
+    expect(JSON.stringify(res)).not.toMatch(/exemple\.bj|phone|fcm|token-secret/)
   })
 
   it("dossier sans carte, vérifié, refusé : actions selon l'onglet", async () => {

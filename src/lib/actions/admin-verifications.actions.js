@@ -462,12 +462,13 @@ export async function getVerificationQueue(searchParams) {
   }
 }
 
-/** Dossier ouvert : seul endroit où la carte (URL signée courte), l'e-mail et la date de dépôt sont lus. */
+/** Dossier ouvert : seul endroit où la carte (URL signée courte) et la date de dépôt sont lues. */
 async function openDossier(service, { profile, dossier, tab }, now) {
-  const [declaredRes, authRes] = await Promise.all([
-    service.from("student_profiles").select("school, level, card_url").eq("user_id", profile.user_id).maybeSingle(),
-    service.auth.admin.getUserById(profile.user_id),
-  ])
+  const declaredRes = await service
+    .from("student_profiles")
+    .select("school, level, card_url")
+    .eq("user_id", profile.user_id)
+    .maybeSingle()
   if (declaredRes.error) throw new Error("Lecture impossible.")
   const hints = dossierHints(dossier, now)
   const cardView = await signStudentCard(service, profile.user_id, declaredRes.data?.card_url, 300)
@@ -475,7 +476,6 @@ async function openDossier(service, { profile, dossier, tab }, now) {
     userId: profile.user_id,
     name: profile.full_name ?? "",
     avatarUrl: profile.avatar_url ?? null,
-    email: authRes.data?.user?.email ?? null,
     school: declaredRes.data?.school ?? null,
     level: declaredRes.data?.level ?? null,
     tab,
