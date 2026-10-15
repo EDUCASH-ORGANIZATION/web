@@ -106,15 +106,20 @@ describe("getMyStudentProfile", () => {
 const LEAK = 'duplicate key value violates constraint "profiles_pkey"'
 const SUPABASE_URL = "https://proj.supabase.co"
 
+// `captured[table]` : état cumulé des colonnes écrites sur la ligne de l'appelant (plusieurs écritures successives
+// sur une même table se cumulent, comme dans la base).
 function session({ failOn, captured } = {}) {
   const result = (table) => ({ error: table === failOn ? { message: LEAK } : null })
+  const record = (table, payload) => {
+    if (captured) captured[table] = { ...captured[table], ...payload }
+  }
   const chain = (table) => ({
     update: (payload) => {
-      if (captured) captured[table] = payload
-      return { eq: () => Promise.resolve(result(table)) }
+      record(table, payload)
+      return { eq: () => Promise.resolve({ ...result(table), count: table === failOn ? null : 1 }) }
     },
     upsert: (payload) => {
-      if (captured) captured[table] = payload
+      record(table, payload)
       return Promise.resolve(result(table))
     },
   })
@@ -285,13 +290,14 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     const order = []
     const supabase = {
       from: (table) => ({
-        update: () => ({ eq: () => { order.push(`update:${table}`); return Promise.resolve({ error: null }) } }),
+        update: () => ({ eq: () => { order.push(`update:${table}`); return Promise.resolve({ error: null, count: 1 }) } }),
         upsert: () => { order.push(`upsert:${table}`); return Promise.resolve({ error: null }) },
       }),
     }
     asRole(supabase)
     expect(await saveStudentCardUrl("u1/card.jpg")).toEqual({ success: true })
-    expect(order).toEqual(["update:profiles", "upsert:student_profiles", "update:profiles"])
+    // Ligne garantie (upsert sans la carte), puis carte écrite par UPDATE simple, entre le retrait du badge et le jeton.
+    expect(order).toEqual(["update:profiles", "upsert:student_profiles", "update:student_profiles", "update:profiles"])
   })
 
   it("saveStudentCardUrl : remise en attente en échec, la carte n'est jamais écrite (état sûr)", async () => {
@@ -317,12 +323,13 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     const payloads = []
     let n = 0
     const supabase = {
-      from: () => ({
+      from: (table) => ({
         update: (p) => ({
           eq: () => {
+            if (table !== "profiles") return Promise.resolve({ error: null, count: 1 })
             payloads.push(p)
             n += 1
-            return Promise.resolve({ error: n === 2 ? { message: LEAK } : null })
+            return Promise.resolve({ error: n === 2 ? { message: LEAK } : null, count: 1 })
           },
         }),
         upsert: () => Promise.resolve({ error: null }),

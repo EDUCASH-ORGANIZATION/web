@@ -9,6 +9,7 @@ import { CITIES } from "@/lib/supabase/database.constants"
 import { parseBeninPhone } from "@/lib/utils/phone"
 import { SKILLS_MAX, validateStudentProfile } from "@/lib/student-space/profile-rules"
 import { firstName } from "@/lib/vitrine/public-name"
+import { ensureOwnStudentRow, setOwnCardPath } from "@/lib/actions/student-card-write"
 
 // Colonnes de la ligne de l'appelant, lues côté serveur : les colonnes privées (phone,
 // rejection_reason, verification_submitted_at, card_url) ne sont plus lisibles avec la session.
@@ -337,9 +338,13 @@ export async function saveStudentCardUrl(cardUrl) {
       return { error: fail }
     }
 
-    const { error: updateError } = await supabase
-      .from("student_profiles")
-      .upsert({ user_id: user.id, card_url: cardPath }, { onConflict: "user_id" })
+    // Pas d'upsert portant la carte : il lirait EXCLUDED.card_url, colonne privée non lisible par la session (42501).
+    const { error: rowError } = await ensureOwnStudentRow(supabase, user.id)
+    if (rowError) {
+      console.error("[saveStudentCardUrl]", rowError.message)
+      return { error: fail }
+    }
+    const { error: updateError } = await setOwnCardPath(supabase, user.id, cardPath)
     if (updateError) {
       console.error("[saveStudentCardUrl]", updateError.message)
       return { error: fail }
