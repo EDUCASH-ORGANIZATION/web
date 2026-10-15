@@ -108,6 +108,11 @@ describe("garde-fou de l'espace admin (RD-ADMIN-01)", () => {
     expect(bad).toEqual([])
   })
 
+  it("tout fichier non test de src/app/(admin) et src/app/design/admin porte le marqueur, sans exemption", () => {
+    const unmarked = MARKED_DIRS.flatMap((d) => walk(d)).filter((f) => !readFileSync(f, "utf8").includes(MARKER))
+    expect(unmarked).toEqual([])
+  })
+
   it("le marqueur est celui de la tâche et les tests ne sont pas scannés", () => {
     expect(MARKER).toBe("@ds-screen RD-ADMIN-01")
     expect(FILES.every((f) => !f.endsWith(".test.js") && !f.endsWith(".test.jsx"))).toBe(true)

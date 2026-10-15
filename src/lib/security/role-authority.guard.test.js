@@ -15,7 +15,7 @@ const DISPLAY_ONLY = { "src/hooks/use-vitrine-session.js": "full_name" }
 
 const FIXED_FILES = ["middleware.js", "src/app/(student)/layout.js", "src/app/(client)/layout.js"]
 
-const ADMIN_PAGES = ["dashboard", "verifications", "users", "missions", "wallets"].map(
+const ADMIN_PAGES = ["dashboard", "verifications", "users", "missions", "wallets", "transactions", "withdrawals"].map(
   (name) => `src/app/(admin)/admin/${name}/page.js`
 )
 
@@ -79,7 +79,7 @@ describe("garde-fou role-authority", () => {
     expect(files).toEqual(expect.arrayContaining([...FIXED_FILES, "src/lib/actions/auth.actions.js"]))
   })
 
-  it("surveille les 5 pages admin", () => {
+  it("surveille les 7 pages admin", () => {
     const files = guardedFiles().map((f) => path.relative(ROOT, f))
     expect(files).toEqual(expect.arrayContaining(ADMIN_PAGES))
   })

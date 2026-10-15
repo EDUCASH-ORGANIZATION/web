@@ -710,7 +710,6 @@ const SRC = path.resolve(import.meta.dirname, "../..")
 const PRIVATE_COLUMNS = ["phone", "fcm_token", "rejection_reason", "verification_submitted_at", "card_url"]
 const SERVER_ALLOWLIST = [
   "lib/actions/profile.actions.js",
-  "lib/actions/admin.actions.js",
   "lib/actions/onboarding.actions.js",
   "lib/actions/admin-verifications.actions.js",
   "lib/actions/admin-dashboard.actions.js",

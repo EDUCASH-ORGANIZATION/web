@@ -1,6 +1,5 @@
 // @ds-screen RD-ADMIN-01
-// Configuration de la coquille de l'espace admin. Transactions et Retraits s'ajoutent au groupe Finances quand
-// leurs pages existent. Chaque lien vise une route existante. Aucun abonnement aux messages (`realtime: false`).
+// Configuration de la coquille de l'espace admin. Chaque lien vise une route existante. Aucun abonnement aux messages (`realtime: false`).
 // Le compteur « verifications » est celui des dossiers « À examiner » (passé par `counts`).
 
 export const ADMIN_NAV = {
@@ -34,7 +33,11 @@ export const ADMIN_NAV = {
     },
     {
       title: "Finances",
-      items: [{ key: "portefeuilles", label: "Portefeuilles", href: "/admin/wallets", icon: "i-wallet" }],
+      items: [
+        { key: "transactions", label: "Transactions", href: "/admin/transactions", icon: "i-receipt" },
+        { key: "portefeuilles", label: "Portefeuilles", href: "/admin/wallets", icon: "i-wallet" },
+        { key: "retraits", label: "Retraits", href: "/admin/withdrawals", icon: "i-banknote" },
+      ],
     },
   ],
   mobile: [
@@ -54,6 +57,10 @@ export const ADMIN_NAV = {
     key: "plus",
     label: "Plus",
     icon: "i-more-h",
-    items: [{ key: "portefeuilles", label: "Portefeuilles", href: "/admin/wallets", icon: "i-wallet" }],
+    items: [
+      { key: "transactions", label: "Transactions", href: "/admin/transactions", icon: "i-receipt" },
+      { key: "portefeuilles", label: "Portefeuilles", href: "/admin/wallets", icon: "i-wallet" },
+      { key: "retraits", label: "Retraits", href: "/admin/withdrawals", icon: "i-banknote" },
+    ],
   },
 }

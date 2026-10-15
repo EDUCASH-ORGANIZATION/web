@@ -13,11 +13,16 @@ export function reasonError(reason) {
   return text.length < REASON_MIN ? `Le motif doit contenir au moins ${REASON_MIN} caractères.` : ""
 }
 
-/** Zone de motif : l'erreur est reliée à la zone de texte (aria-describedby, aria-invalid). */
-export function ReasonField({ reason, error, onChange }) {
+const NO_PERSONAL_DATA = "N'indiquez pas de coordonnées personnelles."
+export const VISIBLE_REASON_HELP = `Le motif est visible de l'étudiant. ${NO_PERSONAL_DATA}`
+export const INTERNAL_REASON_HELP = NO_PERSONAL_DATA
+
+/** Zone de motif : l'erreur est reliée à la zone de texte (aria-describedby, aria-invalid). `visible` : l'étudiant le lit. */
+export function ReasonField({ reason, error, onChange, visible = false }) {
   return (
     <TextareaField
       label="Motif"
+      help={visible ? VISIBLE_REASON_HELP : INTERNAL_REASON_HELP}
       required
       maxLength={REASON_MAX}
       value={reason}
@@ -28,7 +33,7 @@ export function ReasonField({ reason, error, onChange }) {
   )
 }
 
-function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone }) {
+function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone, visible }) {
   const [reason, setReason] = useState("")
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
@@ -81,6 +86,7 @@ function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone
     >
       <div className="stack stack--3">
         <ReasonField
+          visible={visible}
           reason={reason}
           error={error}
           onChange={(value) => {
@@ -94,7 +100,7 @@ function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone
 }
 
 /** Boîte à motif obligatoire, commune à la réinitialisation d'un refus et à la révocation d'un badge. */
-export function ReasonDialog({ open, onClose, onConfirm, title, description, confirmLabel, tone = "default" }) {
+export function ReasonDialog({ open, onClose, onConfirm, title, description, confirmLabel, tone = "default", visible = false }) {
   if (!open) return null
   return (
     <ReasonForm
@@ -104,6 +110,7 @@ export function ReasonDialog({ open, onClose, onConfirm, title, description, con
       description={description}
       confirmLabel={confirmLabel}
       tone={tone}
+      visible={visible}
     />
   )
 }
@@ -116,7 +123,7 @@ export function ResetDialog({ open, onClose, onConfirm, name }) {
       onClose={onClose}
       onConfirm={onConfirm}
       title={`Réinitialiser le refus de ${name}`}
-      description="Le motif de refus est effacé : l'étudiant pourra renvoyer une carte. Indiquez pourquoi vous le faites."
+      description="Le motif de refus et la carte refusée sont retirés : le dossier passe en Incomplets et l'étudiant pourra renvoyer une carte. Indiquez pourquoi vous le faites."
       confirmLabel="Réinitialiser le refus"
     />
   )

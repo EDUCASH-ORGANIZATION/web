@@ -278,7 +278,8 @@ export async function rejectStudentCard(userId, { reason, message, expectedSubmi
 }
 
 /**
- * Efface le motif d'un refus pour permettre à l'étudiant de renvoyer une carte. Seulement si un motif existe.
+ * Efface le motif d'un refus et retire la carte refusée : le dossier passe en « Incomplets » jusqu'à ce que
+ * l'étudiant renvoie une carte (il ne revient jamais en « À examiner » avec l'ancienne carte). Seulement si un motif existe.
  * @param {string} userId
  * @param {{ reason?: string }} [input] motif de l'administrateur (journal seulement)
  * @returns {Promise<{ success: true } | { error: string }>}
@@ -293,8 +294,20 @@ export async function resetStudentRejection(userId, { reason } = {}) {
   const why = reasonSchema.safeParse(reason)
   if (!why.success) return { error: why.error.issues[0]?.message ?? "Motif invalide." }
   try {
-    const written = await writeOne(service, id.data, { rejection_reason: null }, (q) => q.not("rejection_reason", "is", null), "reset")
+    const written = await writeOne(
+      service,
+      id.data,
+      { rejection_reason: null, verification_submitted_at: null },
+      (q) => q.not("rejection_reason", "is", null),
+      "reset",
+    )
     if (written.error) return { error: written.error }
+    // Après l'écriture conditionnelle seulement : une carte renvoyée entre-temps n'est jamais effacée.
+    const { error: cardError } = await service.from("student_profiles").update({ card_url: null }).eq("user_id", id.data)
+    if (cardError) {
+      console.error("[admin-verifications] reset-card:", cardError.message)
+      return { error: ERR_WRITE }
+    }
     logAdminAction({ adminId: admin.userId, action: "verification.reset", targetId: id.data, reason: why.data })
     revalidateQueue()
     return { success: true }

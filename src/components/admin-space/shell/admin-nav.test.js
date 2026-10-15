@@ -39,15 +39,15 @@ describe("ADMIN_NAV", () => {
   it("bureau : groupes Général puis Finances, clés uniques par liste", () => {
     expect(ADMIN_NAV.groups.map((g) => g.title)).toEqual(["Général", "Finances"])
     expect(ADMIN_NAV.groups[0].items.map((i) => i.key)).toEqual(["accueil", "verifications", "utilisateurs", "missions"])
-    expect(ADMIN_NAV.groups[1].items.map((i) => i.key)).toEqual(["portefeuilles"])
+    expect(ADMIN_NAV.groups[1].items.map((i) => i.key)).toEqual(["transactions", "portefeuilles", "retraits"])
     expect(new Set(desktop.map((i) => i.key)).size).toBe(desktop.length)
   })
 
-  it("mobile : Accueil, Vérifs, Missions, Utilisateurs puis Plus (Portefeuilles)", () => {
+  it("mobile : Accueil, Vérifs, Missions, Utilisateurs puis Plus (Transactions, Portefeuilles, Retraits)", () => {
     expect(mobile.map((i) => i.key)).toEqual(["accueil", "verifications", "missions", "utilisateurs"])
     expect(mobile.map((i) => i.label)).toEqual(["Accueil", "Vérifs", "Missions", "Utilisateurs"])
     expect(mobileMore).toMatchObject({ key: "plus", label: "Plus", icon: "i-more-h" })
-    expect(mobileMore.items.map((i) => i.key)).toEqual(["portefeuilles"])
+    expect(mobileMore.items.map((i) => i.key)).toEqual(["transactions", "portefeuilles", "retraits"])
     expect(mobile.some((i) => i.cta)).toBe(false)
     expect(ADMIN_NAV.mobileHideBelow).toBeUndefined()
   })
@@ -92,6 +92,8 @@ describe("ADMIN_NAV", () => {
     expect(activeKey("/admin/users/abc", desktop)).toBe("utilisateurs")
     expect(activeKey("/admin/missions/abc", desktop)).toBe("missions")
     expect(activeKey("/admin/wallets", desktop)).toBe("portefeuilles")
+    expect(activeKey("/admin/transactions", desktop)).toBe("transactions")
+    expect(activeKey("/admin/withdrawals", desktop)).toBe("retraits")
     expect(activeKey("/admin/walletsx", desktop)).toBeNull()
   })
 
@@ -100,6 +102,11 @@ describe("ADMIN_NAV", () => {
       activeKey: null,
       moreActive: true,
       moreActiveKey: "portefeuilles",
+    })
+    expect(resolveMobileActive("/admin/withdrawals", mobile, mobileMore)).toMatchObject({
+      activeKey: null,
+      moreActive: true,
+      moreActiveKey: "retraits",
     })
     expect(resolveMobileActive("/admin/verifications", mobile, mobileMore)).toMatchObject({
       activeKey: "verifications",

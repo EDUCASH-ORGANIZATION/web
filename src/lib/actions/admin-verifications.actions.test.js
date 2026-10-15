@@ -229,7 +229,7 @@ describe("contrôle admin de chaque action", () => {
     expect(await resetStudentRejection(id, { reason: "Motif valable" })).toMatchObject({ error: expect.any(String) })
     profileOf(id).rejection_reason = "Photo floue ou illisible"
     expect(await resetStudentRejection(id, { reason: "Motif valable" })).toEqual({ success: true })
-    expect(updates()).toHaveLength(2)
+    expect(updates().filter((q) => q.table === "profiles")).toHaveLength(2)
   })
 })
 
@@ -497,6 +497,25 @@ describe("resetStudentRejection", () => {
     expect(profileOf(id).rejection_reason).toBeNull()
     expect(sendEmail).not.toHaveBeenCalled()
     expect(JSON.parse(console.info.mock.calls[0][1])).toMatchObject({ action: "verification.reset", reason: "Erreur de notre part" })
+  })
+
+  it("D1 : le dossier passe en Incomplets (carte retirée) et le compteur À examiner n'augmente pas", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    const before = await getVerificationQueue({ onglet: "a-examiner" })
+    expect(before.counts["a-examiner"]).toBe(0)
+    expect(await resetStudentRejection(id, { reason: "Erreur de notre part" })).toEqual({ success: true })
+    expect(profileOf(id).verification_submitted_at).toBeNull()
+    expect(state.studentProfiles.find((s) => s.user_id === id).card_url).toBeNull()
+    const after = await getVerificationQueue({ onglet: "a-examiner" })
+    expect(after.counts["a-examiner"]).toBe(0)
+    expect(after.counts.incomplets).toBe(1)
+    expect(after.counts.refuses).toBe(0)
+  })
+
+  it("ne touche pas à la carte d'un dossier sans refus (écriture conditionnelle refusée)", async () => {
+    const id = addStudent(1)
+    expect((await resetStudentRejection(id, { reason: "Motif valable" })).error).toBeTruthy()
+    expect(state.studentProfiles.find((s) => s.user_id === id).card_url).toBe(`${id}/carte.jpg`)
   })
 
   it.each([

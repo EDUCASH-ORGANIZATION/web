@@ -329,6 +329,15 @@ describe("boîtes de dialogue", () => {
     expect(revoke).toContain("btn btn--danger")
   })
 
+  it("consigne du motif : visible de l'étudiant (refus, retrait de badge), jamais de coordonnées personnelles", () => {
+    const reject = renderToStaticMarkup(<RejectDialog open onClose={() => {}} onConfirm={() => {}} name="Codjo" />)
+    const revoke = renderToStaticMarkup(<RevokeDialog open onClose={() => {}} onConfirm={() => {}} name="Codjo" />)
+    const reset = renderToStaticMarkup(<ResetDialog open onClose={() => {}} onConfirm={() => {}} name="Codjo" />)
+    for (const html of [reject, revoke]) expect(html).toContain("Le motif est visible de l&#x27;étudiant.")
+    for (const html of [reject, revoke, reset]) expect(html).toContain("N&#x27;indiquez pas de coordonnées personnelles.")
+    expect(reset).not.toContain("visible de l&#x27;étudiant")
+  })
+
   it("refus : l'erreur du motif est reliée au groupe de radios, pas à une alerte séparée", () => {
     const html = renderToStaticMarkup(
       <RejectFields reason="" message="" error={{ field: "reason", text: "Choisissez un motif de la liste." }} onReason={() => {}} onMessage={() => {}} />,

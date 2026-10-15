@@ -14,6 +14,7 @@ export function RevokeDialog({ open, onClose, onConfirm, name }) {
       description="Le badge est retiré et le motif est envoyé à l'étudiant par e-mail. Il pourra renvoyer une carte."
       confirmLabel="Révoquer le badge"
       tone="danger"
+      visible
     />
   )
 }

@@ -60,6 +60,7 @@ function Form({ onClose, onConfirm, title, description, notes, confirmLabel, ton
     >
       <div className="stack stack--3">
         <ReasonField
+          visible={false}
           reason={reason}
           error={error}
           onChange={(value) => {

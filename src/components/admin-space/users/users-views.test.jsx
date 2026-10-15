@@ -299,6 +299,9 @@ describe("modales AD05", () => {
   })
 
   it("suspension : motif obligatoire, conséquences en notes, aucune durée ni e-mail annoncé, vouvoiement", () => {
+    const warn = html(<SuspendDialog open onClose={() => {}} onConfirm={() => {}} name="Sèna" />)
+    expect(warn).toContain("N&#x27;indiquez pas de coordonnées personnelles.")
+    expect(warn).not.toContain("visible de l&#x27;étudiant")
     const out = html(<SuspendDialog open onClose={() => {}} onConfirm={() => {}} name="Sèna" />)
     expect(out).toContain("Suspendre Sèna ?")
     expect(out).toContain("Motif")

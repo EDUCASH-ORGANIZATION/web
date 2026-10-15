@@ -10,7 +10,6 @@ const SRC = path.resolve(__dirname, "../../..")
 // Exceptions connues, hors vitrine, à traiter dans un lot dédié (fichier:ligne).
 const KNOWN_EXCEPTIONS = new Set([
   "lib/email/templates/application-rejected.jsx:28",
-  "components/admin/verifications-tabs.js:27",
 ])
 // Texte JSX qui commence par des espaces juste après une balise ou une expression, puis
 // contient une entité et un retour à la ligne. Exemple fautif :

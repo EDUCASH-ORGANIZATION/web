@@ -6,6 +6,7 @@ import { Icon } from "@/components/design/icon"
 import { Modal } from "@/components/app-ui/modal"
 import { RadioGroupField, TextareaField } from "@/components/app-ui/fields"
 import { confirmOnce } from "@/components/app-ui/confirm-dialog"
+import { VISIBLE_REASON_HELP } from "./reset-dialog"
 import { ADMIN_REJECTION_REASONS, MESSAGE_MAX, OTHER_REASON } from "@/lib/admin-space/decision-schemas"
 
 const REASON_OPTIONS = ADMIN_REJECTION_REASONS.map((value) => ({ value, label: value }))
@@ -41,6 +42,7 @@ export function RejectFields({ reason, message, error, onReason, onMessage }) {
       />
       <TextareaField
         label={reason === OTHER_REASON ? "Précisez le motif" : "Message pour l'étudiant"}
+        help={VISIBLE_REASON_HELP}
         optional={reason !== OTHER_REASON}
         required={reason === OTHER_REASON}
         maxLength={MESSAGE_MAX}
