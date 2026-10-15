@@ -89,12 +89,12 @@ describe("RD-FIX-13 QA : budget de hauteur de la sidebar, trois roles, a 600, 70
   })
   const used = (h, { items, groups, cta }) => {
     const padTop = clamp(12, (h - 600) / 4 + 12, 24)
-    const brand = 40 + 6 + 18 + clamp(8, (h - 600) / 4 + 8, 24)
+    const brand = 40 + 6 + 19.5 + clamp(8, (h - 600) / 4 + 8, 24)
     const ctaH = cta ? 36 + 12 : 0
-    const group = clamp(8, (h - 600) / 4 + 8, 20) + 18 + 6
+    const group = clamp(8, (h - 600) / 4 + 8, 20) + 19.5 + 6
     const item = clamp(32, (h - 600) / 8 + 34, 42)
     const nav = items * item + groups * group + (items + groups - 1) * 2
-    const me = 12 + 36 + 2 + 2
+    const me = 12 + 40 + 2 + 2
     return padTop + brand + 2 + ctaH + nav + 2 + me + 12
   }
   it("les constantes du modele correspondent a la feuille", () => {
