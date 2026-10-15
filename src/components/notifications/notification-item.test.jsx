@@ -24,6 +24,13 @@ describe("NotificationItem", () => {
     expect(out).toContain("il y a 2 h")
   })
 
+  it("ordre de la planche T01 : l'heure vient après l'action", () => {
+    const out = html({ item: base, primary: true })
+    expect(out.indexOf("notif__actions")).toBeGreaterThan(-1)
+    expect(out.indexOf("notif__time")).toBeGreaterThan(out.indexOf("notif__actions"))
+    expect(out.match(/btn--dark/g)).toHaveLength(1)
+  })
+
   it("lue : aucune marque", () => {
     const out = html({ item: { ...base, unread: false } })
     expect(out).not.toContain("is-unread")
