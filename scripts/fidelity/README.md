@@ -78,7 +78,7 @@ restent en `ÉCHEC` ; les lignes avec 1 px non expliqué sont en `NON EXPLIQUÉ`
 - `assume` : écarts assumés par propriété, fusionnés spécification < vue < sélecteur. `A1` à `A7` sont
   les écarts du plan RD-FIDELITE-01 :
   A1 couleurs de la charte (vérifiées par correspondance exacte), A2 taille minimale 13 px,
-  A3 interligne des titres (tout ce qui suit descend de 3 px), A4 logo de sidebar, A5 cibles tactiles
+  A3 interligne des titres Anton 1.14 (`--lh-display` : 43,32 px de haut au lieu de 39,90 px, tout ce qui suit descend de 3,42 px réels, soit +3 ou +4 après arrondi), A4 logo de sidebar, A5 cibles tactiles
   44 px, A6 vouvoiement, A7 noms « Prénom N. ». Codes du banc : `L3` décalage vertical de la coquille
   mobile (lot 3, déclaré avec `lot`), `POLICE` écart de largeur dû à la police de repli, `X1` écart
   NON expliqué (le pixel reste visible : statut `NON EXPLIQUÉ`, compté à part, à résorber). Liste blanche :
