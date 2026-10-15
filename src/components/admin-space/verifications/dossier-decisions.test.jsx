@@ -27,7 +27,8 @@ vi.mock("react", async (importOriginal) => {
 const replace = vi.fn()
 const refresh = vi.fn()
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh, push: vi.fn() }) }))
-vi.mock("@/components/app-ui/toast", () => ({ useAppToast: () => ({ success: vi.fn() }) }))
+const success = vi.fn()
+vi.mock("@/components/app-ui/toast", () => ({ useAppToast: () => ({ success }) }))
 vi.mock("./use-queue-shortcuts", () => ({ useQueueShortcuts: vi.fn() }))
 const approveStudentCard = vi.fn()
 const rejectStudentCard = vi.fn()
@@ -84,7 +85,7 @@ const openDialogs = (tree) =>
 beforeEach(() => {
   panel = newSlots()
   hooks.slots = panel
-  for (const m of [replace, refresh, approveStudentCard, rejectStudentCard, resetStudentRejection, revokeStudentBadge]) m.mockReset()
+  for (const m of [replace, refresh, success, approveStudentCard, rejectStudentCard, resetStudentRejection, revokeStudentBadge]) m.mockReset()
   for (const m of [approveStudentCard, rejectStudentCard, resetStudentRejection, revokeStudentBadge]) m.mockResolvedValue({ success: true, emailSent: true })
 })
 
@@ -118,6 +119,7 @@ describe("décisions : mêmes arguments qu'avant, onglet par onglet", () => {
   it("Refusés, Réinitialiser : motif seul, sans jeton", async () => {
     await decide(base({ tab: "refuses", actions: ["reset"], rejectionReason: "Photo floue" }), "Réinitialiser", 0, { reason: "Erreur de saisie" })
     expect(resetStudentRejection).toHaveBeenCalledWith(ID, { reason: "Erreur de saisie" })
+    expect(success).toHaveBeenCalledWith("Dossier de Codjo Ahouansou réinitialisé", undefined)
     expect(approveStudentCard).not.toHaveBeenCalled()
     expect(revokeStudentBadge).not.toHaveBeenCalled()
   })
@@ -129,6 +131,13 @@ describe("décisions : mêmes arguments qu'avant, onglet par onglet", () => {
       expect(revokeStudentBadge).toHaveBeenCalledWith(ID, { reason: "Carte falsifiée" })
     }
     expect(approveStudentCard).not.toHaveBeenCalled()
+  })
+
+  it("Valider : la boîte reçoit le sous-titre « niveau · école » du dossier", () => {
+    const approve = (d) => find(render(d), (n) => n.type === ApproveDialog)[0].props.caption
+    expect(approve(base({ level: "Licence 3", school: "EPAC" }))).toBe("Licence 3 · EPAC")
+    expect(approve(base({ level: null, school: "EPAC" }))).toBe("EPAC")
+    expect(approve(base())).toBe("")
   })
 
   it("Incomplets : aucun bouton de décision ni barre mobile", () => {

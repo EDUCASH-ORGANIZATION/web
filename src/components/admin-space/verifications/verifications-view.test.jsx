@@ -146,7 +146,7 @@ describe("VerificationsView : file avec dossier ouvert", () => {
       "Refuser",
       "Valider",
     ])
-    expect(html).not.toContain("Réinitialiser le refus")
+    expect(html).not.toContain("Réinitialiser")
     expect(html).not.toContain("Révoquer le badge")
   })
 
@@ -365,7 +365,9 @@ describe("boîtes de dialogue", () => {
   it("réinitialisation et révocation : motif obligatoire, la révocation est en ton danger", () => {
     const reset = renderToStaticMarkup(<ResetDialog open onClose={() => {}} onConfirm={() => {}} name="Codjo" />)
     const revoke = renderToStaticMarkup(<RevokeDialog open onClose={() => {}} onConfirm={() => {}} name="Codjo" />)
-    expect(reset).toContain("Réinitialiser le refus")
+    expect(reset).toContain("Réinitialiser le dossier de Codjo ?")
+    expect(reset).toMatch(/<button type="button" class="btn btn--primary a2-02-cta">Réinitialiser<\/button>/)
+    expect(reset).not.toContain("Réinitialiser le refus")
     expect(reset).toContain("required")
     expect(reset).not.toContain("btn btn--danger")
     expect(revoke).toContain("Révoquer le badge")

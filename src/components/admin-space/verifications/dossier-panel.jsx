@@ -209,6 +209,7 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
         open={dialog === "approve"}
         onClose={() => setDialog(null)}
         name={name}
+        caption={[dossier.level, dossier.school].filter(Boolean).join(" · ")}
         badgeUntil={badgeUntil}
         advance={advance}
         onConfirm={() =>
@@ -231,7 +232,7 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
         onClose={() => setDialog(null)}
         name={name}
         onConfirm={({ reason }) =>
-          decide(() => resetStudentRejection(dossier.userId, { reason }), `Refus de ${name} réinitialisé`)
+          decide(() => resetStudentRejection(dossier.userId, { reason }), `Dossier de ${name} réinitialisé`)
         }
       />
       <RevokeDialog

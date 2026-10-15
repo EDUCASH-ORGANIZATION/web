@@ -8,15 +8,18 @@ import { confirmOnce } from "@/components/app-ui/confirm-dialog"
 import { formatDateFr } from "@/lib/app/format"
 
 /**
- * Confirmation de validation : récapitulatif du badge (Vérifié, valable jusqu'au) puis « Valider et passer au suivant »
- * (ou « Valider la carte » quand le passage au dossier suivant est désactivé).
+ * Confirmation de validation (planche v1) : sous-titre « niveau · école » (`caption`, quand il est connu), récapitulatif
+ * du badge (Vérifié, valable jusqu'au, « (1 an) » : voir `badgeUntil`) puis « Valider et passer au suivant » (ou
+ * « Valider la carte » quand le passage au dossier suivant est désactivé). Le focus initial va sur « Annuler ».
  * `onConfirm` renvoie `{ error }` en cas de refus (le message reste affiché, la boîte reste ouverte).
- * Pas de case « Prévenir par e-mail » : l'e-mail de décision part toujours.
+ * Écarts assumés avec la planche : pas de case « Prévenir par e-mail » (l'e-mail de décision part toujours, ce que
+ * rappelle une ligne sous le récapitulatif) ni de ligne « Renouvellement proposé » (aucune règle métier ne la fixe).
  */
-function ApproveBox({ onClose, onConfirm, name, badgeUntil, advance }) {
+function ApproveBox({ onClose, onConfirm, name, caption, badgeUntil, advance }) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState("")
   const sending = useRef(false)
+  const cancelRef = useRef(null)
   const until = formatDateFr(badgeUntil)
 
   const submit = async () => {
@@ -39,12 +42,13 @@ function ApproveBox({ onClose, onConfirm, name, badgeUntil, advance }) {
         if (!pending) onClose()
       }}
       title={`Valider la carte de ${name} ?`}
-      description="L'étudiant en sera informé par e-mail."
+      description={caption || undefined}
       size="sm"
       icon={{ name: "i-check-circle", tone: "menthe" }}
+      initialFocusRef={cancelRef}
       footer={
         <>
-          <button type="button" className="btn btn--secondary" onClick={onClose} disabled={pending}>
+          <button ref={cancelRef} type="button" className="btn btn--secondary" onClick={onClose} disabled={pending}>
             Annuler
           </button>
           <button
@@ -66,9 +70,10 @@ function ApproveBox({ onClose, onConfirm, name, badgeUntil, advance }) {
         </div>
         <div className="recap__line">
           <span>Valable jusqu&apos;au</span>
-          <b>{until}</b>
+          <b>{until} (1 an)</b>
         </div>
       </div>
+      <p className="caption">L&apos;étudiant en sera informé par e-mail.</p>
       {error ? (
         <div className="field__error" role="alert">
           <Icon name="i-alert-circle" />
@@ -79,9 +84,9 @@ function ApproveBox({ onClose, onConfirm, name, badgeUntil, advance }) {
   )
 }
 
-export function ApproveDialog({ open, onClose, onConfirm, name, badgeUntil, advance = true }) {
+export function ApproveDialog({ open, onClose, onConfirm, name, caption = "", badgeUntil, advance = true }) {
   if (!open) return null
-  return <ApproveBox onClose={onClose} onConfirm={onConfirm} name={name} badgeUntil={badgeUntil} advance={advance} />
+  return <ApproveBox onClose={onClose} onConfirm={onConfirm} name={name} caption={caption} badgeUntil={badgeUntil} advance={advance} />
 }
 
 export default ApproveDialog

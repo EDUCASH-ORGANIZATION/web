@@ -38,6 +38,7 @@ function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
   const sending = useRef(false)
+  const cancelRef = useRef(null)
 
   const submit = async () => {
     const problem = reasonError(reason)
@@ -68,9 +69,10 @@ function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone
       size="sm"
       tone={tone}
       icon={icon}
+      initialFocusRef={cancelRef}
       footer={
         <>
-          <button type="button" className="btn btn--secondary" onClick={onClose} disabled={pending}>
+          <button ref={cancelRef} type="button" className="btn btn--secondary" onClick={onClose} disabled={pending}>
             Annuler
           </button>
           <button
@@ -107,7 +109,7 @@ function ReasonForm({ onClose, onConfirm, title, description, confirmLabel, tone
   )
 }
 
-/** Boîte à motif obligatoire, commune à la réinitialisation d'un refus et à la révocation d'un badge. */
+/** Boîte à motif obligatoire, commune à la réinitialisation d'un refus et à la révocation d'un badge (focus initial sur « Annuler »). */
 export function ReasonDialog({ open, onClose, onConfirm, title, description, confirmLabel, tone = "default", icon, consequences, visible = false }) {
   if (!open) return null
   return (
@@ -142,7 +144,7 @@ export function ResetDialog({ open, onClose, onConfirm, name }) {
       icon={{ name: "i-refresh", tone: "lavande" }}
       consequences={RESET_CONSEQUENCES}
       description="Le motif de refus et la carte refusée sont retirés : le dossier passe en Incomplets et l'étudiant pourra renvoyer une carte. Indiquez pourquoi vous le faites."
-      confirmLabel="Réinitialiser le refus"
+      confirmLabel="Réinitialiser"
     />
   )
 }

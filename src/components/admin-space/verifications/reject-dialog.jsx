@@ -78,6 +78,7 @@ function RejectForm({ onClose, onConfirm, name }) {
   const [error, setError] = useState(null)
   const [pending, setPending] = useState(false)
   const sending = useRef(false)
+  const cancelRef = useRef(null)
   const firstName = name.trim().split(/\s+/)[0] || "Étudiant"
 
   const submit = async () => {
@@ -108,9 +109,10 @@ function RejectForm({ onClose, onConfirm, name }) {
       icon={{ name: "i-x", tone: "erreur" }}
       description="L'étudiant recevra ce motif par e-mail et pourra renvoyer une carte."
       tone="danger"
+      initialFocusRef={cancelRef}
       footer={
         <>
-          <button type="button" className="btn btn--secondary" onClick={onClose} disabled={pending}>
+          <button ref={cancelRef} type="button" className="btn btn--secondary" onClick={onClose} disabled={pending}>
             Annuler
           </button>
           <button

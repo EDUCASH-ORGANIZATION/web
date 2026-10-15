@@ -35,6 +35,15 @@ describe("modales de vérification v1", () => {
     expect(out).not.toContain("btn--dark")
   })
 
+  it("validation : sous-titre niveau · école, durée « (1 an) » après la date, rappel de l'e-mail", () => {
+    const out = html(<ApproveDialog open onClose={noop} onConfirm={noop} name="Codjo" caption="Licence 3 · EPAC" badgeUntil="2027-10-15" />)
+    expect(out).toMatch(/<p id="[^"]+" class="modal__sub">Licence 3 · EPAC<\/p>/)
+    expect(out).toContain("<b>15 octobre 2027 (1 an)</b>")
+    expect(out).toContain("L&#x27;étudiant en sera informé par e-mail.")
+    // Sans niveau ni école connus, aucun sous-titre vide.
+    expect(html(<ApproveDialog open onClose={noop} onConfirm={noop} name="Codjo" badgeUntil="2027-10-15" />)).not.toContain("modal__sub")
+  })
+
   it("refus : icône erreur, ton danger, aperçu ad-mail sans adresse e-mail", () => {
     const out = html(<RejectDialog open onClose={noop} onConfirm={noop} name="Codjo Ahouansou" />)
     expect(out).toContain("Refuser la carte de Codjo Ahouansou ?")
