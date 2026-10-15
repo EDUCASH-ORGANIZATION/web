@@ -61,3 +61,8 @@ export function clientReviewHref(missionId) {
   if (missionId === undefined || missionId === null || missionId === "") return "/client/missions"
   return `/client/review/${encodeURIComponent(missionId)}`
 }
+
+/** Centre de notifications du client. Seul le filtre « non-lues » est accepté. */
+export function clientNotificationsHref({ filtre } = {}) {
+  return withQuery("/client/notifications", [["filtre", filtre === "non-lues" ? filtre : undefined]])
+}

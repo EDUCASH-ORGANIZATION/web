@@ -15,6 +15,7 @@ const state = {
   listUsersCalls: [],
 }
 const createServiceClient = vi.fn(() => makeService())
+const notifyInApp = vi.fn()
 const revalidatePath = vi.fn()
 
 function project(row, cols) {
@@ -142,6 +143,7 @@ function makeService() {
 
 vi.mock("next/cache", () => ({ revalidatePath: (...a) => revalidatePath(...a) }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: (...a) => createServiceClient(...a) }))
+vi.mock("@/lib/notifications/notify", () => ({ notify: (...a) => notifyInApp(...a) }))
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     auth: { getUser: async () => ({ data: { user: state.user }, error: null }) },
@@ -194,6 +196,8 @@ beforeEach(() => {
   state.readError = null
   state.listUsersCalls = []
   createServiceClient.mockClear()
+  notifyInApp.mockReset()
+  notifyInApp.mockResolvedValue({ ok: true })
   revalidatePath.mockClear()
   vi.spyOn(console, "error").mockImplementation(() => {})
   vi.spyOn(console, "info").mockImplementation(() => {})
@@ -571,5 +575,44 @@ describe("reactivateAccount", () => {
     state.tables.profiles.push({ ...addAdminSelf(), user_id: OTHER_ADMIN, is_suspended: true })
     expect((await reactivateAccount(OTHER_ADMIN, { reason: "Motif valable" })).error).toMatch(/administrateur/)
     expect(updates()).toHaveLength(0)
+  })
+})
+
+describe("notifications in-app (RD-NOTIF-01)", () => {
+  it("réactivation : notifie le compte réactivé, une seule fois", async () => {
+    const id = addProfile(1, { is_suspended: true })
+    expect(await reactivateAccount(id, { reason: "Situation réglée avec le client" })).toEqual({ success: true })
+    expect(notifyInApp).toHaveBeenCalledTimes(1)
+    expect(notifyInApp.mock.calls[0][0]).toMatchObject({
+      recipientId: id,
+      type: "account_reactivated",
+      title: "Votre compte est réactivé",
+      body: "Vous pouvez de nouveau utiliser EduCash.",
+    })
+    expect(notifyInApp.mock.calls[0][0].dedupeKey).toMatch(/^account_reactivated:\d+$/)
+  })
+
+  it("suspension : aucune notification (un compte suspendu ne peut plus se connecter)", async () => {
+    const id = addProfile(1)
+    expect(await suspendAccount(id, { reason: "Comportement répété" })).toEqual({ success: true })
+    expect(notifyInApp).not.toHaveBeenCalled()
+  })
+
+  it("aucune notification quand la réactivation est refusée", async () => {
+    const id = addProfile(1)
+    expect((await reactivateAccount(id, { reason: "Motif valable" })).error).toBeTruthy()
+    const suspended = addProfile(2, { is_suspended: true })
+    state.updateError = { message: "boom" }
+    expect((await reactivateAccount(suspended, { reason: "Motif valable" })).error).toBeTruthy()
+    expect(notifyInApp).not.toHaveBeenCalled()
+  })
+
+  it("même résultat si notify échoue ou lève", async () => {
+    const id = addProfile(1, { is_suspended: true })
+    notifyInApp.mockRejectedValueOnce(new Error("boom"))
+    expect(await reactivateAccount(id, { reason: "Situation réglée" })).toEqual({ success: true })
+    const id2 = addProfile(2, { is_suspended: true })
+    notifyInApp.mockResolvedValueOnce({ ok: false })
+    expect(await reactivateAccount(id2, { reason: "Situation réglée" })).toEqual({ success: true })
   })
 })

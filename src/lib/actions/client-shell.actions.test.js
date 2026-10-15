@@ -24,6 +24,16 @@ const supabase = {
   from: (name) => table(name),
 }
 
+// Compteur de notifications : lecture mockée (le module de lecture a ses propres tests).
+let notificationsResult = { count: 0 }
+const countUnread = vi.fn(async () => notificationsResult)
+vi.mock("@/lib/notifications/read", () => ({
+  countUnread: (...a) => countUnread(...a),
+  listNotifications: vi.fn(),
+  markRead: vi.fn(),
+  markAllRead: vi.fn(),
+}))
+
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => supabase) }))
 
 const { getClientShellData } = await import("./client-shell.actions")
@@ -33,6 +43,8 @@ const CLIENT_PROFILE = { role: "client", full_name: "Rosine Houngbédji", city: 
 const defaultGetUser = supabase.auth.getUser
 
 beforeEach(() => {
+  notificationsResult = { count: 0 }
+  countUnread.mockClear()
   supabase.auth.getUser = defaultGetUser
   user = { id: "client-1", user_metadata: { role: "client" } }
   profileResult = { data: { ...CLIENT_PROFILE }, error: null }
@@ -44,14 +56,14 @@ beforeEach(() => {
 describe("getClientShellData", () => {
   it("renvoie l'identité d'affichage et le nombre de messages non lus du client connecté", async () => {
     const res = await getClientShellData()
-    expect(res).toEqual({ shell: { userId: "client-1", fullName: "Rosine Houngbédji", unreadCount: 3 } })
+    expect(res).toEqual({ shell: { userId: "client-1", fullName: "Rosine Houngbédji", unreadCount: 3, notificationCount: 0 } })
     expect(messageFilters).toEqual([["receiver_id", "client-1"], ["read", false]])
   })
 
   it("ne renvoie que des champs publics", async () => {
     profileResult = { data: { ...CLIENT_PROFILE, phone: "+22997000000", card_url: "secret" }, error: null }
     const { shell } = await getClientShellData()
-    expect(Object.keys(shell).sort()).toEqual(["fullName", "unreadCount", "userId"])
+    expect(Object.keys(shell).sort()).toEqual(["fullName", "notificationCount", "unreadCount", "userId"])
   })
 
   it("refuse un étudiant, même si user_metadata prétend client, et l'envoie vers son tableau de bord", async () => {
@@ -114,5 +126,23 @@ describe("getClientShellData", () => {
     }
     const res = await getClientShellData()
     expect(res).toEqual({ error: "Impossible de charger votre espace.", redirectTo: "/" })
+  })
+
+  it("renvoie le nombre de notifications non lues de l'appelant (lecture filtrée sur son identifiant)", async () => {
+    notificationsResult = { count: 5 }
+    const { shell } = await getClientShellData()
+    expect(shell.notificationCount).toBe(5)
+    expect(countUnread).toHaveBeenCalledWith(expect.anything(), "client-1")
+  })
+
+  it("compteur de notifications à 0 quand la table est absente, en erreur ou en exception (coquille jamais bloquée)", async () => {
+    for (const result of [{ unavailable: true }, { error: true }]) {
+      notificationsResult = result
+      expect((await getClientShellData()).shell.notificationCount).toBe(0)
+    }
+    countUnread.mockRejectedValueOnce(new Error("boom"))
+    const res = await getClientShellData()
+    expect(res.shell.notificationCount).toBe(0)
+    expect(res).not.toHaveProperty("error")
   })
 })

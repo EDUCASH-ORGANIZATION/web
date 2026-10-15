@@ -10,8 +10,14 @@ const redirect = vi.fn((to) => {
 vi.mock("next/navigation", () => ({ redirect: (to) => redirect(to) }))
 vi.mock("@/lib/actions/client-shell.actions", () => ({ getClientShellData: (...a) => getClientShellData(...a) }))
 vi.mock("@/components/app-shell/app-shell", () => ({
-  AppShell: ({ children, user, unreadCount }) => (
-    <div data-testid="shell" data-user={user.fullName} data-unread={unreadCount}>
+  AppShell: ({ children, user, unreadCount, notifications }) => (
+    <div
+      data-testid="shell"
+      data-user={user.fullName}
+      data-unread={unreadCount}
+      data-notifications={notifications?.count}
+      data-notification-actions={notifications ? Object.keys(notifications.actions).sort().join(",") : ""}
+    >
       {children}
     </div>
   ),
@@ -63,5 +69,12 @@ describe("(client)/layout", () => {
     expect(out).toContain('data-user="Rosine"')
     expect(out).toContain('data-unread="2"')
     expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it("transmet le compteur de notifications et les quatre actions de l'espace client à la coquille", async () => {
+    getClientShellData.mockResolvedValue({ shell: { userId: "u1", fullName: "Rosine", unreadCount: 2, notificationCount: 5 } })
+    const out = renderToStaticMarkup(await ClientLayout({ children: CHILD }))
+    expect(out).toContain('data-notifications="5"')
+    expect(out).toContain('data-notification-actions="count,list,markAll,markRead"')
   })
 })

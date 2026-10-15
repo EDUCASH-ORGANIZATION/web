@@ -6,6 +6,9 @@ import { sendEmail } from "@/lib/email/index"
 import { todayInBenin } from "@/lib/vitrine/dates"
 import { toOwnedStoragePath } from "@/lib/storage/owned-paths"
 import { escapeLike } from "@/lib/student-space/explore-query"
+import { notify as notifyInApp } from "@/lib/notifications/notify"
+import { dedupeFingerprint } from "@/lib/notifications/fingerprint"
+import { badgeRevoked, verificationApproved, verificationRejected, verificationReset } from "@/lib/notifications/catalog"
 import {
   OTHER_REASON,
   reasonSchema,
@@ -154,6 +157,29 @@ async function notify(service, userId, template, buildData) {
 }
 
 /**
+ * Écrit la notification in-app de la décision, avant l'e-mail. Ne lève jamais : la décision est déjà écrite, un
+ * échec de notification ne change ni le résultat ni l'envoi de l'e-mail.
+ * @param {string} userId
+ * @param {() => object} build constructeur du catalogue (appelé dans le try)
+ */
+/**
+ * Empreinte du dépôt pour la clé de déduplication (la date de dépôt est une colonne privée : jamais en clair
+ * dans une clé lisible par l'étudiant). Même dépôt => même empreinte ; sans date de dépôt, empreinte unique.
+ */
+function depositFingerprint(purpose, submittedAt) {
+  const token = typeof submittedAt === "string" && submittedAt !== "" ? submittedAt : `sans-depot:${Date.now()}:${Math.random()}`
+  return dedupeFingerprint(purpose, token)
+}
+
+async function notifyDecision(userId, build) {
+  try {
+    await notifyInApp({ recipientId: userId, ...build() })
+  } catch {
+    console.error("[admin-verifications] notification non écrite")
+  }
+}
+
+/**
  * Écriture conditionnelle : exactement une ligne doit être modifiée. `apply` ajoute les conditions d'état.
  * @returns {Promise<{ ok: true } | { error: string }>}
  */
@@ -243,6 +269,7 @@ export async function approveStudentCard(userId, { expectedSubmittedAt, expected
       before: { isVerified: false, verifiedUntil: found.dossier.profile.verified_until },
       after: { isVerified: true, verifiedUntil },
     })
+    await notifyDecision(found.id, () => verificationApproved({ verifiedUntil }))
     const emailSent = await notify(service, found.id, "verification-approved", (t) => ({
       name: t.name,
       school: t.school,
@@ -297,6 +324,13 @@ export async function rejectStudentCard(userId, { reason, message, expectedSubmi
       after: { isVerified: false, verifiedUntil: null },
       reason: stored,
     })
+    // Notification : le libellé de la liste fermée, jamais le message libre de l'administrateur.
+    await notifyDecision(found.id, () =>
+      verificationRejected({
+        reasonLabel: label,
+        fingerprint: depositFingerprint("verification_rejected", found.dossier.profile.verification_submitted_at),
+      }),
+    )
     const emailSent = await notify(service, found.id, "verification-rejected", (t) => ({
       name: t.name,
       rejectionReason: stored,
@@ -410,6 +444,7 @@ export async function resetStudentRejection(userId, { reason } = {}) {
       after: { rejectionReason: null },
       reason: why.data,
     })
+    await notifyDecision(id.data, () => verificationReset({ fingerprint: depositFingerprint("verification_reset", token) }))
     revalidateQueue()
     return { success: true }
   } catch (err) {
@@ -450,6 +485,7 @@ export async function revokeStudentBadge(userId, { reason } = {}) {
       after: { isVerified: false },
       reason: why.data,
     })
+    await notifyDecision(id.data, () => badgeRevoked({ at: new Date() }))
     const emailSent = await notify(service, id.data, "verification-rejected", (t) => ({
       name: t.name,
       rejectionReason: why.data,

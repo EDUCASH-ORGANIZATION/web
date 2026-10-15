@@ -1,8 +1,11 @@
 -- =============================================================================
 -- État de référence de la production Educash après RD-SEC-01, RD-SEC-02 et
 -- RD-SEC-03b (relevé du 2026-10-14, puis scripts 60, 61 et 62 de RD-SEC-03b), puis
--- script 70 de RD-MISSION-02 (colonne missions.purchases_estimate).
+-- script 70 de RD-MISSION-02 (colonne missions.purchases_estimate), puis script 80 de RD-NOTIF-01
+-- (table public.notifications).
 -- Script 70 appliqué en production le 2026-10-15.
+-- Script 80 de RD-NOTIF-01 (table public.notifications) NON appliqué en production au 2026-10-15 :
+-- à retirer après application.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
@@ -192,6 +195,19 @@ create table public.mission_completions (
   created_at timestamp with time zone default now() not null
 );
 
+create table public.notifications (
+  id uuid default gen_random_uuid() not null,
+  recipient_id uuid not null,
+  type text not null,
+  title text not null,
+  body text default ''::text not null,
+  mission_id uuid,
+  actor_id uuid,
+  dedupe_key text not null,
+  read_at timestamp with time zone,
+  created_at timestamp with time zone default now() not null
+);
+
 -- 4. CONTRAINTES (clés primaires, uniques, checks, puis clés étrangères)
 
 alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
@@ -254,6 +270,16 @@ alter table public.messages add constraint messages_sender_id_fkey FOREIGN KEY (
 alter table public.messages add constraint messages_sender_id_profiles_fkey FOREIGN KEY (sender_id) REFERENCES profiles(user_id) ON DELETE CASCADE;
 alter table public.mission_completions add constraint mission_completions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE;
 
+alter table public.notifications add constraint notifications_pkey PRIMARY KEY (id);
+alter table public.notifications add constraint notifications_type_check CHECK ((type = ANY (ARRAY['application_received'::text, 'application_accepted'::text, 'application_rejected'::text, 'mission_cancelled'::text, 'payment_released'::text, 'review_received'::text, 'verification_approved'::text, 'verification_rejected'::text, 'verification_reset'::text, 'badge_revoked'::text, 'account_reactivated'::text, 'card_submitted'::text, 'message_received'::text, 'completion_declared'::text])));
+alter table public.notifications add constraint notifications_title_check CHECK (((char_length(title) >= 1) AND (char_length(title) <= 120)));
+alter table public.notifications add constraint notifications_body_check CHECK ((char_length(body) <= 280));
+alter table public.notifications add constraint notifications_dedupe_key_check CHECK (((char_length(dedupe_key) >= 1) AND (char_length(dedupe_key) <= 200)));
+alter table public.notifications add constraint notifications_recipient_dedupe_key UNIQUE (recipient_id, dedupe_key);
+alter table public.notifications add constraint notifications_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+alter table public.notifications add constraint notifications_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;
+alter table public.notifications add constraint notifications_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(user_id) ON DELETE SET NULL;
+
 -- 5. INDEX (hors index portés par une contrainte)
 
 CREATE UNIQUE INDEX applications_one_accepted_per_mission ON public.applications USING btree (mission_id) WHERE (status = 'accepted'::text);
@@ -277,6 +303,9 @@ CREATE UNIQUE INDEX wallet_transactions_deposit_ext_ref_uniq ON public.wallet_tr
 CREATE UNIQUE INDEX wallet_transactions_one_movement_per_mission ON public.wallet_transactions USING btree (user_id, mission_id, type) WHERE ((mission_id IS NOT NULL) AND (type = ANY (ARRAY['reserve'::text, 'release'::text, 'refund'::text, 'commission'::text])));
 CREATE UNIQUE INDEX wallet_transactions_one_reversal_per_withdrawal ON public.wallet_transactions USING btree (reverses_id) WHERE (reverses_id IS NOT NULL);
 CREATE INDEX idx_wallets_user_id ON public.wallets USING btree (user_id);
+
+CREATE INDEX notifications_recipient_created_idx ON public.notifications USING btree (recipient_id, created_at DESC, id DESC);
+CREATE INDEX notifications_recipient_unread_idx ON public.notifications USING btree (recipient_id, created_at DESC) WHERE (read_at IS NULL);
 
 -- 6. FONCTIONS (propriétaire postgres ; SECURITY DEFINER et search_path dans la définition)
 
@@ -674,6 +703,58 @@ $function$;
 
 revoke all on function public.guard_missions() from public, anon, authenticated, service_role;
 grant execute on function public.guard_missions() to service_role;
+
+CREATE OR REPLACE FUNCTION public.guard_notifications()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+begin
+  if tg_op = 'INSERT' then
+    -- Double verrou : l'API n'a deja ni privilege ni politique INSERT.
+    if public.edu_is_api_caller() then
+      raise exception 'Une notification ne peut pas etre creee par ce role.'
+        using errcode = '42501';
+    end if;
+    if new.read_at is not null then
+      raise exception 'Une notification est creee non lue.'
+        using errcode = '42501';
+    end if;
+    return new;
+  end if;
+
+  -- UPDATE, tous roles : seule read_at peut changer. Exception : actor_id peut devenir null
+  -- (cle etrangere ON DELETE SET NULL, suppression du compte de l'acteur) ; il ne prend jamais de valeur.
+  if new.id is distinct from old.id
+     or new.recipient_id is distinct from old.recipient_id
+     or new.type is distinct from old.type
+     or new.title is distinct from old.title
+     or new.body is distinct from old.body
+     or new.mission_id is distinct from old.mission_id
+     or (new.actor_id is distinct from old.actor_id and new.actor_id is not null)
+     or new.dedupe_key is distinct from old.dedupe_key
+     or new.created_at is distinct from old.created_at then
+    raise exception 'Seule la date de lecture d''une notification peut etre modifiee.'
+      using errcode = '42501';
+  end if;
+
+  -- Une fois lue, la date de lecture ne change plus (jamais de retour a null).
+  if old.read_at is not null and new.read_at is distinct from old.read_at then
+    raise exception 'La date de lecture d''une notification ne peut plus etre modifiee.'
+      using errcode = '42501';
+  end if;
+
+  -- Appelant API : la date est celle du serveur, jamais une date fournie.
+  if old.read_at is null and new.read_at is not null and public.edu_is_api_caller() then
+    new.read_at := now();
+  end if;
+
+  return new;
+end;
+$function$;
+
+revoke all on function public.guard_notifications() from public, anon, authenticated, service_role;
+grant execute on function public.guard_notifications() to service_role;
 
 CREATE OR REPLACE FUNCTION public.guard_profile_sensitive_columns()
  RETURNS trigger
@@ -1690,6 +1771,7 @@ CREATE TRIGGER messages_rules BEFORE INSERT ON public.messages FOR EACH ROW EXEC
 CREATE TRIGGER guard_missions BEFORE INSERT OR DELETE OR UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.guard_missions();
 CREATE TRIGGER trg_mission_done AFTER UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.handle_mission_done();
 CREATE TRIGGER trg_missions_updated_at BEFORE UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+CREATE TRIGGER guard_notifications BEFORE INSERT OR UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.guard_notifications();
 CREATE TRIGGER guard_profile_sensitive_columns BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.guard_profile_sensitive_columns();
 CREATE TRIGGER on_profile_role_changed AFTER UPDATE OF role ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.sync_role_to_auth();
 CREATE TRIGGER trg_create_wallet_on_signup AFTER INSERT ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_new_wallet();
@@ -1821,6 +1903,15 @@ create policy "Étudiant gère sa carte" on storage.objects as permissive for al
   using (((bucket_id = 'student-cards'::text) AND ((auth.uid())::text = (string_to_array(name, '/'::text))[1])))
   with check (((bucket_id = 'student-cards'::text) AND ((auth.uid())::text = (string_to_array(name, '/'::text))[1])));
 
+alter table public.notifications enable row level security;
+
+create policy notifications_select_own on public.notifications as permissive for select to authenticated
+  using ((recipient_id = ( SELECT auth.uid() AS uid)));
+
+create policy notifications_update_read_own on public.notifications as permissive for update to authenticated
+  using ((recipient_id = ( SELECT auth.uid() AS uid)))
+  with check ((recipient_id = ( SELECT auth.uid() AS uid)));
+
 -- 9. PRIVILÈGES (anon, authenticated, service_role)
 -- Le privilège MAINTAIN (PostgreSQL 17) est omis : sans effet sur l'accès aux données.
 
@@ -1913,6 +2004,11 @@ grant select (updated_at) on table public.student_profiles to authenticated;
 grant select (user_id) on table public.student_profiles to anon;
 grant select (user_id) on table public.student_profiles to authenticated;
 
+revoke all on table public.notifications from public, anon, authenticated, service_role;
+grant SELECT on table public.notifications to authenticated;
+grant UPDATE (read_at) on table public.notifications to authenticated;
+grant DELETE, INSERT, SELECT, UPDATE on table public.notifications to service_role;
+
 -- 10. BUCKETS (storage.buckets ; les politiques storage.objects sont en section 8)
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -1939,14 +2035,16 @@ alter publication supabase_realtime add table public.messages;
 -- - auth.users : trigger on_auth_user_created (handle_new_user), trigger
 --   enforce_metadata_role, fonction sync_role_to_auth (écrit dans auth.users),
 --   clés étrangères user_id, client_id, etc. vers auth.users(id).
--- - auth.uid() : utilisé par la plupart des politiques RLS et des fonctions.
+-- - auth.uid() : utilisé par la plupart des politiques RLS et des fonctions. Table notifications :
+--   auth.uid() uniquement dans ses deux politiques ; la fonction de garde n'utilise que
+--   edu_is_api_caller(), gen_random_uuid() est natif (PostgreSQL 13+), aucune clé vers auth.users.
 -- - edu_is_api_caller() : seul point à adapter (détection de l'appelant API
 --   par rôle PostgREST/JWT) ; les gardes et fonctions wallet en dépendent.
 -- - storage.* : tables storage.buckets et storage.objects, politiques sur
 --   storage.objects (avatars, message-media, student-cards, utilisent
 --   storage.foldername()), triggers storage
 --   gérés par Supabase (non repris ici).
--- - realtime : publication supabase_realtime (table public.messages).
+-- - realtime : publication supabase_realtime (table public.messages ; notifications n'y est pas).
 -- - rôles API : anon, authenticated, service_role et leurs GRANT/REVOKE.
 -- - extensions : pg_cron (schéma pg_catalog), pg_net (public), supabase_vault
 --   (vault), pg_stat_statements, uuid-ossp et pgcrypto (extensions).

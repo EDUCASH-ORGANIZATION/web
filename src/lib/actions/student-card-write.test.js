@@ -10,6 +10,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
 vi.mock("@/lib/auth/require-role", () => ({ requireUser: vi.fn(), requireRole: vi.fn() }))
+vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn(async () => ({ ok: true })), notifyAdmins: vi.fn(async () => ({ ok: true })), notifyMany: vi.fn(async () => ({ ok: true })) }))
 
 import { createClient } from "@/lib/supabase/server"
 import { requireRole } from "@/lib/auth/require-role"

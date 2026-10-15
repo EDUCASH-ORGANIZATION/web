@@ -3,6 +3,7 @@ import {
   adminHomeHref,
   adminMissionHref,
   adminMissionsHref,
+  adminNotificationsHref,
   adminTransactionsHref,
   adminUserHref,
   adminUsersHref,
@@ -60,5 +61,13 @@ describe("fabriques d'URL admin", () => {
     expect(adminTransactionsHref({ type: "commission", periode: "30j", q: "ref-1" })).toBe(
       "/admin/transactions?type=commission&periode=30j&q=ref-1",
     )
+  })
+})
+
+describe("notifications admin", () => {
+  it("page des notifications, seul le filtre non-lues est accepté", () => {
+    expect(adminNotificationsHref()).toBe("/admin/notifications")
+    expect(adminNotificationsHref({ filtre: "non-lues" })).toBe("/admin/notifications?filtre=non-lues")
+    expect(adminNotificationsHref({ filtre: "//evil" })).toBe("/admin/notifications")
   })
 })

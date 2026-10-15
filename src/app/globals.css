@@ -13,6 +13,7 @@
 @import "./design/client.css" layer(components);
 @import "./design/student.css" layer(components);
 @import "./design/admin.css" layer(components);
+@import "./design/notifications.css" layer(components);
 
 /* Docs projet hors scan : leurs mentions de classes (ex. `grow`) generaient des utilitaires. */
 @source not "../../CLAUDE.md";

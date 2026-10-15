@@ -2,6 +2,12 @@
 import { redirect } from "next/navigation"
 import { isInternalPath } from "@/lib/auth/internal-path"
 import { getClientShellData } from "@/lib/actions/client-shell.actions"
+import {
+  getClientNotifications,
+  getClientUnreadNotificationCount,
+  markClientNotificationRead,
+  markAllClientNotificationsRead,
+} from "@/lib/actions/client-notifications.actions"
 import { AppShell } from "@/components/app-shell/app-shell"
 import { CLIENT_NAV } from "@/components/client-space/shell/client-nav"
 import { ToastProvider } from "@/components/app-ui/toast"
@@ -21,7 +27,20 @@ export default async function ClientLayout({ children }) {
     <div className="ds c2">
       <ToastProvider>
         <OfflineBanner />
-        <AppShell nav={CLIENT_NAV} user={{ id: shell.userId, fullName: shell.fullName }} unreadCount={shell.unreadCount}>
+        <AppShell
+          nav={CLIENT_NAV}
+          user={{ id: shell.userId, fullName: shell.fullName }}
+          unreadCount={shell.unreadCount}
+          notifications={{
+            count: shell.notificationCount,
+            actions: {
+              list: getClientNotifications,
+              count: getClientUnreadNotificationCount,
+              markRead: markClientNotificationRead,
+              markAll: markAllClientNotificationsRead,
+            },
+          }}
+        >
           <PwaInstallBannerLoader space="client" />
           {children}
         </AppShell>

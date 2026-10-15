@@ -2067,3 +2067,61 @@ describe("admin : barre d'action fixe, en-tete de sous-page et coquille", () => 
     expect(ADMIN_BASE).toMatch(/\.a2 \.badge--citron, \.a2 \.badge--lavande \{ background: var\(--c-ligne\); color: var\(--c-encre\); \}/)
   })
 })
+
+// =====================================================================================================
+// Centre de notifications (RD-NOTIF-01 ST-06) : notifications.css. Les classes du systeme (.notif,
+// .notif-panel*, .segmented, .iconbtn2, .ic-sq, .btn--dark, .link) ne sont pas redefinies : seules les
+// classes ntf-* sont propres a la feuille, et chaque regle en porte au moins une (aucun effet sur les
+// autres pages).
+// =====================================================================================================
+
+describe("notifications.css : feuille du centre de notifications", () => {
+  const NOTIFICATIONS = stripComments(read("notifications.css"))
+  const globals = readFileSync(path.join(dir, "..", "globals.css"), "utf8")
+
+  it("est branchee dans globals.css en couche components, apres admin.css", () => {
+    expect(globals).toContain('@import "./design/notifications.css" layer(components);')
+    expect(globals.indexOf("./design/notifications.css")).toBeGreaterThan(globals.indexOf("./design/admin.css"))
+  })
+
+  it("ne contient aucune couleur en dur ni de nom de couleur nu", () => {
+    expect(NOTIFICATIONS).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
+    expect(NOTIFICATIONS).not.toMatch(/\b(?:rgba?|hsla?)\(/)
+    expect(NOTIFICATIONS).not.toMatch(/:\s*(?:white|black|red|green|blue)\s*[;}]/)
+  })
+
+  it("n'utilise que des variables definies et aucun token d'erreur (aucun rouge dans ce lot)", () => {
+    const defined = new Set()
+    for (const f of DESIGN_CSS) for (const m of read(f).matchAll(/(--[\w-]+)\s*:/g)) defined.add(m[1])
+    const used = [...NOTIFICATIONS.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1])
+    expect(used.filter((v) => !defined.has(v))).toEqual([])
+    expect(used.filter((v) => /erreur|danger/.test(v))).toEqual([])
+  })
+
+  it("chaque regle porte une classe ntf-* (aucune regle globale sur une classe du systeme)", () => {
+    const offenders = []
+    for (const sel of selectorsOf(NOTIFICATIONS)) {
+      for (const part of sel.split(",").map((p) => p.trim())) {
+        if (!/\.ntf-[\w-]+/.test(part)) offenders.push(part)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it("n'utilise que les seuils 1023.98 et 479.98 et aucune taille de police sous 13 px", () => {
+    const conditions = [...NOTIFICATIONS.matchAll(/@media\s*([^{]+)\{/g)].map((m) => m[1].trim())
+    expect(conditions.filter((c) => !["(max-width: 1023.98px)", "(max-width: 479.98px)"].includes(c))).toEqual([])
+    for (const m of NOTIFICATIONS.matchAll(/font-size:\s*([\d.]+)px/g)) expect(Number(m[1])).toBeGreaterThanOrEqual(13)
+  })
+
+  it("le point des non lues reste bleu sur fond transparent (pas de fond bleu) et le panneau est borne a la fenetre", () => {
+    expect(NOTIFICATIONS).toMatch(/\.notif\.ntf-item\.is-unread \{ background: transparent; \}/)
+    expect(NOTIFICATIONS).toMatch(/\.ntf-pop \{[^}]*width: min\(420px, calc\(100vw - 32px\)\)/)
+  })
+
+  it("garde des zones de toucher de 44 px sous 1024 px pour la cloche et les actions", () => {
+    const tablet = NOTIFICATIONS.slice(NOTIFICATIONS.indexOf("@media (max-width: 1023.98px)"))
+    expect(tablet).toMatch(/\.ntf-bell-link\.iconbtn2 \{ width: 44px; height: 44px; \}/)
+    expect(tablet).toMatch(/\.ntf-item \.link, \.ntf-item \.btn \{ min-height: 44px;/)
+  })
+})

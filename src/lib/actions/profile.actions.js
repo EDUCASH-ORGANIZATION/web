@@ -9,6 +9,8 @@ import { CITIES } from "@/lib/supabase/database.constants"
 import { parseBeninPhone } from "@/lib/utils/phone"
 import { SKILLS_MAX, validateStudentProfile } from "@/lib/student-space/profile-rules"
 import { firstName } from "@/lib/vitrine/public-name"
+import { notifyAdmins } from "@/lib/notifications/notify"
+import { cardSubmitted } from "@/lib/notifications/catalog"
 import { ensureOwnStudentRow, logCardStepError, setOwnCardPath } from "@/lib/actions/student-card-write"
 
 // Colonnes de la ligne de l'appelant, lues côté serveur : les colonnes privées (phone,
@@ -361,6 +363,16 @@ export async function saveStudentCardUrl(cardUrl) {
     if (resetError) {
       logCardStepError("saveStudentCardUrl", "reset_pending", resetError)
       return { error: fail }
+    }
+
+    // Notification in-app aux administrateurs (au plus une par étudiant et par jour du Bénin ; échec sans
+    // conséquence). Le nom vient du profil de la session : aucune colonne privée n'est lue.
+    try {
+      await notifyAdmins(
+        cardSubmitted({ studentId: user.id, studentName: auth.profile?.full_name, at: new Date() }),
+      )
+    } catch {
+      console.error("[saveStudentCardUrl] notification non écrite")
     }
 
     revalidatePath("/profile")

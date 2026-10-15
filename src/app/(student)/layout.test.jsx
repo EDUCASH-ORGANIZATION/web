@@ -122,4 +122,12 @@ describe("(student)/layout", () => {
     state.user = null
     await expect(StudentLayout({ children: <p>contenu secret</p> })).rejects.toThrow("REDIRECT:")
   })
+
+  it("cloche des notifications : bouton au bureau, lien vers /student/notifications sur mobile, compteur 0 sans point", async () => {
+    const html = renderToStaticMarkup(await StudentLayout({ children: <p>contenu</p> }))
+    expect(html).toContain('aria-label="Notifications"')
+    expect(html).toContain('href="/student/notifications"')
+    expect(html).toContain("i-bell")
+    expect(html).not.toContain("iconbtn2__dot")
+  })
 })

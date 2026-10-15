@@ -9,6 +9,8 @@ import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions
 import { isUuid } from "@/lib/vitrine/ids"
 import { todayInBenin, isPastDeadline } from "@/lib/vitrine/dates"
 import { verificationFromRows } from "@/lib/student-space/verification-status"
+import { notify } from "@/lib/notifications/notify"
+import { applicationAccepted, applicationReceived, applicationRejected } from "@/lib/notifications/catalog"
 
 // Un seul registre, vouvoyé, pour tous les rôles.
 const ERR_GENERIC = "Une erreur est survenue. Réessayez dans un instant."
@@ -61,6 +63,21 @@ async function getFullName(supabase, userId) {
     .eq("user_id", userId)
     .maybeSingle()
   return data?.full_name ?? null
+}
+
+/**
+ * Écrit une notification sans jamais faire échouer l'action appelante : `notify` ne lève pas, et la
+ * construction du texte est elle-même protégée. Le résultat de l'action métier ne dépend pas de ce qui suit.
+ *
+ * @param {() => Promise<unknown>} write
+ * @returns {Promise<void>}
+ */
+async function safeNotify(write) {
+  try {
+    await write()
+  } catch (err) {
+    console.error("[application.actions] notification ignorée:", err?.code ?? "erreur")
+  }
 }
 
 /**
@@ -145,10 +162,28 @@ export async function apply({ missionId, message }) {
     return { error: ERR_GENERIC }
   }
 
+  // Nom de l'étudiant lu une seule fois, à la première demande, puis partagé par la notification et l'e-mail.
+  let studentNameRead = null
+  const readStudentName = () => (studentNameRead ??= getFullName(supabase, user.id))
+
+  // Notification in-app au client (échec sans conséquence sur la candidature)
+  await safeNotify(async () => {
+    const studentName = await readStudentName()
+    await notify({
+      recipientId: mission.client_id,
+      ...applicationReceived({
+        missionId,
+        missionTitle: mission.title,
+        studentId: user.id,
+        studentName,
+      }),
+    })
+  })
+
   // Notifie le client (échec d'email sans conséquence sur la candidature)
   try {
     const [studentName, clientName, clientEmail] = await Promise.all([
-      getFullName(supabase, user.id),
+      readStudentName(),
       getFullName(supabase, mission.client_id),
       getAuthEmail(mission.client_id),
     ])
@@ -286,7 +321,30 @@ export async function acceptApplication({ applicationId, studentId, missionId })
     console.error("[acceptApplication] Erreur rejet des autres candidatures:", rejectError.message)
   }
 
-  // 4. Notifie (échec d'email sans conséquence sur l'acceptation)
+  // 4. Notifications in-app : l'étudiant retenu et les étudiants non retenus (échec sans conséquence)
+  await safeNotify(async () => {
+    const clientName = await getFullName(supabase, user.id)
+    await Promise.all([
+      notify({
+        recipientId: studentId,
+        ...applicationAccepted({
+          missionId,
+          missionTitle: mission.title,
+          clientId: user.id,
+          clientName,
+          studentId,
+        }),
+      }),
+      ...(rejectedApps ?? []).map(({ student_id: rejectedId }) =>
+        notify({
+          recipientId: rejectedId,
+          ...applicationRejected({ missionId, missionTitle: mission.title, clientId: user.id, studentId: rejectedId }),
+        }),
+      ),
+    ])
+  })
+
+  // 5. Notifie par email (échec sans conséquence sur l'acceptation)
   try {
     const missionTitle = mission.title ?? "Mission EduCash"
     const [clientName, studentName, studentEmail] = await Promise.all([
@@ -345,7 +403,7 @@ export async function rejectApplication(applicationId) {
 
   const { data: application } = await supabase
     .from("applications")
-    .select("id, mission_id, status")
+    .select("id, mission_id, student_id, status")
     .eq("id", applicationId)
     .maybeSingle()
 
@@ -353,7 +411,7 @@ export async function rejectApplication(applicationId) {
 
   const { data: mission } = await supabase
     .from("missions")
-    .select("id")
+    .select("id, title")
     .eq("id", application.mission_id)
     .eq("client_id", user.id)
     .maybeSingle()
@@ -374,6 +432,18 @@ export async function rejectApplication(applicationId) {
     return { error: ERR_GENERIC }
   }
   if (!rejected?.length) return { error: "Cette candidature n'est plus en attente." }
+
+  await safeNotify(() =>
+    notify({
+      recipientId: application.student_id,
+      ...applicationRejected({
+        missionId: mission.id,
+        missionTitle: mission.title,
+        clientId: user.id,
+        studentId: application.student_id,
+      }),
+    }),
+  )
 
   revalidatePath("/client/missions/" + mission.id)
   revalidatePath("/client/missions")

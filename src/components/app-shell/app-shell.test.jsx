@@ -116,13 +116,54 @@ describe("AppShell (rendu statique)", () => {
     expect(html).toMatch(/<form[^>]*><button type="submit" class="iconbtn2" aria-label="Déconnexion"/)
   })
 
-  it("barre du haut : recherche GET vers la liste des missions, raccourci « / », pas de cloche", () => {
+  it("barre du haut : recherche GET vers la liste des missions, raccourci « / »", () => {
     const html = render()
     expect(html).toMatch(/<form role="search" action="\/client\/missions" method="get">/)
     expect(html).toContain('name="q"')
     expect(html).toContain('aria-label="Rechercher une mission"')
     expect(html).toContain('aria-keyshortcuts="/"')
     expect(html).toContain("<kbd")
+  })
+
+  it("cloche (config avec notifications et compteur fourni) : bouton dans .top2__actions après la recherche, lien dans .mtop2", () => {
+    const html = render({ notifications: { count: 2, actions: {} } })
+    const top = html.slice(html.indexOf('<header class="top2">'), html.indexOf("</header>", html.indexOf('<header class="top2">')))
+    const actions = top.slice(top.indexOf('<div class="top2__actions">'))
+    expect(top.indexOf("</form>")).toBeLessThan(top.indexOf('<div class="top2__actions">'))
+    expect(actions).toMatch(/<button[^>]*type="button"[^>]*aria-label="Notifications, 2 non lues"/)
+    expect(actions).toContain('aria-expanded="false"')
+    expect(actions).toContain("i-bell")
+    expect(actions).toContain("iconbtn2__dot")
+    const mobile = html.slice(html.indexOf('<header class="mtop2">'), html.indexOf("</header>", html.indexOf('<header class="mtop2">')))
+    const bellLink = mobile.match(/<a [^>]*href="\/client\/notifications"[^>]*>/)[0]
+    expect(bellLink).toContain('aria-label="Notifications, 2 non lues"')
+    expect(mobile.indexOf("/client/notifications")).toBeLessThan(mobile.indexOf('aria-label="Mon profil"'))
+    expect(mobile.indexOf("mtop2__space")).toBeLessThan(mobile.indexOf("/client/notifications"))
+  })
+
+  it("cloche : compteur 0, libellé simple et aucun point", () => {
+    const html = render({ notifications: { count: 0, actions: {} } })
+    expect(html).toContain('aria-label="Notifications"')
+    expect(html).not.toContain("iconbtn2__dot")
+  })
+
+  it("cloche : le lien mobile et le bouton du bureau visent la page des notifications de l'espace étudiant", () => {
+    const html = render({ nav: STUDENT_NAV, notifications: { count: 1, actions: {} } }, "/dashboard")
+    expect(html).toContain('href="/student/notifications"')
+    expect(html).toContain('aria-label="Notifications, 1 non lue"')
+  })
+
+  it("sans notifications dans la configuration : aucune cloche, même si un compteur est fourni", () => {
+    const { notifications: _omitted, ...withoutBell } = CLIENT_NAV
+    const html = render({ nav: withoutBell, notifications: { count: 2, actions: {} } })
+    expect(html).not.toContain("Notifications")
+    expect(html).not.toContain("i-bell")
+    expect(html).not.toContain("top2__actions")
+    expect(html).not.toContain("/client/notifications")
+  })
+
+  it("sans compteur fourni par le layout : aucune cloche (comportement d'avant)", () => {
+    const html = render()
     expect(html).not.toContain("Notifications")
     expect(html).not.toContain("i-bell")
   })
@@ -341,7 +382,8 @@ describe("configuration client : aucun lien vers une route inexistante", () => {
   })
 
   it("le détecteur reconnaît une route absente", () => {
-    expect(matches("/client/notifications")).toBe(false)
+    expect(matches("/client/inexistante")).toBe(false)
+    expect(matches("/client/notifications")).toBe(true)
     expect(matches("/client/missions/42")).toBe(true)
   })
 })
