@@ -88,16 +88,18 @@ async function readDossier(service, userId) {
   }
 }
 
-// Noms de fichiers générés par l'application : `card-<uuid>.<ext>` (inscription) et `<horodatage>-<uuid8>.<ext>`
-// (renvoi depuis l'espace étudiant). Ils ne contiennent aucune donnée personnelle.
+// Noms de fichiers générés par l'application : `card-<uuid>.<ext>` (inscription) et
+// `carte-<horodatage>-<uuid8>.<jpg|png|pdf>` (renvoi depuis l'espace étudiant, voir cardStoragePath dans
+// src/lib/storage/card-paths.js). Ils ne contiennent aucune donnée personnelle.
 const GENERATED_CARD_NAME = [
   /^card-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,5}$/i,
-  /^\d{10,16}-[0-9a-f]{8}\.[a-z0-9]{1,5}$/i,
+  /^carte-\d{10,16}-[0-9a-f]{8}\.(jpg|png|pdf)$/i,
 ]
 
 /**
  * Référence du fichier de carte pour le journal, sans dossier ni identifiant de l'utilisateur. Règle : un nom généré
- * par l'application (voir GENERATED_CARD_NAME) est gardé tel quel ; tout autre nom (un ancien `card_url` peut porter
+ * par l'application (voir GENERATED_CARD_NAME : `card-<uuid>.<ext>` ou `carte-<horodatage>-<uuid8>.<jpg|png|pdf>`)
+ * est gardé tel quel ; tout autre nom (un ancien `card_url` peut porter
  * le nom d'origine du fichier, donc une donnée personnelle) est remplacé par `fichier-<8 premiers caractères du
  * SHA-256 du nom>` suivi de l'extension si elle est lisible (1 à 5 lettres ou chiffres). Le nom d'origine n'est
  * jamais écrit dans le journal.

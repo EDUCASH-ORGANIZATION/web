@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { CARD_TYPES, cardStoragePath, cardUploadUnique } from "@/lib/storage/card-paths"
 
 const ADMIN_ID = "00000000-0000-4000-8000-0000000000aa"
 const uid = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`
@@ -514,8 +515,12 @@ describe("resetStudentRejection", () => {
 
   it.each([
     ["inscription", "card-3f2b8c1a-9d4e-4b7a-8c6f-1e2d3c4b5a69.jpg"],
-    ["renvoi depuis l'espace étudiant", "1760520000000-3f2b8c1a.png"],
+    ...Object.keys(CARD_TYPES).map((mime) => [
+      `renvoi depuis l'espace étudiant, ${mime}`,
+      cardStoragePath("u", mime, cardUploadUnique()).split("/").pop(),
+    ]),
   ])("journal : un nom de fichier généré (%s) est gardé tel quel", async (_n, name) => {
+    // Cas A-B-A (le même chemin ré-enregistré) : la référence désigne le fichier déjà refusé, ce qui est acceptable.
     const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
     state.studentProfiles.find((s) => s.user_id === id).card_url = `${id}/${name}`
     expect(await resetStudentRejection(id, { reason: "Erreur de notre part" })).toEqual({ success: true })
