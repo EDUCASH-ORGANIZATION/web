@@ -1,0 +1,94 @@
+import { describe, it, expect } from "vitest"
+import { applicationStatusLabel, buildMissionTimeline, moneySummary } from "./mission-detail"
+
+const CLIENT = "c1"
+const STUDENT = "s1"
+const move = (type, amount, userId, createdAt = "2026-10-12T10:00:00Z") => ({ type, amount, userId, createdAt })
+
+describe("moneySummary", () => {
+  it("sépare le séquestre du client, la commission et la part de l'étudiant", () => {
+    const m = moneySummary({
+      budget: 10000,
+      clientId: CLIENT,
+      ledger: [move("reserve", 10000, CLIENT), move("release", 10000, CLIENT), move("commission", 1200, CLIENT), move("release", 8800, STUDENT)],
+    })
+    expect(m).toMatchObject({ reserved: 10000, released: 10000, commission: 1200, studentReceived: 8800, refunded: 0, inEscrow: 0 })
+    expect(m.planned).toEqual({ total: 10000, commission: 1200, student: 8800 })
+  })
+
+  it("mission en cours : l'argent reste en séquestre", () => {
+    const m = moneySummary({ budget: 5000, clientId: CLIENT, ledger: [move("reserve", 5000, CLIENT)] })
+    expect(m.inEscrow).toBe(5000)
+    expect(m.hasMovements).toBe(true)
+  })
+
+  it("remboursement : plus rien en séquestre, montants pris en valeur absolue", () => {
+    const m = moneySummary({ budget: 5000, clientId: CLIENT, ledger: [move("reserve", -5000, CLIENT), move("refund", 5000, CLIENT)] })
+    expect(m).toMatchObject({ reserved: 5000, refunded: 5000, inEscrow: 0 })
+  })
+
+  it("sans mouvement ni liste : zéro, jamais d'erreur", () => {
+    expect(moneySummary({ budget: 1000, clientId: CLIENT, ledger: undefined })).toMatchObject({ reserved: 0, inEscrow: 0, hasMovements: false })
+  })
+})
+
+describe("buildMissionTimeline", () => {
+  const base = { id: "m", createdAt: "2026-10-10T08:00:00Z", updatedAt: "2026-10-14T08:00:00Z", selectedStudentId: null }
+  const titles = (input) => buildMissionTimeline({ clientId: CLIENT, studentName: "Esther", completion: null, ledger: [], ...input }).map((i) => i.title)
+
+  it("ouverte : publiée puis en attente d'un étudiant", () => {
+    expect(titles({ mission: { ...base, status: "open" } })).toEqual(["Mission publiée", "En attente d'un étudiant"])
+  })
+
+  it("en cours avec fin enregistrée : à confirmer par le client", () => {
+    const out = titles({
+      mission: { ...base, status: "in_progress", selectedStudentId: STUDENT },
+      completion: { createdAt: "2026-10-13T08:00:00Z" },
+      ledger: [move("reserve", 5000, CLIENT)],
+    })
+    expect(out).toEqual([
+      "Mission publiée",
+      "Étudiant retenu : Esther",
+      "5 000 FCFA placés en séquestre",
+      "Fin enregistrée, à confirmer par le client",
+      "Libération du séquestre",
+    ])
+  })
+
+  it("en cours sans fin enregistrée", () => {
+    expect(titles({ mission: { ...base, status: "in_progress", selectedStudentId: STUDENT } })).toContain("Mission en cours")
+  })
+
+  it("terminée : fin et libération datées", () => {
+    const items = buildMissionTimeline({
+      clientId: CLIENT,
+      studentName: "Esther",
+      mission: { ...base, status: "done", selectedStudentId: STUDENT },
+      completion: { createdAt: "2026-10-13T08:00:00Z" },
+      ledger: [move("reserve", 5000, CLIENT), move("release", 5000, CLIENT, "2026-10-13T08:01:00Z")],
+    })
+    expect(items.map((i) => i.title)).toContain("Mission terminée")
+    expect(items.at(-1).at).toBe("2026-10-13T08:01:00Z")
+  })
+
+  it("annulée : date d'annulation et remboursement", () => {
+    const items = buildMissionTimeline({
+      clientId: CLIENT,
+      studentName: "",
+      mission: { ...base, status: "cancelled" },
+      completion: null,
+      ledger: [move("reserve", 5000, CLIENT), move("refund", 5000, CLIENT, "2026-10-14T09:00:00Z")],
+    })
+    expect(items.map((i) => i.title)).toEqual(["Mission publiée", "5 000 FCFA placés en séquestre", "Mission annulée", "5 000 FCFA remboursés au client"])
+    expect(items[2].at).toBe("2026-10-14T08:00:00Z")
+  })
+})
+
+describe("applicationStatusLabel", () => {
+  it("libellés français et statut inconnu neutre", () => {
+    expect(applicationStatusLabel("pending")).toBe("En attente")
+    expect(applicationStatusLabel("accepted")).toBe("Retenue")
+    expect(applicationStatusLabel("rejected")).toBe("Non retenue")
+    expect(applicationStatusLabel("zzz")).toBe("Statut inconnu")
+  })
+})

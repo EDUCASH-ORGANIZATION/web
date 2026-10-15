@@ -4,6 +4,11 @@
 .a2-07-parties { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5); }
 .a2-07-money { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); padding: var(--s-5) var(--s-6); display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
 
+.a2-07-apps { list-style: none; margin: var(--s-3) 0 0; padding: 0; display: flex; flex-direction: column; }
+.a2-07-app { display: flex; flex-direction: column; gap: 2px; padding: var(--s-2) 0; border-top: 1px solid var(--c-ligne-2); font-size: var(--t-body-s); overflow-wrap: anywhere; }
+.a2-07-app:first-child { border-top: 0; }
+.a2-07-desc { font-size: var(--t-body-s); white-space: pre-line; overflow-wrap: anywhere; }
+
 /* Frise (réutilisée par AD04) : sans citron ni bleu plein */
 .a2 .tl-item.is-done::before { background: var(--c-ligne); }
 .a2 .tl-item.is-done .tl-item__dot { background: var(--c-givre); border: 1px solid var(--c-ligne); color: var(--c-ardoise); }
