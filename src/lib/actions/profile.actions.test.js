@@ -690,6 +690,9 @@ const SERVER_ALLOWLIST = [
   "lib/actions/profile.actions.js",
   "lib/actions/admin.actions.js",
   "lib/actions/onboarding.actions.js",
+  "lib/actions/admin-verifications.actions.js",
+  "lib/actions/admin-dashboard.actions.js",
+  "lib/actions/admin-users.actions.js",
   "app/(admin)/admin/verifications/page.js",
 ]
 
