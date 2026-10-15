@@ -255,6 +255,18 @@ describe("VerificationsView : états", () => {
     expect(html.match(/<h1\b/g)).toHaveLength(1)
   })
 
+  it("erreur de lecture : « Réessayer » rouvre la même vue (onglet, dossier, recherche, page), valeurs encodées", () => {
+    const html = render({
+      data: null,
+      error: "Les dossiers n'ont pas pu être chargés. Réessayez dans un instant.",
+      retryParams: { onglet: "refuses", id: "11111111-1111-4111-8111-111111111111", q: "kofi & ama", ecole: ["EPAC", "UAC"], page: "2" },
+    })
+    expect(html).toContain(
+      'href="/admin/verifications?onglet=refuses&amp;id=11111111-1111-4111-8111-111111111111&amp;q=kofi+%26+ama&amp;page=2"',
+    )
+    expect(html).not.toContain("EPAC")
+  })
+
   it("aucun dossier ouvert : invite bureau seulement, pas d'en-tête de sous-page ni de barre fixe", () => {
     const html = render({ data: data() })
     expect(html).toContain("Choisissez un dossier dans la liste")

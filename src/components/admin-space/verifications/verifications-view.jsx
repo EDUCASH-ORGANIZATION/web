@@ -223,11 +223,18 @@ export function dossierNeighbors(data) {
   }
 }
 
+// Paramètres d'URL bruts (chaîne, tableau ou absents) : seules les chaînes sont reprises, la fabrique les encode.
+const retryHref = (params) => {
+  const pick = (key) => (typeof params?.[key] === "string" ? params[key] : undefined)
+  return adminVerificationsHref({ onglet: pick("onglet"), id: pick("id"), q: pick("q"), ecole: pick("ecole"), delai: pick("delai"), page: pick("page") })
+}
+
 /**
  * File de vérification (AD02), maître et détail. Vue pure : le serveur fournit toutes les données.
- * `data` est la réponse de `getVerificationQueue` ; `error` vaut son message quand la lecture a échoué.
+ * `data` est la réponse de `getVerificationQueue` ; `error` vaut son message quand la lecture a échoué ;
+ * `retryParams` (paramètres d'URL de la page) fait rouvrir la même vue par « Réessayer ».
  */
-export function VerificationsView({ data, error }) {
+export function VerificationsView({ data, error, retryParams }) {
   if (error || !data) {
     return (
       <div className="a2-02">
@@ -239,7 +246,7 @@ export function VerificationsView({ data, error }) {
           titleAs="h2"
           title="Impossible de charger la file"
           text={error || "Les dossiers n'ont pas pu être récupérés. Aucune décision n'est perdue."}
-          action={{ href: adminVerificationsHref(), label: "Réessayer", primary: true }}
+          action={{ href: retryHref(retryParams), label: "Réessayer", primary: true }}
         />
       </div>
     )

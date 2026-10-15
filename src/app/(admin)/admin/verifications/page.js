@@ -11,7 +11,8 @@ export const metadata = { title: "Vérifications - Admin EduCash" }
 // Données lues dans un composant à part pour que le squelette s'affiche pendant le chargement de la file.
 async function QueueContent({ params }) {
   const result = await getVerificationQueue(params)
-  return <VerificationsView data={result.error ? null : result} error={result.error} />
+  // En cas d'erreur, la vue reçoit les paramètres bruts pour que « Réessayer » rouvre la même vue (elle les filtre).
+  return <VerificationsView data={result.error ? null : result} error={result.error} retryParams={result.error ? params : undefined} />
 }
 
 // Page mince : contrôle admin avant toute lecture (le layout le refait), puis action `admin-*` et vue pure.
