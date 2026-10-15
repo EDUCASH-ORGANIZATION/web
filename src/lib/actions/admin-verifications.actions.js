@@ -7,6 +7,7 @@ import { todayInBenin } from "@/lib/vitrine/dates"
 import { toOwnedStoragePath } from "@/lib/storage/owned-paths"
 import { escapeLike } from "@/lib/student-space/explore-query"
 import { notify as notifyInApp } from "@/lib/notifications/notify"
+import { dedupeFingerprint } from "@/lib/notifications/fingerprint"
 import { badgeRevoked, verificationApproved, verificationRejected, verificationReset } from "@/lib/notifications/catalog"
 import {
   OTHER_REASON,
@@ -161,6 +162,15 @@ async function notify(service, userId, template, buildData) {
  * @param {string} userId
  * @param {() => object} build constructeur du catalogue (appelé dans le try)
  */
+/**
+ * Empreinte du dépôt pour la clé de déduplication (la date de dépôt est une colonne privée : jamais en clair
+ * dans une clé lisible par l'étudiant). Même dépôt => même empreinte ; sans date de dépôt, empreinte unique.
+ */
+function depositFingerprint(purpose, submittedAt) {
+  const token = typeof submittedAt === "string" && submittedAt !== "" ? submittedAt : `sans-depot:${Date.now()}:${Math.random()}`
+  return dedupeFingerprint(purpose, token)
+}
+
 async function notifyDecision(userId, build) {
   try {
     await notifyInApp({ recipientId: userId, ...build() })
@@ -316,7 +326,10 @@ export async function rejectStudentCard(userId, { reason, message, expectedSubmi
     })
     // Notification : le libellé de la liste fermée, jamais le message libre de l'administrateur.
     await notifyDecision(found.id, () =>
-      verificationRejected({ reasonLabel: label, submittedAt: found.dossier.profile.verification_submitted_at }),
+      verificationRejected({
+        reasonLabel: label,
+        fingerprint: depositFingerprint("verification_rejected", found.dossier.profile.verification_submitted_at),
+      }),
     )
     const emailSent = await notify(service, found.id, "verification-rejected", (t) => ({
       name: t.name,
@@ -431,7 +444,7 @@ export async function resetStudentRejection(userId, { reason } = {}) {
       after: { rejectionReason: null },
       reason: why.data,
     })
-    await notifyDecision(id.data, () => verificationReset({ token: token ?? undefined }))
+    await notifyDecision(id.data, () => verificationReset({ fingerprint: depositFingerprint("verification_reset", token) }))
     revalidateQueue()
     return { success: true }
   } catch (err) {

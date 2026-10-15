@@ -45,8 +45,8 @@ function allBuilt() {
     paymentReleased({ missionId: M, missionTitle: "Traduction d'un flyer", clientId: A, amount: 22000 }),
     reviewReceived({ missionId: M, missionTitle: "Traduction d'un flyer", reviewerId: A, reviewerName: "Rosine Hounkpatin" }),
     verificationApproved({ verifiedUntil: "2027-06-29" }),
-    verificationRejected({ reasonLabel: "Photo floue ou illisible", submittedAt: "2026-10-14T09:00:00Z" }),
-    verificationReset({ token: "2026-10-14T09:00:00Z" }),
+    verificationRejected({ reasonLabel: "Photo floue ou illisible", fingerprint: "a1b2c3d4e5f6" }),
+    verificationReset({ fingerprint: "a1b2c3d4e5f6" }),
     badgeRevoked({ at: new Date("2026-10-15T10:00:00Z") }),
     accountReactivated({ at: new Date("2026-10-15T10:00:00Z") }),
     cardSubmitted({ studentId: S, studentName: "Codjo Agbo", at: new Date("2026-10-15T10:00:00Z") }),
@@ -95,7 +95,8 @@ describe("catalogue des notifications", () => {
     expect(approved.body).toBe("Votre badge est valable jusqu'au 29 juin 2027.")
     expect(approved.dedupeKey).toBe("verification_approved:2027-06-29")
     expect(refused.body).toBe("Motif : photo floue ou illisible. Vous pouvez envoyer une nouvelle carte.")
-    expect(refused.dedupeKey).toBe("verification_rejected:2026-10-14T09:00:00Z")
+    expect(refused.dedupeKey).toBe("verification_rejected:a1b2c3d4e5f6")
+    expect(reset.dedupeKey).toBe("verification_reset:a1b2c3d4e5f6")
     expect(reset.body).toBe("Le refus de votre carte a été levé.")
     expect(revoked.body).toBe("Votre badge vérifié a été retiré. Consultez votre profil pour en savoir plus.")
     expect(reactivated.body).toBe("Vous pouvez de nouveau utiliser EduCash.")
@@ -119,11 +120,24 @@ describe("catalogue des notifications", () => {
 
   it("verification_rejected « Autre motif » : pas de phrase Motif, l'invitation à renvoyer reste", () => {
     expect(OTHER_REASON_LABEL).toBe(OTHER_REASON)
-    const n = verificationRejected({ reasonLabel: OTHER_REASON, submittedAt: "2026-10-14T09:00:00Z" })
+    const n = verificationRejected({ reasonLabel: OTHER_REASON, fingerprint: "a1b2c3d4e5f6" })
     expect(n.body).toBe("Vous pouvez envoyer une nouvelle carte.")
     expect(n.body).not.toMatch(/motif/i)
-    expect(verificationRejected({ reasonLabel: "Photo floue ou illisible", submittedAt: "2026-10-14T09:00:00Z" }).body)
+    expect(verificationRejected({ reasonLabel: "Photo floue ou illisible", fingerprint: "a1b2c3d4e5f6" }).body)
       .toBe("Motif : photo floue ou illisible. Vous pouvez envoyer une nouvelle carte.")
+  })
+
+  it("verification_rejected / verification_reset : la clé ne recopie jamais une date de dépôt brute", () => {
+    const raw = "2026-10-14T09:00:00.123456+00:00"
+    for (const n of [
+      verificationRejected({ reasonLabel: "Photo floue ou illisible", fingerprint: raw, submittedAt: raw }),
+      verificationReset({ fingerprint: raw, token: raw }),
+      verificationRejected({ reasonLabel: "Photo floue ou illisible" }),
+      verificationReset({}),
+    ]) {
+      expect(n.dedupeKey).toMatch(/^verification_(rejected|reset):t[0-9a-z]+$/)
+      expect(n.dedupeKey).not.toMatch(/2026|T09|:00/)
+    }
   })
 
   it("chaque texte est vouvoyé, sans tiret cadratin ni mot banni", () => {

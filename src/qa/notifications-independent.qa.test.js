@@ -252,8 +252,8 @@ describe("catalogue : textes bornes, sans donnee personnelle, sans tiret cadrati
     catalog.paymentReleased({ missionId: M, missionTitle: long, clientId: A, amount: 123456789, ...evil }),
     catalog.reviewReceived({ missionId: M, missionTitle: long, reviewerId: A, reviewerName: long, ...evil }),
     catalog.verificationApproved({ verifiedUntil: "2027-01-01", ...evil }),
-    catalog.verificationRejected({ reasonLabel: "Carte illisible", submittedAt: "2026-10-15T10:00:00Z", ...evil }),
-    catalog.verificationReset({ token: "t", ...evil }),
+    catalog.verificationRejected({ reasonLabel: "Carte illisible", fingerprint: "0123456789ab", ...evil }),
+    catalog.verificationReset({ fingerprint: "0123456789ab", ...evil }),
     catalog.badgeRevoked({ at: new Date(), ...evil }),
     catalog.accountReactivated({ at: new Date(), ...evil }),
     catalog.cardSubmitted({ studentId: A, studentName: long, at: new Date(), ...evil }),
@@ -284,7 +284,7 @@ describe("catalogue : textes bornes, sans donnee personnelle, sans tiret cadrati
   })
 
   it("verification_rejected : seul le libelle fourni, jamais le champ message ou reason", () => {
-    const n = catalog.verificationRejected({ reasonLabel: "Carte illisible", message: "SECRET libre", reason: "SECRET libre", submittedAt: "x" })
+    const n = catalog.verificationRejected({ reasonLabel: "Carte illisible", message: "SECRET libre", reason: "SECRET libre", fingerprint: "0123456789ab" })
     expect(n.body).toContain("carte illisible")
     expect(n.body).not.toContain("SECRET")
   })

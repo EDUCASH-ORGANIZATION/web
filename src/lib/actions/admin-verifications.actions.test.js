@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { CARD_TYPES, cardStoragePath, cardUploadUnique } from "@/lib/storage/card-paths"
+import { dedupeFingerprint } from "@/lib/notifications/fingerprint"
 
 const ADMIN_ID = "00000000-0000-4000-8000-0000000000aa"
 const uid = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`
@@ -1220,7 +1221,7 @@ describe("notifications in-app (RD-NOTIF-01)", () => {
       type: "verification_rejected",
       title: "Carte étudiante refusée",
       body: "Motif : photo floue ou illisible. Vous pouvez envoyer une nouvelle carte.",
-      dedupeKey: `verification_rejected:${SUBMITTED}`,
+      dedupeKey: `verification_rejected:${dedupeFingerprint("verification_rejected", SUBMITTED)}`,
     })
     expect(`${n.title} ${n.body}`).not.toMatch(/confidentiel|0197|carte\.jpg/)
   })
@@ -1230,6 +1231,27 @@ describe("notifications in-app (RD-NOTIF-01)", () => {
     const res = await rejectStudentCard(id, { reason: "Autre motif", message: "Carte d'un autre campus", expectedSubmittedAt: SUBMITTED })
     expect(res).toMatchObject({ success: true })
     expect(notifyInApp.mock.calls[0][0].body).toBe("Vous pouvez envoyer une nouvelle carte.")
+  })
+
+  it("clés de refus et de levée : empreinte courte, jamais la date de dépôt en clair ; même dépôt => même clé", async () => {
+    const id = addStudent(1, { rejection_reason: "Photo floue ou illisible" })
+    await resetStudentRejection(id, { reason: "Erreur de notre part" })
+    const id2 = addStudent(2)
+    await rejectStudentCard(id2, { reason: "Photo floue ou illisible", expectedSubmittedAt: SUBMITTED })
+    const keys = notifyInApp.mock.calls.map((c) => c[0].dedupeKey)
+    expect(keys).toHaveLength(2)
+    for (const key of keys) {
+      expect(key).toMatch(/^verification_(reset|rejected):[0-9a-f]{12}$/)
+      expect(key).not.toContain(SUBMITTED)
+      expect(key).not.toMatch(/2026|09:00/)
+    }
+    // Même dépôt => même clé (idempotence) ; deux dépôts distincts => deux clés.
+    expect(keys[1]).toBe(`verification_rejected:${dedupeFingerprint("verification_rejected", SUBMITTED)}`)
+    const id3 = addStudent(3, { verification_submitted_at: "2026-10-11T09:00:00.000000+00:00" })
+    await rejectStudentCard(id3, { reason: "Photo floue ou illisible", expectedSubmittedAt: "2026-10-11T09:00:00.000000+00:00" })
+    const third = notifyInApp.mock.calls[2][0].dedupeKey
+    expect(third).toMatch(/^verification_rejected:[0-9a-f]{12}$/)
+    expect(third).not.toBe(keys[1])
   })
 
   it("refus : notification envoyée même si l'e-mail échoue (emailSent inchangé)", async () => {
@@ -1251,7 +1273,7 @@ describe("notifications in-app (RD-NOTIF-01)", () => {
       type: "verification_reset",
       title: "Vous pouvez renvoyer votre carte",
       body: "Le refus de votre carte a été levé.",
-      dedupeKey: `verification_reset:${SUBMITTED}`,
+      dedupeKey: `verification_reset:${dedupeFingerprint("verification_reset", SUBMITTED)}`,
     })
   })
 

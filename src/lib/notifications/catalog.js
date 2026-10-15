@@ -196,24 +196,35 @@ export function verificationApproved({ verifiedUntil }) {
   })
 }
 
-/** Carte refusée : `reasonLabel` est un libellé de ADMIN_REJECTION_REASONS, jamais le message libre. */
-export function verificationRejected({ reasonLabel, submittedAt }) {
+// Empreinte de dépôt calculée côté serveur (`dedupeFingerprint`, fingerprint.js) : la clé est lisible par son
+// destinataire, elle ne contient jamais la date de dépôt en clair. Toute autre valeur est ignorée (repli unique).
+const FINGERPRINT = /^[0-9a-f]{8,12}$/
+
+function fingerprintPart(fingerprint) {
+  return typeof fingerprint === "string" && FINGERPRINT.test(fingerprint) ? fingerprint : `t${Date.now().toString(36)}`
+}
+
+/**
+ * Carte refusée : `reasonLabel` est un libellé de ADMIN_REJECTION_REASONS, jamais le message libre.
+ * `fingerprint` : empreinte courte du dépôt (jamais la date brute).
+ */
+export function verificationRejected({ reasonLabel, fingerprint }) {
   const reason = reasonSentence(reasonLabel)
   return build({
     type: "verification_rejected",
     title: "Carte étudiante refusée",
     body: `${reason ? `${reason} ` : ""}Vous pouvez envoyer une nouvelle carte.`,
-    dedupeKey: `verification_rejected:${oneLine(String(submittedAt ?? Date.now()))}`,
+    dedupeKey: `verification_rejected:${fingerprintPart(fingerprint)}`,
   })
 }
 
-/** Refus levé par l'administration. */
-export function verificationReset({ token }) {
+/** Refus levé par l'administration. `fingerprint` : empreinte courte du dépôt (jamais la date brute). */
+export function verificationReset({ fingerprint }) {
   return build({
     type: "verification_reset",
     title: "Vous pouvez renvoyer votre carte",
     body: "Le refus de votre carte a été levé.",
-    dedupeKey: `verification_reset:${oneLine(String(token ?? Date.now()))}`,
+    dedupeKey: `verification_reset:${fingerprintPart(fingerprint)}`,
   })
 }
 
