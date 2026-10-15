@@ -1,8 +1,11 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { loadNotifications, loadUnreadCount, markAll, markOne } from "@/lib/notifications/actions-core"
 import { requireAdminService } from "./admin-context"
+
+const PAGE = "/admin/notifications"
 
 // Le contrôle admin (`profiles.role = 'admin'`, compte non suspendu) précède tout accès. La lecture passe par le
 // client de SESSION (RLS : chacun ne voit que ses notifications), jamais par le service role.
@@ -36,7 +39,9 @@ export async function getAdminUnreadNotificationCount() {
 export async function markAdminNotificationRead(id) {
   const ctx = await requireAdminService()
   if (ctx.error) return { error: ctx.error }
-  return markOne(await createClient(), ctx.admin.userId, id)
+  const res = await markOne(await createClient(), ctx.admin.userId, id)
+  if (res.success) revalidatePath(PAGE)
+  return res
 }
 
 /**
@@ -46,5 +51,7 @@ export async function markAdminNotificationRead(id) {
 export async function markAllAdminNotificationsRead() {
   const ctx = await requireAdminService()
   if (ctx.error) return { error: ctx.error }
-  return markAll(await createClient(), ctx.admin.userId)
+  const res = await markAll(await createClient(), ctx.admin.userId)
+  if (res.success) revalidatePath(PAGE)
+  return res
 }

@@ -94,3 +94,8 @@ export function adminTransactionsHref({ type, periode, q, page } = {}) {
 export function adminWithdrawalsHref() {
   return "/admin/withdrawals"
 }
+
+/** Centre de notifications de l'admin. Seul le filtre « non-lues » est accepté. */
+export function adminNotificationsHref({ filtre } = {}) {
+  return withQuery("/admin/notifications", [["filtre", filtre === "non-lues" ? filtre : undefined]])
+}

@@ -341,7 +341,8 @@ describe("configuration client : aucun lien vers une route inexistante", () => {
   })
 
   it("le détecteur reconnaît une route absente", () => {
-    expect(matches("/client/notifications")).toBe(false)
+    expect(matches("/client/inexistante")).toBe(false)
+    expect(matches("/client/notifications")).toBe(true)
     expect(matches("/client/missions/42")).toBe(true)
   })
 })

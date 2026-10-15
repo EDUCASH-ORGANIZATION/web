@@ -108,6 +108,7 @@ describe("admin : marquage", () => {
     expect(await markAdminNotificationRead(ID)).toEqual({ success: true })
     expect(opsOf("eq")).toEqual([["eq", "id", ID], ["eq", "recipient_id", ME]])
     expect(opsOf("update")[0][1].read_at).toBeTruthy()
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/notifications")
   })
 
   it("l'identifiant d'une autre notification donne le même succès silencieux (la base filtre sur le destinataire)", async () => {
@@ -127,6 +128,7 @@ describe("admin : marquage", () => {
     expect(await markAllAdminNotificationsRead()).toEqual({ success: true })
     expect(opsOf("eq")).toEqual([["eq", "recipient_id", ME]])
     expect(opsOf("is")).toContainEqual(["is", "read_at", null])
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/notifications")
   })
 
   it("table absente ou erreur : message vouvoyé, aucune revalidation", async () => {
