@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 // Hooks simulés : même instance de composant d'un rendu à l'autre (cas d'un dossier qui change dans la même vue).
 // `hooks.slots` désigne l'instance en cours de rendu : le panneau, ou une instance de DossierReview (voir renderReview).
@@ -47,6 +47,7 @@ vi.mock("@/lib/actions/admin-verifications.actions", () => ({
 }))
 
 const { DossierPanel } = await import("./dossier-panel")
+const { useQueueShortcuts } = await import("./use-queue-shortcuts")
 const { DossierReview } = await import("./dossier-review")
 const { CheckboxField } = await import("@/components/app-ui/fields")
 
@@ -190,5 +191,52 @@ describe("DossierPanel : focus après décision", () => {
     const tree = render(dossier())
     const avatar = find(tree, (n) => n.props.className === "a2-02-avatar")[0]
     expect(avatar.props["aria-hidden"]).toBe("true")
+  })
+})
+
+describe("DossierPanel : plein écran de la carte avant une décision", () => {
+  const shortcuts = () => useQueueShortcuts.mock.calls.at(-1)[0]
+  const dialogOpen = (tree, kind) =>
+    find(tree, (n) => typeof n.props.onConfirm === "function" && (kind === "approve" ? "badgeUntil" in n.props : "name" in n.props && !("badgeUntil" in n.props)))[0].props.open
+
+  beforeEach(() => {
+    panel = newSlots()
+    hooks.slots = panel
+    pending.length = 0
+    useQueueShortcuts.mockClear()
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it("V en plein écran : sortie du plein écran puis confirmation de validation visible", () => {
+    const exitFullscreen = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal("document", { fullscreenElement: { tag: "viewer" }, exitFullscreen })
+    render(dossier())
+    shortcuts().onApprove()
+    expect(exitFullscreen).toHaveBeenCalledTimes(1)
+    expect(dialogOpen(render(dossier()), "approve")).toBe(true)
+  })
+
+  it("R en plein écran : sortie du plein écran puis confirmation de refus visible", () => {
+    const exitFullscreen = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal("document", { fullscreenElement: { tag: "viewer" }, exitFullscreen })
+    render(dossier())
+    shortcuts().onReject()
+    expect(exitFullscreen).toHaveBeenCalledTimes(1)
+    expect(dialogOpen(render(dossier()), "reject")).toBe(true)
+  })
+
+  it("hors plein écran ou API absente : aucune sortie demandée, la confirmation s'ouvre", () => {
+    const exitFullscreen = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal("document", { fullscreenElement: null, exitFullscreen })
+    render(dossier())
+    shortcuts().onApprove()
+    expect(exitFullscreen).not.toHaveBeenCalled()
+    expect(dialogOpen(render(dossier()), "approve")).toBe(true)
+
+    panel = newSlots()
+    vi.stubGlobal("document", {})
+    render(dossier())
+    expect(() => shortcuts().onReject()).not.toThrow()
+    expect(dialogOpen(render(dossier()), "reject")).toBe(true)
   })
 })
