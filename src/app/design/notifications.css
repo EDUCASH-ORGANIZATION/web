@@ -12,7 +12,6 @@
 .ntf-anchor { position: relative; display: inline-flex; }
 .ntf-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: var(--z-menu); width: min(420px, calc(100vw - 32px)); }
 .ntf-pop .notif-panel { width: 100%; max-height: min(640px, calc(100dvh - 120px)); }
-.ntf-pop .notif-panel__list { overflow-y: auto; min-height: 0; }
 .ntf-pop__title:focus { outline: none; }
 .ntf-pop__title:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: var(--r-xs); }
 .ntf-pop__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: 0 var(--s-4) var(--s-2); }
