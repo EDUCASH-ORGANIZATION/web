@@ -29,7 +29,7 @@ describe("schéma de référence : contrainte missions_purchases_estimate_check"
   })
 
   it("la colonne reste optionnelle, sans valeur par défaut", () => {
-    expect(SCHEMA).toMatch(/\n {2}purchases_estimate numeric\n\);/)
+    expect(SCHEMA).toMatch(/\n {2}purchases_estimate numeric(,\n {2}completion_declared_at timestamp with time zone)?\n\);/)
   })
 
   it("guard_missions fige l'estimation dès que la mission n'est plus open", () => {

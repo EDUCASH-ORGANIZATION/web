@@ -2,9 +2,11 @@
 -- État de référence de la production Educash après RD-SEC-01, RD-SEC-02 et
 -- RD-SEC-03b (relevé du 2026-10-14, puis scripts 60, 61 et 62 de RD-SEC-03b), puis
 -- script 70 de RD-MISSION-02 (colonne missions.purchases_estimate), puis script 80 de RD-NOTIF-01
--- (table public.notifications).
+-- (table public.notifications), puis script 90 de RD-DONE-01 (colonne
+-- missions.completion_declared_at).
 -- Script 70 appliqué en production le 2026-10-15.
 -- Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.
+-- Script 90 (RD-DONE-01) NON appliqué en production au 2026-10-15 : à retirer après application.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
@@ -122,7 +124,8 @@ create table public.missions (
   selected_student_id uuid,
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now(),
-  purchases_estimate numeric
+  purchases_estimate numeric,
+  completion_declared_at timestamp with time zone
 );
 
 create table public.reviews (
@@ -233,6 +236,7 @@ alter table public.missions add constraint missions_budget_check CHECK ((budget 
 alter table public.missions add constraint missions_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'done'::text, 'cancelled'::text])));
 alter table public.missions add constraint missions_urgency_check CHECK ((urgency = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 alter table public.missions add constraint missions_purchases_estimate_check CHECK (((purchases_estimate IS NULL) OR ((purchases_estimate > (0)::numeric) AND (purchases_estimate <= (999999999)::numeric) AND (purchases_estimate = trunc(purchases_estimate)))));
+alter table public.missions add constraint missions_completion_declared_check CHECK (((completion_declared_at IS NULL) OR (status <> 'open'::text)));
 alter table public.reviews add constraint reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 alter table public.transactions add constraint transactions_amount_student_check CHECK ((amount_student >= (0)::numeric));
 alter table public.transactions add constraint transactions_amount_total_check CHECK ((amount_total >= (0)::numeric));
@@ -543,6 +547,46 @@ $function$;
 
 revoke all on function public.guard_applications() from public, anon, authenticated, service_role;
 grant execute on function public.guard_applications() to service_role;
+
+CREATE OR REPLACE FUNCTION public.guard_mission_completion_declared()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+begin
+  if tg_op = 'INSERT' then
+    if new.completion_declared_at is not null then
+      raise exception 'La declaration de fin est reservee au serveur.'
+        using errcode = '42501';
+    end if;
+    return new;
+  end if;
+
+  if new.completion_declared_at is not distinct from old.completion_declared_at then
+    return new;
+  end if;
+
+  -- Roles API (anon, authenticated), administrateur applicatif compris : jamais.
+  if public.edu_is_api_caller() then
+    raise exception 'La declaration de fin est reservee au serveur.'
+      using errcode = '42501';
+  end if;
+
+  -- Autres roles (service role, SQL) : seulement sur une mission en cours avec un etudiant retenu,
+  -- sans changement de statut dans la meme ecriture.
+  if old.status is distinct from 'in_progress'
+     or new.status is distinct from 'in_progress'
+     or new.selected_student_id is null then
+    raise exception 'La declaration de fin n''est possible que sur une mission en cours avec un etudiant retenu.'
+      using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$function$;
+
+revoke all on function public.guard_mission_completion_declared() from public, anon, authenticated, service_role;
+grant execute on function public.guard_mission_completion_declared() to service_role;
 
 CREATE OR REPLACE FUNCTION public.guard_missions()
  RETURNS trigger
@@ -1767,6 +1811,7 @@ CREATE TRIGGER applications_apply_rules BEFORE INSERT ON public.applications FOR
 CREATE TRIGGER guard_applications BEFORE INSERT OR UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION public.guard_applications();
 CREATE TRIGGER trg_applications_updated_at BEFORE UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER messages_rules BEFORE INSERT ON public.messages FOR EACH ROW EXECUTE FUNCTION public.messages_rules();
+CREATE TRIGGER guard_mission_completion_declared BEFORE INSERT OR UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.guard_mission_completion_declared();
 CREATE TRIGGER guard_missions BEFORE INSERT OR DELETE OR UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.guard_missions();
 CREATE TRIGGER trg_mission_done AFTER UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.handle_mission_done();
 CREATE TRIGGER trg_missions_updated_at BEFORE UPDATE ON public.missions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
