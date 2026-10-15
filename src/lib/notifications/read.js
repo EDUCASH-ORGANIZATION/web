@@ -1,4 +1,3 @@
-import "server-only"
 import { isUuid } from "@/lib/vitrine/ids"
 
 // Lecture et marquage des notifications (RD-NOTIF-01). Toujours le client de SESSION (la RLS est le second

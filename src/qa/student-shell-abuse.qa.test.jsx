@@ -94,10 +94,10 @@ describe("matrice d'autorisation du layout étudiant", () => {
     expect(rendered).not.toHaveBeenCalled()
   })
 
-  it("étudiant actif : rend les enfants et ne lit que profiles, candidatures, missions et messages", async () => {
+  it("étudiant actif : rend les enfants et ne lit que profiles, candidatures, missions, messages et notifications", async () => {
     const r = await run()
     expect(r.html).toContain("contenu-secret")
-    expect(new Set(reads)).toEqual(new Set(["profiles", "applications", "missions", "messages"]))
+    expect(new Set(reads)).toEqual(new Set(["profiles", "applications", "missions", "messages", "notifications"]))
   })
 
   it("compteur de messages en erreur : la coquille s'affiche quand même, pastille à 0", async () => {
@@ -137,7 +137,7 @@ describe("un seul abonnement, une seule navigation", () => {
 
   it("seul le prénom/nom d'affichage sort de l'action", async () => {
     const res = await getStudentShellData()
-    expect(Object.keys(res.shell).sort()).toEqual(["fullName", "unreadCount", "userId"])
+    expect(Object.keys(res.shell).sort()).toEqual(["fullName", "notificationCount", "unreadCount", "userId"])
   })
 
   it("full_name non texte : chaîne vide, pas d'exception", async () => {

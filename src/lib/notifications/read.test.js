@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-vi.mock("server-only", () => ({}))
-
 import {
   listNotifications,
   countUnread,
@@ -173,5 +171,32 @@ describe("markAllRead", () => {
     expect(await markAllRead(client(), "u1")).toEqual({ unavailable: true })
     result = { error: { code: "XX000" } }
     expect(await markAllRead(client(), "u1")).toEqual({ error: true })
+  })
+})
+
+describe("garde SQL de read_at (première lecture fait foi)", () => {
+  it("l'UPDATE est conditionnel (read_at is null) et n'écrit que read_at, jamais actor_id", async () => {
+    await markRead(client(), "u1", ID)
+    expect(op("update")).toHaveLength(1)
+    expect(Object.keys(op("update")[0][1])).toEqual(["read_at"])
+    expect(op("is")).toContainEqual(["is", "read_at", null])
+    await markAllRead(client(), "u1")
+    expect(Object.keys(op("update")[0][1])).toEqual(["read_at"])
+    expect(op("is")).toContainEqual(["is", "read_at", null])
+  })
+
+  it("idempotent : marquer deux fois la même notification réussit deux fois, sans réécrire une ligne lue", async () => {
+    result = { data: [], error: null }
+    expect(await markRead(client(), "u1", ID)).toEqual({ ok: true })
+    expect(await markRead(client(), "u1", ID)).toEqual({ ok: true })
+    expect(op("is")).toContainEqual(["is", "read_at", null])
+    expect(await markAllRead(client(), "u1")).toEqual({ ok: true })
+    expect(await markAllRead(client(), "u1")).toEqual({ ok: true })
+  })
+
+  it("zéro ligne modifiée n'est jamais une erreur", async () => {
+    result = { data: [], error: null, count: 0 }
+    expect(await markRead(client(), "u1", OTHER)).toEqual({ ok: true })
+    expect(await markAllRead(client(), "u1")).toEqual({ ok: true })
   })
 })

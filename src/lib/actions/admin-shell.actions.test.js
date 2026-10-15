@@ -50,6 +50,16 @@ function makeService() {
   }
 }
 
+// Compteur de notifications : lecture mockée (le module de lecture a ses propres tests).
+let notificationsResult = { count: 0 }
+const countUnread = vi.fn(async () => notificationsResult)
+vi.mock("@/lib/notifications/read", () => ({
+  countUnread: (...a) => countUnread(...a),
+  listNotifications: vi.fn(),
+  markRead: vi.fn(),
+  markAllRead: vi.fn(),
+}))
+
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => makeSupabase()) }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: (...a) => createServiceClient(...a) }))
 
@@ -58,6 +68,8 @@ const { getAdminShellData } = await import("./admin-shell.actions")
 const ADMIN = { role: "admin", full_name: "Awa Admin", city: "Cotonou", is_suspended: false }
 
 beforeEach(() => {
+  notificationsResult = { count: 0 }
+  countUnread.mockClear()
   createServiceClient.mockClear()
   state.user = { id: "admin-1", user_metadata: { role: "admin" } }
   state.profile = { ...ADMIN }
@@ -71,13 +83,13 @@ beforeEach(() => {
 describe("getAdminShellData", () => {
   it("renvoie l'identité d'affichage et le nombre de dossiers à examiner", async () => {
     state.pending = 4
-    expect(await getAdminShellData()).toEqual({ shell: { userId: "admin-1", fullName: "Awa Admin", pendingCount: 4 } })
+    expect(await getAdminShellData()).toEqual({ shell: { userId: "admin-1", fullName: "Awa Admin", pendingCount: 4, notificationCount: 0 } })
   })
 
   it("ne renvoie que des champs publics", async () => {
     state.profile = { ...ADMIN, phone: "+22997000000", card_url: "secret" }
     const { shell } = await getAdminShellData()
-    expect(Object.keys(shell).sort()).toEqual(["fullName", "pendingCount", "userId"])
+    expect(Object.keys(shell).sort()).toEqual(["fullName", "notificationCount", "pendingCount", "userId"])
   })
 
   it("refuse un étudiant, même si user_metadata prétend admin, et l'envoie vers son tableau de bord", async () => {
@@ -132,5 +144,23 @@ describe("getAdminShellData", () => {
     expect(res.error).toMatch(/Réessayez/)
     expect(res.error).not.toMatch(/SERVICE_ROLE/)
     expect(res).not.toHaveProperty("shell")
+  })
+
+  it("renvoie le nombre de notifications non lues de l'appelant (lecture filtrée sur son identifiant)", async () => {
+    notificationsResult = { count: 5 }
+    const { shell } = await getAdminShellData()
+    expect(shell.notificationCount).toBe(5)
+    expect(countUnread).toHaveBeenCalledWith(expect.anything(), "admin-1")
+  })
+
+  it("compteur de notifications à 0 quand la table est absente, en erreur ou en exception (coquille jamais bloquée)", async () => {
+    for (const result of [{ unavailable: true }, { error: true }]) {
+      notificationsResult = result
+      expect((await getAdminShellData()).shell.notificationCount).toBe(0)
+    }
+    countUnread.mockRejectedValueOnce(new Error("boom"))
+    const res = await getAdminShellData()
+    expect(res.shell.notificationCount).toBe(0)
+    expect(res).not.toHaveProperty("error")
   })
 })

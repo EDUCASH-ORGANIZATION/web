@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getServerRole } from "@/lib/auth/server-role"
 import { dashboardFor } from "@/lib/auth/destinations"
 import { todayInBenin } from "@/lib/vitrine/dates"
+import { shellNotificationCount } from "@/lib/notifications/actions-core"
 import { countPendingVerifications, requireAdminService } from "./admin-context"
 
 /**
@@ -37,7 +38,7 @@ async function refusalDestination() {
  * donne 0 : la coquille n'est jamais bloquée par lui.
  *
  * @returns {Promise<
- *   { shell: { userId: string, fullName: string, pendingCount: number } } |
+ *   { shell: { userId: string, fullName: string, pendingCount: number, notificationCount: number } } |
  *   { error: string, redirectTo: string }
  * >}
  */
@@ -47,14 +48,24 @@ export async function getAdminShellData() {
     if (ctx.error) return { error: ctx.error, redirectTo: await refusalDestination() }
 
     let pendingCount = 0
-    try {
-      pendingCount = await countPendingVerifications(ctx.service, todayInBenin())
-    } catch (err) {
-      unstable_rethrow(err)
-      console.error("[getAdminShellData] compteur", err)
+    const [pending, notificationCount] = await Promise.allSettled([
+      countPendingVerifications(ctx.service, todayInBenin()),
+      (async () => shellNotificationCount(await createClient(), ctx.admin.userId))(),
+    ])
+    if (pending.status === "fulfilled") pendingCount = pending.value
+    else {
+      unstable_rethrow(pending.reason)
+      console.error("[getAdminShellData] compteur", pending.reason)
     }
 
-    return { shell: { userId: ctx.admin.userId, fullName: ctx.admin.fullName, pendingCount } }
+    return {
+      shell: {
+        userId: ctx.admin.userId,
+        fullName: ctx.admin.fullName,
+        pendingCount,
+        notificationCount: notificationCount.status === "fulfilled" ? notificationCount.value : 0,
+      },
+    }
   } catch (err) {
     unstable_rethrow(err)
     console.error("[getAdminShellData]", err)

@@ -37,6 +37,16 @@ const supabase = {
   from: (name) => table(name),
 }
 
+// Compteur de notifications : lecture mockée (le module de lecture a ses propres tests).
+let notificationsResult = { count: 0 }
+const countUnread = vi.fn(async () => notificationsResult)
+vi.mock("@/lib/notifications/read", () => ({
+  countUnread: (...a) => countUnread(...a),
+  listNotifications: vi.fn(),
+  markRead: vi.fn(),
+  markAllRead: vi.fn(),
+}))
+
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => supabase) }))
 
 const { getStudentShellData } = await import("./student-shell.actions")
@@ -46,6 +56,8 @@ const STUDENT_PROFILE = { role: "student", full_name: "Awa Dossou", city: "Coton
 const defaultGetUser = supabase.auth.getUser
 
 beforeEach(() => {
+  notificationsResult = { count: 0 }
+  countUnread.mockClear()
   supabase.auth.getUser = defaultGetUser
   user = { id: "student-1", user_metadata: { role: "student" } }
   profileResult = { data: { ...STUDENT_PROFILE }, error: null }
@@ -60,13 +72,13 @@ describe("getStudentShellData", () => {
     tables.missions = { data: [{ id: "m1", client_id: "client-1" }], error: null }
     tables.messages = { data: [{ sender_id: "client-1", mission_id: "m1" }, { sender_id: "client-1", mission_id: "m1" }], error: null }
     const res = await getStudentShellData()
-    expect(res).toEqual({ shell: { userId: "student-1", fullName: "Awa Dossou", unreadCount: 2 } })
+    expect(res).toEqual({ shell: { userId: "student-1", fullName: "Awa Dossou", unreadCount: 2, notificationCount: 0 } })
   })
 
   it("ne renvoie que des champs publics", async () => {
     profileResult = { data: { ...STUDENT_PROFILE, phone: "+22997000000", card_url: "secret" }, error: null }
     const { shell } = await getStudentShellData()
-    expect(Object.keys(shell).sort()).toEqual(["fullName", "unreadCount", "userId"])
+    expect(Object.keys(shell).sort()).toEqual(["fullName", "notificationCount", "unreadCount", "userId"])
   })
 
   it("refuse un client, même si user_metadata prétend étudiant, et l'envoie vers son tableau de bord", async () => {
@@ -225,5 +237,23 @@ describe("getStudentShellData : le compteur ne compte que les clients liés", ()
     tables.messages = { data: [{ sender_id: CLIENT_B, mission_id: MISSION_B }], error: null }
     expect((await getStudentShellData()).shell.unreadCount).toBe(1)
     expect(log.filter((q) => q.table === "missions")).toHaveLength(1)
+  })
+
+  it("renvoie le nombre de notifications non lues de l'appelant (lecture filtrée sur son identifiant)", async () => {
+    notificationsResult = { count: 5 }
+    const { shell } = await getStudentShellData()
+    expect(shell.notificationCount).toBe(5)
+    expect(countUnread).toHaveBeenCalledWith(expect.anything(), "student-1")
+  })
+
+  it("compteur de notifications à 0 quand la table est absente, en erreur ou en exception (coquille jamais bloquée)", async () => {
+    for (const result of [{ unavailable: true }, { error: true }]) {
+      notificationsResult = result
+      expect((await getStudentShellData()).shell.notificationCount).toBe(0)
+    }
+    countUnread.mockRejectedValueOnce(new Error("boom"))
+    const res = await getStudentShellData()
+    expect(res.shell.notificationCount).toBe(0)
+    expect(res).not.toHaveProperty("error")
   })
 })
