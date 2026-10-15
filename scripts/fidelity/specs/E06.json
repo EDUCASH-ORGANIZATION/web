@@ -1,0 +1,277 @@
+{
+  "id": "E06",
+  "title": "Messages étudiant (liste des conversations)",
+  "planche": "etudiant/E06-messages.v2.html",
+  "screen": "e06",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1",
+    "lineHeight": "A2:2"
+  },
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        880
+      ],
+      "frame": "desk",
+      "frameIndex": 0,
+      "assume": {
+        "y": "A3:4"
+      },
+      "selectors": [
+        {
+          "id": "ME-01",
+          "label": "grille liste + volet",
+          "board": ".e2-06-inbox",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "cols",
+            "gap"
+          ],
+          "lot": ""
+        },
+        {
+          "id": "ME-02",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "fontSize",
+            "fontWeight"
+          ]
+        },
+        {
+          "id": "ME-02",
+          "label": "titre de page",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "h",
+            "fontSize"
+          ],
+          "assume": {
+            "h": "A3:4"
+          }
+        },
+        {
+          "id": "ME-04",
+          "label": "pastilles de filtre",
+          "board": ".e2-pills",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "gap"
+          ]
+        },
+        {
+          "id": "ME-04",
+          "label": "pastille active",
+          "board": ".e2-pill.is-active",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ]
+        },
+        {
+          "id": "ME-04",
+          "label": "pastille « En cours »",
+          "board": ".e2-pills > :nth-child(3)",
+          "props": [
+            "x",
+            "w",
+            "h"
+          ],
+          "lot": "ST-04"
+        },
+        {
+          "id": "ME-06",
+          "label": "liste",
+          "board": ".e2-06-list",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "h": "A3:4"
+          }
+        },
+        {
+          "id": "ME-06",
+          "label": "recherche",
+          "board": ".e2-06-list .search2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ]
+        },
+        {
+          "id": "ME-06",
+          "label": "ligne",
+          "board": ".e2-06-convo",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad",
+            "gap"
+          ],
+          "assume": {
+            "h": "A2:4"
+          }
+        },
+        {
+          "id": "ME-06",
+          "label": "avatar",
+          "board": ".e2-06-convo .av2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "assume": {
+            "y": "A3:6"
+          }
+        },
+        {
+          "id": "ME-06",
+          "label": "nom",
+          "board": ".e2-06-convo__name",
+          "props": [
+            "x",
+            "w",
+            "fontSize",
+            "fontWeight"
+          ],
+          "assume": {
+            "w": "A2:4"
+          }
+        },
+        {
+          "id": "ME-06",
+          "label": "aperçu",
+          "board": ".e2-06-convo__preview",
+          "props": [
+            "x",
+            "fontSize",
+            "fontWeight"
+          ]
+        },
+        {
+          "id": "ME-06",
+          "label": "pastille non lue",
+          "board": ".e2-06-count",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ]
+        },
+        {
+          "id": "ME-07",
+          "label": "volet vide",
+          "board": ".e2-06-pane",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "bg"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        844
+      ],
+      "frame": "phone",
+      "frameIndex": 0,
+      "assume": {
+        "y": "A3:4"
+      },
+      "selectors": [
+        {
+          "id": "ME-19",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "fontSize"
+          ],
+          "assume": {}
+        },
+        {
+          "id": "ME-19",
+          "label": "pastilles",
+          "board": ".e2-pills",
+          "props": [
+            "x",
+            "w",
+            "gap",
+            "h"
+          ],
+          "assume": {
+            "h": "A5:8"
+          }
+        },
+        {
+          "id": "ME-19",
+          "label": "pastille active",
+          "board": ".e2-pill.is-active",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "h"
+          ],
+          "assume": {
+            "h": "A5:8"
+          }
+        },
+        {
+          "id": "ME-19",
+          "label": "ligne",
+          "board": ".e2-06-convo",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "pad",
+            "gap"
+          ],
+          "assume": {}
+        }
+      ]
+    }
+  ]
+}
