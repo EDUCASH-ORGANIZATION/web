@@ -14,13 +14,18 @@ const NOT_FILLED = "Non renseigné"
 const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/
 const DAY_MS = 24 * 60 * 60 * 1000
 
+/** Instant UTC d'un jour "AAAA-MM-JJ" réel, ou NaN : l'aller-retour écarte les jours inexistants (« 2026-02-30 »). */
+function dayTime(value) {
+  const day = typeof value === "string" ? value.trim().slice(0, 10) : ""
+  if (!DAY_ONLY.test(day)) return Number.NaN
+  const time = Date.parse(`${day}T00:00:00Z`)
+  return !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === day ? time : Number.NaN
+}
+
 /** Jours écoulés depuis l'échéance du badge (jour "AAAA-MM-JJ" contre aujourd'hui), jamais négatif ; null si illisible. */
 export function daysSinceExpiry(verifiedUntil, today) {
-  const until = typeof verifiedUntil === "string" ? verifiedUntil.trim().slice(0, 10) : ""
-  const day = typeof today === "string" ? today.trim().slice(0, 10) : ""
-  if (!DAY_ONLY.test(until) || !DAY_ONLY.test(day)) return null
-  const a = Date.parse(`${until}T00:00:00Z`)
-  const b = Date.parse(`${day}T00:00:00Z`)
+  const a = dayTime(verifiedUntil)
+  const b = dayTime(today)
   if (Number.isNaN(a) || Number.isNaN(b)) return null
   return Math.max(0, Math.round((b - a) / DAY_MS))
 }

@@ -123,6 +123,12 @@ describe("DossierReview", () => {
     expect(daysSinceExpiry("2026-10-20", "2026-10-15")).toBe(0)
     expect(daysSinceExpiry("n'importe quoi", "2026-10-15")).toBeNull()
     expect(daysSinceExpiry(null, "2026-10-15")).toBeNull()
+    // Jours inexistants : Date.parse les accepterait (report au mois suivant), l'aller-retour les refuse.
+    expect(daysSinceExpiry("2026-02-30", "2026-10-15")).toBeNull()
+    expect(daysSinceExpiry("2026-02-29", "2026-10-15")).toBeNull()
+    expect(daysSinceExpiry("2026-09-15", "2026-09-31")).toBeNull()
+    expect(daysSinceExpiry("2028-02-29", "2028-03-01")).toBe(1)
+    expect(daysSinceExpiry("2026-09-15T23:00:00Z", "2026-10-15")).toBe(30)
     expect(expiredTitle(0)).toBe("Badge expiré aujourd'hui")
     expect(expiredTitle(1)).toBe("Badge expiré depuis 1 jour")
     expect(expiredTitle(30)).toBe("Badge expiré depuis 30 jours")

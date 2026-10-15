@@ -140,6 +140,32 @@ describe("décisions : mêmes arguments qu'avant, onglet par onglet", () => {
     expect(approve(base())).toBe("")
   })
 
+  it("redirection : Valider et Refuser suivent la bascule, Réinitialiser et Révoquer restent sur le dossier", async () => {
+    await decide(base(), "Valider", 0)
+    await decide(base(), "Refuser", 0, { reason: "Photo floue ou illisible", message: "" })
+    expect(replace.mock.calls.map((c) => c[0])).toEqual([hrefs.afterDecision, hrefs.afterDecision])
+    replace.mockClear()
+    for (const [d, label, which] of [
+      [base({ tab: "refuses", actions: ["reset"], rejectionReason: "Photo floue" }), "Réinitialiser", 0],
+      [base({ tab: "refuses", actions: ["reset"], rejectionReason: "Photo floue" }), "Réinitialiser", 1],
+      [base({ tab: "verifies", actions: ["revoke"], verifiedUntil: "2027-09-01" }), "Révoquer", 0],
+      [base({ tab: "expires", actions: ["revoke"], verifiedUntil: "2026-09-01" }), "Révoquer", 1],
+    ]) {
+      panel = newSlots()
+      await decide(d, label, which, { reason: "Erreur de saisie" })
+    }
+    // La bascule vaut « oui » par défaut mais n'est pas affichée sur ces onglets : elle ne doit rien décider.
+    expect(replace.mock.calls.map((c) => c[0])).toEqual([hrefs.self, hrefs.self, hrefs.self, hrefs.self])
+  })
+
+  it("redirection : bascule désactivée, Valider reste sur le dossier", async () => {
+    const d = base()
+    const toggle = find(render(d), (n) => n.type === "input" && n.props.type === "checkbox")[0]
+    toggle.props.onChange({ target: { checked: false } })
+    await decide(d, "Valider", 0)
+    expect(replace).toHaveBeenCalledWith(hrefs.self)
+  })
+
   it("Incomplets : aucun bouton de décision ni barre mobile", () => {
     const tree = render(base({ tab: "incomplets", actions: [], hasCard: false, cardPath: null, submittedAt: null }))
     expect(decisionButtons(tree)).toHaveLength(0)

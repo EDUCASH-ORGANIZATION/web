@@ -137,8 +137,11 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
     onReject: () => openDialog("reject"),
   })
 
-  const decide = async (run, title, text) => {
-    const outcome = await runDecision({ run, title, text, router, notify: success, afterHref: advance ? hrefs.afterDecision : hrefs.self })
+  // Valider et Refuser suivent la bascule (visible seulement sur À examiner) ; Réinitialiser et Révoquer restent sur le
+  // dossier (`self`) quel que soit l'état mémorisé de la bascule, qu'ils n'affichent pas.
+  const decide = async (run, title, text, { followAdvance = true } = {}) => {
+    const afterHref = followAdvance && advance ? hrefs.afterDecision : hrefs.self
+    const outcome = await runDecision({ run, title, text, router, notify: success, afterHref })
     if (outcome.done) refocus.current = true
     return outcome.error ? { error: outcome.error } : undefined
   }
@@ -232,14 +235,16 @@ export function DossierPanel({ dossier, hrefs, badgeUntil }) {
         onClose={() => setDialog(null)}
         name={name}
         onConfirm={({ reason }) =>
-          decide(() => resetStudentRejection(dossier.userId, { reason }), `Dossier de ${name} réinitialisé`)
+          decide(() => resetStudentRejection(dossier.userId, { reason }), `Dossier de ${name} réinitialisé`, undefined, { followAdvance: false })
         }
       />
       <RevokeDialog
         open={dialog === "revoke"}
         onClose={() => setDialog(null)}
         name={name}
-        onConfirm={({ reason }) => decide(() => revokeStudentBadge(dossier.userId, { reason }), `Badge de ${name} révoqué`)}
+        onConfirm={({ reason }) =>
+          decide(() => revokeStudentBadge(dossier.userId, { reason }), `Badge de ${name} révoqué`, undefined, { followAdvance: false })
+        }
       />
     </div>
   )
