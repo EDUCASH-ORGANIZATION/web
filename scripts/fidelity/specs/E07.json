@@ -1,0 +1,342 @@
+{
+  "id": "E07",
+  "title": "Conversation étudiante (état avec achats)",
+  "planche": "etudiant/E07-conversation.v2.html",
+  "screen": "e07",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        880
+      ],
+      "frame": "desk",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "ME-01",
+          "label": "grille liste + volet",
+          "board": ".e2-06-inbox",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "cols",
+            "gap"
+          ],
+          "lot": "ST-04"
+        },
+        {
+          "id": "ME-01",
+          "label": "liste des discussions",
+          "board": ".e2-06-list",
+          "props": [
+            "x",
+            "y",
+            "w"
+          ],
+          "lot": "ST-04"
+        },
+        {
+          "id": "ME-01",
+          "label": "volet de conversation",
+          "board": ".e2-07-pane",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius"
+          ],
+          "lot": "ST-04"
+        },
+        {
+          "id": "ME-02",
+          "label": "titre de page",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y"
+          ],
+          "lot": "ST-04"
+        },
+        {
+          "id": "ME-03",
+          "label": "ligne active",
+          "board": ".e2-06-convo.is-active",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-04",
+          "assume": {
+            "h": "A2:3"
+          },
+          "note": "A2 : texte 13 -> 14 px, hauteur de ligne +3 (mesure de E06 ME-06, même composant ; la ligne n'est pas mesurable dans le code avant le lot ST-04)"
+        },
+        {
+          "id": "ME-08",
+          "label": "en-tête",
+          "board": ".e2-07-head",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-05"
+        },
+        {
+          "id": "ME-08",
+          "label": "nom",
+          "board": ".e2-who__name",
+          "code": ".e2-who__name, .e2-07-name",
+          "props": [
+            "fontSize",
+            "fontWeight",
+            "tw"
+          ],
+          "lot": "ST-05",
+          "assume": {
+            "tw": "A7:38"
+          },
+          "note": "A7 : « Prénom N. » (écart de contenu de la planche, -37)"
+        },
+        {
+          "id": "ME-08",
+          "label": "bouton Voir la mission",
+          "board": ".e2-07-head .btn",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-05"
+        },
+        {
+          "id": "ME-09",
+          "label": "bandeau mission",
+          "board": ".e2-07-status",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "pad",
+            "gap",
+            "bg"
+          ],
+          "lot": "ST-05"
+        },
+        {
+          "id": "ME-09",
+          "label": "badge d'état",
+          "board": ".e2-07-status .badge",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-05",
+          "assume": {
+            "w": "A2:10"
+          },
+          "note": "A2 : texte 13 px minimal (-9 mesuré)"
+        },
+        {
+          "id": "ME-09",
+          "label": "badge Avec achats",
+          "board": ".e2-07-status .badge + .badge",
+          "props": [
+            "w",
+            "h"
+          ],
+          "lot": "ST-05"
+        },
+        {
+          "id": "ME-09",
+          "label": "bouton d'action",
+          "board": ".e2-07-status .btn--dark",
+          "props": [
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-05"
+        },
+        {
+          "id": "ME-12",
+          "label": "saisie",
+          "board": ".composer",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-05"
+        },
+        {
+          "id": "ME-12",
+          "label": "champ de saisie",
+          "board": ".composer__field",
+          "props": [
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-05"
+        },
+        {
+          "id": "ME-14",
+          "label": "bulle envoyée",
+          "board": ".bubble--me",
+          "props": [
+            "radius",
+            "pad",
+            "fontSize",
+            "lineHeight",
+            "bg"
+          ],
+          "lot": ""
+        },
+        {
+          "id": "ME-14",
+          "label": "bulle reçue",
+          "board": ".bubble--them",
+          "props": [
+            "radius",
+            "pad",
+            "fontSize",
+            "lineHeight",
+            "bg",
+            "tw"
+          ],
+          "lot": ""
+        },
+        {
+          "id": "ME-15",
+          "label": "séparateur de jour",
+          "board": ".chat__day",
+          "props": [
+            "radius",
+            "pad",
+            "fontSize",
+            "fontWeight",
+            "tw"
+          ],
+          "lot": "",
+          "assume": {
+            "tw": "A2:7"
+          },
+          "note": "A2 : taille minimale 13 px (+6 de texte)"
+        },
+        {
+          "id": "ME-16",
+          "label": "fond du fil",
+          "board": ".chat",
+          "props": [
+            "pad",
+            "gap",
+            "bg"
+          ],
+          "lot": ""
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        844
+      ],
+      "frame": "phone",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "ME-11",
+          "label": "en-tête pleine largeur",
+          "board": ".e2-07-mhead",
+          "code": ".e2-07-head",
+          "props": [
+            "x",
+            "y",
+            "w"
+          ],
+          "lot": "ST-05"
+        },
+        {
+          "id": "ME-10",
+          "label": "bandeau mission",
+          "board": ".e2-07-status",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad"
+          ],
+          "lot": "ST-05"
+        },
+        {
+          "id": "ME-10",
+          "label": "bouton d'action",
+          "board": ".e2-07-status .btn--dark",
+          "props": [
+            "y",
+            "h"
+          ],
+          "lot": "ST-05",
+          "assume": {
+            "h": "A5:8"
+          },
+          "note": "A5 : cible tactile (+8 de hauteur toléré) ; le bouton est absent du code (lot ST-05), aucune mesure possible"
+        },
+        {
+          "id": "ME-13",
+          "label": "saisie sur une ligne",
+          "board": ".composer",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-05",
+          "assume": {
+            "h": "A5:8"
+          },
+          "note": "A5 : cible tactile 44 px (+8 de hauteur toléré) ; mesuré h+24 (planche 89 px, code 113 px) : hors limite, reste en ÉCHEC"
+        },
+        {
+          "id": "ME-13",
+          "label": "champ de saisie",
+          "board": ".composer__field",
+          "props": [
+            "y",
+            "h"
+          ],
+          "lot": "ST-05",
+          "assume": {
+            "h": "A5:5"
+          },
+          "note": "A5 : cible tactile 44 -> 48 px (+4 mesuré)"
+        }
+      ]
+    }
+  ],
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)"
+}
