@@ -22,10 +22,9 @@ import {
   sortQueue,
 } from "@/lib/admin-space/verification-queue"
 import {
-  MAX_CARD_ROWS,
-  READ_PAGE_SIZE,
   inChunks,
   logAdminAction,
+  readAllRows,
   requireAdminService,
   signStudentCard,
 } from "./admin-context"
@@ -43,18 +42,6 @@ const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "https://educash.bj"
 function revalidateQueue() {
   revalidatePath("/admin/verifications")
   revalidatePath("/admin/dashboard")
-}
-
-/** Lit toutes les lignes d'une requête par pages de 1000, jusqu'à la borne de sécurité. */
-async function readAll(buildQuery) {
-  const rows = []
-  for (let from = 0; from < MAX_CARD_ROWS; from += READ_PAGE_SIZE) {
-    const { data, error } = await buildQuery().range(from, from + READ_PAGE_SIZE - 1)
-    if (error) throw new Error("Lecture impossible.")
-    rows.push(...(data ?? []))
-    if ((data ?? []).length < READ_PAGE_SIZE) break
-  }
-  return rows
 }
 
 function firstName(fullName) {
@@ -341,7 +328,10 @@ export async function revokeStudentBadge(userId, { reason } = {}) {
 
 /** Identifiants des étudiants dont la valeur de `column` satisfait `apply` (recherche par nom ou établissement). */
 async function matchingIds(service, table, apply) {
-  const rows = await readAll(() => apply(service.from(table).select("user_id")).order("user_id", { ascending: true }))
+  const rows = await readAllRows(
+    () => apply(service.from(table).select("user_id")).order("user_id", { ascending: true }),
+    "recherche",
+  )
   return new Set(rows.map((row) => row.user_id))
 }
 
@@ -362,9 +352,13 @@ export async function getVerificationQueue(searchParams) {
     const today = todayInBenin(now)
 
     const [students, cardRows] = await Promise.all([
-      readAll(() => service.from("profiles").select(PROFILE_COLUMNS).eq("role", "student").order("user_id", { ascending: true })),
-      readAll(() =>
-        service.from("student_profiles").select("user_id").not("card_url", "is", null).order("user_id", { ascending: true }),
+      readAllRows(
+        () => service.from("profiles").select(PROFILE_COLUMNS).eq("role", "student").order("user_id", { ascending: true }),
+        "file des étudiants",
+      ),
+      readAllRows(
+        () => service.from("student_profiles").select("user_id").not("card_url", "is", null).order("user_id", { ascending: true }),
+        "file des cartes",
       ),
     ])
     const withCard = new Set(cardRows.map((row) => row.user_id))

@@ -4,9 +4,8 @@ import { todayInBenin } from "@/lib/vitrine/dates"
 import { classifyDossier, sortQueue } from "@/lib/admin-space/verification-queue"
 import { WITHDRAWAL_STUCK_HOURS, moneyAlertsFromWallets } from "@/lib/admin-space/dashboard-queue"
 import {
-  MAX_CARD_ROWS,
-  READ_PAGE_SIZE,
   inChunks,
+  readAllRows,
   requireAdminService,
   sumColumnPaged,
 } from "./admin-context"
@@ -17,18 +16,6 @@ const WITHDRAWAL_LIMIT = 50
 const RECENT_LIMIT = 5
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 const HOUR_MS = 60 * 60 * 1000
-
-/** Lit toutes les lignes d'une requête par pages de 1000, jusqu'à la borne de sécurité. */
-async function readAll(buildQuery) {
-  const rows = []
-  for (let from = 0; from < MAX_CARD_ROWS; from += READ_PAGE_SIZE) {
-    const { data, error } = await buildQuery().range(from, from + READ_PAGE_SIZE - 1)
-    if (error) throw new Error("Lecture impossible.")
-    rows.push(...(data ?? []))
-    if ((data ?? []).length < READ_PAGE_SIZE) break
-  }
-  return rows
-}
 
 /** Noms publics (`profiles.full_name` seulement) d'une liste d'identifiants. */
 async function readNames(service, ids) {
@@ -53,8 +40,9 @@ async function block(tag, run) {
 
 // Alertes d'argent : solde négatif ou argent réservé supérieur au solde, sur tous les portefeuilles (pagination).
 async function walletAlerts(service) {
-  const wallets = await readAll(() =>
-    service.from("wallets").select("user_id, balance, reserved").order("user_id", { ascending: true }),
+  const wallets = await readAllRows(
+    () => service.from("wallets").select("user_id, balance, reserved").order("user_id", { ascending: true }),
+    "portefeuilles",
   )
   const all = moneyAlertsFromWallets(wallets.map((w) => ({ userId: w.user_id, balance: w.balance, reserved: w.reserved })))
   const shown = all.slice(0, ALERT_LIMIT)
@@ -95,8 +83,9 @@ async function stuckWithdrawals(service, now) {
 // DOSSIER_LIMIT plus anciens renvoyés (nom et dates seulement : ni e-mail, ni téléphone, ni carte).
 async function pendingDossiers(service, now) {
   const today = todayInBenin(now)
-  const cards = await readAll(() =>
-    service.from("student_profiles").select("user_id").not("card_url", "is", null).order("user_id", { ascending: true }),
+  const cards = await readAllRows(
+    () => service.from("student_profiles").select("user_id").not("card_url", "is", null).order("user_id", { ascending: true }),
+    "cartes de l'accueil",
   )
   const pending = []
   for (const chunk of inChunks(cards.map((c) => c.user_id))) {

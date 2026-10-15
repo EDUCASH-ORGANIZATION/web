@@ -18,7 +18,9 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: (...a) => createServiceClient(...a) }))
 
 import {
+  MAX_CARD_ROWS,
   countPendingVerifications,
+  readAllRows,
   inChunks,
   logAdminAction,
   requireAdminService,
@@ -306,6 +308,46 @@ describe("countPendingVerifications", () => {
   it("renvoie 0 sans aucune carte", async () => {
     const { service } = makeRows({ student_profiles: () => ({ data: [] }) })
     expect(await countPendingVerifications(service, TODAY)).toBe(0)
+  })
+})
+
+describe("readAllRows et borne de lecture", () => {
+  const ids = (n) => Array.from({ length: n }, (_, i) => ({ user_id: `s${i}` }))
+
+  afterEach(() => vi.restoreAllMocks())
+
+  it("lit toutes les pages sans alerte sous la borne", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const { service } = makeRows({ student_profiles: () => ({ data: ids(2300) }) })
+    const rows = await readAllRows(() => service.from("student_profiles").select("user_id").order("user_id"), "test")
+    expect(rows).toHaveLength(2300)
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it("borne atteinte : lignes lues renvoyées et alerte sans donnée personnelle", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const { service } = makeRows({ student_profiles: () => ({ data: ids(MAX_CARD_ROWS + 500) }) })
+    const rows = await readAllRows(() => service.from("student_profiles").select("user_id").order("user_id"), "file des cartes")
+    expect(rows).toHaveLength(MAX_CARD_ROWS)
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0].join(" ")).toMatch(/borne de lecture atteinte.*file des cartes/)
+    expect(warn.mock.calls[0].join(" ")).not.toMatch(/s\d+/)
+  })
+
+  it("lève une erreur neutre si une page échoue", async () => {
+    const { service } = makeRows({ student_profiles: () => ({ data: null, error: { message: "boom" } }) })
+    await expect(readAllRows(() => service.from("student_profiles").select("user_id"), "test")).rejects.toThrow("Lecture impossible.")
+  })
+
+  it("le comptage des dossiers journalise aussi l'atteinte de la borne", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const { service } = makeRows({
+      student_profiles: () => ({ data: ids(MAX_CARD_ROWS + 1000) }),
+      profiles: () => ({ data: [] }),
+    })
+    expect(await countPendingVerifications(service, "2026-10-15")).toBe(0)
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0].join(" ")).toMatch(/borne de lecture atteinte/)
   })
 })
 

@@ -76,6 +76,26 @@ export function logAdminAction({ adminId, action, targetId = null, before = null
 }
 
 /**
+ * Lit toutes les lignes d'une requête par pages de 1000, jusqu'à la borne de sécurité `MAX_CARD_ROWS`. Si la borne
+ * est atteinte alors qu'il reste des lignes, une alerte est journalisée (étiquette seule, aucune donnée personnelle)
+ * et les lignes lues sont renvoyées : les compteurs sont alors des minimums.
+ * @param {() => { range: Function }} buildQuery requête neuve à chaque page (ordre stable exigé)
+ * @param {string} tag étiquette de la lecture pour le journal
+ * @returns {Promise<any[]>}
+ */
+export async function readAllRows(buildQuery, tag) {
+  const rows = []
+  for (let from = 0; from < MAX_CARD_ROWS; from += READ_PAGE_SIZE) {
+    const { data, error } = await buildQuery().range(from, from + READ_PAGE_SIZE - 1)
+    if (error) throw new Error("Lecture impossible.")
+    rows.push(...(data ?? []))
+    if ((data ?? []).length < READ_PAGE_SIZE) return rows
+  }
+  console.warn(`[admin-context] borne de lecture atteinte (${MAX_CARD_ROWS} lignes) : ${tag}`)
+  return rows
+}
+
+/**
  * Découpe une liste en paquets (les filtres `.in()` d'une URL PostgREST ont une taille limitée).
  * @template T
  * @param {T[]} ids
@@ -163,8 +183,9 @@ export async function countPendingVerifications(service, today) {
         pending += (resent ?? []).length
       }
     }
-    if (ids.length < READ_PAGE_SIZE) break
+    if (ids.length < READ_PAGE_SIZE) return pending
   }
+  console.warn(`[admin-context] borne de lecture atteinte (${MAX_CARD_ROWS} lignes) : comptage des dossiers`)
   return pending
 }
 
