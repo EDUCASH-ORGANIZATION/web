@@ -262,6 +262,10 @@
 .shell--v2 .shell__frame { overflow: clip; }
 .shell--v2 .sidebar { position: sticky; top: calc(var(--s-4) + 2px + var(--s-3)); align-self: start; height: calc(100vh - 2 * (var(--s-4) + 2px + var(--s-3))); height: calc(100dvh - 2 * (var(--s-4) + 2px + var(--s-3))); overflow: hidden; overflow: clip; padding-top: var(--s-6); padding-top: clamp(var(--s-3), calc((100dvh - 600px) / 4 + var(--s-3)), var(--s-6)); }
 .shell--v2 .sidebar__brand, .shell--v2 .sidebar__cta, .shell--v2 .sidebar__me { flex: none; }
+/* CTA client : .btn--block (width: 100%) plus les marges de .sidebar__cta (0 4px) debordaient de 8 px a droite
+   (barre de defilement horizontale sur la sidebar client, bouton decentre). Largeur auto : l'etirement flex
+   de la colonne retire les marges et le bouton reste centre. */
+.shell--v2 .sidebar__cta { width: auto; }
 .shell--v2 .sidebar__nav { flex: 1 1 auto; min-height: 0; overflow: hidden; overflow: clip; margin: -6px; padding: 6px; }
 .shell--v2 .nav-item { flex: none; height: 42px; height: clamp(32px, calc((100dvh - 600px) / 8 + 34px), 42px); }
 .shell--v2 .top2 { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--c-blanc); box-shadow: 0 1px 0 var(--c-ligne); }
