@@ -136,6 +136,19 @@ describe("filterConversations et unreadTotal", () => {
     expect(filterConversations(list, { q: "introuvable" })).toEqual([])
   })
 
+  it("filtre les conversations en cours, et combine avec la recherche", () => {
+    const withState = [
+      { name: "Awa K.", missionTitle: "Traduire un flyer", preview: "Bonjour", unreadCount: 2, state: "candidate" },
+      { name: "Sèna A.", missionTitle: "Cours de maths", preview: "À ce soir", unreadCount: 0, state: "in_progress" },
+      { name: "Koffi B.", missionTitle: "Cours de maths", preview: "Merci", unreadCount: 1, state: "in_progress" },
+      { name: "Yao D.", missionTitle: "Saisie", preview: "Fini", unreadCount: 0, state: "done" },
+    ]
+    expect(filterConversations(withState, { inProgressOnly: true }).map((c) => c.name)).toEqual(["Sèna A.", "Koffi B."])
+    expect(filterConversations(withState, { inProgressOnly: true, q: "koffi" }).map((c) => c.name)).toEqual(["Koffi B."])
+    expect(filterConversations(withState, { inProgressOnly: true, unreadOnly: true }).map((c) => c.name)).toEqual(["Koffi B."])
+    expect(filterConversations(withState, { q: "flyer", inProgressOnly: true })).toEqual([])
+  })
+
   it("combine recherche et filtre, et rend tout sans critère", () => {
     expect(filterConversations(list, { q: "sena", unreadOnly: true })).toEqual([])
     expect(filterConversations(list)).toHaveLength(2)

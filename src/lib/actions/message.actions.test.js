@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 
 import { requireRole } from "@/lib/auth/require-role"
+import { netAmount } from "@/lib/constants/missions"
 import {
   getClientConversations,
   getClientConversation,
@@ -1258,5 +1259,113 @@ describe("getStudentMessageMedia", () => {
     expect(await call({ messageIds: [] })).toEqual(invalidMedia)
     expect(await call({ messageIds: Array.from({ length: 51 }, () => MEDIA_ID_1) })).toEqual(invalidMedia)
     expect(signCalls).toEqual([])
+  })
+})
+
+// ─── Données de mission pour le volet de conversation (RD-FIDELITE-01 ST-02) ─────────────────────────────────
+
+describe("informations de mission : espace client", () => {
+  it("renvoie budget, estimation d'achats et type, et la relation candidat ou retenu", async () => {
+    db.missions[0] = { ...db.missions[0], type: "redaction", budget: "6000.00", purchases_estimate: 2500 }
+    db.missions[1] = { ...db.missions[1], type: "cours", budget: 15000, purchases_estimate: null }
+    const candidate = await getClientConversation({ missionId: M1, studentId: S1 })
+    expect(candidate.conversation.mission).toEqual({
+      title: "Traduire un flyer",
+      status: "open",
+      type: "redaction",
+      budget: 6000,
+      purchasesEstimate: 2500,
+    })
+    expect(candidate.conversation.relation).toBe("candidate")
+    const selected = await getClientConversation({ missionId: M2, studentId: S2 })
+    expect(selected.conversation.mission).toMatchObject({ type: "cours", budget: 15000, purchasesEstimate: null })
+    expect(selected.conversation.relation).toBe("selected")
+  })
+
+  it("lit les colonnes explicitement, sans colonne privée ni select global", async () => {
+    await getClientConversation({ missionId: M1, studentId: S1 })
+    const missionRead = reads("missions")[0]
+    expect(missionRead.columns).toBe("id, title, status, selected_student_id, type, budget, purchases_estimate")
+    expect(reads("profiles")[0].columns).toBe("user_id, full_name, avatar_url")
+    for (const q of log) expect(q.columns).not.toContain("*")
+  })
+
+  it("estimation null quand elle est absente, nulle, négative ou invalide", async () => {
+    for (const bad of [undefined, null, 0, -500, "abc", "", NaN, true]) {
+      db.missions[0] = { ...db.missions[0], purchases_estimate: bad }
+      const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+      expect(conversation.mission.purchasesEstimate).toBeNull()
+    }
+  })
+
+  it("budget absent ou invalide : null", async () => {
+    db.missions[0] = { ...db.missions[0], budget: "abc" }
+    const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+    expect(conversation.mission.budget).toBeNull()
+  })
+
+  it("renvoie notFound, sans donnée de mission, pour une paire interdite", async () => {
+    expect(await getClientConversation({ missionId: M_OTHER, studentId: S1 })).toEqual({ notFound: true })
+    expect(await getClientConversation({ missionId: M1, studentId: STRANGER })).toEqual({ notFound: true })
+  })
+
+  it("conserve le tri des conversations, la plus récente en premier", async () => {
+    const { conversations } = await getClientConversations()
+    const dates = conversations.map((c) => c.lastAt)
+    expect(dates.length).toBeGreaterThan(1)
+    expect([...dates].sort().reverse()).toEqual(dates)
+  })
+})
+
+describe("informations de mission : espace étudiant", () => {
+  beforeEach(() => {
+    seedStudent()
+    requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: STUDENT }, role: "student", profile: {} })
+  })
+
+  it("renvoie budget, estimation, type et net pour un étudiant retenu", async () => {
+    db.missions[1] = { ...db.missions[1], type: "cours", budget: 15000, purchases_estimate: "4000" }
+    const { conversation } = await getStudentConversation({ missionId: MB })
+    expect(conversation.mission).toEqual({
+      title: "Cours de maths",
+      status: "in_progress",
+      type: "cours",
+      budget: 15000,
+      purchasesEstimate: 4000,
+      net: netAmount(15000),
+    })
+  })
+
+  it("renvoie les mêmes informations pour un candidat, et null sans estimation", async () => {
+    db.missions[0] = { ...db.missions[0], type: "redaction", budget: 6000, purchases_estimate: 0 }
+    const { conversation } = await getStudentConversation({ missionId: MA })
+    expect(conversation.state).toBe("candidate")
+    expect(conversation.mission).toMatchObject({ budget: 6000, purchasesEstimate: null, net: netAmount(6000), type: "redaction" })
+  })
+
+  it("net null quand le budget est invalide", async () => {
+    db.missions[0] = { ...db.missions[0], budget: null }
+    const { conversation } = await getStudentConversation({ missionId: MA })
+    expect(conversation.mission).toMatchObject({ budget: null, net: null })
+  })
+
+  it("lit des colonnes explicites, sans select global", async () => {
+    await getStudentConversation({ missionId: MA })
+    expect(reads("missions")[0].columns).toBe(
+      "id, title, status, selected_student_id, client_id, type, budget, purchases_estimate",
+    )
+    for (const q of log) expect(q.columns).not.toContain("*")
+  })
+
+  it("renvoie notFound, sans donnée de mission, pour une paire interdite", async () => {
+    expect(await getStudentConversation({ missionId: MC })).toEqual({ notFound: true })
+    expect(await getStudentConversation({ missionId: MD })).toEqual({ notFound: true })
+  })
+
+  it("conserve le tri des conversations, la plus récente en premier", async () => {
+    const { conversations } = await getStudentConversations()
+    const dates = conversations.map((c) => c.lastAt)
+    expect(dates.length).toBeGreaterThan(1)
+    expect([...dates].sort().reverse()).toEqual(dates)
   })
 })
