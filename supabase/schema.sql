@@ -4,8 +4,7 @@
 -- script 70 de RD-MISSION-02 (colonne missions.purchases_estimate), puis script 80 de RD-NOTIF-01
 -- (table public.notifications).
 -- Script 70 appliqué en production le 2026-10-15.
--- Script 80 de RD-NOTIF-01 (table public.notifications) NON appliqué en production au 2026-10-15 :
--- à retirer après application.
+-- Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
