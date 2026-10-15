@@ -1,12 +1,14 @@
 /* @ds-screen RD-STUDENT-01 */
 /* E06 Messages : boîte de réception centrée sur la personne (aussi utilisée par E07 en bureau).
-   La hauteur suit la fenêtre (224 px = barre du haut, titre et marges) : la liste défile dans son cadre. */
+   La hauteur suit la fenêtre (224 px = barre du haut, titre et marges) : la liste et le volet défilent dans leur cadre.
+   Les deux volets restent affichés quand une conversation est ouverte (layout de messages/). */
 .e2-06-inbox { display: grid; grid-template-columns: clamp(280px, 26vw, 360px) minmax(0, 1fr); gap: var(--s-5); height: max(480px, calc(100dvh - 224px)); min-height: 0; }
+.e2-06-inbox > .e2-07-pane { height: 100%; }
 .e2-06-inbox--tall { height: max(560px, calc(100dvh - 224px)); }
 .e2-06-list { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .e2-06-list__head { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-5) var(--s-5) var(--s-4); border-bottom: 1px solid var(--c-ligne); }
 .e2-06-list__title { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); font-size: var(--t-h4); font-weight: var(--fw-xbold); }
-.e2-06-list__title span { font-size: var(--t-caption); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
+.e2-06-list__title span { font-size: var(--t-micro); font-weight: var(--fw-semibold); color: var(--c-ardoise); }
 .e2-06-list .search2 { width: auto; }
 .e2-06-list__items { display: flex; flex-direction: column; gap: 2px; padding: var(--s-2); overflow-y: auto; min-height: 0; }
 .e2-06-convo { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; cursor: pointer; }
@@ -26,9 +28,15 @@
 .e2-06-skel { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px; }
 
 @media (max-width: 1023.98px) {
-  /* Une seule colonne : la liste prend toute la largeur, le volet vide « choisis une conversation » disparaît */
+  /* Une seule colonne : la liste seule sur /messages, la conversation seule sur /messages/<mission> (son en-tête
+     remplace alors le titre de page) */
   .e2-06-inbox, .e2-06-inbox--tall { grid-template-columns: minmax(0, 1fr); height: auto; }
-  .e2-06-pane { display: none; }
+  .e2-06-inbox > .e2-07-pane { height: calc(100dvh - var(--s-2) - env(safe-area-inset-bottom, 0px)); }
+  .e2-06-inbox[data-view="list"] > :not(.e2-06-list) { display: none; }
+  .e2-06-inbox[data-view="conversation"] > .e2-06-list { display: none; }
+  .head2:has(+ .e2-06-inbox[data-view="conversation"]) { display: none; }
+  /* La planche mobile n'affiche que le compteur sous le titre : le jour est réservé au bureau */
+  .e2-06-day { display: none; }
   .e2-06-list__items { padding: 6px; overflow-y: visible; }
   /* Mobile : recherche et pastilles sur le fond de page, les conversations dans une seule carte blanche */
   .e2-06-list { background: transparent; border: 0; border-radius: 0; overflow: visible; gap: var(--s-3); }
