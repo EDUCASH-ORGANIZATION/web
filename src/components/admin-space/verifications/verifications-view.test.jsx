@@ -95,6 +95,9 @@ describe("VerificationsView : file avec dossier ouvert", () => {
 
   it("un seul titre h1 « Vérifications » et sous-titre avec ancienneté", () => {
     expect(html.match(/<h1\b/g)).toHaveLength(1)
+    expect(html).toContain('<h1 class="page__title">Vérifications</h1>')
+    expect(html).toContain('<p class="page__sub">4 dossiers à examiner · le plus ancien attend depuis 3 jours</p>')
+    expect(html).not.toMatch(/head2|a2-filters|search2|empty2|hero2__link/)
     expect(html).toContain("Vérifications")
     expect(html).toContain("4 dossiers à examiner")
     expect(html).toContain("le plus ancien attend depuis 3 jours")
@@ -110,6 +113,9 @@ describe("VerificationsView : file avec dossier ouvert", () => {
   it("recherche en GET vers la file, établissement en liste fermée", () => {
     expect(html).toContain('action="/admin/verifications"')
     expect(html).toContain('method="get"')
+    expect(html).toContain('class="filterbar"')
+    expect(html).toContain('<label class="search">')
+    expect(html).toContain('class="filterbar__count"')
     expect(html).toContain('name="q"')
     expect(html).toContain('name="ecole"')
     expect(html).toContain("4 dossiers")
@@ -220,15 +226,18 @@ describe("VerificationsView : décisions selon l'onglet", () => {
 describe("VerificationsView : états", () => {
   it("file vide : message, nombre d'étudiants sans carte et lien vers les incomplets", () => {
     const html = render({ data: data({ rows: [], total: 0, counts: { ...data().counts, "a-examiner": 0 }, oldestAgeDays: null }) })
-    expect(html).toContain("Aucun dossier à examiner.")
-    expect(html).toContain("3 étudiants n&#x27;ont pas encore envoyé de carte.")
-    expect(html).toContain('href="/admin/verifications?onglet=incomplets"')
-    expect(html).toContain("Aucun dossier à examiner</b>")
+    expect(html).toContain('<div class="empty">')
+    expect(html).toContain('<span class="ic-sq ic-sq--menthe">')
+    expect(html).toContain('<div class="empty__title">Aucun dossier à examiner</div>')
+    expect(html).toContain("Tout est à jour. 3 étudiants n&#x27;ont pas encore envoyé de carte : ils sont dans « Incomplets ».")
+    expect(html).toMatch(/<a class="btn btn--secondary btn--sm" href="\/admin\/verifications\?onglet=incomplets">Voir les incomplets<\/a>/)
+    expect(html).toContain("Aucun dossier à examiner</p>")
   })
 
   it("file vide sans incomplets : tout est à jour", () => {
     const html = render({ data: data({ rows: [], total: 0, counts: { ...data().counts, "a-examiner": 0, incomplets: 0 } }) })
-    expect(html).toContain("Tous les dossiers sont à jour.")
+    expect(html).toContain('<p class="empty__text">Tout est à jour.</p>')
+    expect(html).not.toContain("Voir les incomplets")
   })
 
   it("recherche sans résultat et onglet vide", () => {
@@ -238,8 +247,9 @@ describe("VerificationsView : états", () => {
 
   it("erreur de chargement distincte de la file vide, annoncée", () => {
     const html = render({ data: null, error: "Les dossiers n'ont pas pu être chargés. Réessayez dans un instant." })
-    expect(html).toContain('role="alert"')
-    expect(html).toContain("Réessayer")
+    expect(html).toContain('class="empty empty--erreur empty--sm" role="alert"')
+    expect(html).toContain("Impossible de charger la file")
+    expect(html).toMatch(/<a class="btn btn--primary btn--sm" href="\/admin\/verifications">[\s\S]*Réessayer<\/a>/)
     expect(html).not.toContain("Aucun dossier à examiner.")
     expect(html.match(/<h1\b/g)).toHaveLength(1)
   })
@@ -260,10 +270,17 @@ describe("VerificationsView : états", () => {
 
   it("pagination : liens précédent et suivant dans l'URL", () => {
     const html = render({ data: data({ page: 2, pageCount: 3, q: "ko" }) })
-    expect(html).toContain("Page 2 sur 3")
+    expect(html).toContain('aria-label="Pagination des dossiers"')
     expect(html).toContain('href="/admin/verifications?q=ko"')
     expect(html).toContain('href="/admin/verifications?q=ko&amp;page=3"')
+    expect(html).toContain('aria-current="page"')
     expect(render({ data: data() })).not.toContain("Pagination des dossiers")
+  })
+
+  it("pagination : plage « 1 à 20 sur 58 »", () => {
+    const rows = Array.from({ length: 20 }, (_, n) => row({ userId: `${n}`.padStart(8, "0") + ID1.slice(8) }))
+    const html = render({ data: data({ rows, total: 58, page: 1, pageCount: 3, pageSize: 20 }) })
+    expect(html).toContain('<span class="pagination__info">1 à 20 sur 58</span>')
   })
 
   it("onglet autre que le défaut : champ caché pour garder l'onglet dans la recherche", () => {
