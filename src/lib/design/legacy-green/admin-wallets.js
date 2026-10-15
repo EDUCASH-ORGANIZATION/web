@@ -1,4 +1,2 @@
-// Exemptions vertes admin (RD-ADMIN-01) : portefeuilles. Vider l'entrée quand le fichier est porté.
-export const ADMIN_WALLETS_GREEN = [
-  "src/app/(admin)/admin/wallets/page.js",
-]
+// Exemptions vertes admin (RD-ADMIN-01) : portefeuilles. Porté sur le système de design : plus aucune exemption.
+export const ADMIN_WALLETS_GREEN = []
