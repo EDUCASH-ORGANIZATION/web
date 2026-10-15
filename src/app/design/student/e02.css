@@ -1,7 +1,8 @@
 /* @ds-screen RD-STUDENT-01 */
 /* E02 Explorer les missions : filtres en colonne (bureau) ou en feuille (mobile), barre de tri, pastilles. */
 .e2-02-cols { grid-template-columns: clamp(220px, 20vw, 264px) minmax(0, 1fr); }
-.e2-02-filters { position: sticky; top: 0; }
+/* Collée sous la barre du haut collée de la coquille (--shell-sticky-top, app-shell.css) ; hauteur bornée à la fenêtre et défilement interne pour que le bas reste accessible */
+.e2-02-filters { position: sticky; top: var(--shell-sticky-top); max-height: calc(100vh - var(--shell-sticky-top) - var(--s-4)); max-height: calc(100dvh - var(--shell-sticky-top) - var(--s-4)); overflow-y: auto; overscroll-behavior: contain; }
 .e2-02-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .e2-02-group { display: flex; flex-direction: column; gap: 10px; }
 .e2-02-group + .e2-02-group { border-top: 1px solid var(--c-ligne-2); padding-top: var(--s-4); margin-top: 4px; }
