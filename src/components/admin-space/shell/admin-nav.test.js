@@ -119,3 +119,10 @@ describe("ADMIN_NAV", () => {
     expect(JSON.parse(JSON.stringify(ADMIN_NAV))).toEqual(ADMIN_NAV)
   })
 })
+
+describe("ADMIN_NAV : notifications", () => {
+  it("la cloche pointe vers la page des notifications de l'espace, qui existe", () => {
+    expect(ADMIN_NAV.notifications).toEqual({ space: "admin", href: "/admin/notifications" })
+    expect(routes).toContain("/admin/notifications")
+  })
+})

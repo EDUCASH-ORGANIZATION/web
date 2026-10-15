@@ -2,6 +2,12 @@
 import { redirect } from "next/navigation"
 import { isInternalPath } from "@/lib/auth/internal-path"
 import { getStudentShellData } from "@/lib/actions/student-shell.actions"
+import {
+  getStudentNotifications,
+  getStudentUnreadNotificationCount,
+  markStudentNotificationRead,
+  markAllStudentNotificationsRead,
+} from "@/lib/actions/student-notifications.actions"
 import { AppShell } from "@/components/app-shell/app-shell"
 import { STUDENT_NAV } from "@/components/student-space/shell/student-nav"
 import { ToastProvider } from "@/components/app-ui/toast"
@@ -21,7 +27,20 @@ export default async function StudentLayout({ children }) {
     <div className="ds e2">
       <ToastProvider>
         <OfflineBanner />
-        <AppShell nav={STUDENT_NAV} user={{ id: shell.userId, fullName: shell.fullName }} unreadCount={shell.unreadCount}>
+        <AppShell
+          nav={STUDENT_NAV}
+          user={{ id: shell.userId, fullName: shell.fullName }}
+          unreadCount={shell.unreadCount}
+          notifications={{
+            count: shell.notificationCount,
+            actions: {
+              list: getStudentNotifications,
+              count: getStudentUnreadNotificationCount,
+              markRead: markStudentNotificationRead,
+              markAll: markAllStudentNotificationsRead,
+            },
+          }}
+        >
           <PwaInstallBannerLoader space="student" />
           {children}
         </AppShell>

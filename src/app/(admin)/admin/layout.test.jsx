@@ -112,6 +112,13 @@ describe("(admin)/layout", () => {
     await expect(AdminLayout({ children: null })).rejects.toThrow(/^REDIRECT:\/$/)
   })
 
+  it("cloche des notifications : bouton au bureau, lien vers /admin/notifications sur mobile", async () => {
+    const html = renderToStaticMarkup(await AdminLayout({ children: <p>contenu</p> }))
+    expect(html).toContain('aria-label="Notifications"')
+    expect(html).toContain('href="/admin/notifications"')
+    expect(html).toContain("i-bell")
+  })
+
   it("laisse passer un profil admin", async () => {
     const html = renderToStaticMarkup(await AdminLayout({ children: <p>contenu</p> }))
     expect(redirect).not.toHaveBeenCalled()

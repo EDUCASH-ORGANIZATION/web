@@ -1,12 +1,16 @@
 // @ds-screen RD-ADMIN-01
 // Configuration de la coquille de l'espace admin. Chaque lien vise une route existante. Aucun abonnement aux messages (`realtime: false`).
+// La cloche pointe vers la page des notifications (`notifications`, limitée aux dossiers à examiner).
 // Le compteur « verifications » est celui des dossiers « À examiner » (passé par `counts`).
+
+import { adminNotificationsHref } from "../../../lib/app/admin-routes.js"
 
 export const ADMIN_NAV = {
   space: "Administration",
   identityLabel: "Admin",
   homeHref: "/admin/dashboard",
   profileHref: "/admin/dashboard",
+  notifications: { space: "admin", href: adminNotificationsHref() },
   realtime: false,
   search: {
     action: "/admin/users",
