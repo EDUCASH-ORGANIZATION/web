@@ -291,13 +291,15 @@ export function unreadTotal(conversations) {
 const strip = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLocaleLowerCase("fr-FR")
 
 /**
- * Filtre la liste : non lues seulement et/ou recherche (étudiant, mission, aperçu ; insensible à la casse et aux accents).
- * @param {Array<{ name: string, missionTitle: string, preview: string, unreadCount: number }>} list
+ * Filtre la liste : non lues seulement, missions en cours seulement (state = in_progress) et/ou recherche
+ * (étudiant, mission, aperçu ; insensible à la casse et aux accents). Les critères se combinent.
+ * @param {Array<{ name: string, missionTitle: string, preview: string, unreadCount: number, state?: string|null }>} list
  */
-export function filterConversations(list, { q = "", unreadOnly = false } = {}) {
+export function filterConversations(list, { q = "", unreadOnly = false, inProgressOnly = false } = {}) {
   const needle = strip(q).trim()
   return (list ?? []).filter((c) => {
     if (unreadOnly && !(c.unreadCount > 0)) return false
+    if (inProgressOnly && c.state !== "in_progress") return false
     if (!needle) return true
     return [c.name, c.missionTitle, c.preview].some((field) => strip(field).includes(needle))
   })
