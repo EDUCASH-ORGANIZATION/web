@@ -104,7 +104,7 @@ describe("VerificationsView : 5 onglets, listes vides, erreur, page hors limites
       for (const v of Object.values(PRIVATE)) expect(html).not.toContain(v)
       expect(html).not.toMatch(/@exemple\.bj|\+229|undefined|\[object|NaN|null</)
       expect(list).not.toContain("token=")
-      expect(html).not.toMatch(/[—–]/)
+      expect(html).not.toMatch(/[\u2014\u2013]/)
     })
 
     it(`onglet ${tab} : sans dossier ouvert, aucune URL signée ni donnée de dossier`, () => {
