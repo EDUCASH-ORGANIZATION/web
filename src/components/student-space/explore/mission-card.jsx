@@ -57,6 +57,12 @@ export function MissionCard({ mission }) {
             Urgent
           </span>
         ) : null}
+        {mission.withPurchases ? (
+          <span>
+            <Icon name="i-receipt" />
+            Avec achats
+          </span>
+        ) : null}
       </div>
       <div className="e2-mcard__foot">
         <div className="e2-mcard__gain">

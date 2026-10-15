@@ -114,7 +114,7 @@ describe("getStudentExplore : accès", () => {
 describe("getStudentExplore : requête", () => {
   it("ne lit que les missions ouvertes non expirées, avec des colonnes listées (jamais *)", async () => {
     await getStudentExplore({})
-    expect(arg("select", 0)).toBe("id, title, type, city, budget, urgency, deadline, created_at")
+    expect(arg("select", 0)).toBe("id, title, type, city, budget, urgency, deadline, created_at, purchases_estimate")
     expect(arg("select", 0)).not.toContain("*")
     expect(missionCalls("select")[0].args[1]).toEqual({ count: "exact" })
     expect(missionCalls("eq")[0].args).toEqual(["status", "open"])
@@ -269,5 +269,31 @@ describe("getStudentExplore : résultat", () => {
     const res = await getStudentExplore({ q: "x" })
     expect(res).toEqual({ error: "Impossible de charger les missions." })
     expect(JSON.stringify(res)).not.toContain("secret_table")
+  })
+})
+
+describe("getStudentExplore : mission avec achats", () => {
+  it("marque withPurchases seulement pour une estimation positive", async () => {
+    missionsResult = {
+      data: [
+        row({ id: "a", purchases_estimate: 15000 }),
+        row({ id: "b", purchases_estimate: null }),
+        row({ id: "c", purchases_estimate: 0 }),
+        row({ id: "d", purchases_estimate: "abc" }),
+        row({ id: "e" }),
+      ],
+      count: 5,
+      error: null,
+    }
+    const res = await getStudentExplore({})
+    expect(res.missions.map((m) => [m.id, m.withPurchases === true])).toEqual([
+      ["a", true], ["b", false], ["c", false], ["d", false], ["e", false],
+    ])
+  })
+
+  it("n'expose pas le montant de l'estimation dans la liste", async () => {
+    missionsResult = { data: [row({ purchases_estimate: 15000 })], count: 1, error: null }
+    const res = await getStudentExplore({})
+    expect(JSON.stringify(res.missions)).not.toContain("15000")
   })
 })

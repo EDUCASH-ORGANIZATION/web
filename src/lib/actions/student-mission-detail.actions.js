@@ -3,6 +3,7 @@
 
 import { requireRole } from "@/lib/auth/require-role"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
+import { purchasesEstimateOf } from "@/lib/app/purchases"
 import { isUuid } from "@/lib/vitrine/ids"
 import { publicDisplayName } from "@/lib/vitrine/public-name"
 import { toProjectAvatarUrl } from "@/lib/storage/owned-paths"
@@ -15,7 +16,7 @@ const SIMILAR_LIMIT = 4
 // Colonnes explicites seulement (jamais toutes les colonnes), dont id, status et selected_student_id pour décider de
 // l'affichage. Aucune colonne privée (téléphone, carte, motif de refus...).
 const MISSION_COLUMNS =
-  "id, title, description, type, city, budget, urgency, deadline, status, created_at, client_id, selected_student_id"
+  "id, title, description, type, city, budget, urgency, deadline, status, created_at, client_id, selected_student_id, purchases_estimate"
 const APPLICATION_COLUMNS = "id, status, message, created_at, updated_at"
 const CLIENT_COLUMNS = "full_name, city, avatar_url, rating, missions_done, is_verified"
 const SIMILAR_COLUMNS = "id, title, type, city, budget, deadline"
@@ -43,6 +44,7 @@ const LEDGER_COLUMNS = "type, amount, created_at"
  * @property {string} mission.type Valeur en base : l'afficher par missionTypeLabel()
  * @property {string|null} mission.city
  * @property {number} mission.budget Budget du client en FCFA (la part de l'étudiant se calcule par escrowSplit)
+ * @property {number|null} mission.purchasesEstimate Estimation indicative des achats en FCFA, non bloquée, null sinon
  * @property {"low"|"medium"|"high"|null} mission.urgency
  * @property {string|null} mission.deadline "AAAA-MM-JJ" ou null
  * @property {"open"|"in_progress"|"done"|"cancelled"} mission.status
@@ -183,6 +185,7 @@ export async function getStudentMissionDetail(id) {
       type: mission.type,
       city: mission.city ?? null,
       budget: Number(mission.budget) || 0,
+      purchasesEstimate: purchasesEstimateOf(mission.purchases_estimate),
       urgency: mission.urgency ?? null,
       deadline: mission.deadline ?? null,
       status: mission.status,

@@ -99,8 +99,8 @@ describe("getClientMissionDetail", () => {
     const detail = await getClientMissionDetail(MISSION)
     expect(detail.mission).toEqual({
       id: MISSION, title: "Cours de maths", description: "Niveau 3e", type: "Cours particuliers", city: "Cotonou",
-      budget: 10000, urgency: "low", deadline: "2026-11-01", status: "in_progress", createdAt: "2026-10-01T08:00:00Z",
-      selectedStudentId: S1,
+      budget: 10000, purchasesEstimate: null, urgency: "low", deadline: "2026-11-01", status: "in_progress",
+      createdAt: "2026-10-01T08:00:00Z", selectedStudentId: S1,
     })
     expect(detail.applications.map((a) => a.id)).toEqual(["a2", "a1"])
     expect(detail.applications[1].student).toEqual({
@@ -251,5 +251,25 @@ describe("getCandidateProfile", () => {
   it("lève une erreur neutre quand une lecture échoue", async () => {
     responses.reviews = { data: null, error: { message: "boom SQL" } }
     await expect(getCandidateProfile(MISSION, S2)).rejects.toThrow("Impossible de charger ce candidat.")
+  })
+})
+
+describe("getClientMissionDetail : mission avec achats", () => {
+  it.each([
+    [15000, 15000],
+    [null, null],
+    [0, null],
+    [-1, null],
+    ["x", null],
+  ])("estimation %j renvoyée comme %j", async (raw, expected) => {
+    responses.missions = { data: { ...mission, purchases_estimate: raw }, error: null }
+    const detail = await getClientMissionDetail(MISSION)
+    expect(detail.mission.purchasesEstimate).toBe(expected)
+  })
+
+  it("lit la colonne par une liste explicite", async () => {
+    await getClientMissionDetail(MISSION)
+    expect(callsOn("missions")[0].columns).toContain("purchases_estimate")
+    expect(callsOn("missions")[0].columns).not.toContain("*")
   })
 })

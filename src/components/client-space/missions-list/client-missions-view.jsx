@@ -103,7 +103,12 @@ function MissionRow({ mission, today }) {
       icon={TYPE_ICON[mission.type] ?? "i-briefcase"}
       title={mission.title}
       subtitle={subtitleOf(mission)}
-      line={<StatusBadge label={view.label} tone={view.tone} icon={STATUS_ICON[view.key]} />}
+      line={
+        <>
+          <StatusBadge label={view.label} tone={view.tone} icon={STATUS_ICON[view.key]} />
+          {mission.withPurchases ? <StatusBadge label="Avec achats" icon="i-receipt" /> : null}
+        </>
+      }
       amount={mission.budget}
       amountNote={AMOUNT_NOTE[mission.status]}
       actions={actionsOf(mission)}

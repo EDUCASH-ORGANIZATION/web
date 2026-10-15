@@ -299,7 +299,7 @@ describe("duplicate", () => {
   })
   it("colonnes lues : celles reprises seulement", async () => {
     await getDuplicatePrefill(M_MINE)
-    expect(ctx.log.find((x) => x.table === "missions").columns).toBe("title, description, type, city, budget, urgency")
+    expect(ctx.log.find((x) => x.table === "missions").columns).toBe("title, description, type, city, budget, urgency, purchases_estimate")
   })
   it("identifiant hostile : null sans aucune requête de données", async () => {
     for (const bad of [`${M_MINE},id.neq.x`, `${M_MINE}.x`, "*", "", null, undefined, 3, {}, `${M_MINE}\n`]) {

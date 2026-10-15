@@ -127,7 +127,7 @@ describe("missions listées : ouvertes, non expirées, colonnes publiques", () =
       expect(json, leak).not.toContain(leak)
     }
     expect(Object.keys(res.missions[0]).sort()).toEqual(["applicationStatus", "budget", "city", "deadline", "id", "net", "title", "type", "urgent"])
-    expect(missionQueries()[0].columns).toBe("id, title, type, city, budget, urgency, deadline, created_at")
+    expect(missionQueries()[0].columns).toBe("id, title, type, city, budget, urgency, deadline, created_at, purchases_estimate")
     expect(ctx.log.some((q) => q.columns === "*" && q.table !== "wallets")).toBe(false)
   })
 

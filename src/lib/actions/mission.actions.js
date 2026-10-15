@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { callWalletRpc } from "@/lib/wallet/wallet-rpc"
 import { paymentsEnabled } from "@/lib/constants/payments"
+import { PURCHASES_ESTIMATE_MAX } from "@/lib/app/purchases"
 import {
   CITIES,
   COMMISSION_RATE,
@@ -18,6 +19,7 @@ import {
 const ERR_GENERIC = "Une erreur est survenue. Réessayez dans un instant."
 const ERR_NOT_CANCELLABLE = "Cette mission ne peut plus être annulée."
 const ERR_PAYMENTS_OFF = "La publication de missions est en cours d'activation."
+const ERR_PURCHASES = "L'estimation des achats doit être un montant entier en FCFA, supérieur à zéro."
 const ERR_CONFIRM = "Impossible de libérer les fonds pour cette mission."
 
 const TITLE_MAX = 120
@@ -179,7 +181,9 @@ export async function getMission(id) {
  *   city: string,
  *   budget: number,
  *   urgency: 'low' | 'medium' | 'high',
- *   deadline?: string | null
+ *   deadline?: string | null,
+ *   with_purchases?: boolean,
+ *   purchases_estimate?: number | null
  * }} data
  * @returns {Promise<{ id: string } | { error: string }>}
  */
@@ -206,6 +210,18 @@ export async function createMission(data) {
     return { error: `Le budget minimum est de ${new Intl.NumberFormat("fr-FR").format(MIN_MISSION_BUDGET)} FCFA.` }
   }
   if (urgency != null && !MISSION_URGENCIES.includes(urgency)) return { error: "L'urgence est invalide." }
+
+  // Mission avec achats : l'estimation (indicative, jamais bloquée, sans commission) n'est retenue que si la
+  // case est vraie ET que le montant est un entier fini, positif et borné. Sinon elle est neutralisée (null) :
+  // aucune valeur du client n'est de confiance.
+  let purchasesEstimate = null
+  if (data?.with_purchases === true) {
+    const estimate = data?.purchases_estimate
+    if (typeof estimate !== "number" || !Number.isInteger(estimate) || estimate <= 0 || estimate > PURCHASES_ESTIMATE_MAX) {
+      return { error: ERR_PURCHASES }
+    }
+    purchasesEstimate = estimate
+  }
 
   const service = createServiceClient()
 
@@ -240,6 +256,8 @@ export async function createMission(data) {
       urgency: urgency ?? "low",
       deadline,
       status: "open",
+      // La colonne n'est écrite que pour une mission avec achats (nullable en base, script 70).
+      ...(purchasesEstimate !== null ? { purchases_estimate: purchasesEstimate } : {}),
     })
     .select("id")
     .single()

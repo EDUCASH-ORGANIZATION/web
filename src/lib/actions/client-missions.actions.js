@@ -2,6 +2,7 @@
 
 import { unstable_rethrow } from "next/navigation"
 import { requireRole } from "@/lib/auth/require-role"
+import { purchasesEstimateOf } from "@/lib/app/purchases"
 import { SEARCH_MAX_LENGTH } from "@/lib/constants/missions"
 import { isPastDeadline, todayInBenin } from "@/lib/vitrine/dates"
 
@@ -9,7 +10,8 @@ const TABS = ["open", "in_progress", "done", "cancelled"]
 // Plafond de la liste de l'onglet courant : un client n'a jamais autant de missions, la borne évite une
 // lecture sans limite. Les compteurs d'onglets, eux, sont exacts (requêtes `count` séparées, sans plafond).
 const MISSIONS_LIMIT = 500
-const MISSION_COLUMNS = "id, title, type, city, budget, deadline, status, created_at, applications(id, student_id, status)"
+const MISSION_COLUMNS =
+  "id, title, type, city, budget, deadline, status, created_at, purchases_estimate, applications(id, student_id, status)"
 const ERR_LOAD = "Impossible de charger vos missions."
 
 function firstValue(value) {
@@ -63,6 +65,8 @@ function toMission(row, today, reviewed) {
     pendingCount: applications.filter((a) => a.status === "pending").length,
     studentId: accepted?.student_id ?? null,
     reviewed,
+    // Présent seulement pour une mission avec achats (estimation positive) : pastille « Avec achats ».
+    ...(purchasesEstimateOf(row.purchases_estimate) !== null ? { withPurchases: true } : {}),
   }
 }
 

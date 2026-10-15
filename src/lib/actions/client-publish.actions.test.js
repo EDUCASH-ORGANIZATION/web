@@ -70,7 +70,7 @@ describe("getDuplicatePrefill : propriété", () => {
   it("ne lit que les colonnes reprises, jamais select(*)", async () => {
     await getDuplicatePrefill(ID)
     const select = calls.find((c) => c.method === "select").args[0]
-    expect(select).toBe("title, description, type, city, budget, urgency")
+    expect(select).toBe("title, description, type, city, budget, urgency, purchases_estimate")
     expect(select).not.toContain("*")
   })
 
@@ -161,5 +161,17 @@ describe("publication en pause : appel direct de createMission", () => {
     expect(res.error).toMatch(/en cours d'activation/)
     expect(createServiceClient).not.toHaveBeenCalled()
     vi.unstubAllEnvs()
+  })
+})
+
+describe("getDuplicatePrefill : mission avec achats", () => {
+  it("recoche la case et reprend l'estimation positive de la mission d'origine", async () => {
+    missionResult = { data: { ...ROW, purchases_estimate: 15000 }, error: null }
+    expect(await getDuplicatePrefill(ID)).toEqual({ ...ROW, avecAchats: true, estimationAchats: 15000 })
+  })
+
+  it.each([null, 0, -2, "abc", 1e12])("ne recoche pas la case pour %j", async (purchases_estimate) => {
+    missionResult = { data: { ...ROW, purchases_estimate }, error: null }
+    expect(await getDuplicatePrefill(ID)).toEqual(ROW)
   })
 })

@@ -5,11 +5,12 @@ import { unstable_rethrow } from "next/navigation"
 import { requireRole } from "@/lib/auth/require-role"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { escrowSplit } from "@/lib/app/money"
+import { purchasesEstimateOf } from "@/lib/app/purchases"
 import { notExpiredFilter, parseExploreParams } from "@/lib/student-space/explore-query"
 import { verificationView } from "@/lib/student-space/verification-status"
 import { MISSIONS_PAGE_SIZE } from "@/lib/constants/missions"
 
-const MISSION_COLUMNS = "id, title, type, city, budget, urgency, deadline, created_at"
+const MISSION_COLUMNS = "id, title, type, city, budget, urgency, deadline, created_at, purchases_estimate"
 const ERR_LOAD = "Impossible de charger les missions."
 
 // PostgREST : page au-delà du dernier résultat, traitée comme une liste vide.
@@ -138,6 +139,8 @@ export async function getStudentExplore(params = {}) {
         urgent: row.urgency === "high",
         deadline: row.deadline ?? null,
         applicationStatus: applied.get(row.id) ?? null,
+        // Présent seulement pour une mission avec achats (estimation positive).
+        ...(purchasesEstimateOf(row.purchases_estimate) !== null ? { withPurchases: true } : {}),
       })),
     }
   } catch (err) {

@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { sendEmail } from "@/lib/email/index"
+import { MISSION_TYPES } from "@/lib/supabase/database.constants"
 import { createMission, confirmMission, updateMissionStatus, getMissions } from "./mission.actions"
 
 // Faux client Supabase : chaque requête est un constructeur chaînable consignant ses appels,
@@ -576,5 +577,88 @@ describe("updateMissionStatus", () => {
       expect(await updateMissionStatus("m-1", "cancelled")).toEqual({ error: "Une erreur est survenue. Réessayez dans un instant." })
       expect(console.error).toHaveBeenCalled()
     }
+  })
+})
+
+describe("createMission : mission avec achats", () => {
+  const wallet = { data: { balance: 10000, reserved: 0 }, error: null }
+  const inserted = () => makeService({ wallets: wallet, "missions:insert": { data: { id: "m-1" }, error: null } })
+  const payloadOf = (calls) => calls.find((c) => c.op === "insert").payload
+
+  it("enregistre l'estimation quand la case est vraie", async () => {
+    const { client, calls } = inserted()
+    createServiceClient.mockReturnValue(client)
+    const res = await createMission({ ...validData, with_purchases: true, purchases_estimate: 15000 })
+    expect(res).toEqual({ id: "m-1" })
+    expect(payloadOf(calls).purchases_estimate).toBe(15000)
+  })
+
+  it("accepte la case pour tous les types de mission", async () => {
+    for (const type of MISSION_TYPES) {
+      const { client, calls } = inserted()
+      createServiceClient.mockReturnValue(client)
+      expect(await createMission({ ...validData, type, with_purchases: true, purchases_estimate: 2500 })).toEqual({ id: "m-1" })
+      expect(payloadOf(calls).purchases_estimate).toBe(2500)
+    }
+  })
+
+  it.each([
+    ["case absente", {}],
+    ["case fausse", { with_purchases: false }],
+    ["case non booléenne (chaîne)", { with_purchases: "true" }],
+    ["case non booléenne (1)", { with_purchases: 1 }],
+  ])("neutralise une estimation hostile : %s", async (_l, flag) => {
+    const { client, calls } = inserted()
+    createServiceClient.mockReturnValue(client)
+    const res = await createMission({ ...validData, ...flag, purchases_estimate: 999999 })
+    expect(res).toEqual({ id: "m-1" })
+    expect(payloadOf(calls).purchases_estimate ?? null).toBeNull()
+    expect(Object.keys(payloadOf(calls))).not.toContain("purchases_estimate")
+  })
+
+  it.each([
+    ["NaN", Number.NaN],
+    ["Infinity", Number.POSITIVE_INFINITY],
+    ["chaîne numérique", "15000"],
+    ["chaîne texte", "beaucoup"],
+    ["négatif", -100],
+    ["zéro", 0],
+    ["décimal", 150.5],
+    ["trop grand", 1e12],
+    ["juste au dessus du plafond", 1000000000],
+    ["absent", undefined],
+    ["null", null],
+    ["objet", { $gt: 0 }],
+    ["tableau", [15000]],
+  ])("refuse une estimation invalide avec la case vraie : %s, sans écriture", async (_l, value) => {
+    const { client, calls } = inserted()
+    createServiceClient.mockReturnValue(client)
+    const res = await createMission({ ...validData, with_purchases: true, purchases_estimate: value })
+    expect(res.error).toMatch(/estimation des achats/)
+    expect(calls).toHaveLength(0)
+  })
+
+  it("prend le client de la session même avec une estimation et un client_id du corps", async () => {
+    const { client, calls } = inserted()
+    createServiceClient.mockReturnValue(client)
+    await createMission({ ...validData, with_purchases: true, purchases_estimate: 8000, client_id: "autre" })
+    expect(payloadOf(calls).client_id).toBe("client-1")
+    expect(payloadOf(calls).purchases_estimate).toBe(8000)
+  })
+
+  it("n'a aucun effet sur le montant bloqué", async () => {
+    const { client, rpc } = makeService(
+      { wallets: wallet, "missions:insert": { data: { id: "m-1" }, error: null } },
+      async () => ({ data: { success: true }, error: null }),
+    )
+    createServiceClient.mockReturnValue(client)
+    await createMission({ ...validData, with_purchases: true, purchases_estimate: 9000 })
+    expect(rpc).toHaveBeenCalledWith("wallet_reserve", { p_user_id: "client-1", p_amount: 5000, p_mission_id: "m-1" })
+  })
+
+  it("le solde se compare au seul budget, sans l'estimation", async () => {
+    const { client } = makeService({ wallets: { data: { balance: 5000, reserved: 0 }, error: null }, "missions:insert": { data: { id: "m-1" }, error: null } })
+    createServiceClient.mockReturnValue(client)
+    expect(await createMission({ ...validData, with_purchases: true, purchases_estimate: 90000 })).toEqual({ id: "m-1" })
   })
 })

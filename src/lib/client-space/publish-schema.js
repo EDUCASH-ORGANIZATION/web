@@ -9,6 +9,7 @@ import {
   MISSION_URGENCIES,
 } from "../supabase/database.constants.js"
 import { formatAmount } from "../app/format.js"
+import { PURCHASES_ESTIMATE_MAX, purchasesEstimateOf } from "../app/purchases.js"
 
 /** Bornes de texte (celles du serveur). */
 export const TITLE_MAX = 120
@@ -29,8 +30,8 @@ export const STEPS = [
 /** Champs validés à chaque étape (la quatrième n'en saisit aucun). */
 export const STEP_FIELDS = {
   1: ["type", "title"],
-  2: ["description", "city"],
-  3: ["budget", "urgency", "deadline"],
+  2: ["description", "city", "avecAchats"],
+  3: ["budget", "estimationAchats", "urgency", "deadline"],
   4: [],
 }
 
@@ -54,11 +55,16 @@ export function urgencyLabel(value) {
   return (URGENCY_OPTIONS.find((o) => o.value === value) ?? URGENCY_OPTIONS[0]).label
 }
 
-/** @typedef {{ type: string, title: string, description: string, city: string, budget: number|null, urgency: string, deadline: string }} PublishValues */
+/**
+ * `avecAchats` : la mission demande des achats (tous les types de mission) ; `estimationAchats` : montant indicatif
+ * en FCFA, requis seulement si `avecAchats` est vrai, toujours null sinon.
+ * @typedef {{ type: string, title: string, description: string, city: string, budget: number|null, urgency: string, deadline: string,
+ *   avecAchats: boolean, estimationAchats: number|null }} PublishValues
+ */
 
 /** Valeurs d'une publication vide. @returns {PublishValues} */
 export function emptyValues() {
-  return { type: "", title: "", description: "", city: "", budget: null, urgency: "low", deadline: "" }
+  return { type: "", title: "", description: "", city: "", budget: null, urgency: "low", deadline: "", avecAchats: false, estimationAchats: null }
 }
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
@@ -104,6 +110,8 @@ export function makePublishSchema(today) {
       .int("Indiquez un budget entier.")
       .min(MIN_MISSION_BUDGET, `Le budget minimum est de ${formatAmount(MIN_MISSION_BUDGET)}.`)
       .max(BUDGET_MAX, "Ce budget est trop élevé."),
+    avecAchats: z.boolean({ error: "Indiquez si la mission comporte des achats." }).optional(),
+    estimationAchats: z.number({ error: "Indiquez l'estimation des achats." }).nullable().optional(),
     urgency: z
       .string({ error: "Choisissez l'urgence." })
       .refine((v) => MISSION_URGENCIES.includes(v), "Choisissez l'urgence."),
@@ -113,6 +121,15 @@ export function makePublishSchema(today) {
       .refine(isCalendarDate, "La date limite est invalide.")
       .refine((v) => !isCalendarDate(v) || v >= today, "La date limite ne peut pas être passée.")
       .refine((v) => !isCalendarDate(v) || v <= upper, "La date limite est trop lointaine."),
+  }).superRefine((v, ctx) => {
+    // L'estimation n'est exigée que si la case « Mission avec achats » est cochée.
+    if (v.avecAchats !== true) return
+    const n = v.estimationAchats
+    let message = null
+    if (n === null || n === undefined) message = "Indiquez l'estimation des achats."
+    else if (!Number.isInteger(n) || n <= 0) message = "Indiquez une estimation entière, supérieure à zéro."
+    else if (n > PURCHASES_ESTIMATE_MAX) message = "Cette estimation est trop élevée."
+    if (message) ctx.addIssue({ code: "custom", path: ["estimationAchats"], message })
   })
 }
 
@@ -156,7 +173,7 @@ export function validatePublish(values, today) {
  * @param {PublishValues} values
  */
 export function toMissionInput(values) {
-  return {
+  const input = {
     title: String(values.title).trim(),
     description: String(values.description).trim(),
     type: values.type,
@@ -165,6 +182,12 @@ export function toMissionInput(values) {
     urgency: values.urgency,
     deadline: values.deadline,
   }
+  // Case décochée : ni drapeau ni estimation ne partent, quelle que soit la valeur restée dans l'état.
+  if (values.avecAchats === true) {
+    input.with_purchases = true
+    input.purchases_estimate = values.estimationAchats
+  }
+  return input
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -209,5 +232,10 @@ export function duplicateValues(row) {
   const budget = Number(r.budget)
   if (Number.isInteger(budget) && budget >= MIN_MISSION_BUDGET && budget <= BUDGET_MAX) out.budget = budget
   if (MISSION_URGENCIES.includes(r.urgency)) out.urgency = r.urgency
+  const purchases = purchasesEstimateOf(r.purchases_estimate)
+  if (purchases !== null) {
+    out.avecAchats = true
+    out.estimationAchats = purchases
+  }
   return out
 }
