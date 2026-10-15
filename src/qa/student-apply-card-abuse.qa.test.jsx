@@ -148,7 +148,9 @@ describe("saveStudentCardUrl", () => {
     expect(res).toEqual({ success: true })
     const up = ctx.writes.find((w) => w.table === "student_profiles")
     expect(up.payload).toEqual({ user_id: ME, card_url: "stu-me/nouvelle.jpg" })
-    const reset = ctx.writes.find((w) => w.table === "profiles")
+    const order = ctx.writes.map((w) => w.table)
+    expect(order).toEqual(["profiles", "student_profiles", "profiles"])
+    const reset = ctx.writes.filter((w) => w.table === "profiles").at(-1)
     expect(reset.payload).toMatchObject({ is_verified: false, rejection_reason: null })
     expect(Object.keys(reset.payload).sort()).toEqual(["is_verified", "rejection_reason", "verification_submitted_at"])
     expect(reset.filters).toEqual([["user_id", ME]])
@@ -158,7 +160,7 @@ describe("saveStudentCardUrl", () => {
     seed("rejected")
     expect((await apply({ missionId: "11111111-1111-4111-8111-111111111111", message: "Bonjour" })).error).toBeTruthy()
     await saveStudentCardUrl("stu-me/nouvelle.jpg")
-    const reset = ctx.writes.find((w) => w.table === "profiles").payload
+    const reset = ctx.writes.filter((w) => w.table === "profiles").at(-1).payload
     ctx.db.profiles[0] = { ...ctx.db.profiles[0], ...reset }
     ctx.db.student_profiles[0].card_url = "stu-me/nouvelle.jpg"
     ctx.writes = []

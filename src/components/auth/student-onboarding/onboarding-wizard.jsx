@@ -145,8 +145,8 @@ function extensionOf(file) {
   return /^[a-z0-9]{1,5}$/.test(ext) ? ext : "jpg"
 }
 
-async function uploadFile(supabase, bucket, path, file) {
-  const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true, contentType: file.type })
+async function uploadFile(supabase, bucket, path, file, { upsert = true } = {}) {
+  const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert, contentType: file.type })
   if (error) throw error
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
 }
@@ -264,7 +264,11 @@ export function OnboardingWizard({ userId, next = null, initialStep = 1, initial
     let cardUrl
     try {
       if (avatar) avatarUrl = await uploadFile(supabase, "avatars", `${userId}/avatar.${extensionOf(avatar.file)}`, avatar.file)
-      if (sendCard) cardUrl = await uploadFile(supabase, "student-cards", `${userId}/card.${extensionOf(card.file)}`, card.file)
+      // Chemin unique par envoi, jamais écrasé : la carte validée par l'administrateur ne peut pas être remplacée.
+      if (sendCard) {
+        const cardPath = `${userId}/card-${crypto.randomUUID()}.${extensionOf(card.file)}`
+        cardUrl = await uploadFile(supabase, "student-cards", cardPath, card.file, { upsert: false })
+      }
     } catch {
       setFormError(UPLOAD_ERROR)
       setPending(false)
