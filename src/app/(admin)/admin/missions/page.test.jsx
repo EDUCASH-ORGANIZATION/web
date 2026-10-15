@@ -1,66 +1,70 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+import { readFileSync } from "node:fs"
+import path from "node:path"
 
 const requireRole = vi.fn()
-const createServiceClient = vi.fn()
+const listAdminMissions = vi.fn()
 const redirect = vi.fn((url) => {
   throw new Error(`REDIRECT:${url}`)
 })
 
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: (...a) => requireRole(...a) }))
-vi.mock("@/lib/supabase/service", () => ({ createServiceClient: (...a) => createServiceClient(...a) }))
-vi.mock("next/navigation", () => ({ redirect: (...a) => redirect(...a) }))
-vi.mock("next/image", () => ({ default: () => null }))
-vi.mock("next/link", () => ({ default: () => null }))
-vi.mock("@/components/admin/verifications-tabs", () => ({ VerificationsTabs: () => null }))
-vi.mock("@/components/admin/suspend-button", () => ({ SuspendButton: () => null }))
+vi.mock("@/lib/actions/admin-missions.actions", () => ({ listAdminMissions: (...a) => listAdminMissions(...a) }))
+vi.mock("next/navigation", () => ({ redirect: (...a) => redirect(...a), useRouter: () => ({ refresh: vi.fn() }) }))
+vi.mock("@/components/admin-space/missions/missions-view", () => ({
+  MissionsView: (props) => ({ marker: "view", props }),
+}))
 
-import Missions from "./page.js"
+import Page from "./page.js"
 
-/** Constructeur de requête chaînable et attendable. */
-function query(result) {
-  const q = {}
-  for (const m of ["select", "eq", "order", "range", "limit", "gte", "is", "in"]) q[m] = () => q
-  q.then = (resolve) => resolve(result)
-  return q
+/** Renvoie le contenu chargé : la page rend un Suspense dont l'enfant est le composant de lecture. */
+async function load(searchParams) {
+  const tree = await Page({ searchParams })
+  const child = tree.props.children
+  return child.type(child.props)
 }
 
-describe("page admin missions : contrôle de rôle fail-closed", () => {
+describe("page admin missions", () => {
   beforeEach(() => {
     requireRole.mockReset()
-    createServiceClient.mockReset()
+    listAdminMissions.mockReset()
     redirect.mockClear()
+  })
+
+  it("redirige sans lire de données si requireRole refuse", async () => {
     requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
-  })
-
-  it("missions redirige sans lire de données si requireRole refuse", async () => {
-    await expect(Missions({ searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT:/auth/login")
+    await expect(Page({ searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT:/auth/login")
     expect(requireRole).toHaveBeenCalledWith(["admin"])
-    expect(createServiceClient).not.toHaveBeenCalled()
-  })
-})
-
-describe("page admin missions : lectures via le client service role", () => {
-  beforeEach(() => {
-    requireRole.mockReset()
-    createServiceClient.mockReset()
+    expect(listAdminMissions).not.toHaveBeenCalled()
   })
 
-  it("missions lit avec le client service et jamais avec la session", async () => {
-    const session = { from: vi.fn(() => { throw new Error("lecture avec la session interdite") }) }
-    requireRole.mockResolvedValue({ supabase: session, user: { id: "a" }, role: "admin", profile: {} })
-    const ranges = []
-    const service = {
-      from: () => {
-        const q = query({ data: [], error: null, count: 0 })
-        const range = q.range
-        q.range = (...a) => { ranges.push(a); return range() }
-        return q
-      },
-      auth: { admin: { getUserById: async () => ({ data: null }) } },
-    }
-    createServiceClient.mockReturnValue(service)
-    await Missions({ searchParams: Promise.resolve({ page: "NaN" }) })
-    expect(session.from).not.toHaveBeenCalled()
-    for (const r of ranges) expect(r[0]).toBe(0)
+  it("transmet les paramètres bruts à l'action (elle les valide) et rend la vue avec la réponse", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" } })
+    const data = { statut: "toutes", rows: [] }
+    listAdminMissions.mockResolvedValue(data)
+    const hostile = { statut: "<script>", q: "x".repeat(10000), ville: "' or 1=1", page: ["1", "2"] }
+    const view = await load(Promise.resolve(hostile))
+    expect(listAdminMissions).toHaveBeenCalledWith(hostile)
+    expect(view.props).toEqual({ data, error: undefined })
+  })
+
+  it("une erreur de lecture est rendue comme erreur, pas comme liste vide", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" } })
+    listAdminMissions.mockResolvedValue({ error: "Les missions n'ont pas pu être chargées. Réessayez dans un instant." })
+    const view = await load(Promise.resolve({}))
+    expect(view.props.data).toBeNull()
+    expect(view.props.error).toMatch(/pas pu être chargées/)
+  })
+
+  it("sans paramètres d'URL, l'action reçoit un objet vide", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" } })
+    listAdminMissions.mockResolvedValue({ rows: [] })
+    await load(undefined)
+    expect(listAdminMissions).toHaveBeenCalledWith({})
+  })
+
+  it("la page n'importe aucun module Supabase ni ne cite le client service", () => {
+    const source = readFileSync(path.join(import.meta.dirname, "page.js"), "utf8")
+    expect(source).not.toMatch(/supabase|createServiceClient/)
   })
 })
