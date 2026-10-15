@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -316,7 +316,7 @@ describe("StudentInboxView : conversation sans liste exploitable", () => {
     const html = render({ result: { conversations: [] }, children: PANE }, open)
     expect(html).toContain('data-view="conversation"')
     expect(html).toContain("Fil de test")
-    expect(html).not.toContain("Explorer les missions</a></div></section>")
+    expect(html).toMatch(/<section class="e2-06-list" aria-label="Conversations"><div class="e2-06-list__items">.*Pas encore de message.*<\/section>/s)
     expect(html).not.toContain('aria-label="Aucune conversation"')
     expect(html).toContain("Pas encore de message")
   })
@@ -364,6 +364,8 @@ describe("nextOpened : mémoire des conversations ouvertes", () => {
 })
 
 describe("rafraîchissement regroupé", () => {
+  afterEach(() => vi.useRealTimers())
+
   it("un INSERT et un UPDATE rapprochés ne déclenchent qu'un refresh", () => {
     vi.useFakeTimers()
     const refresh = vi.fn()
@@ -379,7 +381,23 @@ describe("rafraîchissement regroupé", () => {
     scheduler.cancel()
     vi.advanceTimersByTime(REFRESH_DELAY_MS * 2)
     expect(refresh).toHaveBeenCalledTimes(1)
-    vi.useRealTimers()
+  })
+})
+
+describe("pages d'erreur du segment [missionId]", () => {
+  it("la conversation introuvable porte un h2 et aucun h1 (le layout porte le h1)", async () => {
+    const { default: NotFound } = await import("@/app/(student)/messages/[missionId]/not-found")
+    const html = renderToStaticMarkup(<NotFound />)
+    expect(html).toContain("<h2")
+    expect(html).not.toContain("<h1")
+    expect(html).toContain('href="/messages"')
+  })
+
+  it("la page de conversation rend son erreur en h2 avec un lien de retour", () => {
+    const page = readFileSync(join(process.cwd(), "src/app/(student)/messages/[missionId]/page.js"), "utf8")
+    expect(page).toContain('titleAs="h2"')
+    expect(page).not.toContain('titleAs="h1"')
+    expect(page).toContain('action={{ href: "/messages", label: "Retour aux messages" }}')
   })
 })
 
