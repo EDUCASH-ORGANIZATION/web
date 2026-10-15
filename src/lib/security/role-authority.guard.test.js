@@ -19,6 +19,9 @@ const ADMIN_PAGES = ["dashboard", "verifications", "users", "missions", "wallets
   (name) => `src/app/(admin)/admin/${name}/page.js`
 )
 
+// Page admin sans donnée : simple redirection, sans aucun import applicatif (`@/`).
+const REDIRECT_ONLY_PAGES = ["src/app/(admin)/admin/page.js"]
+
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
     const full = path.join(dir, name)
@@ -35,11 +38,31 @@ function readsUserMetadata(source) {
   return /user_metadata/.test(stripComments(source))
 }
 
+function adminPageFiles() {
+  return walk(path.join(ROOT, "src/app/(admin)"))
+    .filter((f) => path.basename(f) === "page.js")
+    .map((f) => path.relative(ROOT, f))
+    .sort()
+}
+
+/**
+ * Une page admin est conforme si elle appelle requireRole(["admin"]), ou si toutes ses actions importées
+ * sont des admin-*.actions (gardées par requireAdminService), ou si c'est une redirection pure sans import `@/`.
+ */
+function isGuardedAdminPage(source, rel = "") {
+  const code = stripComments(source)
+  if (/getServerRole/.test(code)) return false
+  if (/requireRole\(\["admin"\]\)/.test(code)) return true
+  const actionImports = [...code.matchAll(/from\s+["']@\/lib\/actions\/([\w.-]+)["']/g)].map((m) => m[1])
+  if (actionImports.length > 0) return actionImports.every((name) => /^admin-[\w-]+\.actions$/.test(name))
+  return REDIRECT_ONLY_PAGES.includes(rel) && /redirect\(/.test(code) && !/from\s+["']@\//.test(code)
+}
+
 function guardedFiles() {
   const actions = walk(path.join(ROOT, "src/lib/actions")).filter(
     (f) => /\.(js|jsx)$/.test(f) && !/\.test\.(js|jsx)$/.test(f)
   )
-  const adminPages = ADMIN_PAGES.map((f) => path.join(ROOT, f))
+  const adminPages = adminPageFiles().map((f) => path.join(ROOT, f))
   return [...adminPages, ...FIXED_FILES.map((f) => path.join(ROOT, f)), ...actions]
 }
 
@@ -67,6 +90,32 @@ describe("garde-fou role-authority", () => {
       expect(source, rel).toMatch(/requireRole\(\["admin"\]\)/)
       expect(source, rel).not.toMatch(/getServerRole/)
     }
+  })
+
+  it("parcourt tous les page.js de (admin) et chacun est gardé côté serveur", () => {
+    const pages = adminPageFiles()
+    expect(pages).toEqual(expect.arrayContaining(ADMIN_PAGES))
+    const offenders = pages.filter((rel) => !isGuardedAdminPage(readFileSync(path.join(ROOT, rel), "utf8"), rel))
+    expect(offenders).toEqual([])
+  })
+
+  it("détecte une page admin sans garde et accepte une page conforme (fixtures en mémoire)", () => {
+    const unguarded = 'import { listUsers } from "@/lib/actions/admin.actions"\nexport default async function P() { return listUsers() }'
+    const mixed = 'import { a } from "@/lib/actions/admin-verifications.actions"\nimport { b } from "@/lib/actions/profile.actions"'
+    const noGuard = "export default function P() { return null }"
+    const roleGuarded = 'const auth = await requireRole(["admin"])'
+    const adminActions = 'import { a } from "@/lib/actions/admin-dashboard.actions"\nexport default function P() {}'
+    const commented = '// requireRole(["admin"])\nexport default function P() { return null }'
+    const legacy = 'const role = await getServerRole()\nawait requireRole(["admin"])'
+    expect(isGuardedAdminPage(unguarded)).toBe(false)
+    expect(isGuardedAdminPage(mixed)).toBe(false)
+    expect(isGuardedAdminPage(noGuard)).toBe(false)
+    expect(isGuardedAdminPage(commented)).toBe(false)
+    expect(isGuardedAdminPage(legacy)).toBe(false)
+    expect(isGuardedAdminPage(roleGuarded)).toBe(true)
+    expect(isGuardedAdminPage(adminActions)).toBe(true)
+    expect(isGuardedAdminPage('import { redirect } from "next/navigation"\nredirect("/x")', REDIRECT_ONLY_PAGES[0])).toBe(true)
+    expect(isGuardedAdminPage('import { redirect } from "next/navigation"\nredirect("/x")', "src/app/(admin)/admin/x/page.js")).toBe(false)
   })
 
   it("aucun user_metadata dans le code du middleware, des layouts et des actions", () => {
