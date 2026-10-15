@@ -104,6 +104,17 @@ describe("catalogue des notifications", () => {
     })
   })
 
+  it("payment_released : montant inconnu, nul ou négatif => titre générique, jamais « + 0 FCFA »", () => {
+    for (const amount of [undefined, null, 0, 0.4, -500, Number.NaN, Number.POSITIVE_INFINITY, "22000", {}]) {
+      const n = paymentReleased({ missionId: M, missionTitle: "Flyer", clientId: A, amount })
+      expect(n.title, String(amount)).toBe("Paiement reçu")
+      expect(n.title).not.toMatch(/FCFA|\d/)
+      expect(isValidNotification(n)).toBe(true)
+    }
+    expect(paymentReleased({ missionId: M, missionTitle: "Flyer", clientId: A, amount: 1 }).title)
+      .toBe(`Paiement reçu : ${formatAmount(1, { sign: "credit" })}`)
+  })
+
   it("chaque texte est vouvoyé, sans tiret cadratin ni mot banni", () => {
     const banned = new RegExp(`[${DASHES}]|fedapay|j'ai terminé|72 h|bientôt|livraison|\\btu\\b|\\btoi\\b|\\bton\\b|\\bta\\b|\\btes\\b`, "i")
     for (const n of allBuilt()) {

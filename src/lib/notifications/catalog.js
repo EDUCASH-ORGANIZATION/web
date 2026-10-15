@@ -151,11 +151,15 @@ export function missionCancelled({ missionId, missionTitle, clientId }) {
   })
 }
 
-/** À l'étudiant retenu : fonds libérés. `amount` est le montant renvoyé par la libération. */
+/**
+ * À l'étudiant retenu : fonds libérés. `amount` est le montant renvoyé par la libération ; s'il n'est pas un
+ * nombre fini strictement positif, le titre reste générique (aucun montant inventé, jamais « + 0 FCFA »).
+ */
 export function paymentReleased({ missionId, missionTitle, clientId, amount }) {
+  const known = typeof amount === "number" && Number.isFinite(amount) && Math.round(amount) > 0
   return build({
     type: "payment_released",
-    title: `Paiement reçu : ${formatAmount(amount, { sign: "credit" })}`,
+    title: known ? `Paiement reçu : ${formatAmount(amount, { sign: "credit" })}` : "Paiement reçu",
     body: `Le client a validé ${quoted(missionTitle)}.`,
     dedupeKey: `payment_released:${missionId}`,
     missionId,

@@ -713,6 +713,13 @@ describe("notifications in-app (RD-NOTIF-01)", () => {
       expect(input.title).toMatch(/^Paiement reçu : \+22\s000\sFCFA$/u)
     })
 
+    it("montant absent dans la réponse de libération : titre générique, sans montant inventé", async () => {
+      createServiceClient.mockReturnValue(done({ data: { success: true }, error: null }).client)
+      expect(await confirmMission(MISSION_ID)).toEqual({ success: true, amountStudent: 0 })
+      expect(notify).toHaveBeenCalledTimes(1)
+      expect(notify.mock.calls[0][0].title).toBe("Paiement reçu")
+    })
+
     it("la notification précède l'email", async () => {
       const order = []
       notify.mockImplementation(async () => { order.push("notify"); return { ok: true } })

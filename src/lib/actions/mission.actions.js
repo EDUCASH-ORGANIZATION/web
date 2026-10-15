@@ -365,7 +365,8 @@ export async function confirmMission(missionId) {
         missionId,
         missionTitle: mission.title,
         clientId: mission.client_id,
-        amount: amountStudent,
+        // Montant brut de la libération (pas le repli à 0) : le catalogue omet un montant inconnu.
+        amount: release.data.amount_student,
       }),
     })
   } catch (notifyErr) {
