@@ -1951,6 +1951,49 @@ describe("admin : barre d'action fixe, en-tete de sous-page et coquille", () => 
     expect(ad02).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.a2-02-img \{ transition: none; \}/)
   })
 
+  it("AD02 planche v1 : bouton principal bleu par a2-02-cta seulement, la regle encre commune reste vraie", () => {
+    const ad02 = stripComments(read("admin/ad02.css"))
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.a2-02-cta \{[^}]*background: var\(--c-bleu\);[^}]*color: var\(--c-blanc\);/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.a2-02-cta:hover \{[^}]*background: var\(--c-bleu-700\)/)
+    expect(ad02).not.toMatch(/\.btn--primary/)
+    expect(ADMIN_BASE).toMatch(/\.a2 \.btn--primary \{ background: var\(--c-encre\); color: var\(--c-blanc\); \}/)
+    const colors = parseColorTokens(read("tokens.css"))
+    expect(contrastRatio(colors["--c-blanc"], colors["--c-bleu"])).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(colors["--c-blanc"], colors["--c-bleu-700"])).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it("AD02 planche v1 : ligne ouverte lavande, pastille contour, legende bleue, bandeaux succes et alerte", () => {
+    const ad02 = stripComments(read("admin/ad02.css"))
+    expect(ad02).toMatch(/\.a2-02-row\[aria-current="true"\] \{[^}]*background: var\(--c-lavande\)/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.badge--contour \{ border: 1px solid var\(--c-encre\); \}/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.ad-legend b \{ background: var\(--c-bleu\); \}/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.banner--succes \{ background: var\(--c-succes-bg\)/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.banner--alerte \{ background: var\(--c-alerte-bg\)/)
+    const colors = parseColorTokens(read("tokens.css"))
+    for (const [fg, bg] of [["--c-encre", "--c-lavande"], ["--c-ardoise", "--c-lavande"], ["--c-encre", "--c-succes-bg"], ["--c-encre", "--c-alerte-bg"], ["--c-encre", "--c-citron"]]) {
+      expect(contrastRatio(colors[fg], colors[bg]), `${fg} sur ${bg}`).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it("AD02 planche v1 : la frise reprend le style v1 sous .a2 .a2-02, plus specifique que ad07.css", () => {
+    const ad02 = stripComments(read("admin/ad02.css"))
+    const ad07 = stripComments(read("admin/ad07.css"))
+    expect(ad07).toMatch(/\.a2 \.tl-item\.is-done \.tl-item__dot \{/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.tl-item\.is-done \.tl-item__dot \{[^}]*background: var\(--c-encre\);[^}]*color: var\(--c-citron\)/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.tl-item\.is-current \.tl-item__dot \{[^}]*background: var\(--c-citron\);[^}]*color: var\(--c-encre\)/)
+    expect(ad02).toMatch(/\.a2 \.a2-02 \.tl-item\.is-error \.tl-item__dot \{[^}]*background: var\(--c-erreur-bg\)/)
+    expect(ad02).not.toMatch(/(^|\n)\.tl-item/)
+  })
+
+  it("AD02 planche v1 : cibles de 44 px sous 1024, decisions dans la barre fixe, pas de couleur en dur", () => {
+    const ad02 = stripComments(read("admin/ad02.css"))
+    const tablet = tabletOf(ad02)
+    expect(tablet).toContain(".a2 .a2-02 .switch { min-height: 44px; }")
+    expect(tablet).toContain(".a2 .a2-02 .a2-02-cta { min-height: 44px; }")
+    expect(tablet).toContain(".a2-02-actions__btns { display: none; }")
+    expect(ad02).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/)
+  })
+
   it("couleurs semantiques : les anomalies restent en citron/erreur par tokens, jamais d'accent hors tokens", () => {
     const colors = parseColorTokens(read("tokens.css"))
     expect(contrastRatio(colors["--c-ardoise"], colors["--c-blanc"])).toBeGreaterThanOrEqual(4.5)
