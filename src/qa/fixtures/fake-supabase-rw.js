@@ -116,6 +116,11 @@ export function makeRW(ctx) {
           const inserted = []
           for (const p of list) {
             const row = { id: `00000000-0000-4000-8000-${String(++seq).padStart(12, "0")}`, created_at: new Date().toISOString(), ...p }
+            // upsert(..., { onConflict, ignoreDuplicates: true }) : ON CONFLICT (cols) DO NOTHING, rien n'est écrit.
+            if (q.ignoreDuplicates && q.onConflict) {
+              const cols = q.onConflict.split(",").map((c) => c.trim())
+              if ((ctx.db[table] ?? []).some((r) => cols.every((k) => r[k] === row[k]))) continue
+            }
             const key = ctx.unique?.[table]
             if (key && (ctx.db[table] ?? []).some((r) => key.every((k) => r[k] === row[k]))) {
               if (q.op === "upsert") { Object.assign((ctx.db[table]).find((r) => key.every((k) => r[k] === row[k])), p); continue }
@@ -132,7 +137,7 @@ export function makeRW(ctx) {
           const rows = matching()
           ctx.writes.push({ table, op: "update", payload: q.payload, filters: q.filters, matched: rows.length })
           for (const r of rows) Object.assign(r, q.payload)
-          return { data: null, error: null, count: null }
+          return { data: null, error: null, count: q.count ? rows.length : null }
         }
         if (q.op === "delete") {
           const rows = matching()
@@ -173,8 +178,8 @@ export function makeRW(ctx) {
         limit: (n) => ((q.limit = n), b),
         range: (a, z) => ((q.range = [a, z]), b),
         insert: (p) => ((q.op = "insert"), (q.payload = p), b),
-        upsert: (p) => ((q.op = "upsert"), (q.payload = p), b),
-        update: (p) => ((q.op = "update"), (q.payload = p), b),
+        upsert: (p, o) => ((q.op = "upsert"), (q.payload = p), (q.onConflict = o?.onConflict ?? null), (q.ignoreDuplicates = o?.ignoreDuplicates === true), b),
+        update: (p, o) => ((q.op = "update"), (q.payload = p), (q.count = o?.count ?? null), b),
         delete: () => ((q.op = "delete"), b),
         maybeSingle: () => run(true),
         single: () => run(true),

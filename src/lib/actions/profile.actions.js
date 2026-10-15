@@ -9,6 +9,7 @@ import { CITIES } from "@/lib/supabase/database.constants"
 import { parseBeninPhone } from "@/lib/utils/phone"
 import { SKILLS_MAX, validateStudentProfile } from "@/lib/student-space/profile-rules"
 import { firstName } from "@/lib/vitrine/public-name"
+import { ensureOwnStudentRow, logCardStepError, setOwnCardPath } from "@/lib/actions/student-card-write"
 
 // Colonnes de la ligne de l'appelant, lues côté serveur : les colonnes privées (phone,
 // rejection_reason, verification_submitted_at, card_url) ne sont plus lisibles avec la session.
@@ -333,15 +334,19 @@ export async function saveStudentCardUrl(cardUrl) {
       .update({ is_verified: false })
       .eq("user_id", user.id)
     if (dropError) {
-      console.error("[saveStudentCardUrl]", dropError.message)
+      logCardStepError("saveStudentCardUrl", "drop_badge", dropError)
       return { error: fail }
     }
 
-    const { error: updateError } = await supabase
-      .from("student_profiles")
-      .upsert({ user_id: user.id, card_url: cardPath }, { onConflict: "user_id" })
+    // Pas d'upsert portant la carte : il lirait EXCLUDED.card_url, colonne privée non lisible par la session (42501).
+    const { error: rowError } = await ensureOwnStudentRow(supabase, user.id)
+    if (rowError) {
+      logCardStepError("saveStudentCardUrl", "ensure_row", rowError)
+      return { error: fail }
+    }
+    const { error: updateError } = await setOwnCardPath(supabase, user.id, cardPath)
     if (updateError) {
-      console.error("[saveStudentCardUrl]", updateError.message)
+      logCardStepError("saveStudentCardUrl", "set_card_path", updateError)
       return { error: fail }
     }
 
@@ -354,7 +359,7 @@ export async function saveStudentCardUrl(cardUrl) {
       })
       .eq("user_id", user.id)
     if (resetError) {
-      console.error("[saveStudentCardUrl]", resetError.message)
+      logCardStepError("saveStudentCardUrl", "reset_pending", resetError)
       return { error: fail }
     }
 

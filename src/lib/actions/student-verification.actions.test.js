@@ -170,12 +170,15 @@ describe("saveStudentCardUrl : chemin hors du dossier de l'utilisateur", () => {
 
   it("accepte un chemin du dossier de l'utilisateur", async () => {
     upsert.mockResolvedValue({ error: null })
-    const eq = vi.fn().mockResolvedValue({ error: null })
+    const eq = vi.fn().mockResolvedValue({ error: null, count: 1 })
     update.mockReturnValue({ eq })
     const write = { from: vi.fn(() => ({ upsert, update })) }
     requireRole.mockResolvedValue({ supabase: write, user: { id: "u1" }, role: "student", profile: {} })
     const { saveStudentCardUrl } = await import("./profile.actions")
     expect(await saveStudentCardUrl("u1/carte-1.jpg")).toEqual({ success: true })
-    expect(upsert).toHaveBeenCalledWith({ user_id: "u1", card_url: "u1/carte-1.jpg" }, { onConflict: "user_id" })
+    // La carte n'est jamais dans un upsert (EXCLUDED.card_url exigerait SELECT sur une colonne privée, RD-FIX-15).
+    expect(upsert).toHaveBeenCalledWith({ user_id: "u1" }, { onConflict: "user_id", ignoreDuplicates: true })
+    expect(update).toHaveBeenCalledWith({ card_url: "u1/carte-1.jpg" }, { count: "exact" })
+    expect(eq).toHaveBeenCalledWith("user_id", "u1")
   })
 })

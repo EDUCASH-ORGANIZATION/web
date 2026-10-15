@@ -106,15 +106,23 @@ describe("getMyStudentProfile", () => {
 const LEAK = 'duplicate key value violates constraint "profiles_pkey"'
 const SUPABASE_URL = "https://proj.supabase.co"
 
+// `captured[table]` : état cumulé des colonnes écrites sur la ligne de l'appelant (plusieurs écritures successives
+// sur une même table se cumulent, comme dans la base). `captured.last[table]` : dernière écriture seule, pour vérifier
+// qu'une valeur précise vient bien de l'écriture finale et non d'une écriture précédente.
 function session({ failOn, captured } = {}) {
   const result = (table) => ({ error: table === failOn ? { message: LEAK } : null })
+  const record = (table, payload) => {
+    if (!captured) return
+    captured[table] = { ...captured[table], ...payload }
+    captured.last = { ...captured.last, [table]: payload }
+  }
   const chain = (table) => ({
     update: (payload) => {
-      if (captured) captured[table] = payload
-      return { eq: () => Promise.resolve(result(table)) }
+      record(table, payload)
+      return { eq: () => Promise.resolve({ ...result(table), count: table === failOn ? null : 1 }) }
     },
     upsert: (payload) => {
-      if (captured) captured[table] = payload
+      record(table, payload)
       return Promise.resolve(result(table))
     },
   })
@@ -131,20 +139,25 @@ beforeEach(() => {
 
 describe("écritures de profil", () => {
   const input = { fullName: "Awa", city: "Cotonou", phone: "01 97 45 21 08" }
+  // Dernière colonne : ligne journalisée exacte (arguments de console.error). Pour la carte, la session de test
+  // échoue sur la première écriture de la table visée : « carte » échoue d'abord à ensure_row (upsert de
+  // student_profiles) et « remise en attente » (failOn profiles) échoue d'abord à drop_badge, première écriture de
+  // profiles. Le faux client n'émet pas de code PostgreSQL, d'où code=none.
   const cases = [
-    ["updateStudentProfile (profil)", () => updateStudentProfile(input), "profiles"],
-    ["updateStudentProfile (étudiant)", () => updateStudentProfile(input), "student_profiles"],
-    ["saveStudentCardUrl (carte)", () => saveStudentCardUrl("u1/c.jpg"), "student_profiles"],
-    ["saveStudentCardUrl (remise en attente)", () => saveStudentCardUrl("u1/c.jpg"), "profiles"],
-    ["updateClientProfile", () => updateClientProfile(input), "profiles"],
+    ["updateStudentProfile (profil)", () => updateStudentProfile(input), "profiles", ["[updateStudentProfile]", LEAK]],
+    ["updateStudentProfile (étudiant)", () => updateStudentProfile(input), "student_profiles", ["[updateStudentProfile]", LEAK]],
+    ["saveStudentCardUrl (carte)", () => saveStudentCardUrl("u1/c.jpg"), "student_profiles", [`[saveStudentCardUrl] step=ensure_row code=none ${LEAK}`]],
+    ["saveStudentCardUrl (remise en attente)", () => saveStudentCardUrl("u1/c.jpg"), "profiles", [`[saveStudentCardUrl] step=drop_badge code=none ${LEAK}`]],
+    ["updateClientProfile", () => updateClientProfile(input), "profiles", ["[updateClientProfile]", LEAK]],
   ]
 
-  it.each(cases)("%s renvoie un message neutre et journalise le détail", async (_n, call, failOn) => {
+  it.each(cases)("%s renvoie un message neutre et journalise le détail", async (_n, call, failOn, expected) => {
     asRole(session({ failOn }))
     const res = await call()
     expect(res.error).toBeTruthy()
     expect(res.error).not.toContain(LEAK)
-    expect(console.error).toHaveBeenCalledWith(expect.any(String), LEAK)
+    // Le détail est journalisé côté serveur, sur une ligne exacte.
+    expect(console.error).toHaveBeenCalledWith(...expected)
   })
 
   it("exige le rôle étudiant ou client selon l'action, sans écrire en cas de refus", async () => {
@@ -253,6 +266,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     expect(await saveStudentCardUrl(value)).toEqual({ success: true })
     expect(captured.student_profiles).toEqual({ user_id: "u1", card_url: expected })
     expect(captured.profiles.is_verified).toBe(false)
+    expect(captured.last.profiles).toMatchObject({ is_verified: false })
   })
 
   it("saveStudentCardUrl remet le dossier en attente : liste blanche, jamais role, is_suspended ni verified_until", async () => {
@@ -261,6 +275,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     expect(await saveStudentCardUrl("u1/card.jpg")).toEqual({ success: true })
     expect(Object.keys(captured.profiles).sort()).toEqual(["is_verified", "rejection_reason", "verification_submitted_at"])
     expect(captured.profiles).toMatchObject({ is_verified: false, rejection_reason: null })
+    expect(captured.last.profiles).toMatchObject({ is_verified: false, rejection_reason: null })
     expect(Date.parse(captured.profiles.verification_submitted_at)).not.toBeNaN()
     for (const col of ["role", "is_suspended", "verified_until"]) {
       expect(captured.profiles).not.toHaveProperty(col)
@@ -285,13 +300,14 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     const order = []
     const supabase = {
       from: (table) => ({
-        update: () => ({ eq: () => { order.push(`update:${table}`); return Promise.resolve({ error: null }) } }),
+        update: () => ({ eq: () => { order.push(`update:${table}`); return Promise.resolve({ error: null, count: 1 }) } }),
         upsert: () => { order.push(`upsert:${table}`); return Promise.resolve({ error: null }) },
       }),
     }
     asRole(supabase)
     expect(await saveStudentCardUrl("u1/card.jpg")).toEqual({ success: true })
-    expect(order).toEqual(["update:profiles", "upsert:student_profiles", "update:profiles"])
+    // Ligne garantie (upsert sans la carte), puis carte écrite par UPDATE simple, entre le retrait du badge et le jeton.
+    expect(order).toEqual(["update:profiles", "upsert:student_profiles", "update:student_profiles", "update:profiles"])
   })
 
   it("saveStudentCardUrl : remise en attente en échec, la carte n'est jamais écrite (état sûr)", async () => {
@@ -300,7 +316,7 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     const res = await saveStudentCardUrl("u1/card.jpg")
     expect(res).toEqual({ error: "Impossible d'enregistrer votre carte étudiante." })
     expect(captured).not.toHaveProperty("student_profiles")
-    expect(console.error).toHaveBeenCalledWith("[saveStudentCardUrl]", LEAK)
+    expect(console.error).toHaveBeenCalledWith(`[saveStudentCardUrl] step=drop_badge code=none ${LEAK}`)
   })
 
   it("saveStudentCardUrl : écriture de la carte en échec après le retrait du badge, erreur neutre vouvoyée", async () => {
@@ -317,12 +333,13 @@ describe("carte étudiante : chemin du bucket student-cards", () => {
     const payloads = []
     let n = 0
     const supabase = {
-      from: () => ({
+      from: (table) => ({
         update: (p) => ({
           eq: () => {
+            if (table !== "profiles") return Promise.resolve({ error: null, count: 1 })
             payloads.push(p)
             n += 1
-            return Promise.resolve({ error: n === 2 ? { message: LEAK } : null })
+            return Promise.resolve({ error: n === 2 ? { message: LEAK } : null, count: 1 })
           },
         }),
         upsert: () => Promise.resolve({ error: null }),
