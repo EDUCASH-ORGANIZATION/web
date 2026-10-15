@@ -243,6 +243,17 @@
 .shell--v2 .page2 { padding: 0 0 var(--s-4); gap: var(--s-5); }
 .shell--v2 .head2__title { font-size: 38px; }
 
+/* D. Navigation fixe pendant le défilement du contenu (RD-FIX-11).
+   Cause : .shell__frame (grid, overflow: hidden) grandit avec le contenu et la page entière défile ;
+   la sidebar, étirée à la hauteur du contenu, partait avec lui, et overflow: hidden empêche tout sticky.
+   `overflow: clip` garde le rognage arrondi sans créer de conteneur de défilement. La sidebar est collée
+   à la fenêtre (hauteur 100dvh moins marges, défilement interne), la barre du haut reste en haut ;
+   l'en-tête mobile (affiché sous 1024) reste en haut et la barre du bas est déjà en position fixed. */
+.shell--v2 .shell__frame { overflow: clip; }
+.shell--v2 .sidebar { position: sticky; top: calc(var(--s-4) + 2px + var(--s-3)); align-self: start; height: calc(100dvh - 2 * (var(--s-4) + 2px + var(--s-3))); overflow-y: auto; overscroll-behavior: contain; }
+.shell--v2 .top2 { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--c-blanc); }
+.shell--v2 .mtop2 { position: sticky; top: 0; z-index: var(--z-sticky); background: var(--c-givre); }
+
 /* Cartes génériques */
 .card2 { background: var(--c-blanc); border: 1px solid var(--c-ligne); padding: var(--s-7) var(--s-8); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .duo2 { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr); gap: var(--s-5); }
