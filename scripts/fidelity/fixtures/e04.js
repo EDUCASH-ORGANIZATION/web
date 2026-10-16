@@ -50,6 +50,6 @@ export const screens = [
     path: "/applications",
     view: "@/components/student-space/applications/applications-view",
     component: "StudentApplicationsView",
-    props: { result: { data: DATA }, unreadByMission: { m1: { at: "2026-10-08T09:12:00+01:00" } }, now: NOW, paymentsEnabled: true },
+    props: { result: { data: DATA }, unreadByMission: { m1: { at: "2026-10-08T09:12:00+01:00", state: "candidate" } }, now: NOW, paymentsEnabled: true },
   },
 ]

@@ -22,14 +22,15 @@ const NOW = new Date("2026-10-08T14:32:00+01:00")
 const render = (d, props = {}) =>
   renderToStaticMarkup(<StudentApplicationsView result={{ data: d }} now={NOW} paymentsEnabled {...props} />).replace(/[  ]/g, " ")
 const BAD = /NaN|Invalid Date|undefined|\[object/
+const text = (html) => html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'")
 
 describe("Répondre à <prénom>", () => {
-  const unread = { m1: { at: "2026-10-08T09:12:00+01:00" } }
+  const unread = { m1: { at: "2026-10-08T09:12:00+01:00", state: "candidate" } }
 
   it("présent seulement si la mission est dans unreadByMission", () => {
     expect(render(data(), { unreadByMission: unread })).toContain("Répondre à Rosine")
     expect(render(data(), { unreadByMission: {} })).not.toContain("Répondre")
-    expect(render(data(), { unreadByMission: { autre: { at: "2026-10-08T09:12:00+01:00" } } })).not.toContain("Répondre")
+    expect(render(data(), { unreadByMission: { autre: { at: "2026-10-08T09:12:00+01:00", state: "candidate" } } })).not.toContain("Répondre")
     expect(render(data())).not.toContain("Répondre")
     expect(render(data(), { unreadByMission: null })).not.toContain("Répondre")
   })
@@ -66,13 +67,15 @@ describe("Répondre à <prénom>", () => {
 })
 
 describe("heures", () => {
-  const unreadAt = (at) => ({ m1: { at } })
+  const unreadAt = (at) => ({ m1: { at, state: "candidate" } })
 
-  it("heure invalide, absente ou nulle : pas de « Répondre », pas de NaN", () => {
+  it("date du non lu invalide, absente ou nulle : « Message non lu de <prénom> », jamais de jour ni d'heure inventés", () => {
     for (const at of ["pas une date", "", undefined, null, "2026-13-45T99:99:00Z"]) {
       const html = render(data(), { unreadByMission: unreadAt(at) })
       expect(html).not.toMatch(BAD)
-      expect(html).not.toContain("Répondre")
+      expect(html).toContain("Message non lu de Rosine")
+      expect(html).not.toContain("vous a écrit")
+      expect(html).toContain("Répondre à Rosine")
     }
   })
 
@@ -80,7 +83,7 @@ describe("heures", () => {
     for (const at of ["2027-01-01T10:00:00+01:00", "2026-10-07T23:59:00+01:00", "2025-01-01T10:00:00+01:00"]) {
       const html = render(data(), { unreadByMission: unreadAt(at) })
       expect(html).not.toMatch(BAD)
-      expect(html).toContain("vous a écrit à")
+      expect(text(html)).toMatch(/Rosine vous a écrit (aujourd'hui|hier|le .+) à \d{1,2}:\d{2}/)
     }
   })
 
@@ -88,15 +91,15 @@ describe("heures", () => {
     const cases = {
       "n'importe quoi": /Retenue(?! )/,
       "": /Retenue(?! )/,
-      "2026-10-07T17:40:00+01:00": /Retenue hier à 17:40/,
-      "2026-10-08T09:12:00+01:00": /Retenue aujourd&#x27;hui à 9:12/,
-      "2027-03-01T10:00:00+01:00": /Retenue le .+ à 10:00/,
-      "2024-01-01T10:00:00+01:00": /Retenue le .+ à 10:00/,
+      "2026-10-07T17:40:00+01:00": /Retenue hier 17:40/,
+      "2026-10-08T09:12:00+01:00": /Retenue aujourd'hui 9:12/,
+      "2027-03-01T10:00:00+01:00": /Retenue le .+ 10:00/,
+      "2024-01-01T10:00:00+01:00": /Retenue le .+ 10:00/,
     }
     for (const [acceptedAt, expected] of Object.entries(cases)) {
       const html = render(data({ highlight: highlight({ acceptedAt }) }))
       expect(html).not.toMatch(BAD)
-      expect(html).toMatch(expected)
+      expect(text(html)).toMatch(expected)
     }
     expect(render(data({ highlight: highlight({ acceptedAt: undefined }) }))).not.toMatch(BAD)
     expect(render(data({ highlight: highlight({ acceptedAt: null }) }))).not.toMatch(BAD)
@@ -105,12 +108,12 @@ describe("heures", () => {
   it("fuseau Bénin (UTC+1) : 23:30 UTC s'affiche à 00:30 le lendemain", () => {
     const now = new Date("2026-10-09T10:00:00+01:00")
     const html = render(data({ highlight: highlight({ acceptedAt: "2026-10-08T23:30:00Z" }) }), { now })
-    expect(html).toMatch(/Retenue aujourd&#x27;hui à 0?0:30/)
+    expect(text(html)).toMatch(/Retenue aujourd'hui 0:30/)
     // Vue de la veille : à 22:30 UTC la veille, l'heure béninoise est 23:30, jour d'avant
     const veille = render(data({ highlight: highlight({ acceptedAt: "2026-10-08T22:30:00Z" }) }), { now })
-    expect(veille).toMatch(/Retenue aujourd&#x27;hui à 23:30|Retenue hier à 23:30/)
-    const note = render(data(), { now, unreadByMission: { m1: { at: "2026-10-08T23:30:00Z" } } })
-    expect(note).toMatch(/vous a écrit à 0?0:30/)
+    expect(text(veille)).toMatch(/Retenue hier 23:30/)
+    const note = render(data(), { now, unreadByMission: { m1: { at: "2026-10-08T23:30:00Z", state: "candidate" } } })
+    expect(text(note)).toContain("Rosine vous a écrit aujourd'hui à 0:30")
   })
 })
 
@@ -187,7 +190,7 @@ describe("confidentialité et libellés", () => {
       tab: "en-cours", counts: { ...COUNTS, "en-cours": 1 }, rows: [row({ ...leaky, status: "accepted", missionStatus: "in_progress" })],
       highlight: highlight(leaky),
     })
-    const html = render(d, { unreadByMission: { m1: { at: "2026-10-08T09:12:00+01:00" } } })
+    const html = render(d, { unreadByMission: { m1: { at: "2026-10-08T09:12:00+01:00", state: "candidate" } } })
     expect(html).not.toMatch(/client@secret|secret\.test|22997000000|c-uuid-123|mailto:|tel:/)
     for (const href of html.match(/href="[^"]*"/g)) expect(href).not.toMatch(/c-uuid|@|\+229/)
   })
@@ -195,7 +198,7 @@ describe("confidentialité et libellés", () => {
   it("aucun « Retirer » ni « retirées », un seul h1, sur tous les onglets", () => {
     for (const tab of ["en-attente", "en-cours", "terminees", "non-retenues"]) {
       for (const rows of [[], [row({ status: "accepted", missionStatus: "done" }), row({ id: "a2", missionId: null })]]) {
-        const html = render(data({ tab, rows, highlight: highlight() }), { unreadByMission: { m1: { at: "2026-10-08T09:12:00+01:00" } } })
+        const html = render(data({ tab, rows, highlight: highlight() }), { unreadByMission: { m1: { at: "2026-10-08T09:12:00+01:00", state: "candidate" } } })
         expect(html).not.toMatch(/Retirer|retirées/)
         expect(html.match(/<h1\b/g)).toHaveLength(1)
       }

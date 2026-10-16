@@ -100,7 +100,7 @@
             "w": "A2:10",
             "bg": "X1"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : étiquette 12 -> 13 px, largeur +10 mesuré ; X1 sur bg : vert de la charte #C1EE3E (--c-citron) au lieu de #C8F03C de la planche, absent de la table A1 du banc (compare.mjs hors périmètre de ST-11) : à ajouter à A1 par l'orchestrateur"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : étiquette 12 -> 13 px, largeur +10 mesuré ; X1 sur bg : vert de la charte #C1EE3E (--c-citron) au lieu de #C8F03C de la planche, absent de la table A1 du banc (compare.mjs hors périmètre de ST-11)"
         },
         {
           "id": "CA-02",
@@ -211,9 +211,9 @@
           ],
           "assume": {
             "y": "A3:4",
-            "h": "A2:4"
+            "h": "A2+X1:25"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : texte secondaire 13 -> 14 px, +1 par ligne sur trois lignes plus +1 d'arrondi, hauteur +4 mesuré"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : texte secondaire 13 -> 14 px (+1 par ligne, +3 sur trois lignes) ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px (+22), +25 mesuré"
         },
         {
           "id": "CA-01",
@@ -229,9 +229,10 @@
             "cols"
           ],
           "assume": {
-            "y": "A3:4"
+            "y": "A3:4",
+            "h": "X1:22"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px, hauteur +22 mesuré"
         },
         {
           "id": "CA-01",
@@ -245,9 +246,9 @@
             "radius"
           ],
           "assume": {
-            "y": "A3:4"
+            "y": "A3+X1:14"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11"
         },
         {
           "id": "CA-01",
@@ -260,9 +261,9 @@
             "fontWeight"
           ],
           "assume": {
-            "y": "A3:4"
+            "y": "A3+X1:14"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11"
         },
         {
           "id": "CA-01",
@@ -274,9 +275,9 @@
             "fontSize"
           ],
           "assume": {
-            "y": "A3:3"
+            "y": "A3+X1:14"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11"
         },
         {
           "id": "CA-01",
@@ -290,9 +291,10 @@
             "gap"
           ],
           "assume": {
-            "y": "A3:4"
+            "y": "A3:4",
+            "h": "X1:22"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px, hauteur +22 mesuré"
         },
         {
           "id": "CA-01",
@@ -305,10 +307,10 @@
             "h"
           ],
           "assume": {
-            "y": "A3:3",
+            "y": "A3+X1:14",
             "h": "A2:2"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : deux lignes de 13 -> 14 px, hauteur +2 mesuré"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11 ; A2 : deux lignes de 13 -> 14 px, hauteur +2 mesuré"
         },
         {
           "id": "CA-04",
@@ -322,9 +324,9 @@
             "gap"
           ],
           "assume": {
-            "y": "A3:4"
+            "y": "A3+X1:15"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11"
         },
         {
           "id": "CA-04",
@@ -338,9 +340,9 @@
           ],
           "assume": {
             "x": "A8:59",
-            "y": "A3:4"
+            "y": "A3+X1:15"
           },
-          "note": "A8 : le lien « Retirer » est omis (non codé, D4, plan CA-04) et les liens sont alignés à droite : « Voir » se décale de la largeur de « Retirer » + gap, +59 mesuré ; A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+          "note": "A8 : le lien « Retirer » est omis (non codé, D4, plan CA-04) et les liens sont alignés à droite : « Voir » se décale de la largeur de « Retirer » + gap, +59 mesuré ; A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11"
         }
       ]
     },
@@ -418,10 +420,9 @@
           ],
           "code": ".e2-04-hl",
           "assume": {
-            "y": "L3:12",
-            "h": "X1:21"
+            "y": "L3:12"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2), +21 mesuré"
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12)"
         },
         {
           "id": "CA-02",
@@ -438,10 +439,10 @@
           "code": ".e2-04-hl .flag2",
           "assume": {
             "y": "L3:12",
-            "w": "A2:13",
+            "w": "A2:9",
             "bg": "X1"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; A2 : étiquette 12 -> 13 px, largeur +13 mesuré ; X1 sur bg : vert de la charte #C1EE3E (--c-citron) au lieu de #C8F03C de la planche, absent de la table A1 du banc (compare.mjs hors périmètre de ST-11) : à ajouter à A1 par l'orchestrateur"
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; A2 : étiquette 12 -> 13 px, largeur +9 mesuré ; X1 sur bg : vert de la charte #C1EE3E (--c-citron) au lieu de #C8F03C de la planche, absent de la table A1 du banc (compare.mjs hors périmètre de ST-11)"
         },
         {
           "id": "CA-02",
@@ -473,10 +474,9 @@
           ],
           "code": ".e2-04-hl .hero2__text",
           "assume": {
-            "y": "L3:11",
-            "h": "X1:21"
+            "y": "L3:11"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; moins 1 px d'arrondi du titre au-dessus (+11 mesuré) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2), +21 mesuré"
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; moins 1 px d'arrondi du titre au-dessus (+11 mesuré)"
         },
         {
           "id": "CA-02",
@@ -492,9 +492,9 @@
           ],
           "code": ".e2-04-hl .btn--dark",
           "assume": {
-            "y": "L3+X1:32"
+            "y": "L3:11"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2) (+21), moins arrondis"
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; moins 1 px d'arrondi cumulé (titre, texte) : +11 mesuré"
         },
         {
           "id": "CA-03",
@@ -508,9 +508,9 @@
             "gap"
           ],
           "assume": {
-            "y": "L3+X1:32"
+            "y": "L3:11"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2) (+21), moins arrondis"
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; moins 1 px d'arrondi cumulé (titre, texte) : +11 mesuré"
         },
         {
           "id": "CA-03",
@@ -525,9 +525,9 @@
             "fontWeight"
           ],
           "assume": {
-            "y": "L3+X1:32"
+            "y": "L3:11"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2) (+21), moins arrondis"
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; moins 1 px d'arrondi cumulé (titre, texte) : +11 mesuré"
         },
         {
           "id": "CA-06",
@@ -554,10 +554,10 @@
           ],
           "code": ".e2-04-row",
           "assume": {
-            "y": "L3+X1:33",
+            "y": "L3:12",
             "w": "X1:2"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2) (+21), moins arrondis ; X1 : la planche mobile affiche une carte e2-mcard à bordure propre, le code garde la ligne repliée de la liste (un seul gabarit, contrainte du garde app-css e2list) : -2 mesuré (bordures de la liste)"
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) (+12 mesuré, sans arrondi cumulé : la ligne suit la liste) ; X1 : la planche mobile affiche une carte e2-mcard à bordure propre, le code garde la ligne repliée de la liste (un seul gabarit, contrainte du garde app-css e2list) : -2 mesuré (bordures de la liste)"
         }
       ]
     }

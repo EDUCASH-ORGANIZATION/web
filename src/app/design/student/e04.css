@@ -13,7 +13,8 @@
 .e2-04-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) 196px 164px 244px; align-items: center; gap: var(--s-4); padding: 18px var(--s-6); }
 .e2-04-row + .e2-04-row { border-top: 1px solid var(--c-ligne-2); }
 .e2-04-status { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; font-size: var(--t-caption); color: var(--c-ardoise); white-space: nowrap; min-width: 0; }
-.e2-04-status > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+/* La ligne de statut passe à la ligne plutôt que de couper le jour et l'heure d'un message non lu */
+.e2-04-status > span:last-child { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .e2-04-gain { display: flex; flex-direction: column; gap: 2px; font-size: var(--t-caption); color: var(--c-ardoise); white-space: nowrap; }
 .e2-04-gain .e2-amount { font-size: 15px; color: var(--c-encre); }
 .e2-04-acts { display: flex; justify-content: flex-end; align-items: center; gap: var(--s-4); white-space: nowrap; }
@@ -23,6 +24,10 @@
 .e2-04-macts .e2-link { min-height: 44px; }
 /* Textes de la carte « Retenue » : variantes bureau et mobile de la planche (titre de la mission en tête sous 1024 px) */
 .e2-04-hl__what { display: none; }
+/* Séparateur du jour et de l'heure : « à » au bureau, « · » sur la planche mobile */
+.e2-04-hl__at::before { content: " à "; }
+/* Titre de la mission sur une seule ligne (mobile), tronqué par des points de suspension */
+.e2-04-hl__title { display: inline-block; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 /* Toast sans accent citron (le citron reste la carte « Retenue ») */
 .e2-04-toast .toast__icon { background: var(--c-encre-700); color: var(--c-blanc); }
 .e2-04-toast .toast__action { color: var(--c-blanc); }
@@ -39,6 +44,7 @@
   .detail-head__actions:has(> .e2-04-explore) { display: none; }
   .e2-04-hl__for, .e2-04-hl__long, .e2-04-total { display: none; }
   .e2-04-hl__what { display: inline; }
+  .e2-04-hl__at::before { content: " · "; }
   /* « Voir » (27 px de large) : zone tactile de 44 px, alignement et espacement inchangés */
   .e2-04-acts .e2-link { min-width: 44px; }
 }

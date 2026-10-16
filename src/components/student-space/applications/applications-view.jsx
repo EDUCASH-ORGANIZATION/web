@@ -2,6 +2,7 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { PageHead } from "@/components/app-ui/page-head"
+import { TabsNav } from "@/components/app-ui/tabs-nav"
 import { StatusBadge } from "@/components/app-ui/status-badge"
 import { EmptyState } from "@/components/app-ui/empty-state"
 import { ErrorState } from "@/components/app-ui/state-block"
@@ -10,6 +11,7 @@ import { splitAmount } from "@/components/app-ui/amount"
 import { COMMISSION_RATE, missionTypeLabel } from "@/lib/constants/missions"
 import { TYPE_ICON } from "@/lib/vitrine/mission-icons"
 import { formatAmount, formatShortDate } from "@/lib/app/format"
+import { dayOf, formatClock } from "@/lib/client-space/conversations"
 import { applicationStatusView } from "@/lib/app/application-status"
 import { missionStatusView } from "@/lib/app/mission-status"
 import {
@@ -26,30 +28,37 @@ const EXPLORE = { label: "Explorer les missions", href: studentMissionsHref() }
 const NAME_MAX = 14
 const COMMISSION_PERCENT = `${Math.round(COMMISSION_RATE * 100)} %`
 const SHARE_PERCENT = `${Math.round((1 - COMMISSION_RATE) * 100)} %`
-const BENIN_TZ = "Africa/Porto-Novo"
+const DAY_MS = 24 * 60 * 60 * 1000
 
-const dayKey = (date) => new Intl.DateTimeFormat("en-CA", { timeZone: BENIN_TZ }).format(date)
+// Heure au fuseau du Bénin sans zéro de tête (« 9:12 », comme la planche ; la messagerie écrit « 09:12 »).
+// "" si la date est absente ou invalide.
+const clockOf = (iso) => (iso ? formatClock(iso).replace(/^0/, "") : "")
 
-// Heure au fuseau du Bénin, ex. "9:12" ou "17:40". "" si la date est absente ou invalide.
-function clockOf(iso) {
-  const date = new Date(iso ?? NaN)
-  if (Number.isNaN(date.getTime())) return ""
-  const parts = new Intl.DateTimeFormat("fr-FR", { hour: "numeric", minute: "2-digit", hourCycle: "h23", timeZone: BENIN_TZ }).formatToParts(date)
-  const get = (type) => parts.find((p) => p.type === type)?.value ?? ""
-  return `${get("hour")}:${get("minute")}`
+// Jour calendaire du Bénin : « aujourd'hui », « hier » ou « le jeu. 1 oct. ». "" si la date est invalide.
+function dayLabel(iso, now) {
+  const day = iso ? dayOf(iso) : ""
+  if (!day) return ""
+  if (day === dayOf(now)) return "aujourd'hui"
+  if (day === dayOf(new Date(now.getTime() - DAY_MS))) return "hier"
+  return `le ${formatShortDate(iso)}`
 }
 
-// « aujourd'hui à 9:12 », « hier à 17:40 » ou « le jeu. 1 oct. à 17:40 ».
+// « aujourd'hui à 9:12 », « hier à 17:40 » ou « le jeu. 1 oct. à 17:40 ». "" si la date est invalide.
 function whenOf(iso, now) {
-  const date = new Date(iso ?? NaN)
+  const day = dayLabel(iso, now)
   const clock = clockOf(iso)
-  if (!clock) return ""
-  const today = dayKey(now)
-  const yesterday = dayKey(new Date(now.getTime() - 24 * 60 * 60 * 1000))
-  const day = dayKey(date)
-  if (day === today) return `aujourd'hui à ${clock}`
-  if (day === yesterday) return `hier à ${clock}`
-  return `le ${formatShortDate(iso)} à ${clock}`
+  return day && clock ? `${day} à ${clock}` : ""
+}
+
+// Échéance de la phrase de la carte : « Demain », « Aujourd'hui », sinon « Avant le 9 oct. » (jour du Bénin).
+function deadlineLabel(iso, now) {
+  const day = iso ? dayOf(iso) : ""
+  if (!day) return ""
+  if (day === dayOf(now)) return "Aujourd'hui"
+  if (day === dayOf(new Date(now.getTime() + DAY_MS))) return "Demain"
+  const dateOnly = typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso)
+  const short = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", timeZone: dateOnly ? "UTC" : "Africa/Porto-Novo" }).format(new Date(iso))
+  return `Avant le ${short}`
 }
 
 const isAmount = (n) => Number.isFinite(n) && n > 0
@@ -93,9 +102,12 @@ function headDate({ total, counts }) {
 }
 
 // Pastille de statut et ligne sous la pastille, selon l'onglet.
-function statusOf(row, tab, unread) {
+function statusOf(row, tab, unread, now) {
   if (unread && row.status === "pending" && tab === "en-attente") {
-    return { view: applicationStatusView(row.status), icon: undefined, note: `${row.clientFirst} vous a écrit à ${clockOf(unread.at)}` }
+    // Jour et heure du dernier message REÇU non lu ; sans date valide, formulation qui ne dit rien de faux.
+    const when = whenOf(unread.at, now)
+    const note = when ? `${row.clientFirst} vous a écrit ${when}` : `Message non lu de ${row.clientFirst}`
+    return { view: applicationStatusView(row.status), icon: undefined, note }
   }
   if (tab === "en-cours") {
     const view = missionStatusView({ status: row.missionStatus })
@@ -123,10 +135,12 @@ function statusOf(row, tab, unread) {
 // Sans paiements, rien n'est bloqué : la part de l'étudiant n'est jamais dite « en séquestre ».
 const gainNote = (tab, paymentsOn) => (tab === "terminees" ? "versés" : tab === "en-cours" && paymentsOn ? "en séquestre" : "votre part")
 
-// Message non lu du client sur cette mission (conversation lue côté messagerie) : prénom et heure requis.
-function unreadOf(row, unreadByMission) {
+// Message non lu du client sur cette mission : seulement sur une conversation où l'on peut encore écrire
+// (candidature en attente ou mission en cours), dans les onglets En attente et En cours, et avec un prénom.
+function unreadOf(row, tab, unreadByMission) {
+  if (tab !== "en-attente" && tab !== "en-cours") return null
   const unread = row.missionId ? unreadByMission?.[row.missionId] : null
-  return unread && row.clientFirst && clockOf(unread.at) ? unread : null
+  return unread && ["candidate", "in_progress"].includes(unread.state) && row.clientFirst ? unread : null
 }
 
 function subtitleOf(row) {
@@ -160,9 +174,9 @@ function Action({ action, title }) {
   )
 }
 
-function Row({ row, tab, unreadByMission, paymentsOn }) {
-  const unread = unreadOf(row, unreadByMission)
-  const { view, icon, note } = statusOf(row, tab, unread)
+function Row({ row, tab, unreadByMission, paymentsOn, now }) {
+  const unread = unreadOf(row, tab, unreadByMission)
+  const { view, icon, note } = statusOf(row, tab, unread, now)
   const actions = actionsOf(row, tab, unread)
   const money = row.missionId === null || !isAmount(row.net) ? null : splitAmount(row.net)
   const off = tab === "non-retenues"
@@ -206,12 +220,13 @@ function Row({ row, tab, unreadByMission, paymentsOn }) {
 
 // Candidature retenue récemment : carte blanche, seule étiquette citron de l'écran, un seul bouton encre.
 function Highlight({ highlight, now, paymentsOn }) {
-  const date = formatShortDate(highlight.deadline)
+  const limit = deadlineLabel(highlight.deadline, now)
   const writeTo = highlight.clientFirst && highlight.clientFirst.length <= NAME_MAX ? `Écrire à ${highlight.clientFirst}` : "Écrire au client"
-  const when = whenOf(highlight.acceptedAt, now)
+  const day = dayLabel(highlight.acceptedAt, now)
+  const clock = clockOf(highlight.acceptedAt)
   const who = highlight.clientName || "Un client"
   const where = highlight.city ? `à ${highlight.city}` : ""
-  const place = [date ? `Avant le ${date}` : "", where].filter(Boolean).join(" ")
+  const place = [limit, where].filter(Boolean).join(" ")
   // Bureau : phrase complète ; mobile (planche) : titre de la mission en tête, phrase abrégée.
   const amount = isAmount(highlight.net) ? formatAmount(highlight.net) : ""
   const showText = Boolean(place || amount)
@@ -220,7 +235,14 @@ function Highlight({ highlight, now, paymentsOn }) {
       <div className="e2-04-hl__body">
         <span className="flag2">
           <Icon name="i-check-circle" />
-          {when ? `Retenue ${when}` : "Retenue"}
+          {day && clock ? (
+            <span>
+              {`Retenue ${day} `}
+              <span className="e2-04-hl__at">{clock}</span>
+            </span>
+          ) : (
+            "Retenue"
+          )}
         </span>
         <h2 className="hero2__title">
           {`${who} a retenu votre candidature`}
@@ -228,7 +250,10 @@ function Highlight({ highlight, now, paymentsOn }) {
         </h2>
         {showText ? (
           <p className="hero2__text">
-            <span className="e2-04-hl__what">{`${highlight.title} · `}</span>
+            <span className="e2-04-hl__what">
+              <span className="e2-04-hl__title">{highlight.title}</span>
+              {" · "}
+            </span>
             {place ? (place.endsWith(".") ? place : `${place}.`) : ""}
             {place && amount ? " " : ""}
             {amount && paymentsOn ? (
@@ -313,27 +338,19 @@ export function StudentApplicationsView({ result, unreadByMission, now = new Dat
   }
   const { tab, counts, total, rows, escrow, highlight } = data
   const nowDate = new Date(now)
+  const items = APPLICATION_TABS.map((t) => ({
+    key: t.id,
+    label: t.label,
+    count: counts[t.id],
+    href: studentApplicationsHref({ onglet: t.id }),
+  }))
   const empty = EMPTY[tab]
   const label = APPLICATION_TABS.find((t) => t.id === tab)?.label
   return (
     <div className="page2">
       <PageHead date={headDate({ total, counts })} title="Mes candidatures" actions={HEAD_ACTION} />
       {highlight && tab !== "en-cours" ? <Highlight highlight={highlight} now={nowDate} paymentsOn={paymentsEnabled} /> : null}
-      <nav aria-label="Mes candidatures par statut">
-        <div className="e2-tabs">
-          {APPLICATION_TABS.map((t) => (
-            <Link
-              key={t.id}
-              href={studentApplicationsHref({ onglet: t.id })}
-              className={t.id === tab ? "e2-tab is-active" : "e2-tab"}
-              aria-current={t.id === tab ? "page" : undefined}
-            >
-              {t.label}
-              {counts[t.id] > 0 ? <b>{counts[t.id]}</b> : null}
-            </Link>
-          ))}
-        </div>
-      </nav>
+      <TabsNav variant="e2" label="Mes candidatures par statut" activeKey={tab} items={items} />
       {tab === "en-cours" && paymentsEnabled && isAmount(escrow.total) && escrow.count > 0 ? <EscrowNote escrow={escrow} /> : null}
       {rows.length === 0 ? (
         <section className="card2 card2--flush" aria-label={empty.title}>
@@ -342,7 +359,7 @@ export function StudentApplicationsView({ result, unreadByMission, now = new Dat
       ) : (
         <div className="e2-04-list" aria-label={label} role="list">
           {rows.map((row) => (
-            <Row key={row.id} row={row} tab={tab} unreadByMission={unreadByMission} paymentsOn={paymentsEnabled} />
+            <Row key={row.id} row={row} tab={tab} unreadByMission={unreadByMission} paymentsOn={paymentsEnabled} now={nowDate} />
           ))}
         </div>
       )}

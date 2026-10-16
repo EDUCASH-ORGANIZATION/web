@@ -6,7 +6,7 @@ const getStudentConversations = vi.fn()
 vi.mock("@/lib/actions/student-applications.actions", () => ({ getStudentApplicationsView }))
 vi.mock("@/lib/actions/message.actions", () => ({ getStudentConversations }))
 vi.mock("@/lib/constants/payments", () => ({ paymentsEnabled: () => true }))
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }), unstable_rethrow: vi.fn() }))
 
 const { default: Page } = await import("./page")
 
@@ -36,7 +36,7 @@ beforeEach(() => {
 
 describe("page Mes candidatures", () => {
   it("avec un non lu : action « Répondre à Rosine »", async () => {
-    getStudentConversations.mockResolvedValue({ conversations: [{ missionId: "m1", unreadCount: 1, lastAt: "2026-10-08T09:12:00+01:00" }] })
+    getStudentConversations.mockResolvedValue({ conversations: [{ missionId: "m1", unreadCount: 1, lastUnreadAt: "2026-10-08T09:12:00+01:00", state: "candidate" }] })
     expect(await renderPage()).toContain("Répondre à Rosine")
   })
 
@@ -45,6 +45,13 @@ describe("page Mes candidatures", () => {
     const html = await renderPage()
     expect(html).toContain("Mes candidatures")
     expect(html).toContain("Voir la mission")
+    expect(html).not.toContain("Répondre")
+  })
+
+  it("getStudentConversations qui lève une exception : page rendue sans « Répondre »", async () => {
+    getStudentConversations.mockRejectedValue(new Error("réseau"))
+    const html = await renderPage()
+    expect(html).toContain("Mes candidatures")
     expect(html).not.toContain("Répondre")
   })
 

@@ -1,5 +1,6 @@
 // @ds-screen RD-STUDENT-01
 import { Suspense } from "react"
+import { unstable_rethrow } from "next/navigation"
 import { getStudentApplicationsView } from "@/lib/actions/student-applications.actions"
 import { getStudentConversations } from "@/lib/actions/message.actions"
 import { paymentsEnabled } from "@/lib/constants/payments"
@@ -10,7 +11,11 @@ export const metadata = { title: "Mes candidatures - EduCash" }
 
 async function ApplicationsContent({ onglet }) {
   // Les non lus sont facultatifs : une erreur de la messagerie retire seulement l'action « Répondre ».
-  const [result, conversations] = await Promise.all([getStudentApplicationsView({ onglet }), getStudentConversations()])
+  const messages = getStudentConversations().catch((error) => {
+    unstable_rethrow(error)
+    return null
+  })
+  const [result, conversations] = await Promise.all([getStudentApplicationsView({ onglet }), messages])
   return (
     <StudentApplicationsView
       result={result}
