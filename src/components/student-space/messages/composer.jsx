@@ -3,6 +3,7 @@
 // @ds-screen RD-STUDENT-01
 import { useEffect, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
+import { ContactWarning } from "@/components/messaging/contact-warning"
 import { MESSAGE_MAX_LENGTH, fileProblem, imageExtensionOf } from "@/lib/client-space/conversations"
 import { ImageDialog, LocationDialog } from "./media-dialogs"
 
@@ -255,6 +256,7 @@ export function Composer({ onSend }) {
           </label>
           <SendOrMic hasText={hasSendableText(text)} onRecord={startRecording} />
         </form>
+        <ContactWarning text={text} />
       </div>
       {preview ? <ImageDialog file={preview.file} previewUrl={preview.url} onConfirm={confirmImage} onCancel={() => setPreview(null)} /> : null}
       {locating ? (

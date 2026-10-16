@@ -16,6 +16,7 @@ vi.mock("@/lib/actions/message.actions", () => ({
   getClientMessageMedia: vi.fn(async () => ({ media: {} })),
 }))
 const realtime = vi.fn(({ initialMessages }) => ({ messages: initialMessages, append: vi.fn(), refreshMedia: vi.fn() }))
+vi.mock("@/lib/actions/message-report.actions", () => ({ reportClientMessage: vi.fn() }))
 vi.mock("@/hooks/use-realtime-messages", () => ({
   useRealtimeMessages: (options) => realtime(options),
   useMessageMediaUpload: () => vi.fn(),
@@ -216,7 +217,11 @@ describe("Bubble", () => {
 
   it("rend une position comme un lien construit à partir de nombres", () => {
     const html = render(msg({ type: "location", lat: 6.37, lng: 2.39 }))
-    expect(html).toContain('href="https://www.openstreetmap.org/?mlat=6.37&amp;mlon=2.39#map=16/6.37/2.39"')
+    expect(html).toContain('href="https://www.google.com/maps/search/?api=1&amp;query=6.37,2.39"')
+    expect(html).toContain('href="https://www.google.com/maps/dir/?api=1&amp;destination=6.37,2.39"')
+    expect(html).toContain("Ouvrir dans Google Maps")
+    expect(html).toContain("Itinéraire")
+    expect(html).not.toContain("openstreetmap")
     expect(html).toContain('rel="noopener noreferrer"')
   })
 
@@ -300,7 +305,7 @@ describe("deliverMessage", () => {
     const upload = vi.fn()
     const send = vi.fn().mockResolvedValue({ success: true, message: sent })
     const out = await deliverMessage({ type: "text", content: "Bonjour" }, { upload, send })
-    expect(out).toEqual({ ok: true, message: sent })
+    expect(out).toEqual({ ok: true, message: sent, contactMasked: null })
     expect(upload).not.toHaveBeenCalled()
     expect(send).toHaveBeenCalledWith({ type: "text", content: "Bonjour", mediaPath: undefined, lat: undefined, lng: undefined })
   })

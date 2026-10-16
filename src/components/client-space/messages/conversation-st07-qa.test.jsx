@@ -19,6 +19,7 @@ vi.mock("@/lib/actions/message.actions", () => ({
   getClientMessageMedia: vi.fn(async () => ({ media: {} })),
   getClientConversation: vi.fn(),
 }))
+vi.mock("@/lib/actions/message-report.actions", () => ({ reportClientMessage: vi.fn() }))
 vi.mock("@/hooks/use-realtime-messages", () => ({
   useRealtimeMessages: ({ initialMessages }) => ({ messages: initialMessages, append: vi.fn(), refreshMedia: vi.fn() }),
   useMessageMediaUpload: () => vi.fn(),

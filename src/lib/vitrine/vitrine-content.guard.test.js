@@ -86,6 +86,26 @@ describe("garde-fous de contenu vitrine", () => {
     expect(src).toMatch(/Missions avec achats/)
   })
 
+  it("les CGU et la politique de confidentialite annoncent l'analyse automatique des messages (RD-MSG-01)", () => {
+    const privacy = read("src/app/legal/privacy/page.js")
+    const terms = read("src/app/legal/terms/page.js")
+    expect(privacy).toContain('id: "analyse-des-messages"')
+    expect(privacy).toMatch(/analyse\s+automatique/)
+    expect(privacy).toMatch(/jamais journalisée/)
+    expect(privacy).toMatch(/180 jours/)
+    expect(privacy).toMatch(/12 mois/)
+    expect(terms).toMatch(/analyse\s+automatique/)
+    expect(terms).toMatch(/jamais\s+automatiquement/)
+    expect(terms).toContain('href="/legal/privacy#analyse-des-messages"')
+    expect(privacy).toMatch(/paiement direct/)
+    expect(privacy).toMatch(/pseudos de réseaux sociaux/)
+    expect(privacy).toMatch(/votre identité/)
+    expect(privacy).toMatch(/message vocal ou position/)
+    expect(terms).toMatch(/bandeau\s+d’avertissement/)
+    // La clause achats reste inchangee (RD-ACHATS-01).
+    expect(terms).toMatch(/id="achats">Missions avec achats/)
+  })
+
   it("chaque classe utilisee existe dans le design system", () => {
     const known = new Set()
     const cssDir = path.join(ROOT, "src/app/design")

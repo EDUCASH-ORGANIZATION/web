@@ -20,6 +20,8 @@ vi.mock("@/hooks/use-realtime-messages", () => ({
   useMessageMediaUpload: () => vi.fn(),
 }))
 
+vi.mock("@/lib/actions/message-report.actions", () => ({ reportStudentMessage: vi.fn() }))
+
 const { StudentConversationView } = await import("./conversation-view")
 const { StatusBanner } = await import("./status-banner")
 const { Composer, SendOrMic, hasSendableText } = await import("./composer")

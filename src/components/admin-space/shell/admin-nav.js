@@ -1,7 +1,8 @@
 // @ds-screen RD-ADMIN-01
 // Configuration de la coquille de l'espace admin. Chaque lien vise une route existante. Aucun abonnement aux messages (`realtime: false`).
 // La cloche pointe vers la page des notifications (`notifications`, limitée aux dossiers à examiner).
-// Le compteur « verifications » est celui des dossiers « À examiner » (passé par `counts`).
+// Le compteur « verifications » est celui des dossiers « À examiner » (passé par `counts`), « reports » celui des
+// signalements ouverts. La barre mobile garde 4 onglets : Signalements vit dans le panneau « Plus ».
 
 import { adminNotificationsHref } from "../../../lib/app/admin-routes.js"
 
@@ -33,6 +34,14 @@ export const ADMIN_NAV = {
         },
         { key: "utilisateurs", label: "Utilisateurs", href: "/admin/users", icon: "i-users" },
         { key: "missions", label: "Missions", href: "/admin/missions", icon: "i-briefcase" },
+        {
+          key: "signalements",
+          label: "Signalements",
+          href: "/admin/reports",
+          icon: "i-flag",
+          badge: "reports",
+          badgeUnit: "ouverts",
+        },
       ],
     },
     {
@@ -62,6 +71,7 @@ export const ADMIN_NAV = {
     label: "Plus",
     icon: "i-more-h",
     items: [
+      { key: "signalements", label: "Signalements", href: "/admin/reports", icon: "i-flag" },
       { key: "transactions", label: "Transactions", href: "/admin/transactions", icon: "i-receipt" },
       { key: "portefeuilles", label: "Portefeuilles", href: "/admin/wallets", icon: "i-wallet" },
       { key: "retraits", label: "Retraits", href: "/admin/withdrawals", icon: "i-banknote" },

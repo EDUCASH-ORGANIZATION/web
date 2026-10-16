@@ -58,6 +58,9 @@
 .c2 .bubble__place2:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
 .c2 .conv2 .msg-system { text-align: center; }
 .dialog-image2 { display: block; max-width: 100%; max-height: 50dvh; margin: 0 auto; border-radius: var(--r-m); object-fit: contain; }
+.c2 .bubble__note2 { margin: 4px 0 0; font-size: var(--t-caption); color: inherit; }
+.search-row2 { display: flex; align-items: center; gap: var(--s-3); }
+.search-row2 .search { flex: 1; min-width: 0; }
 .dialog-note2 { margin: 0; font-size: var(--t-caption); color: var(--c-ardoise); }
 .places2 { list-style: none; margin: var(--s-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .place-option2 { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--c-ligne); border-radius: var(--r-m); background: var(--c-blanc); color: var(--c-encre); text-align: left; font-size: var(--t-body-s); cursor: pointer; }
@@ -94,6 +97,6 @@
   .c2 .conv2 .composer:not(.is-locked) { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   .c2 .conv2 .composer.is-locked { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
   .c2 .bubble__actions2 .link2 { min-height: 44px; }
-  /* Lien de position OpenStreetMap : zone tactile de 44 px, ligne centrée. */
+  /* Liens de position Google Maps : zone tactile de 44 px, ligne centrée. */
   .c2 .bubble__place2 { min-height: 44px; }
 }

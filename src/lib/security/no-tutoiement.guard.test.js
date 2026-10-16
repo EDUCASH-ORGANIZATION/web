@@ -10,14 +10,20 @@ import path from "node:path"
 // - src/lib/actions/verify-card.actions.js : prompt LLM interne (« Tu es un système de vérification... »),
 //   jamais affiché à un utilisateur ;
 // - src/lib/security/space-guard-rules.js : la liste de mots du détecteur de tutoiement des garde-fous
-//   d'espace (« Vérifie », « Recharge »...), des données de détection et non du texte affiché.
+//   d'espace (« Vérifie », « Recharge »...), des données de détection et non du texte affiché ;
+// - src/lib/messaging/contact-keywords.js : la liste de mots-clés du détecteur de coordonnées (« écris-moi »,
+//   « ton numéro »...), des données de détection (formes tutoyées tapées par les utilisateurs) et non du texte affiché.
 // Les emails (gabarits Resend dans src/lib/email) sont couverts ici ; les gabarits HTML Supabase le sont par
 // auth-emails.guard.test.js.
 
 const ROOT = process.cwd()
 const SRC = path.join(ROOT, "src")
 const TEST_FILE = /\.test\.(js|jsx)$/
-const EXCLUDED = new Set(["src/lib/actions/verify-card.actions.js", "src/lib/security/space-guard-rules.js"])
+const EXCLUDED = new Set([
+  "src/lib/actions/verify-card.actions.js",
+  "src/lib/security/space-guard-rules.js",
+  "src/lib/messaging/contact-keywords.js",
+])
 
 // ─── Lecture du source : retire les commentaires, extrait les chaînes ───────────────────────
 
@@ -249,6 +255,8 @@ describe("vouvoiement partout dans src", () => {
     }
     expect(files).not.toContain("src/lib/actions/verify-card.actions.js")
     expect(files).not.toContain("src/lib/security/space-guard-rules.js")
+    expect(files).not.toContain("src/lib/messaging/contact-keywords.js")
+    expect(files).toContain("src/lib/messaging/contact-copy.js")
   })
 
   it("aucun tutoiement dans les chaînes et le texte JSX visibles", () => {

@@ -4,9 +4,13 @@ import Link from "next/link"
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
+import { MessagingNotice } from "@/components/messaging/messaging-notice"
+import { REPORT_FALLBACK_ERROR, ReportDialog } from "@/components/messaging/report-dialog"
 import { useMessageMediaUpload, useRealtimeMessages } from "@/hooks/use-realtime-messages"
 import { getClientMessageMedia, markClientConversationRead, sendClientMessage } from "@/lib/actions/message.actions"
+import { reportClientMessage } from "@/lib/actions/message-report.actions"
 import { publicTalentHref } from "@/lib/app/student-routes"
+import { MASKED_SENDER_NOTE } from "@/lib/messaging/contact-copy"
 import { MEDIA_CONTENT, dayOf, formatDayLabel } from "@/lib/client-space/conversations"
 import { Bubble } from "./bubble"
 import { Composer, LockedComposer } from "./composer"
@@ -43,7 +47,7 @@ export async function deliverMessage(item, { upload, send }) {
     if (!result || result.error || !result.message) {
       return { ok: false, error: result?.error ? `Non envoyé. ${result.error}` : ERR_SEND, mediaPath }
     }
-    return { ok: true, message: result.message }
+    return { ok: true, message: result.message, contactMasked: result.contactMasked ?? null }
   } catch {
     return { ok: false, error: ERR_SEND, mediaPath }
   }
@@ -102,6 +106,8 @@ export function ConversationView({ conversation, now, paymentsEnabled = false })
   })
   const upload = useMessageMediaUpload(userId)
   const [pending, setPending] = useState([])
+  const [maskedIds, setMaskedIds] = useState(() => new Set())
+  const [reporting, setReporting] = useState(null)
   const counter = useRef(0)
   const chatRef = useRef(null)
 
@@ -124,6 +130,7 @@ export function ConversationView({ conversation, now, paymentsEnabled = false })
       })
       if (outcome.ok) {
         append(outcome.message)
+        if (outcome.contactMasked?.kinds?.length) setMaskedIds((ids) => new Set(ids).add(outcome.message.id))
         setPending((list) => list.filter((p) => p.localId !== item.localId))
       } else {
         setPending((list) =>
@@ -148,6 +155,15 @@ export function ConversationView({ conversation, now, paymentsEnabled = false })
     if (item) run(item)
   }
   const dismiss = (localId) => setPending((list) => list.filter((p) => p.localId !== localId))
+
+  const submitReport = useCallback(
+    async ({ reason, details }) => {
+      const result = await reportClientMessage({ messageId: reporting.id, reason, details })
+      if (result?.error) return { error: result.error }
+      return result?.reference ? { reference: result.reference } : { error: REPORT_FALLBACK_ERROR }
+    },
+    [reporting],
+  )
 
   const empty = messages.length === 0 && pending.length === 0
 
@@ -180,6 +196,7 @@ export function ConversationView({ conversation, now, paymentsEnabled = false })
       />
 
       <div ref={chatRef} className="chat" role="log" aria-label="Messages de la conversation" aria-relevant="additions">
+        <MessagingNotice />
         {empty ? (
           <div className="msg-system">
             <Icon name="i-message" />
@@ -193,7 +210,13 @@ export function ConversationView({ conversation, now, paymentsEnabled = false })
             {index === 0 || dayOf(message.createdAt) !== dayOf(messages[index - 1].createdAt) ? (
               <span className="chat__day">{formatDayLabel(message.createdAt, nowDate)}</span>
             ) : null}
-            <Bubble message={message} onMediaError={refreshMedia} senderName={student.name} />
+            <Bubble
+              message={message}
+              onMediaError={refreshMedia}
+              senderName={student.name}
+              onReport={setReporting}
+              maskedNote={maskedIds.has(message.id) ? MASKED_SENDER_NOTE : undefined}
+            />
           </Fragment>
         ))}
         {pending.map((item) => (
@@ -210,6 +233,7 @@ export function ConversationView({ conversation, now, paymentsEnabled = false })
       </div>
 
       {canWrite ? <Composer onSend={onSend} /> : <LockedComposer text={LOCKED_TEXT[state] ?? LOCKED_TEXT.closed} />}
+      {reporting ? <ReportDialog senderName={student.name} onSubmit={submitReport} onClose={() => setReporting(null)} /> : null}
     </section>
   )
 }
