@@ -232,10 +232,11 @@ describe("garde-fous de structure", () => {
     expect(first.trim()).toBe('const auth = await requireRole(["student"])')
   })
 
-  it("aucun portefeuille, aucune notification, aucun e-mail dans la fondation", () => {
+  it("aucun portefeuille ni prestataire de paiement ; notification et e-mail réservés à l'action", () => {
     for (const source of [actions, core]) {
-      expect(source).not.toMatch(/callWalletRpc|wallet_|notify|sendEmail|stripe/i)
+      expect(source).not.toMatch(/callWalletRpc|wallet_|stripe/i)
     }
+    expect(core).not.toMatch(/notify|sendEmail/i)
   })
 
   it("le module de lecture est réservé au serveur et l'action est une server action", () => {

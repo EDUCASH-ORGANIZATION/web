@@ -36,3 +36,12 @@ describe("sendEmail subject", () => {
     expect(send.mock.calls[0][0].subject).toBe("Bienvenue sur EduCash")
   })
 })
+
+describe("sendEmail completion-declared", () => {
+  it("envoie le sujet attendu au client, sans délai ni prestataire", async () => {
+    await sendEmail("completion-declared", "c@b.bj", { studentName: "Awa", missionTitle: "Flyer", missionId: "m1" })
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(send.mock.calls[0][0].subject).toBe("Mission terminée : votre confirmation est attendue")
+    expect(send.mock.calls[0][0].to).toBe("c@b.bj")
+  })
+})

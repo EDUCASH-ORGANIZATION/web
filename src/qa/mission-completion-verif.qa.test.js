@@ -5,6 +5,8 @@ vi.mock("server-only", () => ({}))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
+vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn(() => Promise.resolve({ ok: true })) }))
+vi.mock("@/lib/email/index", () => ({ sendEmail: vi.fn(() => Promise.resolve({ success: true })) }))
 
 import { revalidatePath } from "next/cache"
 import { createServiceClient } from "@/lib/supabase/service"
@@ -36,7 +38,7 @@ function service({ reads, update }) {
     }
     return b
   })
-  return { client: { from }, tables, writes }
+  return { client: { from, auth: { admin: { getUserById: vi.fn(() => Promise.resolve({ data: { user: null } })) } } }, tables, writes }
 }
 
 beforeEach(() => {
@@ -46,11 +48,11 @@ beforeEach(() => {
 })
 
 describe("declareMissionCompletion : compléments", () => {
-  it("ne touche jamais qu'à la table missions (ni wallets, transactions, mission_completions, notifications)", async () => {
+  it("ne touche qu'aux tables missions (écriture) et profiles (prénom, lecture) : ni wallets, transactions, mission_completions, notifications", async () => {
     const s = service({ reads: [{ data: row, error: null }], update: { data: [{ id: M, completion_declared_at: DATE }], error: null } })
     createServiceClient.mockReturnValue(s.client)
     await declareMissionCompletion(M)
-    expect(new Set(s.tables)).toEqual(new Set(["missions"]))
+    expect(new Set(s.tables)).toEqual(new Set(["missions", "profiles"]))
     expect(Object.keys(s.writes[0])).toEqual(["completion_declared_at"])
   })
 
@@ -100,11 +102,11 @@ describe("declareMissionCompletion : compléments", () => {
     const updates = [{ data: [{ id: M, completion_declared_at: DATE }], error: null }, { data: [], error: null }]
     const s = service({ reads, update: undefined })
     // update dynamique
-    s.client.from = vi.fn(() => {
+    s.client.from = vi.fn((t) => {
       let op = "select"
       const b = {
         select: () => b, update: () => { op = "update"; return b }, eq: () => b, is: () => b,
-        maybeSingle: () => Promise.resolve(reads.shift() ?? reads[0]),
+        maybeSingle: () => Promise.resolve(t === "profiles" ? { data: null, error: null } : (reads.shift() ?? reads[0])),
         then: (ok, ko) => Promise.resolve(op === "update" ? updates[u++] : null).then(ok, ko),
       }
       return b

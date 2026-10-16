@@ -1,6 +1,6 @@
 import { readdirSync } from "node:fs"
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi, afterEach } from "vitest"
 import { contrastRatio } from "@/lib/design/contrast"
 import { LOGO_URLS } from "@/lib/email/brand"
 
@@ -15,7 +15,7 @@ async function render(file, props = {}) {
 }
 
 describe("rendu HTML des gabarits migres", () => {
-  it("12 gabarits migres", () => expect(files).toHaveLength(12))
+  it("13 gabarits migres", () => expect(files).toHaveLength(13))
 
   for (const f of files) {
     describe(f, () => {
@@ -65,4 +65,36 @@ describe("rendu HTML des gabarits migres", () => {
       })
     })
   }
+})
+
+describe("completion-declared : texte et confidentialité", () => {
+  const props = { studentName: "Awa", missionTitle: "Flyer", missionId: "0b8f1c1e-2c1b-4b53-9a52-9d6b6a6f3a10" }
+
+  afterEach(() => vi.unstubAllEnvs())
+
+  it("paiements activés : phrase sur le séquestre", async () => {
+    vi.stubEnv("PAYMENTS_ENABLED", "true")
+    const html = await render("completion-declared.jsx", props)
+    expect(html).toContain("Awa indique avoir terminé « Flyer ». Vérifiez le travail puis confirmez la fin depuis votre espace.")
+    expect(html).toContain("Les fonds restent en séquestre jusqu&#x27;à votre validation.")
+  })
+
+  it("paiements coupés : sans la phrase sur le séquestre", async () => {
+    vi.stubEnv("PAYMENTS_ENABLED", "false")
+    const html = await render("completion-declared.jsx", props)
+    expect(html).toContain("confirmez la fin depuis votre espace.")
+    expect(html).not.toMatch(/séquestre|fonds/i)
+  })
+
+  it("lien vers la mission côté client sans ?confirmer, aucun délai ni prestataire", async () => {
+    const html = await render("completion-declared.jsx", props)
+    expect(html).toContain(`/client/missions/${props.missionId}"`)
+    expect(html).not.toMatch(/confirmer=1/)
+    expect(html).not.toMatch(/\d+\s*(heures?|jours?)|stripe|fedapay|kkiapay|mobile money/i)
+  })
+
+  it("prénom absent : repli neutre", async () => {
+    const html = await render("completion-declared.jsx", {})
+    expect(html).toContain("L&#x27;étudiant indique avoir terminé la mission.")
+  })
 })
