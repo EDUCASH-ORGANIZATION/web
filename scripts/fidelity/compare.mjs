@@ -26,8 +26,8 @@ const STATUS_BAR = 36
 const NUMERIC = new Set(["x", "y", "w", "h", "tw"])
 const PX_LIST = new Set(["fontSize", "lineHeight", "radius", "pad", "margin", "gap", "cols"])
 const COLOR = new Set(["color", "bg"])
-// A1 : couleurs des planches -> couleurs de la charte (encre, givre, ardoise, fond bleu clair).
-const A1 = { "14,15,26": "23,33,58", "244,245,250": "243,245,252", "91,95,115": "58,62,82", "231,233,255": "230,233,255" }
+// A1 : couleurs des planches -> couleurs de la charte (encre, givre, ardoise, fond bleu clair, citron).
+const A1 = { "14,15,26": "23,33,58", "244,245,250": "243,245,252", "91,95,115": "58,62,82", "231,233,255": "230,233,255", "200,240,60": "193,238,62" }
 
 const parseRgb = (value) => (value.match(/rgba?\(([^)]+)\)/)?.[1] ?? "").split(",").map((part) => part.trim())
 const rgbKey = (value) => parseRgb(value).slice(0, 3).join(",")

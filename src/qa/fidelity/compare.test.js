@@ -44,6 +44,12 @@ describe("compareEntry", () => {
     expect(compareEntry(box(), box({ w: 112 }), { props: ["w"], assume: { w: "A5+A8:12" } }).status).toBe("ASSUMÉ A5, A8")
   })
 
+  it("A1 : le citron de la planche (rgb 200,240,60) devient celui de la charte (rgb 193,238,62), seul ce couple est accepté", () => {
+    const run = (code) => compareEntry({ bg: "rgb(200, 240, 60)" }, { bg: code }, { props: ["bg"], assume: { bg: "A1" } }).status
+    expect(run("rgb(193, 238, 62)")).toBe("ASSUMÉ A1")
+    expect(run("rgb(193, 238, 63)")).toBe("ÉCHEC")
+  })
+
   it("X1 donne un statut distinct, jamais ASSUMÉ", () => {
     const result = compareEntry(box(), box({ y: 4 }), { props: ["y"], assume: { y: "A3+X1:4" } })
     expect(result.status).toBe("NON EXPLIQUÉ A3, X1")
