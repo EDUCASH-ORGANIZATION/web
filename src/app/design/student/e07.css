@@ -57,6 +57,7 @@
 .e2-07-achat .e-thumb__img, .e2-07-shot .e-thumb__img { border: 1px solid var(--c-ligne); background: var(--c-givre); color: var(--c-ardoise); }
 .e2-07-achat .e-thumb__img--ticket, .e2-07-shot .e-thumb__img--ticket { background: repeating-linear-gradient(0deg, var(--c-blanc) 0 8px, var(--c-ligne-2) 8px 10px); }
 .e2-07-achat .e2-link { margin-left: auto; font-size: var(--t-caption); }
+.e2-07-pic { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .e2-07-ic { width: 28px; height: 28px; border-radius: var(--r-xs); display: inline-grid; place-items: center; flex: none; background: var(--c-givre); color: var(--c-ardoise); }
 .e2-07-ic .ic { width: 16px; height: 16px; stroke-width: 1.75; }
 /* Formulaire de la carte : zones photo et champs à filet fin, choix en encre */
