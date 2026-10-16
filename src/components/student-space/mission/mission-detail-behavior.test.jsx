@@ -237,25 +237,32 @@ describe("(4) prénom du client hostile", () => {
   })
 })
 
-describe("(5) date de rétention : omise, aucune date fiable (applications.updated_at change à toute mise à jour)", () => {
-  const withApp = (status, updatedAt) => followed("in_progress", { application: { ...accepted, status, updatedAt } })
-  it("jamais de « retenue le », quel que soit le statut de la candidature", () => {
-    for (const status of ["accepted", "pending", "rejected", "withdrawn", "cancelled"]) {
-      expect(follow(withApp(status, "2026-10-08T08:00:00Z"))).not.toContain("retenue le")
+describe("(5) date de rétention : seulement depuis applications.accepted_at, jamais updated_at", () => {
+  const withApp = (over) => followed("in_progress", { application: { ...accepted, ...over } })
+  it("accepted_at présent : « retenue le <date> » (jour au fuseau du Bénin) et étape datée, updated_at ignoré", () => {
+    const html = follow(withApp({ acceptedAt: "2026-10-04T10:00:00Z", updatedAt: "2026-10-09T08:00:00Z" }))
+    expect(html).toContain("retenue le 4 octobre 2026")
+    expect(html).not.toContain("9 octobre 2026")
+    expect(html).toContain("Votre candidature a été retenue")
+  })
+  it("le jour s'affiche au fuseau du Bénin comme les autres dates (23:30 UTC = lendemain à Cotonou)", () => {
+    expect(follow(withApp({ acceptedAt: "2026-10-04T23:30:00Z" }))).toContain("retenue le 5 octobre 2026")
+  })
+  it("sans accepted_at : jamais de « retenue le », même avec updatedAt fourni", () => {
+    for (const acceptedAt of [null, undefined, ""]) {
+      for (const status of ["accepted", "pending", "rejected"]) {
+        const html = follow(withApp({ status, acceptedAt, updatedAt: "2026-10-08T08:00:00Z" }))
+        expect(html).not.toContain("retenue le")
+        expect(html).not.toContain("8 octobre 2026")
+        expect(html).not.toMatch(BROKEN)
+        expect(html).not.toContain("Invalid Date")
+      }
     }
   })
-  it("date absente : aucune ligne, jamais Invalid Date", () => {
-    for (const bad of [null, undefined, ""]) {
-      const html = follow(withApp("accepted", bad))
-      expect(html).not.toContain("Invalid Date")
-      expect(html).not.toMatch(BROKEN)
-      expect(html).not.toContain("retenue le")
-    }
-  })
-  // Corrigé en ST-10b : trackSteps, le reçu, l'en-tête et le bloc de candidature passent par safeDateFr (jamais de RangeError).
+  // trackSteps, l'en-tête et le bloc de candidature passent par safeDateFr (jamais de RangeError).
   it("date invalide : aucune ligne, aucune exception, l'étape s'affiche sans date", () => {
     for (const bad of ["pas une date", "2026-13-45", "NaN"]) {
-      const html = follow(withApp("accepted", bad))
+      const html = follow(withApp({ acceptedAt: bad }))
       expect(html).not.toContain("Invalid Date")
       expect(html).not.toContain("retenue le")
       expect(html).toContain("Votre candidature a été retenue")
