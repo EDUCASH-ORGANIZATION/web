@@ -1,7 +1,7 @@
 // Données de la planche E07 (conversation étudiante, état « avec achats »). Service 8 000 FCFA,
 // net 7 040 FCFA, achats estimés 7 450 FCFA. Vouvoiement (A6), noms « Prénom N. » (A7).
 // Les champs budget, purchasesEstimate et net seront fournis par ST-02 ; avant, la vue les ignore.
-import { NOW } from "./e06.js"
+import { CONVERSATIONS, NOW } from "./e06.js"
 
 const msg = (i, mine, content, extra = {}) => ({
   id: `m${i}`,
@@ -37,13 +37,20 @@ export const conversation = {
   ],
 }
 
+// La conversation est rendue dans les deux volets de la messagerie (layout de messages/) : la vue de la boîte
+// reçoit la liste de la planche E06 et la conversation en volet de droite (`child`).
 export const screens = [
   {
     name: "e07",
     space: "e2",
     path: "/messages/m2",
-    view: "@/components/student-space/messages/conversation-view",
-    component: "StudentConversationView",
-    props: { conversation, now: NOW },
+    view: "@/components/student-space/messages/inbox-view",
+    component: "StudentInboxView",
+    props: { result: { conversations: CONVERSATIONS }, now: NOW },
+    child: {
+      view: "@/components/student-space/messages/conversation-view",
+      component: "StudentConversationView",
+      props: { conversation, now: NOW },
+    },
   },
 ]

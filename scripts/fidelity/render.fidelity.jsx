@@ -57,13 +57,20 @@ it("rend les écrans des fixtures", async () => {
       try {
         const viewModule = await import(/* @vite-ignore */ screen.view)
         const View = viewModule[screen.component]
+        // Volet de droite des vues à deux volets : une vue enfant rendue dans `children`.
+        let child = null
+        if (screen.child) {
+          const childModule = await import(/* @vite-ignore */ screen.child.view)
+          const Child = childModule[screen.child.component]
+          child = <Child {...screen.child.props} />
+        }
         const shell = shells[screen.space]
         globalThis.__FIDELITY_PATH = screen.path
         const html = renderToStaticMarkup(
           <div className={`ds ${screen.space}`}>
             <ToastProvider>
               <AppShell nav={shell.nav} user={shell.user} unreadCount={2} counts={{ messages: 2 }}>
-                <View {...screen.props} />
+                <View {...screen.props}>{child}</View>
               </AppShell>
             </ToastProvider>
           </div>,

@@ -30,6 +30,10 @@
             "cols",
             "gap"
           ],
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : 3,42 px réels (39,90 px planche contre 43,32 px code, --lh-display 1.14), +3 mesuré. Hauteur non comparée : la planche fixe .e2-06-inbox--tall à 1000 px dans un cadre frame-desk--long pour montrer tout le fil ; le code cale la grille sur la fenêtre (max(480px, 100dvh - 224px), soit 656 px à 1440 x 880) avec défilement interne de la liste et du volet, comportement voulu par le plan ST-04 (messagerie type WhatsApp Web)",
           "lot": "ST-04"
         },
         {
@@ -41,6 +45,10 @@
             "y",
             "w"
           ],
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : 3,42 px réels (39,90 px planche contre 43,32 px code, --lh-display 1.14), +3 mesuré. Hauteur non comparée : la planche fixe .e2-06-inbox--tall à 1000 px dans un cadre frame-desk--long pour montrer tout le fil ; le code cale la grille sur la fenêtre (max(480px, 100dvh - 224px), soit 656 px à 1440 x 880) avec défilement interne de la liste et du volet, comportement voulu par le plan ST-04 (messagerie type WhatsApp Web)",
           "lot": "ST-04"
         },
         {
@@ -53,6 +61,10 @@
             "w",
             "radius"
           ],
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : 3,42 px réels (39,90 px planche contre 43,32 px code, --lh-display 1.14), +3 mesuré. Hauteur non comparée : la planche fixe .e2-06-inbox--tall à 1000 px dans un cadre frame-desk--long pour montrer tout le fil ; le code cale la grille sur la fenêtre (max(480px, 100dvh - 224px), soit 656 px à 1440 x 880) avec défilement interne de la liste et du volet, comportement voulu par le plan ST-04 (messagerie type WhatsApp Web)",
           "lot": "ST-04"
         },
         {

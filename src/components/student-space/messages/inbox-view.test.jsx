@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { renderToStaticMarkup } from "react-dom/server"
+import { declarationsOf } from "@/qa/fidelity/css-rules"
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }) => <a href={href} {...rest}>{children}</a>,
@@ -9,9 +10,16 @@ vi.mock("next/link", () => ({
 vi.mock("next/image", () => ({
   default: ({ src, className }) => <span data-image={src} className={className} />,
 }))
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }))
+// Chemin et paramètres d'adresse de la page rendue (la liste les lit par usePathname et useSearchParams).
+const nav = { pathname: "/messages", search: "" }
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
+  usePathname: () => nav.pathname,
+  useSearchParams: () => new URLSearchParams(nav.search),
+}))
 
-const { StudentInboxView, InboxSkeleton, inboxHref, subtitleOf } = await import("./inbox-view")
+const { StudentInboxView, createDebouncedRefresh, REFRESH_DELAY_MS, nextOpened } = await import("./inbox-view")
+const { inboxHref, subtitleOf } = await import("./inbox-list")
 
 const NOW = "2026-10-13T12:00:00Z"
 const M1 = "11111111-1111-4111-8111-111111111111"
@@ -37,7 +45,11 @@ const LIST = [
   conv({ key: `${M3}:c2`, missionId: M3, name: "Rosine H.", missionTitle: "Saisie de fiches", state: "done", preview: "Merci !", lastAt: "2026-10-06T09:00:00Z" }),
 ]
 
-const render = (props) => renderToStaticMarkup(<StudentInboxView now={NOW} {...props} />)
+function render(props, { pathname = "/messages", search = "" } = {}) {
+  nav.pathname = pathname
+  nav.search = search
+  return renderToStaticMarkup(<StudentInboxView now={NOW} {...props} />)
+}
 const h1Count = (html) => (html.match(/<h1[\s>]/g) ?? []).length
 const TUTOIEMENT = /\b(tu|toi|ton|ta|tes)\b|Réessaie|Essaie\b|Choisis\b|Vérifie\b|Patiente\b/i
 
@@ -136,14 +148,14 @@ describe("StudentInboxView : liste", () => {
 
 describe("StudentInboxView : filtre Non lues", () => {
   it("ne garde que les conversations non lues et marque la pastille", () => {
-    const html = render({ result: { conversations: LIST }, unreadOnly: true })
+    const html = render({ result: { conversations: LIST } }, { search: "filtre=non-lues" })
     expect(html.match(/class="e2-06-convo( is-unread)?"/g)).toHaveLength(1)
     expect(html).toContain('href="/messages?filtre=non-lues" class="e2-pill is-active" aria-current="page"')
     expect(html).toContain('<input type="hidden" name="filtre" value="non-lues"/>')
   })
 
   it("dit que tout est lu quand rien n'est non lu, avec un lien de retour", () => {
-    const html = render({ result: { conversations: [conv()] }, unreadOnly: true })
+    const html = render({ result: { conversations: [conv()] } }, { search: "filtre=non-lues" })
     expect(html).toContain("Aucun message non lu")
     expect(html).toContain("Vous avez lu tous vos messages.")
     expect(html).toContain('href="/messages" class="hero2__link">Voir toutes les conversations')
@@ -153,21 +165,21 @@ describe("StudentInboxView : filtre Non lues", () => {
 
 describe("StudentInboxView : recherche", () => {
   it("filtre par nom, mission ou aperçu, sans tenir compte des accents ni de la casse", () => {
-    const byName = render({ result: { conversations: LIST }, q: "rosine" })
+    const byName = render({ result: { conversations: LIST } }, { search: "q=rosine" })
     expect(byName.match(/class="e2-06-convo( is-unread)?"/g)).toHaveLength(1)
-    const byMission = render({ result: { conversations: LIST }, q: "TRADUCTION" })
-    expect(byMission).toContain(`href="/messages/${M2}"`)
+    const byMission = render({ result: { conversations: LIST } }, { search: "q=TRADUCTION" })
+    expect(byMission).toContain(`href="/messages/${M2}?q=TRADUCTION"`)
     expect(byMission.match(/class="e2-06-convo( is-unread)?"/g)).toHaveLength(1)
   })
 
   it("conserve la recherche dans le champ et dans les liens de filtre", () => {
-    const html = render({ result: { conversations: LIST }, q: "marc" })
+    const html = render({ result: { conversations: LIST } }, { search: "q=marc" })
     expect(html).toContain('value="marc"')
     expect(html).toContain('href="/messages?q=marc&amp;filtre=non-lues"')
   })
 
   it("affiche un vide dédié, avec la recherche échappée et un lien pour l'effacer", () => {
-    const html = render({ result: { conversations: LIST }, q: '<img src=x onerror="alert(1)">' })
+    const html = render({ result: { conversations: LIST } }, { search: `q=${encodeURIComponent('<img src=x onerror="alert(1)">')}` })
     expect(html).not.toContain("<img")
     expect(html).toContain("Aucune conversation pour")
     expect(html).toContain("Essayez un autre mot.")
@@ -206,14 +218,190 @@ describe("aides de la boîte de réception", () => {
   })
 })
 
-describe("InboxSkeleton et page", () => {
-  it("rend un squelette annoncé avec un seul h1", () => {
-    const html = renderToStaticMarkup(<InboxSkeleton />)
-    expect(html).toContain('aria-busy="true"')
-    expect(html).toContain("Chargement en cours")
-    expect(h1Count(html)).toBe(1)
+describe("StudentInboxView : filtre En cours", () => {
+  const html = render({ result: { conversations: LIST } }, { search: "filtre=en-cours" })
+
+  it("ne garde que les missions en cours et marque la pastille", () => {
+    expect(html.match(/class="e2-06-convo( is-unread)?"/g)).toHaveLength(1)
+    expect(html).toContain(`href="/messages/${M2}?filtre=en-cours"`)
+    expect(html).toContain('href="/messages?filtre=en-cours" class="e2-pill is-active" aria-current="page"')
+    expect(html).toContain('<input type="hidden" name="filtre" value="en-cours"/>')
   })
 
+  it("propose trois pastilles : Toutes, Non lues avec compteur, En cours", () => {
+    expect(html.match(/class="e2-pill( is-active)?"/g)).toHaveLength(3)
+    expect(html).toMatch(/>Toutes<\/a>.*Non lues<b>2<\/b>.*En cours<\/a>/s)
+  })
+
+  it("combine la recherche et le filtre", () => {
+    const both = render({ result: { conversations: LIST } }, { search: "q=traduction&filtre=en-cours" })
+    expect(both.match(/class="e2-06-convo( is-unread)?"/g)).toHaveLength(1)
+    const none = render({ result: { conversations: LIST } }, { search: "q=rosine&filtre=en-cours" })
+    expect(none).toContain("Aucune conversation pour")
+  })
+
+  it("dit qu'aucune conversation n'est en cours, avec un lien de retour", () => {
+    const empty = render({ result: { conversations: [conv({ state: "done" })] } }, { search: "filtre=en-cours" })
+    expect(empty).toContain("Aucune conversation en cours")
+    expect(empty).toContain('href="/messages" class="hero2__link">Voir toutes les conversations')
+  })
+
+  it("ignore une valeur de filtre inconnue", () => {
+    const other = render({ result: { conversations: LIST } }, { search: "filtre=autre" })
+    expect(other.match(/class="e2-06-convo( is-unread)?"/g)).toHaveLength(3)
+  })
+})
+
+describe("StudentInboxView : deux volets", () => {
+  const open = (extra) =>
+    render({ result: { conversations: LIST }, ...extra }, { pathname: `/messages/${M1}` })
+
+  it("garde la liste visible à côté de la conversation ouverte", () => {
+    const html = open({ children: <section className="e2-07-pane">Fil de test</section> })
+    expect(html).toContain('data-view="conversation"')
+    expect(html).toContain('<section class="e2-07-pane">Fil de test</section>')
+    expect(html.match(/class="e2-06-convo( is-unread)?( is-active)?"/g)).toHaveLength(3)
+    expect(html).not.toContain("e2-06-pane")
+  })
+
+  it("repère la ligne de la conversation ouverte et seulement elle", () => {
+    const html = open({ children: <section /> })
+    expect(html.match(/aria-current="true"/g)).toHaveLength(1)
+    expect(html).toContain(`href="/messages/${M1}" class="e2-06-convo is-active" aria-current="true"`)
+  })
+
+  it("compte la conversation ouverte comme lue (compteur et pastille retirés)", () => {
+    const html = open({ children: <section /> })
+    expect(html).not.toContain("e2-06-count")
+    expect(html).toContain("Tout est lu")
+  })
+
+  it("garde la recherche et le filtre dans les liens des conversations et reste sur la conversation", () => {
+    const html = render(
+      { result: { conversations: LIST }, children: <section /> },
+      { pathname: `/messages/${M2}`, search: "filtre=en-cours" },
+    )
+    expect(html).toContain(`href="/messages/${M2}?filtre=en-cours"`)
+    expect(html).toContain(`action="/messages/${M2}"`)
+    expect(html).toContain(`href="/messages/${M2}" class="e2-pill"`)
+  })
+
+  it("sans conversation ouverte : liste seule en petit écran, volet vide et aucune ligne active", () => {
+    const html = render({ result: { conversations: LIST }, children: <section>Fil de test</section> })
+    expect(html).toContain('data-view="list"')
+    expect(html).toContain("e2-06-pane")
+    expect(html).not.toContain("Fil de test")
+    expect(html).not.toContain("aria-current=\"true\"")
+  })
+
+  it("trie dans l'ordre reçu du plus récent au plus ancien (aucun retri dans la vue)", () => {
+    const html = render({ result: { conversations: LIST } })
+    expect(html.indexOf(M1)).toBeLessThan(html.indexOf(M2))
+    expect(html.indexOf(M2)).toBeLessThan(html.indexOf(M3))
+  })
+
+  it("affiche le jour et le compteur dans la ligne de date, un seul h1 « Messages »", () => {
+    const html = render({ result: { conversations: LIST } })
+    expect(html).toContain('<span class="e2-06-day">Mardi 13 octobre · </span>2 non lus')
+    expect(html).toContain("Messages</h1>")
+    expect(h1Count(html)).toBe(1)
+  })
+})
+
+describe("StudentInboxView : conversation sans liste exploitable", () => {
+  const PANE = <section className="e2-07-pane">Fil de test</section>
+  const open = { pathname: `/messages/${M1}` }
+
+  it("liste vide : garde la conversation et un vide compact à gauche, sans la page vide", () => {
+    const html = render({ result: { conversations: [] }, children: PANE }, open)
+    expect(html).toContain('data-view="conversation"')
+    expect(html).toContain("Fil de test")
+    expect(html).toMatch(/<section class="e2-06-list" aria-label="Conversations"><div class="e2-06-list__items">.*Pas encore de message.*<\/section>/s)
+    expect(html).not.toContain('aria-label="Aucune conversation"')
+    expect(html).toContain("Pas encore de message")
+  })
+
+  it("liste en erreur : l'erreur reste dans le volet gauche et la conversation s'affiche", () => {
+    const html = render({ result: { error: "Impossible de charger vos messages." }, children: PANE }, open)
+    expect(html).toContain('data-view="conversation"')
+    expect(html).toContain("Fil de test")
+    expect(html).toContain('role="alert"')
+    expect(html).not.toContain('aria-label="Erreur de chargement"')
+  })
+
+  it("sur /messages, la liste vide ou en erreur garde la page pleine", () => {
+    expect(render({ result: { conversations: [] } })).toContain('aria-label="Aucune conversation"')
+    expect(render({ result: { error: "x" } })).toContain('aria-label="Erreur de chargement"')
+  })
+
+  it("garde un seul h1 dans ces états", () => {
+    expect(h1Count(render({ result: { conversations: [] }, children: PANE }, open))).toBe(1)
+    expect(h1Count(render({ result: { error: "x" }, children: PANE }, open))).toBe(1)
+  })
+})
+
+describe("StudentInboxView : remise à zéro locale des non lus", () => {
+  it("la conversation ouverte est comptée lue, le reste garde son compteur", () => {
+    const list = [conv({ unreadCount: 2 }), conv({ key: `${M2}:c1`, missionId: M2, unreadCount: 3 })]
+    const html = render({ result: { conversations: list }, children: <section /> }, { pathname: `/messages/${M2}` })
+    expect(html).toContain("2 non lus")
+    expect(html).not.toContain("5 non lus")
+  })
+})
+
+describe("nextOpened : mémoire des conversations ouvertes", () => {
+  it("garde M1 quand M2 est ouverte avec le même résultat, et se vide quand le résultat change", () => {
+    const result = { conversations: [] }
+    const s1 = nextOpened({ result, ids: [] }, result, M1)
+    expect(s1.ids).toEqual([M1])
+    const s2 = nextOpened(s1, result, M2)
+    expect(s2.ids).toEqual([M1, M2])
+    expect(nextOpened(s2, result, M1)).toBe(s2)
+    expect(nextOpened(s2, result, null)).toBe(s2)
+    const s3 = nextOpened(s2, { conversations: [] }, M2)
+    expect(s3.ids).toEqual([M2])
+  })
+})
+
+describe("rafraîchissement regroupé", () => {
+  afterEach(() => vi.useRealTimers())
+
+  it("un INSERT et un UPDATE rapprochés ne déclenchent qu'un refresh", () => {
+    vi.useFakeTimers()
+    const refresh = vi.fn()
+    const scheduler = createDebouncedRefresh(refresh)
+    scheduler.trigger()
+    vi.advanceTimersByTime(REFRESH_DELAY_MS - 50)
+    scheduler.trigger()
+    vi.advanceTimersByTime(REFRESH_DELAY_MS - 1)
+    expect(refresh).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(refresh).toHaveBeenCalledTimes(1)
+    scheduler.trigger()
+    scheduler.cancel()
+    vi.advanceTimersByTime(REFRESH_DELAY_MS * 2)
+    expect(refresh).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("pages d'erreur du segment [missionId]", () => {
+  it("la conversation introuvable porte un h2 et aucun h1 (le layout porte le h1)", async () => {
+    const { default: NotFound } = await import("@/app/(student)/messages/[missionId]/not-found")
+    const html = renderToStaticMarkup(<NotFound />)
+    expect(html).toContain("<h2")
+    expect(html).not.toContain("<h1")
+    expect(html).toContain('href="/messages"')
+  })
+
+  it("la page de conversation rend son erreur en h2 avec un lien de retour", () => {
+    const page = readFileSync(join(process.cwd(), "src/app/(student)/messages/[missionId]/page.js"), "utf8")
+    expect(page).toContain('titleAs="h2"')
+    expect(page).not.toContain('titleAs="h1"')
+    expect(page).toContain('action={{ href: "/messages", label: "Retour aux messages" }}')
+  })
+})
+
+describe("structure du segment messages", () => {
   const root = join(process.cwd(), "src/app/(student)/messages")
 
   it("n'a aucun loading.js sous messages/ (le 404 de [missionId] resterait un 200)", () => {
@@ -221,12 +409,43 @@ describe("InboxSkeleton et page", () => {
     expect(existsSync(join(root, "[missionId]", "loading.js"))).toBe(false)
   })
 
-  it("la page est mince : marqueur, Suspense, action étudiante, aucun accès direct aux données", () => {
+  it("le layout porte le marqueur, lit les conversations hors Suspense et ne touche pas aux données", () => {
+    const layout = readFileSync(join(root, "layout.js"), "utf8")
+    expect(layout.startsWith("// @ds-screen RD-STUDENT-01")).toBe(true)
+    expect(layout).toContain("getStudentConversations")
+    expect(layout).not.toContain("<Suspense")
+    expect(layout).not.toMatch(/supabase|\.from\("/)
+  })
+
+  it("la page ne rend que le volet vide porté par la vue", () => {
     const page = readFileSync(join(root, "page.js"), "utf8")
     expect(page.startsWith("// @ds-screen RD-STUDENT-01")).toBe(true)
-    expect(page).toContain("<Suspense")
-    expect(page).toContain("getStudentConversations")
-    expect(page).not.toMatch(/@\/lib\/supabase/)
+    expect(page).toContain("return null")
     expect(page).not.toMatch(/supabase|\.from\("/)
+  })
+})
+
+describe("styles des deux volets", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/design/student/e06.css"), "utf8")
+  const MOBILE = { media: "max-width: 1023.98px" }
+
+  it("grille liste + volet de 360 px à 1440, gouttière de 20 px", () => {
+    const grid = declarationsOf(css, ".e2-06-inbox")
+    expect(grid["grid-template-columns"]).toBe("clamp(280px, 26vw, 360px) minmax(0, 1fr)")
+    expect(grid.gap).toBe("var(--s-5)")
+  })
+
+  it("sous 1024 px : une colonne, liste seule ou volet seul selon l'attribut", () => {
+    expect(declarationsOf(css, ".e2-06-inbox", MOBILE)["grid-template-columns"]).toBe("minmax(0, 1fr)")
+    expect(declarationsOf(css, '.e2-06-inbox[data-view="list"] > :not(.e2-06-list)', MOBILE).display).toBe("none")
+    expect(declarationsOf(css, '.e2-06-inbox[data-view="conversation"] > .e2-06-list', MOBILE).display).toBe("none")
+  })
+
+  it("sous 1024 px : titre de page masqué en conversation, jour réservé au bureau", () => {
+    const head = declarationsOf(css, '.head2:has(+ .e2-06-inbox[data-view="conversation"])', MOBILE)
+    expect(head.display).toBeUndefined()
+    expect(head.position).toBe("absolute")
+    expect(head["clip-path"]).toBe("inset(50%)")
+    expect(declarationsOf(css, ".e2-06-day", MOBILE).display).toBe("none")
   })
 })
