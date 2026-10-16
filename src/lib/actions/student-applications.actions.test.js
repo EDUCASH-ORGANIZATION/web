@@ -310,6 +310,8 @@ describe("getStudentApplicationsView", () => {
     for (const c of calls) expect(c.columns).not.toMatch(/\*/)
     // l'embarqué liste aussi ses colonnes
     expect(calls.find((c) => c.table === "applications").columns).not.toContain("*")
+    // updated_at ne sert qu'au tri (.order) : il n'est plus lu dans le select
+    expect(calls.find((c) => c.table === "applications").columns).not.toContain("updated_at")
   })
 
   it("mission illisible : ni titre ni montant ni lien de mission", async () => {

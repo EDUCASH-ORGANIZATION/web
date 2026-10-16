@@ -388,7 +388,7 @@ describe("getStudentMissionDetail : date de rétention (RD-ACCEPT-01, accepted_a
   it("la candidature n'est lue qu'une seule fois (builder paresseux exécuté une fois)", async () => {
     responses.acceptedAt = { data: [{ id: APP, accepted_at: "2026-10-08T08:00:00Z" }], error: null }
     await load()
-    const reads = callsOn("applications").filter((c) => c.columns === "id, status, message, created_at, updated_at")
+    const reads = callsOn("applications").filter((c) => c.columns === "id, status, message, created_at")
     expect(reads).toHaveLength(1)
     expect(reads[0].runs).toBe(1)
   })

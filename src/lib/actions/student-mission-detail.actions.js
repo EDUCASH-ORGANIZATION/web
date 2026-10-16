@@ -20,7 +20,7 @@ const SIMILAR_LIMIT = 4
 // l'affichage. Aucune colonne privée (téléphone, carte, motif de refus...).
 const MISSION_COLUMNS =
   "id, title, description, type, city, budget, urgency, deadline, status, created_at, client_id, selected_student_id, purchases_estimate"
-const APPLICATION_COLUMNS = "id, status, message, created_at, updated_at"
+const APPLICATION_COLUMNS = "id, status, message, created_at"
 const CLIENT_COLUMNS = "full_name, city, avatar_url, rating, missions_done, is_verified"
 const SIMILAR_COLUMNS = "id, title, type, city, budget, deadline"
 // Seule la ligne `release` du grand livre de l'étudiant (son NET, sous son user_id) est lue : jamais la ligne brute

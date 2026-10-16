@@ -88,7 +88,7 @@ async function readApplications(supabase, userId) {
     const from = page * PAGE_SIZE
     const { data, error } = await supabase
       .from("applications")
-      .select("id, mission_id, status, created_at, updated_at, missions(title, type, city, budget, status, deadline, selected_student_id, client_id)")
+      .select("id, mission_id, status, created_at, missions(title, type, city, budget, status, deadline, selected_student_id, client_id)")
       .eq("student_id", userId)
       .order("updated_at", { ascending: false })
       .order("id", { ascending: true })
