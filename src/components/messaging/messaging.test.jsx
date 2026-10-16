@@ -85,6 +85,18 @@ describe("PlaceLinks", () => {
 })
 
 describe("ReportDialog", () => {
+  it.each([
+    ["Afiavi D.", "L'équipe examinera ce message de Afiavi D. La personne"],
+    ["Sèna", "L'équipe examinera ce message de Sèna. La personne"],
+    ["", "L'équipe examinera ce message. La personne"],
+    [undefined, "L'équipe examinera ce message. La personne"],
+  ])("ponctuation de l'en-tête sans double point (nom %j)", (name, expected) => {
+    const { container } = render(<ReportDialog senderName={name} onSubmit={vi.fn()} onClose={vi.fn()} />)
+    const text = (document.body.textContent || container.textContent).replace(/\s+/g, " ")
+    expect(text).toContain(expected)
+    expect(text).not.toContain("..")
+  })
+
   const open = (onSubmit = vi.fn(), onClose = vi.fn()) => {
     render(<ReportDialog senderName="Sèna" onSubmit={onSubmit} onClose={onClose} />)
     return { onSubmit, onClose }

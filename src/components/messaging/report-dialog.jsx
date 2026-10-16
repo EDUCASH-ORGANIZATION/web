@@ -97,7 +97,7 @@ export function ReportDialog({ senderName, onSubmit, onClose }) {
       open
       onClose={close}
       title="Signaler un problème"
-      description={`L'équipe examinera ce message${senderName ? ` de ${senderName}` : ""}. ${REPORT_ANONYMOUS_COPY}`}
+      description={`L'équipe examinera ce message${senderName ? ` de ${senderName}` : ""}${senderName?.endsWith(".") ? "" : "."} ${REPORT_ANONYMOUS_COPY}`}
       icon={{ name: "i-flag", tone: "erreur" }}
       footer={
         <>

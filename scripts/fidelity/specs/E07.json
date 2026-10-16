@@ -138,7 +138,7 @@
             "radius"
           ],
           "lot": "ST-05",
-          "note": "A8 : la planche place un menu ⋮ 40 px (Plus d'actions : signaler) et un gap de 12 px à droite du bouton ; Signaler n'existe pas (D4), le menu est omis : le bouton est 52 px plus à droite (x1196 planche, x1248 code)",
+          "note": "A8 : la planche place un menu ⋮ 40 px (Plus d'actions : signaler) et un gap de 12 px à droite du bouton ; le menu ⋮ de l'en-tête reste absent (« Signaler » existe désormais sur chaque message reçu de la conversation, pas dans l'en-tête) : le bouton est 52 px plus à droite (x1196 planche, x1248 code)",
           "assume": {
             "x": "A8:52"
           }
