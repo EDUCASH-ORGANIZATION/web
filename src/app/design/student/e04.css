@@ -3,6 +3,7 @@
 
 /* Candidature acceptée mise en avant (carte blanche horizontale) */
 .e2-04-hl { overflow-wrap: anywhere; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-8); padding: var(--s-6) var(--s-8); }
+.e2-04-hl__body { min-width: 0; }
 .e2-04-hl .hero2__title { margin-top: 10px; }
 .e2-04-hl .hero2__text { margin-top: 4px; }
 .e2-04-hl .hero2__actions { margin-top: 0; padding-top: 0; flex-wrap: nowrap; }
@@ -20,13 +21,24 @@
 /* Actions sous une carte mobile (classe de la planche, gardée par app-css.guard ; la liste n'utilise plus de carte mobile) */
 .e2-04-macts { display: flex; align-items: center; gap: var(--s-5); flex-wrap: wrap; margin-top: -4px; }
 .e2-04-macts .e2-link { min-height: 44px; }
+/* Textes de la carte « Retenue » : variantes bureau et mobile de la planche (titre de la mission en tête sous 1024 px) */
+.e2-04-hl__what { display: none; }
 /* Toast sans accent citron (le citron reste la carte « Retenue ») */
 .e2-04-toast .toast__icon { background: var(--c-encre-700); color: var(--c-blanc); }
 .e2-04-toast .toast__action { color: var(--c-blanc); }
 
 @media (max-width: 1023.98px) {
-  .e2-04-hl { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); padding: var(--s-5); }
-  .e2-04-hl .hero2__actions { flex-wrap: wrap; }
+  /* Carte « Retenue » mobile : colonne à 6 px d'écart, actions à 12 px sous le texte (planche .card2--m) */
+  .e2-04-hl { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: var(--s-5); }
+  .e2-04-hl__body { display: flex; flex-direction: column; gap: 6px; }
+  .e2-04-hl .hero2__title { margin-top: 4px; }
+  .e2-04-hl .hero2__text { margin-top: 0; }
+  .e2-04-hl .hero2__actions { flex-wrap: wrap; padding-top: var(--s-3); }
+  .e2-04-list { border-radius: 20px; }
+  /* « Explorer les missions » absent sous 1024 px : la barre du bas porte déjà « Missions » (planche mobile) */
+  .detail-head__actions:has(> .e2-04-explore) { display: none; }
+  .e2-04-hl__for, .e2-04-hl__long, .e2-04-total { display: none; }
+  .e2-04-hl__what { display: inline; }
   /* « Voir » (27 px de large) : zone tactile de 44 px, alignement et espacement inchangés */
   .e2-04-acts .e2-link { min-width: 44px; }
 }

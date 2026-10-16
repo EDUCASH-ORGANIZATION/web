@@ -2,7 +2,6 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { PageHead } from "@/components/app-ui/page-head"
-import { TabsNav } from "@/components/app-ui/tabs-nav"
 import { StatusBadge } from "@/components/app-ui/status-badge"
 import { EmptyState } from "@/components/app-ui/empty-state"
 import { ErrorState } from "@/components/app-ui/state-block"
@@ -26,6 +25,34 @@ const EXPLORE = { label: "Explorer les missions", href: studentMissionsHref() }
 // Prénom trop long pour le bouton (320 px) : libellé neutre.
 const NAME_MAX = 14
 const COMMISSION_PERCENT = `${Math.round(COMMISSION_RATE * 100)} %`
+const SHARE_PERCENT = `${Math.round((1 - COMMISSION_RATE) * 100)} %`
+const BENIN_TZ = "Africa/Porto-Novo"
+
+const dayKey = (date) => new Intl.DateTimeFormat("en-CA", { timeZone: BENIN_TZ }).format(date)
+
+// Heure au fuseau du Bénin, ex. "9:12" ou "17:40". "" si la date est absente ou invalide.
+function clockOf(iso) {
+  const date = new Date(iso ?? NaN)
+  if (Number.isNaN(date.getTime())) return ""
+  const parts = new Intl.DateTimeFormat("fr-FR", { hour: "numeric", minute: "2-digit", hourCycle: "h23", timeZone: BENIN_TZ }).formatToParts(date)
+  const get = (type) => parts.find((p) => p.type === type)?.value ?? ""
+  return `${get("hour")}:${get("minute")}`
+}
+
+// « aujourd'hui à 9:12 », « hier à 17:40 » ou « le jeu. 1 oct. à 17:40 ».
+function whenOf(iso, now) {
+  const date = new Date(iso ?? NaN)
+  const clock = clockOf(iso)
+  if (!clock) return ""
+  const today = dayKey(now)
+  const yesterday = dayKey(new Date(now.getTime() - 24 * 60 * 60 * 1000))
+  const day = dayKey(date)
+  if (day === today) return `aujourd'hui à ${clock}`
+  if (day === yesterday) return `hier à ${clock}`
+  return `le ${formatShortDate(iso)} à ${clock}`
+}
+
+const isAmount = (n) => Number.isFinite(n) && n > 0
 
 const EMPTY = {
   "en-attente": {
@@ -54,13 +81,22 @@ const EMPTY = {
 
 const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`
 
+// Le total n'est affiché qu'à partir de 1024 px (la planche mobile ne garde que les deux compteurs).
 function headDate({ total, counts }) {
   if (total === 0) return "Aucune candidature pour l'instant"
-  return `${plural(total, "candidature", "candidatures")} · ${counts["en-attente"]} en attente · ${counts["en-cours"]} en cours`
+  return (
+    <>
+      <span className="e2-04-total">{`${plural(total, "candidature", "candidatures")} · `}</span>
+      {`${counts["en-attente"]} en attente · ${counts["en-cours"]} en cours`}
+    </>
+  )
 }
 
 // Pastille de statut et ligne sous la pastille, selon l'onglet.
-function statusOf(row, tab) {
+function statusOf(row, tab, unread) {
+  if (unread && row.status === "pending" && tab === "en-attente") {
+    return { view: applicationStatusView(row.status), icon: undefined, note: `${row.clientFirst} vous a écrit à ${clockOf(unread.at)}` }
+  }
   if (tab === "en-cours") {
     const view = missionStatusView({ status: row.missionStatus })
     return { view, icon: undefined, note: `Retenue le ${formatShortDate(row.updatedAt)}` }
@@ -84,7 +120,14 @@ function statusOf(row, tab) {
   return { view: applicationStatusView(row.status), icon: undefined, note: `Postulée le ${formatShortDate(row.appliedAt)}` }
 }
 
-const GAIN_NOTE = { "en-cours": "en séquestre", terminees: "versés" }
+// Sans paiements, rien n'est bloqué : la part de l'étudiant n'est jamais dite « en séquestre ».
+const gainNote = (tab, paymentsOn) => (tab === "terminees" ? "versés" : tab === "en-cours" && paymentsOn ? "en séquestre" : "votre part")
+
+// Message non lu du client sur cette mission (conversation lue côté messagerie) : prénom et heure requis.
+function unreadOf(row, unreadByMission) {
+  const unread = row.missionId ? unreadByMission?.[row.missionId] : null
+  return unread && row.clientFirst && clockOf(unread.at) ? unread : null
+}
 
 function subtitleOf(row) {
   const parts = []
@@ -97,12 +140,16 @@ function subtitleOf(row) {
 }
 
 // Actions en liens, la plus importante à gauche (la ligne les aligne à droite).
-function actionsOf(row, tab) {
+function actionsOf(row, tab, unread) {
   if (row.missionId === null) return []
-  const mission = { label: tab === "en-cours" ? "Voir" : "Voir la mission", href: studentMissionHref(row.missionId) }
-  if (tab === "en-cours") return [{ label: "Écrire au client", href: studentConversationHref(row.missionId) }, mission]
-  if (tab === "terminees" && !row.review) return [{ label: "Noter le client", href: studentReviewHref(row.missionId) }, mission]
-  return [mission]
+  const reply = row.clientFirst && row.clientFirst.length <= NAME_MAX ? `Répondre à ${row.clientFirst}` : "Répondre au client"
+  let first = null
+  if (unread) first = { label: reply, href: studentConversationHref(row.missionId) }
+  else if (tab === "en-cours") first = { label: "Écrire au client", href: studentConversationHref(row.missionId) }
+  else if (tab === "terminees" && !row.review) first = { label: "Noter le client", href: studentReviewHref(row.missionId) }
+  // Deux liens : « Voir » suffit ; un seul : « Voir la mission » (comme la planche).
+  const mission = { label: first ? "Voir" : "Voir la mission", href: studentMissionHref(row.missionId) }
+  return first ? [first, mission] : [mission]
 }
 
 function Action({ action, title }) {
@@ -113,11 +160,13 @@ function Action({ action, title }) {
   )
 }
 
-function Row({ row, tab }) {
-  const { view, icon, note } = statusOf(row, tab)
-  const actions = actionsOf(row, tab)
-  const money = row.missionId === null ? null : splitAmount(row.net)
+function Row({ row, tab, unreadByMission, paymentsOn }) {
+  const unread = unreadOf(row, unreadByMission)
+  const { view, icon, note } = statusOf(row, tab, unread)
+  const actions = actionsOf(row, tab, unread)
+  const money = row.missionId === null || !isAmount(row.net) ? null : splitAmount(row.net)
   const off = tab === "non-retenues"
+  const gain = isAmount(row.budget) ? `${gainNote(tab, paymentsOn)} · budget ${splitAmount(row.budget).text}` : gainNote(tab, paymentsOn)
   return (
     <div role="listitem" className={off ? "e2-04-row is-off" : "e2-04-row"}>
       <span className="item2__ic">
@@ -137,7 +186,7 @@ function Row({ row, tab }) {
             {money.text}
             <small>{money.unit}</small>
           </span>
-          <span>{`${GAIN_NOTE[tab] ?? "votre part"} · budget ${splitAmount(row.budget).text}`}</span>
+          <span>{gain}</span>
         </div>
       ) : (
         <span />
@@ -156,28 +205,44 @@ function Row({ row, tab }) {
 }
 
 // Candidature retenue récemment : carte blanche, seule étiquette citron de l'écran, un seul bouton encre.
-function Highlight({ highlight }) {
+function Highlight({ highlight, now, paymentsOn }) {
   const date = formatShortDate(highlight.deadline)
   const writeTo = highlight.clientFirst && highlight.clientFirst.length <= NAME_MAX ? `Écrire à ${highlight.clientFirst}` : "Écrire au client"
-  const where = highlight.city ? ` à ${highlight.city}` : ""
-  const text = [
-    `${highlight.title}${where}.`,
-    date ? `Avant le ${date}${date.endsWith(".") ? "" : "."}` : "",
-    `${formatAmount(highlight.net)} sont bloqués pour vous en séquestre (votre part, commission de ${COMMISSION_PERCENT} déduite).`,
-  ]
-    .filter(Boolean)
-    .join(" ")
+  const when = whenOf(highlight.acceptedAt, now)
+  const who = highlight.clientName || "Un client"
+  const where = highlight.city ? `à ${highlight.city}` : ""
+  const place = [date ? `Avant le ${date}` : "", where].filter(Boolean).join(" ")
+  // Bureau : phrase complète ; mobile (planche) : titre de la mission en tête, phrase abrégée.
+  const amount = isAmount(highlight.net) ? formatAmount(highlight.net) : ""
+  const showText = Boolean(place || amount)
   return (
     <section className="card2 e2-04-hl" aria-label="Candidature retenue">
-      <div>
+      <div className="e2-04-hl__body">
         <span className="flag2">
           <Icon name="i-check-circle" />
-          {`Retenue le ${formatShortDate(highlight.acceptedAt)}`}
+          {when ? `Retenue ${when}` : "Retenue"}
         </span>
         <h2 className="hero2__title">
-          {highlight.clientFirst ? `${highlight.clientFirst} a retenu votre candidature` : "Un client a retenu votre candidature"}
+          {`${who} a retenu votre candidature`}
+          <span className="e2-04-hl__for">{` pour « ${highlight.title} »`}</span>
         </h2>
-        <p className="hero2__text">{text}</p>
+        {showText ? (
+          <p className="hero2__text">
+            <span className="e2-04-hl__what">{`${highlight.title} · `}</span>
+            {place ? (place.endsWith(".") ? place : `${place}.`) : ""}
+            {place && amount ? " " : ""}
+            {amount && paymentsOn ? (
+              <>
+                {`${amount} `}
+                <span className="e2-04-hl__long">sont </span>
+                {"bloqués pour vous en séquestre"}
+                <span className="e2-04-hl__long">{` (votre part de ${SHARE_PERCENT})`}</span>
+                {"."}
+              </>
+            ) : null}
+            {amount && !paymentsOn ? `Votre part sera de ${amount} (commission de ${COMMISSION_PERCENT} déduite).` : ""}
+          </p>
+        ) : null}
       </div>
       <div className="hero2__actions">
         <Link className="btn btn--dark" href={studentConversationHref(highlight.missionId)}>
@@ -207,8 +272,9 @@ function EscrowNote({ escrow }) {
   )
 }
 
+// Absent sous 1024 px : la barre du bas porte déjà « Missions » (planche mobile).
 const HEAD_ACTION = (
-  <Link className="btn btn--soft" href={studentMissionsHref()}>
+  <Link className="btn btn--soft e2-04-explore" href={studentMissionsHref()}>
     <Icon name="i-search" />
     Explorer les missions
   </Link>
@@ -227,9 +293,12 @@ export function StudentApplicationsSkeleton() {
 /**
  * Mes candidatures (E04). Vue pure : `result` est la réponse de `getStudentApplicationsView`, soit `{ error }`,
  * soit `{ data }` (onglet affiché, compteurs, lignes, séquestre, candidature retenue récemment).
- * @param {{ result?: { data?: import("@/lib/actions/student-applications.actions").StudentApplicationsData, error?: string } }} props
+ * `unreadByMission` : messages non lus du client, `{ [missionId]: { at } }` (facultatif, voir `unreadByMission`).
+ * `paymentsEnabled` : sans paiements, ni séquestre ni montant bloqué n'est affiché.
+ * @param {{ result?: { data?: import("@/lib/actions/student-applications.actions").StudentApplicationsData, error?: string },
+ *   unreadByMission?: Record<string, { at: string }>, now?: Date | string, paymentsEnabled?: boolean }} props
  */
-export function StudentApplicationsView({ result }) {
+export function StudentApplicationsView({ result, unreadByMission, now = new Date(), paymentsEnabled = false }) {
   const data = result?.data
   if (!data) {
     return (
@@ -243,20 +312,29 @@ export function StudentApplicationsView({ result }) {
     )
   }
   const { tab, counts, total, rows, escrow, highlight } = data
-  const items = APPLICATION_TABS.map((t) => ({
-    key: t.id,
-    label: t.label,
-    count: counts[t.id],
-    href: studentApplicationsHref({ onglet: t.id }),
-  }))
+  const nowDate = new Date(now)
   const empty = EMPTY[tab]
   const label = APPLICATION_TABS.find((t) => t.id === tab)?.label
   return (
     <div className="page2">
       <PageHead date={headDate({ total, counts })} title="Mes candidatures" actions={HEAD_ACTION} />
-      {highlight && tab !== "en-cours" ? <Highlight highlight={highlight} /> : null}
-      <TabsNav label="Mes candidatures par statut" activeKey={tab} items={items} />
-      {tab === "en-cours" && escrow.count > 0 ? <EscrowNote escrow={escrow} /> : null}
+      {highlight && tab !== "en-cours" ? <Highlight highlight={highlight} now={nowDate} paymentsOn={paymentsEnabled} /> : null}
+      <nav aria-label="Mes candidatures par statut">
+        <div className="e2-tabs">
+          {APPLICATION_TABS.map((t) => (
+            <Link
+              key={t.id}
+              href={studentApplicationsHref({ onglet: t.id })}
+              className={t.id === tab ? "e2-tab is-active" : "e2-tab"}
+              aria-current={t.id === tab ? "page" : undefined}
+            >
+              {t.label}
+              {counts[t.id] > 0 ? <b>{counts[t.id]}</b> : null}
+            </Link>
+          ))}
+        </div>
+      </nav>
+      {tab === "en-cours" && paymentsEnabled && isAmount(escrow.total) && escrow.count > 0 ? <EscrowNote escrow={escrow} /> : null}
       {rows.length === 0 ? (
         <section className="card2 card2--flush" aria-label={empty.title}>
           <EmptyState icon={empty.icon} title={empty.title} text={empty.text} action={empty.action} />
@@ -264,7 +342,7 @@ export function StudentApplicationsView({ result }) {
       ) : (
         <div className="e2-04-list" aria-label={label} role="list">
           {rows.map((row) => (
-            <Row key={row.id} row={row} tab={tab} />
+            <Row key={row.id} row={row} tab={tab} unreadByMission={unreadByMission} paymentsOn={paymentsEnabled} />
           ))}
         </div>
       )}

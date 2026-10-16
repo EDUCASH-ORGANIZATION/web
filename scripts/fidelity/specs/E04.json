@@ -1,0 +1,565 @@
+{
+  "id": "E04",
+  "title": "Mes candidatures étudiant (onglet En attente)",
+  "planche": "etudiant/E04-mes-candidatures.v2.html",
+  "screen": "e04",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "CA-00",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "fontSize",
+            "fontWeight"
+          ]
+        },
+        {
+          "id": "CA-00",
+          "label": "titre de page",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "h",
+            "fontSize"
+          ],
+          "assume": {
+            "h": "A3:3"
+          },
+          "note": "A3 : interligne du titre de page, hauteur +3 mesuré (40 -> 43)"
+        },
+        {
+          "id": "CA-00",
+          "label": "bouton Explorer",
+          "board": ".head2 .btn",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-02",
+          "label": "carte retenue",
+          "board": ".e2-04-hl",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad",
+            "gap",
+            "bg",
+            "border"
+          ],
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-02",
+          "label": "étiquette",
+          "board": ".e2-04-hl .flag2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "y": "A3:3",
+            "w": "A2:10",
+            "bg": "X1"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : étiquette 12 -> 13 px, largeur +10 mesuré ; X1 sur bg : vert de la charte #C1EE3E (--c-citron) au lieu de #C8F03C de la planche, absent de la table A1 du banc (compare.mjs hors périmètre de ST-11) : à ajouter à A1 par l'orchestrateur"
+        },
+        {
+          "id": "CA-02",
+          "label": "titre de carte",
+          "board": ".e2-04-hl .hero2__title",
+          "props": [
+            "x",
+            "y",
+            "h",
+            "fontSize",
+            "fontWeight"
+          ],
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-02",
+          "label": "texte de carte",
+          "board": ".e2-04-hl .hero2__text",
+          "props": [
+            "x",
+            "y",
+            "fontSize",
+            "lineHeight"
+          ],
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-02",
+          "label": "bouton Écrire",
+          "board": ".e2-04-hl .btn--dark",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-03",
+          "label": "onglets",
+          "board": ".e2-tabs",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "gap"
+          ],
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-03",
+          "label": "onglet actif",
+          "board": ".e2-tab.is-active",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize",
+            "fontWeight"
+          ],
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-03",
+          "label": "dernier onglet",
+          "board": ".e2-tab:nth-child(4)",
+          "props": [
+            "x",
+            "w",
+            "h"
+          ],
+          "assume": {
+            "w": "A8:69"
+          },
+          "note": "A8 : « Non retenues et retirées » devient « Non retenues » : « retirées » sans fonction (retrait de candidature non codé, D4, plan CA-03), largeur -69 mesuré"
+        },
+        {
+          "id": "CA-01",
+          "label": "liste",
+          "board": ".e2-04-list",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "y": "A3:4",
+            "h": "A2:4"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : texte secondaire 13 -> 14 px, +1 par ligne sur trois lignes plus +1 d'arrondi, hauteur +4 mesuré"
+        },
+        {
+          "id": "CA-01",
+          "label": "ligne",
+          "board": ".e2-04-row",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad",
+            "gap",
+            "cols"
+          ],
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-01",
+          "label": "icône",
+          "board": ".e2-04-row .item2__ic",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-01",
+          "label": "titre",
+          "board": ".e2-04-row .item2__title",
+          "props": [
+            "x",
+            "y",
+            "fontSize",
+            "fontWeight"
+          ],
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-01",
+          "label": "sous-titre",
+          "board": ".e2-04-row .item2__sub",
+          "props": [
+            "x",
+            "y",
+            "fontSize"
+          ],
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-01",
+          "label": "statut",
+          "board": ".e2-04-status",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "gap"
+          ],
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-01",
+          "label": "gain",
+          "board": ".e2-04-gain",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "assume": {
+            "y": "A3:3",
+            "h": "A2:2"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : deux lignes de 13 -> 14 px, hauteur +2 mesuré"
+        },
+        {
+          "id": "CA-04",
+          "label": "actions",
+          "board": ".e2-04-acts",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "gap"
+          ],
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        },
+        {
+          "id": "CA-04",
+          "label": "lien Voir",
+          "board": ".e2-04-row:first-child .e2-04-acts .e2-link:nth-child(2)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "assume": {
+            "x": "A8:59",
+            "y": "A3:4"
+          },
+          "note": "A8 : le lien « Retirer » est omis (non codé, D4, plan CA-04) et les liens sont alignés à droite : « Voir » se décale de la largeur de « Retirer » + gap, +59 mesuré ; A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        844
+      ],
+      "frame": "phone",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "CA-00",
+          "label": "en-tête",
+          "board": ".head2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "assume": {
+            "y": "L3:12"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12)"
+        },
+        {
+          "id": "CA-00",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "fontSize",
+            "fontWeight"
+          ],
+          "assume": {
+            "y": "L3:12"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12)"
+        },
+        {
+          "id": "CA-00",
+          "label": "titre de page",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize"
+          ],
+          "assume": {
+            "y": "L3+A2:13",
+            "w": "X1:29",
+            "h": "X1:2",
+            "fontSize": "X1:4"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; A2 : ligne de date 13 -> 14 px, +1 ; Titre de page 26 px sous 480 px (app-shell.css, hors fichiers de ST-11) contre 30 px de la planche : écart non résolu par ST-11 (coquille, lot ST-03)"
+        },
+        {
+          "id": "CA-02",
+          "label": "carte retenue",
+          "board": ".card2--m",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad",
+            "gap",
+            "bg"
+          ],
+          "code": ".e2-04-hl",
+          "assume": {
+            "y": "L3:12",
+            "h": "X1:21"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2), +21 mesuré"
+        },
+        {
+          "id": "CA-02",
+          "label": "étiquette",
+          "board": ".card2--m .flag2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "code": ".e2-04-hl .flag2",
+          "assume": {
+            "y": "L3:12",
+            "w": "A2:13",
+            "bg": "X1"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; A2 : étiquette 12 -> 13 px, largeur +13 mesuré ; X1 sur bg : vert de la charte #C1EE3E (--c-citron) au lieu de #C8F03C de la planche, absent de la table A1 du banc (compare.mjs hors périmètre de ST-11) : à ajouter à A1 par l'orchestrateur"
+        },
+        {
+          "id": "CA-02",
+          "label": "titre de carte",
+          "board": ".card2--m .hero2__title",
+          "props": [
+            "x",
+            "y",
+            "h",
+            "fontSize",
+            "fontWeight"
+          ],
+          "code": ".e2-04-hl .hero2__title",
+          "assume": {
+            "y": "L3:12"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12)"
+        },
+        {
+          "id": "CA-02",
+          "label": "texte de carte",
+          "board": ".card2--m .hero2__text",
+          "props": [
+            "x",
+            "y",
+            "h",
+            "fontSize",
+            "lineHeight"
+          ],
+          "code": ".e2-04-hl .hero2__text",
+          "assume": {
+            "y": "L3:11",
+            "h": "X1:21"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; moins 1 px d'arrondi du titre au-dessus (+11 mesuré) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2), +21 mesuré"
+        },
+        {
+          "id": "CA-02",
+          "label": "bouton Écrire",
+          "board": ".card2--m .btn--dark",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "code": ".e2-04-hl .btn--dark",
+          "assume": {
+            "y": "L3+X1:32"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2) (+21), moins arrondis"
+        },
+        {
+          "id": "CA-03",
+          "label": "onglets",
+          "board": ".e2-tabs",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "gap"
+          ],
+          "assume": {
+            "y": "L3+X1:32"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2) (+21), moins arrondis"
+        },
+        {
+          "id": "CA-03",
+          "label": "onglet actif",
+          "board": ".e2-tab.is-active",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize",
+            "fontWeight"
+          ],
+          "assume": {
+            "y": "L3+X1:32"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2) (+21), moins arrondis"
+        },
+        {
+          "id": "CA-06",
+          "label": "carte de candidature",
+          "board": ".e2-mcard",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "bg",
+            "border"
+          ],
+          "code": ".e2-04-list"
+        },
+        {
+          "id": "CA-06",
+          "label": "première candidature",
+          "board": ".e2-mcard",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "code": ".e2-04-row",
+          "assume": {
+            "y": "L3+X1:33",
+            "w": "X1:2"
+          },
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; X1 : texte de la carte plus long que la planche mobile (titre complet de la mission, 3 lignes au lieu de 2) (+21), moins arrondis ; X1 : la planche mobile affiche une carte e2-mcard à bordure propre, le code garde la ligne repliée de la liste (un seul gabarit, contrainte du garde app-css e2list) : -2 mesuré (bordures de la liste)"
+        }
+      ]
+    }
+  ]
+}
