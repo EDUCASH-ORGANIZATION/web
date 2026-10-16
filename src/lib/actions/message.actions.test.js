@@ -2,8 +2,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
+vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
+// Les vraies fonctions, enveloppées : un test peut forcer UNE réponse pour atteindre un contrôle redondant de l'action.
+vi.mock("@/lib/messaging/contact-filter", async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, maskContacts: vi.fn(actual.maskContacts), maskDigitRuns: vi.fn(actual.maskDigitRuns), detectSplitPhone: vi.fn(actual.detectSplitPhone) }
+})
+vi.mock("@/lib/client-space/conversations", async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, coordsValid: vi.fn(actual.coordsValid) }
+})
 
 import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
+import { maskContacts, maskDigitRuns, detectSplitPhone } from "@/lib/messaging/contact-filter"
+import { coordsValid } from "@/lib/client-space/conversations"
 import { netAmount } from "@/lib/constants/missions"
 import {
   getClientConversations,
@@ -59,7 +72,8 @@ function matchCondition(row, cond) {
   return String(row[col]) === value
 }
 
-function makeSupabase() {
+// `kind` distingue le client de session ("session") du client service role ("service") dans le journal des requêtes.
+function makeSupabase(kind = "session") {
   return {
     storage: {
       from: (bucket) => ({
@@ -79,7 +93,7 @@ function makeSupabase() {
       }),
     },
     from: (table) => {
-      const q = { table, op: "select", columns: null, filters: [], ors: [], payload: null, head: false, limit: null }
+      const q = { table, kind, op: "select", columns: null, filters: [], ors: [], payload: null, head: false, limit: null, order: null }
       log.push(q)
       const matches = () =>
         (db[table] ?? []).filter((row) => {
@@ -96,9 +110,13 @@ function makeSupabase() {
           return Promise.resolve({ data: null, error: failures.completion })
         }
         const failure = failures[`${table}.${q.op}`]
-        if (failure) return Promise.resolve({ data: null, error: { message: failure }, count: null })
+        if (failure) {
+          const error = typeof failure === "object" ? failure : { message: failure }
+          return Promise.resolve({ data: null, error, count: null })
+        }
         if (q.op === "insert") {
-          const row = { id: `msg-${(db[table] ?? []).length + 1}`, created_at: "2026-10-13T10:00:00Z", ...q.payload }
+          const createdAt = table === "messages" ? "2026-10-13T10:00:00Z" : new Date().toISOString()
+          const row = { id: `${table === "messages" ? "msg" : table}-${(db[table] ?? []).length + 1}`, created_at: createdAt, ...q.payload }
           db[table] = [...(db[table] ?? []), row]
           return Promise.resolve({ data: row, error: null })
         }
@@ -109,7 +127,8 @@ function makeSupabase() {
         }
         const rows = matches()
         if (q.head) return Promise.resolve({ data: null, error: null, count: rows.length })
-        const data = q.limit ? rows.slice(0, q.limit) : rows
+        const sorted = q.order ? [...rows].sort((x, y) => (x[q.order.col] < y[q.order.col] ? 1 : -1) * (q.order.asc ? -1 : 1)) : rows
+        const data = q.limit ? sorted.slice(0, q.limit) : sorted
         return Promise.resolve({ data: single ? (data[0] ?? null) : data, error: null })
       }
       const b = {
@@ -132,7 +151,7 @@ function makeSupabase() {
         in: (c, v) => (q.filters.push(["in", c, v]), b),
         gte: (c, v) => (q.filters.push(["gte", c, v]), b),
         or: (expr) => (q.ors.push(expr), b),
-        order: () => b,
+        order: (col, opts) => ((q.order = { col, asc: opts?.ascending !== false }), b),
         limit: (n) => ((q.limit = n), b),
         maybeSingle: () => run(true),
         single: () => run(true),
@@ -195,6 +214,8 @@ beforeEach(() => {
   signCalls = []
   seed()
   requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: CLIENT }, role: "client", profile: {} })
+  createServiceClient.mockReset()
+  createServiceClient.mockImplementation(() => makeSupabase("service"))
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
 
@@ -407,7 +428,7 @@ describe("getClientConversation", () => {
 // ─── Envoi ──────────────────────────────────────────────────────────────────────────────────────────────────
 
 const send = (over) => sendClientMessage({ missionId: M1, studentId: S1, type: "text", content: "Bonjour Awa", ...over })
-const inserts = () => log.filter((q) => q.op === "insert")
+const inserts = () => log.filter((q) => q.op === "insert" && q.table === "messages")
 
 describe("sendClientMessage : texte", () => {
   it("insère le message avec l'expéditeur de la session et l'étudiant de la paire", async () => {
@@ -438,8 +459,8 @@ describe("sendClientMessage : texte", () => {
   })
 
   it("enregistre un contenu HTML tel quel (jamais interprété, l'affichage l'échappe)", async () => {
-    await send({ content: '<img src=x onerror="alert(1)"> https://exemple.test' })
-    expect(inserts()[0].payload.content).toBe('<img src=x onerror="alert(1)"> https://exemple.test')
+    await send({ content: '<img src=x onerror="alert(1)"> bonjour' })
+    expect(inserts()[0].payload.content).toBe('<img src=x onerror="alert(1)"> bonjour')
   })
 
   it("refuse un texte vide, trop long, avec caractère de contrôle ou d'un type inconnu", async () => {
@@ -661,7 +682,7 @@ describe("espace étudiant", () => {
     requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: STUDENT }, role: "student", profile: {} })
   })
 
-  const studentInserts = () => log.filter((q) => q.op === "insert")
+  const studentInserts = () => log.filter((q) => q.op === "insert" && q.table === "messages")
   const sendS = (over) => sendStudentMessage({ missionId: MA, type: "text", content: "Bonjour Marc", ...over })
   const unavailableS = { error: "Cette conversation n'est pas disponible." }
   const invalidS = { error: "Votre message n'est pas valide. Vérifiez son contenu et sa longueur." }
@@ -1535,5 +1556,426 @@ describe("fin déclarée : conversation étudiant", () => {
     expect(await getStudentConversation({ missionId: MB })).toEqual({
       error: "Impossible de charger vos messages. Veuillez réessayer.",
     })
+  })
+})
+
+// ─── Masquage serveur, journal et alerte automatique (RD-MSG-01 ST-04) ────────────────────────────────────────
+// Les deux côtés passent par le même code (`deliverMessage`) : chaque scénario est joué pour le client et l'étudiant.
+
+const NUMBER = "01 97 00 00 00"
+const MASK = "[coordonnées masquées]"
+const eventsOf = () => log.filter((q) => q.op === "insert" && q.table === "message_contact_events")
+const reportsOf = () => log.filter((q) => q.op === "insert" && q.table === "reports")
+const messageInsertsOf = () => log.filter((q) => q.op === "insert" && q.table === "messages")
+const insertedBy = (kind) => messageInsertsOf().filter((q) => q.kind === kind)
+
+const SIDES = [
+  {
+    name: "client",
+    sender: CLIENT,
+    receiver: S1,
+    missionId: M1,
+    setup: () => {
+      seed()
+      requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: CLIENT }, role: "client", profile: {} })
+    },
+    send: (over) => sendClientMessage({ missionId: M1, studentId: S1, type: "text", content: "Bonjour", ...over }),
+  },
+  {
+    name: "étudiant",
+    sender: STUDENT,
+    receiver: CLIENT,
+    missionId: MA,
+    setup: () => {
+      seedStudent()
+      requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: STUDENT }, role: "student", profile: {} })
+    },
+    send: (over) => sendStudentMessage({ missionId: MA, type: "text", content: "Bonjour", ...over }),
+  },
+]
+
+describe.each(SIDES)("masquage serveur ($name)", (side) => {
+  let warn
+  beforeEach(() => {
+    side.setup()
+    warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+  })
+
+  const recent = (over) =>
+    ({ id: `p-${Math.random()}`, mission_id: side.missionId, sender_id: side.sender, receiver_id: side.receiver, type: "text", read: false, ...over })
+  const consoleText = () => JSON.stringify([...console.error.mock.calls, ...warn.mock.calls])
+
+  it("masque un numéro, insère le texte masqué et renseigne contactMasked", async () => {
+    const result = await side.send({ content: `Appelez-moi au ${NUMBER} merci` })
+    expect(result.success).toBe(true)
+    expect(result.contactMasked).toEqual({ kinds: ["phone"] })
+    expect(result.message.content).toBe(`Appelez-moi au ${MASK} merci`)
+    expect(messageInsertsOf()).toHaveLength(1)
+    expect(messageInsertsOf()[0].payload.content).toBe(`Appelez-moi au ${MASK} merci`)
+    expect(JSON.stringify(db.messages)).not.toContain(NUMBER)
+  })
+
+  it("masque une adresse e-mail et un lien sans refuser le message", async () => {
+    const mail = await side.send({ content: "Écrivez à awa.k@gmail.com" })
+    expect(mail.success).toBe(true)
+    expect(mail.contactMasked).toEqual({ kinds: ["email"] })
+    const link = await side.send({ content: "Voir https://monsite.test/x" })
+    expect(link.success).toBe(true)
+    expect(link.contactMasked).toEqual({ kinds: ["link"] })
+    expect(messageInsertsOf().map((q) => q.payload.content)).toEqual([`Écrivez à ${MASK}`, `Voir ${MASK}`])
+  })
+
+  it("garde un texte légitime tel quel, sans journal ni signalement", async () => {
+    const result = await side.send({ content: "Rendez-vous à 14h, 5000 FCFA" })
+    expect(result.success).toBe(true)
+    expect(result.contactMasked).toBeNull()
+    expect(messageInsertsOf()[0].payload.content).toBe("Rendez-vous à 14h, 5000 FCFA")
+    expect(eventsOf()).toHaveLength(0)
+    expect(reportsOf()).toHaveLength(0)
+  })
+
+  it("insère avec le service role, jamais avec le client de session", async () => {
+    await side.send({ content: `Mon numéro ${NUMBER}` })
+    await side.send({ content: "Bonjour" })
+    expect(insertedBy("session")).toHaveLength(0)
+    expect(insertedBy("service")).toHaveLength(2)
+    expect(createServiceClient).toHaveBeenCalled()
+  })
+
+  it("n'utilise le service role qu'après les contrôles : paire refusée, aucun client service créé", async () => {
+    expect(await side.send({ missionId: "44444444-4444-4444-8444-4444444444ff", studentId: "22222222-2222-4222-8222-2222222222ff" })).toEqual({
+      error: "Cette conversation n'est pas disponible.",
+    })
+    expect(await side.send({ content: "   " })).toMatchObject({ error: expect.any(String) })
+    expect(createServiceClient).not.toHaveBeenCalled()
+  })
+
+  it("journalise le type et le nombre, jamais la valeur", async () => {
+    await side.send({ content: `Appelez ${NUMBER} ou awa.k@gmail.com` })
+    expect(eventsOf()).toHaveLength(1)
+    const payload = eventsOf()[0].payload
+    expect(payload).toMatchObject({ mission_id: side.missionId, sender_id: side.sender, action: "masked", match_count: 2 })
+    expect(payload.kinds.sort()).toEqual(["email", "phone"])
+    expect(payload.message_id).toMatch(/^msg-/)
+    expect(JSON.stringify(payload)).not.toMatch(/01 97|awa\.k|gmail/)
+  })
+
+  it("mot-clé seul : texte inchangé, événement flagged, pas de signalement ni de contactMasked", async () => {
+    const result = await side.send({ content: "On continue sur WhatsApp ?" })
+    expect(result.success).toBe(true)
+    expect(result.contactMasked).toBeNull()
+    expect(messageInsertsOf()[0].payload.content).toBe("On continue sur WhatsApp ?")
+    expect(eventsOf()).toHaveLength(1)
+    expect(eventsOf()[0].payload).toMatchObject({ action: "flagged", kinds: ["contact_keyword"] })
+    expect(reportsOf()).toHaveLength(0)
+  })
+
+  it("trois mots-clés seuls ne déclenchent jamais d'alerte", async () => {
+    for (let i = 0; i < 4; i += 1) await side.send({ content: "payez directement" })
+    expect(eventsOf()).toHaveLength(4)
+    expect(reportsOf()).toHaveLength(0)
+  })
+
+  for (const [type, extra] of [
+    ["image", { mediaPath: "A/n.png" }],
+    ["voice", { mediaPath: "A/n.webm" }],
+    ["location", { lat: 6.37, lng: 2.39 }],
+  ]) {
+    it(`${type} : le filtre n'est jamais appelé et l'insertion est celle d'avant`, async () => {
+      const mediaPath = extra.mediaPath ? `${side.sender}/${extra.mediaPath.split("/")[1]}` : undefined
+      vi.mocked(maskContacts).mockClear()
+      vi.mocked(detectSplitPhone).mockClear()
+      const result = await side.send({ type, content: `ignoré ${NUMBER}`, ...extra, mediaPath })
+      expect(result.success).toBe(true)
+      expect(result.contactMasked).toBeNull()
+      expect(maskContacts).not.toHaveBeenCalled()
+      expect(detectSplitPhone).not.toHaveBeenCalled()
+      expect(eventsOf()).toHaveLength(0)
+      const payload = messageInsertsOf()[0].payload
+      expect(payload.content).toBe(type === "location" ? "Position partagée" : payload.content)
+      expect(payload.content).not.toContain(NUMBER)
+      expect(payload.type).toBe(type)
+    })
+  }
+
+  it("numéro coupé sur deux messages dans la fenêtre : les chiffres du second sont masqués (phone_split)", async () => {
+    db.messages.push(recent({ id: "prev1", content: "Mon numéro 01 97", created_at: new Date(Date.now() - 60 * 1000).toISOString() }))
+    const result = await side.send({ content: "00 00 00 merci" })
+    expect(result.success).toBe(true)
+    expect(result.contactMasked).toEqual({ kinds: ["phone_split"] })
+    expect(messageInsertsOf()[0].payload.content).toBe(`${MASK} merci`)
+    expect(eventsOf()[0].payload).toMatchObject({ action: "masked", kinds: ["phone_split"] })
+    // Le message précédent n'est jamais modifié.
+    expect(db.messages.find((m) => m.id === "prev1").content).toBe("Mon numéro 01 97")
+  })
+
+  it("message précédent hors de la fenêtre de 5 minutes : le second n'est pas concerné", async () => {
+    db.messages.push(recent({ id: "old1", content: "Mon numéro 01 97", created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() }))
+    const result = await side.send({ content: "00 00 00 merci" })
+    expect(result.contactMasked).toBeNull()
+    expect(messageInsertsOf()[0].payload.content).toBe("00 00 00 merci")
+    expect(eventsOf()).toHaveLength(0)
+  })
+
+  it("ne relit que les messages texte du même expéditeur dans la même paire", async () => {
+    await side.send({ content: "Bonjour" })
+    const read = log.find((q) => q.op === "select" && q.columns === "content")
+    expect(read.table).toBe("messages")
+    expect(read.kind).toBe("session")
+    expect(read.filters).toEqual(
+      expect.arrayContaining([
+        ["eq", "mission_id", side.missionId],
+        ["eq", "sender_id", side.sender],
+        ["eq", "receiver_id", side.receiver],
+        ["eq", "type", "text"],
+      ]),
+    )
+    expect(read.limit).toBe(2)
+  })
+
+  it("une lecture de découpage en erreur refuse l'envoi avec une erreur neutre", async () => {
+    const session = makeSupabase()
+    const from = session.from
+    session.from = (table) => {
+      const b = from(table)
+      const select = b.select
+      b.select = (columns, opts) => {
+        const chain = select(columns, opts)
+        if (columns !== "content") return chain
+        chain.then = (ok, ko) => Promise.resolve({ data: null, error: { code: "XX000", message: "x" } }).then(ok, ko)
+        return chain
+      }
+      return b
+    }
+    requireRole.mockResolvedValue({ supabase: session, user: { id: side.sender }, role: side.name === "client" ? "client" : "student", profile: {} })
+    expect(await side.send()).toEqual({ error: "Votre message n'a pas pu être envoyé. Veuillez réessayer." })
+    expect(messageInsertsOf()).toHaveLength(0)
+  })
+
+  it("au 3e masquage en 30 jours : un signalement automatique, sans doublon au 4e", async () => {
+    await side.send({ content: `Appelez ${NUMBER}` })
+    await side.send({ content: `Appelez ${NUMBER}` })
+    expect(reportsOf()).toHaveLength(0)
+    await side.send({ content: `Appelez ${NUMBER}` })
+    expect(reportsOf()).toHaveLength(1)
+    expect(reportsOf()[0].payload).toMatchObject({
+      source: "auto",
+      target_type: "message",
+      reason: "contact_details",
+      reporter_id: null,
+      reported_user_id: side.sender,
+      mission_id: side.missionId,
+      status: "open",
+    })
+    expect(reportsOf()[0].payload.message_id).toMatch(/^msg-/)
+    expect(reportsOf()[0].kind).toBe("service")
+    // Le 4e : la base refuse le doublon (23505), l'envoi réussit quand même.
+    failures["reports.insert"] = { code: "23505", message: "duplicate key" }
+    const fourth = await side.send({ content: `Appelez ${NUMBER}` })
+    expect(fourth.success).toBe(true)
+    expect(fourth.contactMasked).toEqual({ kinds: ["phone"] })
+  })
+
+  it("les masquages de plus de 30 jours ne comptent pas", async () => {
+    db.message_contact_events = [1, 2].map((i) => ({ id: `old${i}`, sender_id: side.sender, action: "masked", created_at: "2026-01-01T00:00:00Z" }))
+    await side.send({ content: `Appelez ${NUMBER}` })
+    await side.send({ content: `Appelez ${NUMBER}` })
+    expect(reportsOf()).toHaveLength(0)
+  })
+
+  it("le comptage ne regarde que les événements masqués de l'expéditeur", async () => {
+    db.message_contact_events = [
+      { id: "e1", sender_id: side.sender, action: "flagged", created_at: new Date().toISOString() },
+      { id: "e2", sender_id: side.sender, action: "flagged", created_at: new Date().toISOString() },
+      { id: "e3", sender_id: STRANGER, action: "masked", created_at: new Date().toISOString() },
+      { id: "e4", sender_id: STRANGER, action: "masked", created_at: new Date().toISOString() },
+    ]
+    await side.send({ content: `Appelez ${NUMBER}` })
+    expect(reportsOf()).toHaveLength(0)
+  })
+
+  it("sonde par une lecture (GET), jamais par un HEAD, pour détecter une table absente", async () => {
+    await side.send({ content: `Appelez ${NUMBER}` })
+    const probe = log.find((q) => q.table === "message_contact_events" && q.op === "select")
+    expect(probe.head).toBe(false)
+    expect(probe.columns).toBe("id")
+  })
+
+  for (const code of ["42P01", "PGRST205", "42703"]) {
+    it(`tables du journal absentes (${code}) : l'envoi et le masquage fonctionnent`, async () => {
+      failures["message_contact_events.insert"] = { code, message: "relation absente" }
+      failures["message_contact_events.select"] = { code, message: "relation absente" }
+      failures["reports.insert"] = { code, message: "relation absente" }
+      const result = await side.send({ content: `Appelez ${NUMBER}` })
+      expect(result.success).toBe(true)
+      expect(result.contactMasked).toEqual({ kinds: ["phone"] })
+      expect(result.message.content).toBe(`Appelez ${MASK}`)
+      expect(reportsOf()).toHaveLength(0)
+      expect(warn).toHaveBeenCalled()
+      expect(warn.mock.calls.every((c) => c.length === 2 && c[1] === code)).toBe(true)
+    })
+  }
+
+  it("une erreur inattendue du journal ou de l'alerte ne casse jamais l'envoi", async () => {
+    failures["message_contact_events.insert"] = { message: "boom" }
+    const first = await side.send({ content: `Appelez ${NUMBER}` })
+    expect(first.success).toBe(true)
+    failures["message_contact_events.insert"] = undefined
+    failures["message_contact_events.select"] = { message: "boom" }
+    expect((await side.send({ content: `Appelez ${NUMBER}` })).success).toBe(true)
+    failures["message_contact_events.select"] = undefined
+    createServiceClient.mockImplementation(() => {
+      const c = makeSupabase("service")
+      const from = c.from
+      c.from = (table) => {
+        if (table === "message_contact_events") throw new Error("réseau")
+        return from(table)
+      }
+      return c
+    })
+    expect((await side.send({ content: `Appelez ${NUMBER}` })).success).toBe(true)
+  })
+
+  it("service role non configuré : erreur neutre, aucun message", async () => {
+    createServiceClient.mockImplementation(() => {
+      throw new Error("Configuration serveur incomplète : SUPABASE_SERVICE_ROLE_KEY")
+    })
+    expect(await side.send()).toEqual({ error: "Votre message n'a pas pu être envoyé. Veuillez réessayer." })
+    expect(JSON.stringify(console.error.mock.calls)).not.toContain("SUPABASE_SERVICE_ROLE_KEY")
+  })
+
+  it("aucun console ne reçoit le contenu, la valeur détectée ni un nombre de plus de 4 chiffres", async () => {
+    failures["message_contact_events.insert"] = { code: "42P01", message: `relation ${NUMBER} absente` }
+    await side.send({ content: `Appelez ${NUMBER} ou awa.k@gmail.com` })
+    failures["messages.insert"] = { code: "23505", message: `doublon ${NUMBER}` }
+    await side.send({ content: `Appelez ${NUMBER}` })
+    // Les codes d'erreur de la base (23505, 42P01) sont les seuls nombres admis.
+    const out = consoleText().replace(/23505|42P01/g, "")
+    expect(out).not.toMatch(/\d{5,}/)
+    expect(out).not.toMatch(/01 97|awa\.k|gmail|Appelez/)
+  })
+
+  it("une erreur d'insertion du message : erreur neutre, ni journal ni alerte", async () => {
+    failures["messages.insert"] = { code: "23505", message: "duplicate" }
+    expect(await side.send({ content: `Appelez ${NUMBER}` })).toEqual({ error: "Votre message n'a pas pu être envoyé. Veuillez réessayer." })
+    expect(eventsOf()).toHaveLength(0)
+    expect(reportsOf()).toHaveLength(0)
+  })
+
+  it("n'ajoute aucun UPDATE ni DELETE de message", async () => {
+    await side.send({ content: `Appelez ${NUMBER}` })
+    expect(log.filter((q) => q.table === "messages" && q.op !== "insert" && q.op !== "select")).toEqual([])
+  })
+
+  it("refuse tout débit dépassé avant le moindre masquage ou insertion", async () => {
+    for (let i = 0; i < 20; i += 1) db.messages.push(recent({ created_at: new Date().toISOString() }))
+    expect(await side.send({ content: `Appelez ${NUMBER}` })).toEqual({
+      error: "Vous envoyez des messages trop vite. Patientez un instant avant de réessayer.",
+    })
+    expect(messageInsertsOf()).toHaveLength(0)
+    expect(createServiceClient).not.toHaveBeenCalled()
+  })
+})
+
+// Le trigger messages_rules ne protège plus le service role (script 93) : chaque règle est refaite dans l'action.
+describe.each(SIDES)("règles de la base refaites dans l'action ($name)", (side) => {
+  beforeEach(() => {
+    side.setup()
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+  })
+
+  it("expéditeur suspendu : refus, aucun message, aucun service role", async () => {
+    requireRole.mockResolvedValue({
+      supabase: makeSupabase(),
+      user: { id: side.sender },
+      role: side.name === "client" ? "client" : "student",
+      profile: { is_suspended: true },
+    })
+    expect(await side.send()).toEqual({ error: "Cette conversation n'est pas disponible." })
+    expect(messageInsertsOf()).toHaveLength(0)
+    expect(createServiceClient).not.toHaveBeenCalled()
+  })
+
+  it("paire refusée (mission d'un autre client ou sans lien) : aucun message", async () => {
+    const forged = side.name === "client" ? { missionId: M_OTHER } : { missionId: MC }
+    expect(await side.send(forged)).toEqual({ error: "Cette conversation n'est pas disponible." })
+    expect(messageInsertsOf()).toHaveLength(0)
+  })
+
+  it("destinataire tiers forgé dans l'entrée : ignoré, destinataire déduit de la paire", async () => {
+    await side.send({ receiver_id: STRANGER, receiverId: STRANGER, sender_id: STRANGER, senderId: STRANGER })
+    expect(messageInsertsOf()[0].payload).toMatchObject({ sender_id: side.sender, receiver_id: side.receiver })
+  })
+
+  it("expéditeur égal au destinataire : refus", async () => {
+    const forged = side.name === "client" ? { studentId: CLIENT } : { missionId: MA }
+    if (side.name === "étudiant") {
+      // Le client de la mission est l'étudiant lui-même : paire refusée.
+      db.missions.find((m) => m.id === MA).client_id = STUDENT
+    }
+    expect(await side.send(forged)).toEqual({ error: "Cette conversation n'est pas disponible." })
+    expect(messageInsertsOf()).toHaveLength(0)
+  })
+
+  it("conversation en lecture seule : refus", async () => {
+    const mission = db.missions.find((m) => m.id === side.missionId)
+    mission.status = "done"
+    mission.selected_student_id = side.name === "client" ? S1 : STUDENT
+    const result = await side.send()
+    expect(result).toMatchObject({ error: expect.any(String) })
+    expect(messageInsertsOf()).toHaveLength(0)
+  })
+
+  it("texte masqué de plus de 4000 caractères : refus, aucun message", async () => {
+    vi.mocked(maskContacts).mockReturnValueOnce({ text: "a".repeat(4001), masked: true, kinds: ["phone"], count: 1 })
+    expect(await side.send({ content: `Appelez ${NUMBER}` })).toEqual({
+      error: "Votre message n'est pas valide. Vérifiez son contenu et sa longueur.",
+    })
+    expect(messageInsertsOf()).toHaveLength(0)
+  })
+
+  it("texte masqué d'exactement 4000 caractères : accepté", async () => {
+    vi.mocked(maskContacts).mockReturnValueOnce({ text: "a".repeat(4000), masked: true, kinds: ["phone"], count: 1 })
+    expect((await side.send({ content: `Appelez ${NUMBER}` })).success).toBe(true)
+  })
+
+  it("média hors du dossier de l'expéditeur : refus, aucun message", async () => {
+    const supabase = makeSupabase()
+    supabase.storage.from = (bucket) => ({
+      getPublicUrl: (path) => ({ data: { publicUrl: `${ORIGIN}/storage/v1/object/public/${bucket}/${STRANGER}/${path.split("/").pop()}` } }),
+    })
+    requireRole.mockResolvedValue({ supabase, user: { id: side.sender }, role: side.name === "client" ? "client" : "student", profile: {} })
+    const result = await side.send({ type: "image", mediaPath: `${side.sender}/n.png`, content: undefined })
+    expect(result).toEqual({ error: "Cette conversation n'est pas disponible." })
+    expect(messageInsertsOf()).toHaveLength(0)
+  })
+
+  it("média du dossier d'un autre utilisateur dans l'entrée : refus avant tout", async () => {
+    const result = await side.send({ type: "image", mediaPath: `${STRANGER}/n.png`, content: undefined })
+    expect(result).toEqual({
+      error: "Ce fichier n'est pas accepté. Choisissez une image ou un message vocal de 10 Mo au plus.",
+    })
+    expect(messageInsertsOf()).toHaveLength(0)
+  })
+
+  for (const [lat, lng] of [[95, 2], [-91, 2], [6, 181], [6, -181]]) {
+    it(`coordonnées hors bornes (${lat}, ${lng}) : refus, même si le contrôle d'entrée était contourné`, async () => {
+      expect(await side.send({ type: "location", lat, lng })).toMatchObject({ error: expect.any(String) })
+      vi.mocked(coordsValid).mockReturnValueOnce(true)
+      expect(await side.send({ type: "location", lat, lng })).toMatchObject({ error: expect.any(String) })
+      expect(messageInsertsOf()).toHaveLength(0)
+    })
+  }
+
+  it("coordonnées non numériques ou infinies : refus", async () => {
+    expect(await side.send({ type: "location", lat: Infinity, lng: 2 })).toMatchObject({ error: expect.any(String) })
+    expect(await side.send({ type: "location", lat: "6", lng: 2 })).toMatchObject({ error: expect.any(String) })
+    expect(messageInsertsOf()).toHaveLength(0)
+  })
+
+  it("rôle refusé par requireRole : aucune donnée touchée", async () => {
+    requireRole.mockResolvedValueOnce({ error: "Vous n'avez pas les droits pour effectuer cette action." })
+    expect(await side.send()).toEqual({ error: "Vous n'avez pas les droits pour effectuer cette action." })
+    expect(log).toEqual([])
   })
 })

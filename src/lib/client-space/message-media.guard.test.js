@@ -60,7 +60,13 @@ describe("message-media : aucune adresse brute affichée", () => {
     const source = read("src/lib/actions/message.actions.js")
     const calls = [...source.matchAll(/toMessage\(([^)]*)\)/g)].map((m) => m[1])
     expect(calls).toEqual(["row, userId, signed"])
-    expect(source).not.toMatch(/createServiceClient/)
+    // Le service role sert UNIQUEMENT à l'insertion (RD-MSG-01) : jamais à signer ni à lire un média.
+    expect([...source.matchAll(/createServiceClient\(\)/g)]).toHaveLength(1)
+    const insertion = source.slice(source.indexOf("async function deliverMessage"))
+    expect(insertion).toMatch(/service = createServiceClient\(\)/)
+    const signing = source.slice(source.indexOf("async function signMediaPaths"), source.indexOf("/** Messages (toMessage)"))
+    expect(signing).not.toMatch(/createServiceClient|service\b/)
+    expect(signing).toMatch(/supabase\.storage/)
     expect(source).toMatch(/createSignedUrls\(unique, MEDIA_SIGNED_URL_TTL\)/)
   })
 

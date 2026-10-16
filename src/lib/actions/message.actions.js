@@ -10,6 +10,12 @@
 // DÉDUIT de la mission (`missions.client_id`), jamais lu dans l'entrée, l'adresse ou une ligne de message.
 // La politique messages_insert de la base laisse envoyer à n'importe quel destinataire : ce sont ces actions
 // qui refusent un destinataire tiers, et les lectures qui ignorent les messages d'un compte sans lien légitime.
+// Insertion (RD-MSG-01) : par le client service role, APRÈS identité, rôle, paire et droit d'écriture. Le script 93
+// retire le droit INSERT à authenticated et le trigger messages_rules ne protège plus le service role : `deliverMessage`
+// refait donc chacune de ses règles (paire, expéditeur suspendu, 4000 caractères, média dans le dossier de
+// l'expéditeur, bornes des coordonnées, expéditeur différent du destinataire). Les messages TEXTE passent par le
+// masquage des coordonnées (le message part toujours) et le journal de détection ; photos, vocaux et positions
+// ne sont jamais analysés. Aucune action ne modifie ni ne supprime un message (seul `read` change).
 // L'expéditeur est toujours l'identifiant de la session. Aucune lecture ne renvoie de colonne privée de
 // profils : nom public ("Prénom I."), avatar et initiales seulement.
 //
@@ -30,6 +36,10 @@
 
 import { z } from "zod"
 import { requireRole } from "@/lib/auth/require-role"
+import { createServiceClient } from "@/lib/supabase/service"
+import { detectSplitPhone, maskContacts, maskDigitRuns } from "@/lib/messaging/contact-filter"
+import { maybeOpenAutoReport, recordContactEvent } from "@/lib/messaging/moderation-log"
+import { MASKABLE_KINDS, SPLIT_LOOKBACK, SPLIT_WINDOW_MINUTES } from "@/lib/messaging/moderation-rules"
 import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
 import { toOwnedStoragePath, toProjectAvatarUrl } from "@/lib/storage/owned-paths"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
@@ -373,22 +383,17 @@ export async function getClientConversation({ missionId, studentId } = {}) {
   }
 }
 
+// ─── Envoi commun client / étudiant ───────────────────────────────────────────────────────────────────────────
+
+// Limite de la base (messages_rules) : le texte masqué peut dépasser la limite de saisie (2000) sans dépasser celle-ci.
+const MESSAGE_DB_MAX = 4000
+
 /**
- * Envoie un message du client à l'étudiant d'une conversation. Texte, image, message vocal ou position.
- * `mediaPath` doit désigner un fichier du dossier de l'expéditeur dans `message-media` ; l'adresse
- * publique est reconstruite ici, jamais reprise du navigateur.
- * @param {{ missionId: string, studentId: string, type: "text"|"image"|"voice"|"location", content?: string, mediaPath?: string, lat?: number, lng?: number }} input
- * @returns {Promise<{ success: true, message: object } | { error: string }>}
+ * Valide l'entrée d'un envoi et prépare le message (texte nettoyé, adresse du média reconstruite, coordonnées).
+ * Le chemin du média doit être dans le dossier de l'expéditeur ; l'adresse publique est reconstruite ici.
+ * @returns {{ draft: { missionId: string, type: string, text: string, mediaUrl: string|null, latitude: number|null, longitude: number|null } } | { error: string }}
  */
-export async function sendClientMessage(input) {
-  const auth = await requireRole(["client"])
-  if (auth.error) return { error: auth.error }
-  const { supabase, user } = auth
-
-  const parsed = sendSchema.safeParse(input)
-  if (!parsed.success) return { error: ERR_INVALID }
-  const { missionId, studentId, type, content, mediaPath, lat, lng } = parsed.data
-
+function buildDraft(supabase, userId, { missionId, type, content, mediaPath, lat, lng }) {
   let text
   let mediaUrl = null
   let latitude = null
@@ -402,7 +407,7 @@ export async function sendClientMessage(input) {
     latitude = lat
     longitude = lng
   } else {
-    const owned = toOwnedStoragePath(mediaPath, MEDIA_BUCKET, user.id)
+    const owned = toOwnedStoragePath(mediaPath, MEDIA_BUCKET, userId)
     if (!owned || mediaKindOfPath(owned) !== type) return { error: ERR_MEDIA }
     const { data: publicData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(owned)
     if (!publicData?.publicUrl) return { error: ERR_SEND }
@@ -410,11 +415,88 @@ export async function sendClientMessage(input) {
     mediaUrl = publicData.publicUrl
     text = MEDIA_CONTENT[type]
   }
+  return { draft: { missionId, type, text, mediaUrl, latitude, longitude } }
+}
 
-  const pair = await loadPair(supabase, user.id, missionId, studentId)
-  if (pair.status === "error") return { error: ERR_SEND }
-  if (pair.status === "forbidden") return { error: ERR_UNAVAILABLE }
-  if (!pair.access.canWrite) return { error: ERR_READONLY }
+/**
+ * Règles de la base (trigger messages_rules) refaites ici : l'insertion se fait avec le service role, pour lequel
+ * le trigger ne protège plus rien (il sort dès sa première ligne hors appelant API). Refus si :
+ * identifiants invalides, expéditeur égal au destinataire, expéditeur suspendu, contenu de plus de 4000 caractères,
+ * média hors du dossier de l'expéditeur, coordonnées hors bornes. La paire (client de la mission, étudiant candidat
+ * ou retenu) est établie par loadPair / loadStudentPair (`pair`), l'écriture autorisée par `access.canWrite`.
+ * @returns {boolean} vrai si l'envoi doit être refusé
+ */
+function violatesMessageRules({ pair, profile, senderId, receiverId, missionId, content, mediaUrl, latitude, longitude }) {
+  if (!isUuid(senderId) || !isUuid(receiverId) || !isUuid(missionId)) return true
+  if (senderId === receiverId) return true
+  if (pair?.status !== "ok" || pair.access?.allowed !== true || pair.access.canWrite !== true) return true
+  if (profile?.is_suspended === true) return true
+  if (typeof content !== "string" || content === "" || content.length > MESSAGE_DB_MAX) return true
+  if (mediaUrl !== null && !(typeof mediaUrl === "string" && mediaUrl.includes(`/${MEDIA_BUCKET}/${senderId}/`))) return true
+  if (latitude !== null && !(Number.isFinite(latitude) && latitude >= -90 && latitude <= 90)) return true
+  if (longitude !== null && !(Number.isFinite(longitude) && longitude >= -180 && longitude <= 180)) return true
+  return false
+}
+
+/**
+ * Masque les coordonnées d'un message TEXTE (jamais les autres types) : numéros, e-mails, liens, réseaux, et chiffres
+ * d'un numéro coupé en plusieurs messages (D9). Les mots-clés seuls sont journalisés sans masquage.
+ * @returns {{ content: string, kinds: string[], count: number, masked: boolean }}
+ */
+function moderateText(text, previousTexts) {
+  const result = maskContacts(text)
+  let content = result.masked ? result.text : text
+  const kinds = new Set(result.kinds)
+  let count = result.count
+  let masked = result.masked
+  if (previousTexts.length > 0 && detectSplitPhone(previousTexts, text)) {
+    const digitsMasked = maskDigitRuns(content)
+    kinds.add("phone_split")
+    count += 1
+    if (digitsMasked !== content) {
+      content = digitsMasked
+      masked = true
+    }
+  }
+  return { content, kinds: [...kinds], count: Math.max(1, count), masked }
+}
+
+/**
+ * Derniers messages texte de l'expéditeur dans la même paire sur la fenêtre de découpage, du plus ancien au plus
+ * récent. Lecture avec le client de session.
+ * @returns {Promise<string[] | null>} null si la lecture échoue
+ */
+async function readPreviousTexts(supabase, { missionId, senderId, receiverId }) {
+  const since = new Date(Date.now() - SPLIT_WINDOW_MINUTES * 60 * 1000).toISOString()
+  const { data, error } = await supabase
+    .from("messages")
+    .select("content")
+    .eq("mission_id", missionId)
+    .eq("sender_id", senderId)
+    .eq("receiver_id", receiverId)
+    .eq("type", "text")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(SPLIT_LOOKBACK)
+  if (error) return null
+  return (data ?? [])
+    .map((r) => r.content)
+    .filter((c) => typeof c === "string")
+    .reverse()
+}
+
+/**
+ * Fin commune de sendClientMessage et sendStudentMessage, APRÈS identité, rôle, paire et droit d'écriture :
+ * règles de la base refaites, débit, masquage (texte seulement), insertion par le service role, puis journal et
+ * alerte. Le journal ne fait jamais échouer l'envoi.
+ * @returns {Promise<{ success: true, message: object, contactMasked: { kinds: string[] } | null } | { error: string }>}
+ */
+async function deliverMessage({ tag, auth, pair, receiverId, draft }) {
+  const { supabase, user, profile } = auth
+  const { missionId, type, mediaUrl, latitude, longitude } = draft
+
+  const rules = { pair, profile, senderId: user.id, receiverId, missionId, mediaUrl, latitude, longitude }
+  if (violatesMessageRules({ ...rules, content: draft.text })) return { error: ERR_UNAVAILABLE }
 
   const since = new Date(Date.now() - SEND_WINDOW_MS).toISOString()
   const { count, error: countError } = await supabase
@@ -423,18 +505,38 @@ export async function sendClientMessage(input) {
     .eq("sender_id", user.id)
     .gte("created_at", since)
   if (countError) {
-    console.error("[sendClientMessage] débit", countError.message)
+    console.error(`[${tag}] débit`, countError.code ?? "erreur")
     return { error: ERR_SEND }
   }
   if ((count ?? 0) >= SEND_LIMIT) return { error: ERR_RATE }
 
-  const { data: row, error } = await supabase
+  let content = draft.text
+  let detection = null
+  if (type === "text") {
+    const previousTexts = await readPreviousTexts(supabase, { missionId, senderId: user.id, receiverId })
+    if (previousTexts === null) {
+      console.error(`[${tag}] découpage`)
+      return { error: ERR_SEND }
+    }
+    detection = moderateText(draft.text, previousTexts)
+    content = detection.content
+    if (violatesMessageRules({ ...rules, content })) return { error: ERR_INVALID }
+  }
+
+  let service
+  try {
+    service = createServiceClient()
+  } catch {
+    console.error(`[${tag}] configuration serveur`)
+    return { error: ERR_SEND }
+  }
+  const { data: row, error } = await service
     .from("messages")
     .insert({
       mission_id: missionId,
       sender_id: user.id,
-      receiver_id: studentId,
-      content: text,
+      receiver_id: receiverId,
+      content,
       type,
       media_url: mediaUrl,
       location_lat: latitude,
@@ -443,12 +545,60 @@ export async function sendClientMessage(input) {
     })
     .select(MESSAGE_COLUMNS)
     .single()
-  const [message] = row && !error ? await toSignedMessages(supabase, [row], user.id) : []
-  if (!message) {
-    if (error) console.error("[sendClientMessage] insertion", error.message)
+  if (error || !row) {
+    if (error) console.error(`[${tag}] insertion`, error.code ?? "erreur")
     return { error: ERR_SEND }
   }
-  return { success: true, message }
+
+  let contactMasked = null
+  if (detection && detection.kinds.length > 0) {
+    const action = detection.masked ? "masked" : "flagged"
+    await recordContactEvent({
+      messageId: row.id,
+      missionId,
+      senderId: user.id,
+      kinds: detection.kinds,
+      count: detection.count,
+      action,
+      client: service,
+    })
+    if (detection.masked) {
+      contactMasked = { kinds: detection.kinds.filter((k) => MASKABLE_KINDS.includes(k)) }
+      await maybeOpenAutoReport({ senderId: user.id, missionId, messageId: row.id, client: service })
+    }
+  }
+
+  const [message] = await toSignedMessages(supabase, [row], user.id)
+  if (!message) return { error: ERR_SEND }
+  return { success: true, message, contactMasked }
+}
+
+/**
+ * Envoie un message du client à l'étudiant d'une conversation. Texte, image, message vocal ou position.
+ * `mediaPath` doit désigner un fichier du dossier de l'expéditeur dans `message-media` ; l'adresse
+ * publique est reconstruite ici, jamais reprise du navigateur.
+ * @param {{ missionId: string, studentId: string, type: "text"|"image"|"voice"|"location", content?: string, mediaPath?: string, lat?: number, lng?: number }} input
+ * Les coordonnées d'un message texte sont masquées côté serveur (le message part toujours) : `contactMasked`.
+ * @returns {Promise<{ success: true, message: object, contactMasked: { kinds: string[] } | null } | { error: string }>}
+ */
+export async function sendClientMessage(input) {
+  const auth = await requireRole(["client"])
+  if (auth.error) return { error: auth.error }
+  const { supabase, user } = auth
+
+  const parsed = sendSchema.safeParse(input)
+  if (!parsed.success) return { error: ERR_INVALID }
+  const { studentId } = parsed.data
+
+  const built = buildDraft(supabase, user.id, parsed.data)
+  if (built.error) return { error: built.error }
+
+  const pair = await loadPair(supabase, user.id, built.draft.missionId, studentId)
+  if (pair.status === "error") return { error: ERR_SEND }
+  if (pair.status === "forbidden") return { error: ERR_UNAVAILABLE }
+  if (!pair.access.canWrite) return { error: ERR_READONLY }
+
+  return deliverMessage({ tag: "sendClientMessage", auth, pair, receiverId: pair.studentId, draft: built.draft })
 }
 
 /**
@@ -709,7 +859,7 @@ export async function getStudentConversation({ missionId } = {}) {
  * présent dans l'entrée est ignoré. `mediaPath` doit désigner un fichier du dossier de l'expéditeur dans
  * `message-media` ; l'adresse publique est reconstruite ici, jamais reprise du navigateur.
  * @param {{ missionId: string, type: "text"|"image"|"voice"|"location", content?: string, mediaPath?: string, lat?: number, lng?: number }} input
- * @returns {Promise<{ success: true, message: object } | { error: string }>}
+ * @returns {Promise<{ success: true, message: object, contactMasked: { kinds: string[] } | null } | { error: string }>}
  */
 export async function sendStudentMessage(input) {
   const auth = await requireRole(["student"])
@@ -718,68 +868,16 @@ export async function sendStudentMessage(input) {
 
   const parsed = studentSendSchema.safeParse(input)
   if (!parsed.success) return { error: ERR_INVALID }
-  const { missionId, type, content, mediaPath, lat, lng } = parsed.data
 
-  let text
-  let mediaUrl = null
-  let latitude = null
-  let longitude = null
-  if (type === "text") {
-    text = (content ?? "").trim()
-    if (text === "" || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) return { error: ERR_INVALID }
-  } else if (type === "location") {
-    if (!coordsValid(lat, lng)) return { error: ERR_INVALID }
-    text = MEDIA_CONTENT.location
-    latitude = lat
-    longitude = lng
-  } else {
-    const owned = toOwnedStoragePath(mediaPath, MEDIA_BUCKET, user.id)
-    if (!owned || mediaKindOfPath(owned) !== type) return { error: ERR_MEDIA }
-    const { data: publicData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(owned)
-    if (!publicData?.publicUrl) return { error: ERR_SEND }
-    // Identifiant du média (URL publique canonique), pas une adresse servie : l'affichage passe par une adresse signée.
-    mediaUrl = publicData.publicUrl
-    text = MEDIA_CONTENT[type]
-  }
+  const built = buildDraft(supabase, user.id, parsed.data)
+  if (built.error) return { error: built.error }
 
-  const pair = await loadStudentPair(supabase, user.id, missionId)
+  const pair = await loadStudentPair(supabase, user.id, built.draft.missionId)
   if (pair.status === "error") return { error: ERR_SEND }
   if (pair.status === "forbidden") return { error: ERR_UNAVAILABLE }
   if (!pair.access.canWrite) return { error: ERR_READONLY }
 
-  const since = new Date(Date.now() - SEND_WINDOW_MS).toISOString()
-  const { count, error: countError } = await supabase
-    .from("messages")
-    .select("id", { count: "exact", head: true })
-    .eq("sender_id", user.id)
-    .gte("created_at", since)
-  if (countError) {
-    console.error("[sendStudentMessage] débit", countError.message)
-    return { error: ERR_SEND }
-  }
-  if ((count ?? 0) >= SEND_LIMIT) return { error: ERR_RATE }
-
-  const { data: row, error } = await supabase
-    .from("messages")
-    .insert({
-      mission_id: missionId,
-      sender_id: user.id,
-      receiver_id: pair.clientId,
-      content: text,
-      type,
-      media_url: mediaUrl,
-      location_lat: latitude,
-      location_lng: longitude,
-      read: false,
-    })
-    .select(MESSAGE_COLUMNS)
-    .single()
-  const [message] = row && !error ? await toSignedMessages(supabase, [row], user.id) : []
-  if (!message) {
-    if (error) console.error("[sendStudentMessage] insertion", error.message)
-    return { error: ERR_SEND }
-  }
-  return { success: true, message }
+  return deliverMessage({ tag: "sendStudentMessage", auth, pair, receiverId: pair.clientId, draft: built.draft })
 }
 
 /**
