@@ -6,6 +6,7 @@ import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
 import { useMessageMediaUpload, useRealtimeMessages } from "@/hooks/use-realtime-messages"
 import { getClientMessageMedia, markClientConversationRead, sendClientMessage } from "@/lib/actions/message.actions"
+import { publicTalentHref } from "@/lib/app/student-routes"
 import { MEDIA_CONTENT, dayOf, formatDayLabel } from "@/lib/client-space/conversations"
 import { Bubble } from "./bubble"
 import { Composer, LockedComposer } from "./composer"
@@ -63,13 +64,25 @@ function pendingMessage(item) {
   }
 }
 
+// Sous-titre de l'en-tête : le lien de l'étudiant avec la mission (retenu ou candidat) tant qu'elle est ouverte ou en
+// cours, l'issue sinon.
+function subtitleOf({ state, relation }, title) {
+  const quoted = `« ${title} »`
+  if (state === "done") return `Mission terminée : ${quoted}`
+  if (state === "cancelled") return `Mission annulée : ${quoted}`
+  if (state === "rejected") return `Candidature refusée sur ${quoted}`
+  return relation === "selected" ? `Retenu sur ${quoted}` : `Candidat sur ${quoted}`
+}
+
 /**
- * Conversation (mission, étudiant) : en-tête, bandeau de statut, journal des messages (annoncé poliment),
- * saisie. Les messages arrivent par le temps réel du hook, l'envoi passe par l'action serveur.
- * @param {{ conversation: object, now?: string }} props `conversation` : réponse de getClientConversation
+ * Conversation (mission, étudiant) dans le volet droit de la messagerie : en-tête, bandeau de statut, journal des
+ * messages (annoncé poliment), saisie. Le nom de l'étudiant est un h2 : le h1 « Messages » est celui du layout.
+ * Les messages arrivent par le temps réel du hook, l'envoi passe par l'action serveur.
+ * @param {{ conversation: object, now?: string, paymentsEnabled?: boolean }} props `conversation` : réponse de
+ *   getClientConversation ; `paymentsEnabled` : lu côté serveur par la page (formulation du bandeau)
  */
-export function ConversationView({ conversation, now }) {
-  const { userId, missionId, studentId, student, mission, state, canWrite } = conversation
+export function ConversationView({ conversation, now, paymentsEnabled = false }) {
+  const { userId, missionId, studentId, student, mission, state, relation, canWrite } = conversation
   const nowDate = useMemo(() => (now ? new Date(now) : new Date()), [now])
   const markRead = useCallback(() => {
     markClientConversationRead({ missionId, studentId }).catch(() => {})
@@ -139,18 +152,29 @@ export function ConversationView({ conversation, now }) {
 
   return (
     <section className="conv2" aria-label={`Conversation avec ${student.name}`}>
-      <header className="conv2__head">
-        <Link className="btn-icon btn-icon--plain" href="/client/messages" aria-label="Retour aux messages">
+      <header className="c-inbox__head conv2__head">
+        <Link className="btn-icon btn-icon--plain conv2__back" href="/client/messages" aria-label="Retour aux messages">
           <Icon name="i-arrow-left" />
         </Link>
         <Avatar name={student.name} src={student.avatarUrl} />
-        <div className="conv2__who">
-          <h1 className="conv2__name">{student.name}</h1>
-          <span className="conv2__sub">{mission.title}</span>
+        <div className="grow conv2__who">
+          <h2 className="conv2__name">{student.name}</h2>
+          <span className="convo__mission conv2__sub">{subtitleOf({ state, relation }, mission.title)}</span>
         </div>
+        <Link className="link2 conv2__profile" href={publicTalentHref(student.id)}>
+          <Icon name="i-user" />
+          <span className="conv2__profile-label">Voir le profil</span>
+        </Link>
       </header>
 
-      <StatusBanner state={state} missionId={missionId} studentId={studentId} />
+      <StatusBanner
+        state={state}
+        missionId={missionId}
+        studentId={studentId}
+        studentName={student.name}
+        mission={mission}
+        paymentsEnabled={paymentsEnabled}
+      />
 
       <div ref={chatRef} className="chat" role="log" aria-label="Messages de la conversation" aria-relevant="additions">
         {empty ? (
