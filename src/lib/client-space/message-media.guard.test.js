@@ -67,6 +67,30 @@ describe("message-media : aucune adresse brute affichée", () => {
     const signing = source.slice(source.indexOf("async function signMediaPaths"), source.indexOf("/** Messages (toMessage)"))
     expect(signing).not.toMatch(/createServiceClient|service\b/)
     expect(signing).toMatch(/supabase\.storage/)
+    // Chaque signature se fait avec le client de SESSION : premier argument `supabase`, jamais `service` ni un alias.
+    const signCalls = [...source.matchAll(/(?:toSignedMessages|signMediaPaths)\(\s*(\w+)/g)]
+      .filter((m) => !source.slice(Math.max(0, m.index - 16), m.index).includes("function "))
+      .map((m) => m[1])
+    expect(signCalls.length).toBeGreaterThanOrEqual(5)
+    expect(new Set(signCalls)).toEqual(new Set(["supabase"]))
+    // L'identifiant `service` (hors commentaires) n'apparaît que dans deliverMessage, aux lignes attendues.
+    const start = source.indexOf("async function deliverMessage")
+    const lines = source.split("\n")
+    let offset = 0
+    const uses = []
+    for (const line of lines) {
+      const code = line.trim()
+      if (!/^(\/\/|\/\*|\*|import )/.test(code) && /\bservice\b/.test(code)) uses.push({ code, inside: offset >= start })
+      offset += line.length + 1
+    }
+    expect(uses.every((u) => u.inside)).toBe(true)
+    expect(uses.map((u) => u.code)).toEqual([
+      "let service",
+      "service = createServiceClient()",
+      "const { data: row, error } = await service",
+      "client: service,",
+      "await maybeOpenAutoReport({ senderId: user.id, missionId, messageId: row.id, client: service })",
+    ])
     expect(source).toMatch(/createSignedUrls\(unique, MEDIA_SIGNED_URL_TTL\)/)
   })
 

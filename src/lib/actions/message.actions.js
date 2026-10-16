@@ -85,7 +85,8 @@ const MISSION_COLUMNS = "id, title, status, selected_student_id, type, budget, p
 // Colonnes publiques seulement : jamais de select("*") sur profiles.
 const PUBLIC_PROFILE_COLUMNS = "user_id, full_name, avatar_url"
 
-const uuid = z.string().refine(isUuid)
+// Identifiants en minuscules : les comparaisons expéditeur / destinataire / étudiant retenu ne dépendent pas de la casse.
+const uuid = z.string().refine(isUuid).transform((value) => value.toLowerCase())
 const sendSchema = z.object({
   missionId: uuid,
   studentId: uuid,
@@ -485,10 +486,30 @@ async function readPreviousTexts(supabase, { missionId, senderId, receiverId }) 
     .reverse()
 }
 
+// Délai maximal d'attente du journal et de l'alerte après l'insertion du message.
+const JOURNAL_DEADLINE_MS = 2000
+
+/** Attend `work` au plus `ms` millisecondes ; ne lève jamais (le travail en retard continue sans être attendu). */
+async function withDeadline(work, ms) {
+  let timer
+  const deadline = new Promise((resolve) => {
+    timer = setTimeout(resolve, ms)
+  })
+  try {
+    await Promise.race([work.catch(() => {}), deadline])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /**
  * Fin commune de sendClientMessage et sendStudentMessage, APRÈS identité, rôle, paire et droit d'écriture :
  * règles de la base refaites, débit, masquage (texte seulement), insertion par le service role, puis journal et
  * alerte. Le journal ne fait jamais échouer l'envoi.
+ * Limites acceptées : (1) les contrôles et l'insertion ne sont pas atomiques (suspension ou retrait de candidature entre
+ * loadPair et l'insertion) ; (2) le découpage d'un numéro se contourne par 1 à 2 chiffres par message ou par un envoi
+ * espacé de plus de SPLIT_WINDOW_MINUTES (D9) ; (3) si la signature du message inséré échoue complètement
+ * (`toSignedMessages` vide), la réponse est ERR_SEND alors que le message existe (comportement antérieur).
  * @returns {Promise<{ success: true, message: object, contactMasked: { kinds: string[] } | null } | { error: string }>}
  */
 async function deliverMessage({ tag, auth, pair, receiverId, draft }) {
@@ -552,20 +573,24 @@ async function deliverMessage({ tag, auth, pair, receiverId, draft }) {
 
   let contactMasked = null
   if (detection && detection.kinds.length > 0) {
-    const action = detection.masked ? "masked" : "flagged"
-    await recordContactEvent({
-      messageId: row.id,
-      missionId,
-      senderId: user.id,
-      kinds: detection.kinds,
-      count: detection.count,
-      action,
-      client: service,
-    })
-    if (detection.masked) {
-      contactMasked = { kinds: detection.kinds.filter((k) => MASKABLE_KINDS.includes(k)) }
-      await maybeOpenAutoReport({ senderId: user.id, missionId, messageId: row.id, client: service })
-    }
+    const masked = detection.masked
+    if (masked) contactMasked = { kinds: detection.kinds.filter((k) => MASKABLE_KINDS.includes(k)) }
+    // Le message est déjà inséré : au-delà du délai, l'envoi répond succès et le journal se termine (ou est abandonné) sans erreur.
+    const journal = (async () => {
+      await recordContactEvent({
+        messageId: row.id,
+        missionId,
+        senderId: user.id,
+        kinds: detection.kinds,
+        count: detection.count,
+        action: masked ? "masked" : "flagged",
+        client: service,
+      })
+      if (masked) {
+        await maybeOpenAutoReport({ senderId: user.id, missionId, messageId: row.id, client: service })
+      }
+    })()
+    await withDeadline(journal, JOURNAL_DEADLINE_MS)
   }
 
   const [message] = await toSignedMessages(supabase, [row], user.id)

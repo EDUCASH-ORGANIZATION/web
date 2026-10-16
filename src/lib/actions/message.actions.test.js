@@ -1979,3 +1979,57 @@ describe.each(SIDES)("règles de la base refaites dans l'action ($name)", (side)
     expect(log).toEqual([])
   })
 })
+
+describe.each(SIDES)("robustesse de l'envoi ($name)", (side) => {
+  beforeEach(() => {
+    side.setup()
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+  })
+
+  it("identifiants en majuscules : traités comme en minuscules", async () => {
+    const forged = side.name === "client"
+      ? { missionId: M1.toUpperCase(), studentId: S1.toUpperCase() }
+      : { missionId: MA.toUpperCase() }
+    const result = await side.send(forged)
+    expect(result.success).toBe(true)
+    expect(messageInsertsOf()[0].payload).toMatchObject({ mission_id: side.missionId, sender_id: side.sender, receiver_id: side.receiver })
+  })
+
+  it("un journal très lent n'allonge pas l'envoi au-delà de 2 secondes", async () => {
+    vi.useFakeTimers()
+    try {
+      createServiceClient.mockImplementation(() => {
+        const c = makeSupabase("service")
+        const from = c.from
+        c.from = (table) => (table === "message_contact_events" ? { insert: () => new Promise(() => {}) } : from(table))
+        return c
+      })
+      let done = false
+      const pending = side.send({ content: `Appelez ${NUMBER}` }).then((r) => ((done = true), r))
+      await vi.advanceTimersByTimeAsync(1900)
+      expect(done).toBe(false)
+      await vi.advanceTimersByTimeAsync(200)
+      const result = await pending
+      expect(result.success).toBe(true)
+      expect(result.contactMasked).toEqual({ kinds: ["phone"] })
+      expect(messageInsertsOf()).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("paire valide mais destinataire égal à l'expéditeur : refus, aucune insertion", async () => {
+    // Le client a lui-même une candidature sur sa mission : loadPair répond « ok » avec studentId = expéditeur.
+    // Seule la règle explicite de l'action (expéditeur différent du destinataire) protège alors.
+    if (side.name === "client") {
+      db.applications.push({ mission_id: M1, student_id: CLIENT, status: "pending" })
+      const result = await side.send({ studentId: CLIENT })
+      expect(result).toEqual({ error: "Cette conversation n'est pas disponible." })
+    } else {
+      // Côté étudiant, loadStudentPair refuse déjà un client égal à l'étudiant (client_id = session).
+      db.missions.find((m) => m.id === MA).client_id = STUDENT
+      expect(await side.send()).toEqual({ error: "Cette conversation n'est pas disponible." })
+    }
+    expect(messageInsertsOf()).toHaveLength(0)
+  })
+})
