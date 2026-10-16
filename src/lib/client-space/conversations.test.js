@@ -22,6 +22,7 @@ import {
   safeSignedMediaUrl,
   toMessage,
   unreadTotal,
+  withCompletionDeclared,
 } from "./conversations"
 
 const ME = "client-1"
@@ -391,5 +392,38 @@ describe("createMediaRefresher", () => {
     await refresh(undefined)
     expect(fetchUrl).not.toHaveBeenCalled()
     expect(applied).toEqual([])
+  })
+})
+
+describe("withCompletionDeclared", () => {
+  const running = conversationAccess({ mission: { status: "in_progress", selectedStudentId: S1 }, application: { status: "accepted" }, studentId: S1 })
+
+  it("in_progress disponible : la date est exposée à côté de state, qui reste in_progress", () => {
+    expect(withCompletionDeclared(running, "2026-10-14T09:30:00Z", true)).toEqual({
+      allowed: true, canWrite: true, state: "in_progress", completionDeclaredAt: "2026-10-14T09:30:00Z", completionAvailable: true,
+    })
+  })
+
+  it.each([null, undefined, "", 42])("date absente ou invalide %j : null mais disponible", (value) => {
+    expect(withCompletionDeclared(running, value, true)).toMatchObject({
+      state: "in_progress", completionDeclaredAt: null, completionAvailable: true,
+    })
+  })
+
+  it("colonne indisponible (ou argument omis) : ni date ni disponibilité", () => {
+    expect(withCompletionDeclared(running, "2026-10-14T09:30:00Z", false)).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
+    expect(withCompletionDeclared(running, "2026-10-14T09:30:00Z")).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
+  })
+
+  it.each(["done", "cancelled"])("état %s : jamais de date ni de disponibilité", (status) => {
+    const access = conversationAccess({ mission: { status, selectedStudentId: S1 }, application: { status: "accepted" }, studentId: S1 })
+    expect(withCompletionDeclared(access, "2026-10-14T09:30:00Z", true)).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
+  })
+
+  it("candidat ou accès refusé : jamais de date ni de disponibilité", () => {
+    const candidate = conversationAccess({ mission: { status: "open", selectedStudentId: null }, application: { status: "pending" }, studentId: S1 })
+    expect(withCompletionDeclared(candidate, "2026-10-14T09:30:00Z", true)).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
+    const denied = conversationAccess({ mission: { status: "in_progress", selectedStudentId: S2 }, application: null, studentId: S1 })
+    expect(withCompletionDeclared(denied, "2026-10-14T09:30:00Z", true)).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
   })
 })

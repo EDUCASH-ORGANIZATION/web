@@ -2,12 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("server-only", () => ({}))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+const afterJobs = vi.hoisted(() => [])
+vi.mock("next/server", () => ({ after: vi.fn((fn) => { afterJobs.push(fn()) }) }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
+vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn() }))
+vi.mock("@/lib/email/index", () => ({ sendEmail: vi.fn() }))
 
 import { revalidatePath } from "next/cache"
+import { after } from "next/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
+import { notify } from "@/lib/notifications/notify"
+import { sendEmail } from "@/lib/email/index"
 import { declareMissionCompletion } from "./mission-completion.actions"
 
 const M = "0b8f1c1e-2c1b-4b53-9a52-9d6b6a6f3a10"
@@ -19,7 +26,12 @@ const mission = {
 }
 
 // reads : réponses successives des SELECT (lecture puis relecture) ; update : réponse de l'UPDATE.
-function makeService({ reads = [], update = { data: [{ id: M, completion_declared_at: DATE }], error: null } } = {}) {
+function makeService({
+  reads = [],
+  update = { data: [{ id: M, completion_declared_at: DATE }], error: null },
+  profile = { data: { full_name: "Awa Koffi" }, error: null },
+  clientUser = { data: { user: { email: "client@exemple.bj" } } },
+} = {}) {
   const calls = []
   let readIndex = 0
   const from = vi.fn((table) => {
@@ -30,18 +42,22 @@ function makeService({ reads = [], update = { data: [{ id: M, completion_declare
       update: (v) => { state.op = "update"; state.payload = v; return builder },
       eq: (c, v) => { state.filters.push(["eq", c, v]); return builder },
       is: (c, v) => { state.filters.push(["is", c, v]); return builder },
-      maybeSingle: () => Promise.resolve(reads[Math.min(readIndex++, reads.length - 1)]),
+      maybeSingle: () => Promise.resolve(table === "profiles" ? profile : reads[Math.min(readIndex++, reads.length - 1)]),
       then: (ok, ko) => Promise.resolve(state.op === "update" ? update : reads[0]).then(ok, ko),
     }
     return builder
   })
-  return { client: { from }, calls, from }
+  const getUserById = vi.fn(() => Promise.resolve(clientUser))
+  return { client: { from, auth: { admin: { getUserById } } }, calls, from, getUserById }
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
+  afterJobs.length = 0
   vi.spyOn(console, "error").mockImplementation(() => {})
   requireRole.mockResolvedValue({ user: { id: STUDENT }, role: "student" })
+  notify.mockResolvedValue({ ok: true })
+  sendEmail.mockResolvedValue({ success: true })
 })
 
 describe("declareMissionCompletion", () => {
@@ -126,6 +142,117 @@ describe("declareMissionCompletion", () => {
     expect(await declareMissionCompletion(M)).toEqual({
       error: "Une erreur est survenue. Réessayez dans un instant.",
       code: "generic",
+    })
+  })
+
+  describe("prévenir le client", () => {
+    const declare = async (opts) => {
+      const svc = makeService({ reads: [{ data: mission, error: null }], ...opts })
+      createServiceClient.mockReturnValue(svc.client)
+      const res = await declareMissionCompletion(M)
+      await Promise.all(afterJobs)
+      return { res, svc }
+    }
+
+    it("déclaration réelle : une notification et un e-mail, au client, prénom et titre seulement", async () => {
+      const { res, svc } = await declare()
+      expect(res).toEqual({ success: true, alreadyDeclared: false, declaredAt: DATE })
+      expect(notify).toHaveBeenCalledTimes(1)
+      const n = notify.mock.calls[0][0]
+      expect(n).toMatchObject({
+        recipientId: "client-1",
+        type: "completion_declared",
+        missionId: M,
+        actorId: STUDENT,
+        dedupeKey: `completion_declared:${M}`,
+      })
+      expect(n.body).toBe("Awa indique avoir terminé « Flyer ». Vérifiez le travail puis confirmez la fin.")
+      expect(svc.getUserById).toHaveBeenCalledWith("client-1")
+      expect(sendEmail).toHaveBeenCalledTimes(1)
+      expect(sendEmail).toHaveBeenCalledWith("completion-declared", "client@exemple.bj", {
+        studentName: "Awa",
+        missionTitle: "Flyer",
+        missionId: M,
+      })
+    })
+
+    it("prénom absent : repli neutre « L'étudiant »", async () => {
+      await declare({ profile: { data: { full_name: "" }, error: null } })
+      expect(sendEmail.mock.calls[0][2].studentName).toBe("L'étudiant")
+      expect(notify.mock.calls[0][0].body).toMatch(/^L'étudiant indique/)
+    })
+
+    it("alreadyDeclared : ni notification ni e-mail, after non programmé", async () => {
+      const { res } = await declare({ reads: [{ data: { ...mission, completion_declared_at: DATE }, error: null }] })
+      expect(res.alreadyDeclared).toBe(true)
+      expect(after).not.toHaveBeenCalled()
+      expect(notify).not.toHaveBeenCalled()
+      expect(sendEmail).not.toHaveBeenCalled()
+    })
+
+    it("course (UPDATE à 0 ligne puis relecture déclarée) : ni notification ni e-mail", async () => {
+      const { res } = await declare({
+        reads: [{ data: mission, error: null }, { data: { ...mission, completion_declared_at: DATE }, error: null }],
+        update: { data: [], error: null },
+      })
+      expect(res.alreadyDeclared).toBe(true)
+      expect(after).not.toHaveBeenCalled()
+      expect(notify).not.toHaveBeenCalled()
+      expect(sendEmail).not.toHaveBeenCalled()
+    })
+
+    it("la réponse ne dépend pas de la fin de l'avertissement (notify et e-mail jamais résolus)", async () => {
+      notify.mockReturnValue(new Promise(() => {}))
+      sendEmail.mockReturnValue(new Promise(() => {}))
+      const svc = makeService({ reads: [{ data: mission, error: null }] })
+      createServiceClient.mockReturnValue(svc.client)
+      expect(await declareMissionCompletion(M)).toEqual({ success: true, alreadyDeclared: false, declaredAt: DATE })
+      expect(after).toHaveBeenCalledTimes(1)
+    })
+
+    it("prénom de 200 caractères : tronqué à 40, identique dans l'e-mail et la notification", async () => {
+      await declare({ profile: { data: { full_name: `${"A".repeat(200)} Koffi` }, error: null } })
+      const name = sendEmail.mock.calls[0][2].studentName
+      expect(Array.from(name).length).toBeLessThanOrEqual(40)
+      expect(notify.mock.calls[0][0].body.startsWith(`${name} indique`)).toBe(true)
+    })
+
+    it("notify qui lève : la déclaration reste un succès et l'e-mail part", async () => {
+      notify.mockRejectedValue(Object.assign(new Error("42P01 notifications"), { code: "42P01" }))
+      const { res } = await declare()
+      expect(res).toEqual({ success: true, alreadyDeclared: false, declaredAt: DATE })
+      expect(sendEmail).toHaveBeenCalledTimes(1)
+    })
+
+    it("table notifications absente (notify répond ok:false) : succès", async () => {
+      notify.mockResolvedValue({ ok: false })
+      const { res } = await declare()
+      expect(res.success).toBe(true)
+    })
+
+    it("e-mail qui échoue (réponse en erreur ou exception) : succès, journal par code seulement", async () => {
+      sendEmail.mockResolvedValue({ error: "403 domaine non vérifié client@exemple.bj" })
+      expect((await declare()).res.success).toBe(true)
+      sendEmail.mockRejectedValue(new Error("boom client@exemple.bj"))
+      expect((await declare()).res.success).toBe(true)
+      expect(JSON.stringify(console.error.mock.calls)).not.toMatch(/client@exemple|Awa|Flyer/)
+    })
+
+    it("client sans adresse ou lecture de l'adresse en échec : succès, aucun e-mail", async () => {
+      expect((await declare({ clientUser: { data: { user: null } } })).res.success).toBe(true)
+      expect(sendEmail).not.toHaveBeenCalled()
+      const svc = makeService({ reads: [{ data: mission, error: null }] })
+      svc.client.auth.admin.getUserById.mockRejectedValue(new Error("réseau"))
+      createServiceClient.mockReturnValue(svc.client)
+      expect((await declareMissionCompletion(M)).success).toBe(true)
+      await Promise.all(afterJobs)
+      expect(sendEmail).not.toHaveBeenCalled()
+    })
+
+    it("mission en erreur d'écriture : ni notification ni e-mail", async () => {
+      await declare({ update: { data: null, error: { code: "42501", message: "x" } } })
+      expect(notify).not.toHaveBeenCalled()
+      expect(sendEmail).not.toHaveBeenCalled()
     })
   })
 

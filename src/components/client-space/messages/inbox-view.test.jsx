@@ -408,7 +408,7 @@ describe("styles des deux volets", () => {
     expect(desk.height).toBe("auto")
     const mobile = declarationsOf(css, ".c2 .c-inbox__thread > .conv2", MOBILE)
     expect(mobile.flex).toBe("none")
-    expect(mobile.height).toBe("calc(100dvh - 148px - env(safe-area-inset-bottom, 0px))")
+    expect(mobile.height).toBe("calc(100dvh - var(--s-2))")
   })
 
   it("sous 1024 px : titre de page masqué à l'œil seulement en conversation", () => {
