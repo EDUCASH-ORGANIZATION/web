@@ -25,7 +25,9 @@ vi.mock("@/lib/supabase/client", () => ({
   }),
 }))
 
-const OUT = path.join(process.env.FIDELITY_OUT || "/tmp/educash-fidelity", "screens")
+// FIDELITY_OUT est fourni par compare.mjs ; sans lui, refus net plutôt qu'un dossier partagé entre worktrees.
+if (!process.env.FIDELITY_OUT) throw new Error("FIDELITY_OUT est obligatoire (le banc se lance par `npm run fidelity`).")
+const OUT = path.join(process.env.FIDELITY_OUT, "screens")
 const WANTED = (process.env.FIDELITY_SCREENS || "").split(",").filter(Boolean)
 const FIXTURES = path.join(import.meta.dirname, "fixtures")
 

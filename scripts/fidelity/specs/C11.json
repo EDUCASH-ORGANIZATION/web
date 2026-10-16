@@ -115,9 +115,9 @@
           "assume": {
             "y": "A3:3",
             "w": "A2:4",
-            "bg": "X1"
+            "bg": "A1"
           },
-          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A2 : texte du drapeau de 12 à 13 px, largeur +4 px. X1 : le citron de la charte (#C1EE3E) remplace le #C8F03C de la planche (CLAUDE.md, palette) ; la table A1 du banc ne contient que l'encre, le givre, l'ardoise et le fond bleu clair, le banc ne peut donc pas l'accepter (compare.mjs hors périmètre de ST-09)"
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A2 : texte du drapeau de 12 à 13 px, largeur +4 px. A1 sur bg : le citron de la charte (#C1EE3E, --c-citron) remplace le #C8F03C de la planche"
         },
         {
           "id": "MI-10",
