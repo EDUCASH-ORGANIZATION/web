@@ -620,33 +620,35 @@ describe("performance : pas de regex catastrophique", () => {
     melange: "a1 b2@c.d 3 4 5 wa.me 01 97 (at) dot ".repeat(54),
   }
 
-  it("traite chaque texte piège de 2000 et de 4000 caractères en moins de 50 ms", () => {
-    maskContacts("Échauffement 01 97 12 34 56 jean@gmail.com https://t.me/x") // compile les expressions
-    const cases = Object.entries(TRAPS).flatMap(([name, text]) => [
-      [name, text.slice(0, 2000)],
-      [`${name} x2`, text.repeat(2).slice(0, 4000)],
-    ])
-    // Chaque cas est échauffé puis chronométré 5 fois ; on garde le meilleur passage par fonction (stable sous charge).
-    const bestOf = (fn) => {
+  // Un test par famille de textes pièges (2000 et 4000 caractères, 3 fonctions) : chaque test reste court, son délai
+  // vitest est large pour que la charge de la suite complète ne le fasse pas échouer au hasard. Le seuil de 50 ms par
+  // appel ne bouge pas : échauffement, 5 passages, meilleur passage retenu.
+  const bestOf = (fn) => {
+    fn()
+    let best = Infinity
+    for (let run = 0; run < 5; run++) {
+      const start = performance.now()
       fn()
-      let best = Infinity
-      for (let run = 0; run < 5; run++) {
-        const start = performance.now()
-        fn()
-        best = Math.min(best, performance.now() - start)
-      }
-      return best
+      best = Math.min(best, performance.now() - start)
     }
-    for (const [name, input] of cases) {
-      expect(maskContacts(input).text.length, name).toBeLessThanOrEqual(4000)
-      for (const [label, fn] of [
-        ["maskContacts", () => maskContacts(input)],
-        ["detectSplitPhone", () => detectSplitPhone([input], input)],
-        ["maskDigitRuns", () => maskDigitRuns(input)],
-      ]) {
-        const best = bestOf(fn)
-        expect(best, `${name} ${label}: ${best.toFixed(1)} ms`).toBeLessThan(50)
+    return best
+  }
+
+  it.each(Object.entries(TRAPS))(
+    "traite le texte piège %s (2000 et 4000 caractères) en moins de 50 ms par appel",
+    (name, text) => {
+      for (const input of [text.slice(0, 2000), text.repeat(2).slice(0, 4000)]) {
+        expect(maskContacts(input).text.length, name).toBeLessThanOrEqual(4000)
+        for (const [label, fn] of [
+          ["maskContacts", () => maskContacts(input)],
+          ["detectSplitPhone", () => detectSplitPhone([input], input)],
+          ["maskDigitRuns", () => maskDigitRuns(input)],
+        ]) {
+          const best = bestOf(fn)
+          expect(best, `${name} ${input.length} ${label}: ${best.toFixed(1)} ms`).toBeLessThan(50)
+        }
       }
-    }
-  })
+    },
+    30000,
+  )
 })
