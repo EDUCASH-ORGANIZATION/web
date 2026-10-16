@@ -2,15 +2,16 @@
 import { Icon } from "@/components/design/icon"
 import { safeDateFr } from "@/lib/app/format"
 
-const ICONS = { applied: "i-check", selected: "i-check", paid: "i-coins", reviewed: "i-star", cancelled: "i-x" }
+const ICONS = { applied: "i-check", selected: "i-check", work: "i-check-circle", paid: "i-coins", reviewed: "i-star", cancelled: "i-x" }
 
 /**
  * Étapes affichées d'après la chronologie de `missionDetailView`, sans rien inventer : une étape garde
  * sa date connue (candidature, retenue, grand livre, avis) et sinon une phrase neutre.
  * @param {Array<{ key: string, state: "done"|"now"|"todo", date: string|null }>} timeline
- * @param {{ status: string, hasLedger: boolean }} options
+ * @param {{ status: string, hasLedger: boolean, awaiting?: string|null }} options `awaiting` : phrase de l'étape
+ *   « paiement » quand la fin est déclarée et attend la confirmation du client (sinon la phrase d'origine).
  */
-export function trackSteps(timeline, { status, hasLedger }) {
+export function trackSteps(timeline, { status, hasLedger, awaiting = null }) {
   const steps = timeline.map((step) => {
     const date = safeDateFr(step.date)
     switch (step.key) {
@@ -18,6 +19,10 @@ export function trackSteps(timeline, { status, hasLedger }) {
         return { ...step, title: "Candidature envoyée", sub: date }
       case "selected":
         return { ...step, title: "Votre candidature a été retenue", sub: date }
+      case "work":
+        return step.state === "done"
+          ? { ...step, title: "Travail terminé", sub: date ? `Déclaré le ${date}` : "Déclaré" }
+          : { ...step, title: "Travail en cours", sub: "Déclarez la fin quand c'est terminé" }
       case "paid":
         if (status === "done" && !hasLedger) {
           return { ...step, state: "now", title: "Paiement en cours de traitement", sub: "" }
@@ -25,7 +30,7 @@ export function trackSteps(timeline, { status, hasLedger }) {
         return {
           ...step,
           title: step.state === "done" ? "Votre part est versée" : "Paiement sur votre portefeuille",
-          sub: step.state === "done" ? date : "Quand le client confirme la fin de la mission",
+          sub: step.state === "done" ? date : (awaiting ?? "Quand le client confirme la fin de la mission"),
         }
       default:
         return {

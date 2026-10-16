@@ -6,6 +6,7 @@ import { escrowSplit } from "../app/money.js"
 import { ANONYMOUS_CLIENT_NAME } from "../constants/client-name.js"
 import { purchasesEstimateOf } from "../app/purchases.js"
 import { todayInBenin, isPastDeadline } from "../vitrine/dates.js"
+import { canDeclareCompletion, completionState } from "../missions/completion.js"
 
 
 const FIRST_NAME_MAX = 40
@@ -47,7 +48,8 @@ export function pickMissionView(detail) {
 }
 
 /**
- * Actions proposées à l'étudiant. Aucun bouton « J'ai terminé » ni retrait de candidature (aucun support en base).
+ * Actions proposées à l'étudiant. Aucun retrait de candidature (aucun support en base).
+ * - `declareEnd` : « J'ai terminé » (étudiant retenu, mission en cours, fin non déclarée, colonne disponible : canDeclareCompletion) ;
  * - `canApply` : mission ouverte, pas encore de candidature, vérification qui le permet (décision D2) ;
  * - `needsVerification` : la vérification bloque la candidature (carte à envoyer, refusée ou badge expiré) ;
  * - `alreadyApplied` : une candidature existe déjà ;
@@ -60,6 +62,7 @@ export function missionActions(detail) {
       canApply: false,
       needsVerification: false,
       alreadyApplied: false,
+      declareEnd: false,
       writeToClient: false,
       reportProblem: false,
       rate: false,
@@ -74,6 +77,12 @@ export function missionActions(detail) {
     canApply: open && !application && verificationOk,
     needsVerification: open && !application && Boolean(verification) && !verification.canApply,
     alreadyApplied: Boolean(application),
+    declareEnd: canDeclareCompletion({
+      status: mission.status,
+      isSelected,
+      completionDeclaredAt: detail.completion?.declaredAt,
+      available: detail.completion?.available,
+    }),
     writeToClient: followed && (mission.status === "in_progress" || mission.status === "done"),
     reportProblem: followed && mission.status === "in_progress",
     rate: followed && mission.status === "done" && !review,
@@ -96,13 +105,19 @@ export function receiptFromLedger(ledger) {
 }
 
 /**
- * Chronologie fondée sur les seules dates fiables : candidature, rétention (accepted_at), paiement (grand livre), avis. Une étape sans date connue garde `date: null`.
+ * Chronologie fondée sur les seules dates fiables : candidature, rétention (accepted_at), fin déclarée
+ * (completion_declared_at), paiement (grand livre), avis. Une étape sans date connue garde `date: null`.
  * `state` : "done" | "now" | "todo". Mission annulée : seules la candidature et la sélection sont listées.
+ * L'étape `work` n'existe que si la colonne de déclaration est disponible. En cours : "now" tant que la fin n'est
+ * pas déclarée (le paiement reste "todo"), puis "done" datée de la déclaration (le paiement passe "now").
+ * Terminée : "done" seulement si la date de déclaration est connue. Colonne indisponible : chronologie inchangée.
  * @param {import("@/lib/actions/student-mission-detail.actions").StudentMissionDetailOpen} detail
- * @returns {Array<{ key: "applied" | "selected" | "paid" | "reviewed", state: "done" | "now" | "todo", date: string|null }>}
+ * @returns {Array<{ key: "applied" | "selected" | "work" | "paid" | "reviewed", state: "done" | "now" | "todo", date: string|null }>}
  */
 export function buildTimeline(detail) {
   const { mission, application, ledger, review } = detail
+  const workAvailable = detail.completion?.available === true
+  const declaredAt = workAvailable ? (detail.completion.declaredAt ?? null) : null
   const receipt = receiptFromLedger(ledger)
   const applied = { key: "applied", state: "done", date: application?.createdAt ?? null }
   // Date de rétention = applications.accepted_at, posée par la base. Jamais updated_at (le client peut la faire varier).
@@ -110,10 +125,12 @@ export function buildTimeline(detail) {
   const selected = { key: "selected", state: "done", date: application?.acceptedAt ?? null }
   if (mission.status === "cancelled") return [applied, selected]
   if (mission.status === "in_progress") {
+    const work = workAvailable ? [{ key: "work", state: declaredAt ? "done" : "now", date: declaredAt }] : []
     return [
       applied,
       selected,
-      { key: "paid", state: "now", date: null },
+      ...work,
+      { key: "paid", state: workAvailable && !declaredAt ? "todo" : "now", date: null },
       { key: "reviewed", state: "todo", date: null },
     ]
   }
@@ -121,6 +138,7 @@ export function buildTimeline(detail) {
   return [
     applied,
     selected,
+    ...(declaredAt ? [{ key: "work", state: "done", date: declaredAt }] : []),
     { key: "paid", state: "done", date: receipt.date },
     { key: "reviewed", state: review ? "done" : "now", date: review?.createdAt ?? null },
   ]
@@ -135,6 +153,9 @@ export function missionDetailView(detail, today = todayInBenin()) {
   if (!detail || detail.state === "closed") return { closed: true }
   const { mission } = detail
   const split = escrowSplit(mission.budget)
+  // Colonne indisponible : aucune date retenue, donc aucun état « déclarée » possible.
+  const available = detail.completion?.available === true
+  const completion = { declaredAt: available ? (detail.completion.declaredAt ?? null) : null, available }
   return {
     closed: false,
     status: missionStatusView(mission, today),
@@ -143,6 +164,7 @@ export function missionDetailView(detail, today = todayInBenin()) {
     gainValid: gainIsValid(split),
     purchases: purchasesEstimateOf(mission.purchasesEstimate),
     actions: missionActions(detail),
+    completion: { ...completion, state: completionState({ status: mission.status, completionDeclaredAt: completion.declaredAt }) },
     timeline: detail.state === "selected" ? buildTimeline(detail) : [],
     receipt: receiptFromLedger(detail.ledger),
   }
