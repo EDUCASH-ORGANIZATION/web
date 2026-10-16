@@ -18,7 +18,7 @@ Le banc est hors `src/` (les garde-fous de textes ne le scannent pas) et `npm te
   avec les polices disponibles ; relancer en ligne avant de conclure sur une largeur de texte.
 - Compatibilité : `playwright-core` 1.56.1 pilote le Chromium de révision 1243
   (`chromium_headless_shell-1243`, ou `chromium-1243`) : vérifié, le banc s'y connecte et mesure.
-- Optionnel : `FIDELITY_OUT` (dossier de sortie ; défaut `/tmp/educash-fidelity/<hash>`, où `<hash>` est dérivé du chemin du dépôt : un dossier par worktree, deux bancs lancés en parallèle depuis deux worktrees ne s'écrasent plus `app.css` ; la variable garde la priorité ; deux bancs dans le même worktree restent à ne pas lancer en même temps), `FIDELITY_MAQUETTES` (dossier des planches ; défaut : `design-rebrand/maquettes`, frère de `organization/`, résolu depuis la racine du dépôt, donc valable depuis `web/` et depuis `organization/web-*`).
+- Optionnel : `FIDELITY_OUT` (dossier de sortie ; défaut `<tmp utilisateur>/educash-fidelity/<hash>` (`os.tmpdir()` : dossier par utilisateur sous macOS, `/var/folders/.../T`, avec refus d'un lien symbolique ou d'un dossier d'un autre utilisateur), où `<hash>` est dérivé du chemin réel du dépôt : un dossier par worktree, deux bancs lancés en parallèle depuis deux worktrees ne s'écrasent plus `app.css` ; la variable garde la priorité ; deux bancs dans le même worktree restent à ne pas lancer en même temps), `FIDELITY_MAQUETTES` (dossier des planches ; défaut : `design-rebrand/maquettes`, frère de `organization/`, résolu depuis la racine du dépôt, donc valable depuis `web/` et depuis `organization/web-*`).
 
 ## Utilisation
 
@@ -28,7 +28,9 @@ npm run fidelity -- E06,E07,C12,C13  # plusieurs écrans
 npm run fidelity -- E07 --report-only  # ne pas échouer sur les écarts
 ```
 
-Sortie dans `$FIDELITY_OUT/<ID>/` (ou `/tmp/educash-fidelity/<hash>/<ID>/` par défaut ; le dossier utilisé est rappelé en fin de sortie) : `planche-bureau.png`, `code-bureau.png`, `planche-mobile.png`,
+Les sous-dossiers d'ID (C04, C05, E03-0...) directement sous l'ancien `/tmp/educash-fidelity` sont l'ancien format partagé : à supprimer.
+
+Sortie dans `$FIDELITY_OUT/<ID>/` (ou `<tmp utilisateur>/educash-fidelity/<hash>/<ID>/` par défaut ; le dossier utilisé est rappelé en fin de sortie) : `planche-bureau.png`, `code-bureau.png`, `planche-mobile.png`,
 `code-mobile.png`, `rapport.md`, `rapport.json`. Le rapport est aussi écrit sur la sortie standard :
 tableau Élément / Planche / Code / Écart / Statut, avec le statut `OK`, `ASSUMÉ Ax` (tous les codes appliqués,
 par exemple `ASSUMÉ A2, A3`), `ASSUMÉ-POLICE` (police seule), `NON EXPLIQUÉ ... X1` ou `ÉCHEC`. Le récapitulatif compte
@@ -102,7 +104,7 @@ dont la liste ME-06 : y+3 et h-3, `A3`) ; les lignes avec 1 px non expliqué son
   les écarts du plan RD-FIDELITE-01 :
   A1 couleurs de la charte (vérifiées par correspondance exacte : encre, givre, ardoise, fond bleu clair, citron #C8F03C -> #C1EE3E), A2 taille minimale 13 px,
   A3 interligne des titres Anton 1.14 (`--lh-display` : 43,32 px de haut au lieu de 39,90 px, tout ce qui suit descend de 3,42 px réels, soit +3 ou +4 après arrondi), A4 logo de sidebar, A5 cibles tactiles
-  44 px, A6 vouvoiement, A7 noms « Prénom N. », A8 omission décidée (D4 fonctions non codées, décision 24 achats : décalage causé par l'absence de l'élément, limite `A8:n` exacte et note obligatoires), A9 texte secondaire à 16 px (voir ci-dessous). Codes du banc : `BANC` valeur d'environnement absente du banc (par exemple `env(safe-area-inset-bottom)` vaut 0 dans Chromium headless), admis sur `h`, `y` et `pad` seulement, limite et note obligatoires ; autres codes : `L3` décalage vertical de la coquille
+  44 px, A6 vouvoiement, A7 noms « Prénom N. », A8 omission décidée (D4 fonctions non codées, décision 24 achats : décalage causé par l'absence de l'élément, limite `A8:n` égale à l'écart mesuré et note obligatoires), A9 texte secondaire à 16 px (voir ci-dessous). Codes du banc : `BANC` valeur d'environnement absente du banc (par exemple `env(safe-area-inset-bottom)` vaut 0 dans Chromium headless), admis sur `h`, `y` et `pad` seulement, limite et note obligatoires ; autres codes : `L3` décalage vertical de la coquille
   mobile (lot 3, déclaré avec `lot`), `POLICE` écart de largeur dû à la police de repli, `X1` écart
   NON expliqué (le pixel reste visible : statut `NON EXPLIQUÉ`, compté à part, à résorber). Liste blanche :
   tout autre code (par exemple `A10`) est refusé au chargement. Syntaxe `"Ax:n"` : écart toléré jusqu'à n px
@@ -110,9 +112,11 @@ dont la liste ME-06 : y+3 et h-3, `A3`) ; les lignes avec 1 px non expliqué son
   `"Ax"` seul : écart de chaîne (couleur, famille...).
 - `A9` : le texte secondaire est en 16 px (`--t-para`, décision RD-FIX-03 du projet) au lieu des 14 px des
   planches. Limité à `fontSize` et aux propriétés de boîte qui en découlent (`h`, `w`, `tw`) ; refusé sur toute
-  autre propriété (une couleur, `y`...). Limite `A9:n` (valeur mesurée EXACTE) et `note` obligatoires, sinon la
+  autre propriété (une couleur, `y`...). Limite `A9:n` égale à l'écart mesuré (convention de relecture : le banc ne contrôle qu'un plafond) et `note` obligatoires, sinon la
   spécification est refusée au chargement. Cumulable comme A2 ou A3 (`"A8+A9:n"`), car une boîte peut cumuler
-  une omission décidée et le changement de taille. À utiliser : un texte secondaire qui suit `--t-para` par
+  une omission décidée et le changement de taille. Garde-fous du banc : sur `fontSize`, l'écart doit être positif et
+  la taille du code égale à `--t-para` (16 px, 15 px sous 768 px de viewport) ; sur `h`, `w`, `tw`, l'écart doit être
+  positif quand A9 est seul ; en cumul (`A8+A9:n`), la limite porte sur l'écart total en valeur absolue. À utiliser : un texte secondaire qui suit `--t-para` par
   décision RD-FIX-03 et dont l'écart de taille est mesuré. À NE PAS utiliser : pour un défaut, un texte dont la
   taille est fausse pour une autre raison, ni pour masquer un écart de position ou de couleur. Les ÉCHEC dus à
   une livraison différée ne se masquent par aucun code (A8 est réservé aux omissions décidées).
@@ -120,7 +124,7 @@ dont la liste ME-06 : y+3 et h-3, `A3`) ; les lignes avec 1 px non expliqué son
 - `note` : explication des écarts du sélecteur (écart mesuré, cumul A2 + A3), reprise dans le rapport.
   Obligatoire dès qu'un sélecteur porte une règle `"Ax:n"` ; au niveau de la spécification ou de la vue,
   le champ `assumeNote` joue ce rôle. Le chargeur refuse une règle à limite sans note. Règle : la limite
-  d'une règle `"Ax:n"` est la valeur mesurée EXACTE, par sélecteur ; un pixel non expliqué se déclare
+  d'une règle `"Ax:n"` est égale à l'écart mesuré, par sélecteur (convention de relecture : le banc ne contrôle qu'un plafond) ; un pixel non expliqué se déclare
   `X1`, jamais en élargissant la limite. Les `y` sont mesurés aussi en mobile.
 
 Pour étendre : ajouter la fixture (données de la planche) puis le fichier de spécification, lancer

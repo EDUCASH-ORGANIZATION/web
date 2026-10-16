@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // Banc de fidélité : compare la planche v2.1 et le rendu du code, sélecteur par sélecteur.
 // Usage : npm run fidelity -- E06 [E07,C12 ...] [--report-only]
-// Variables : FIDELITY_OUT (défaut /tmp/educash-fidelity/<hash du dépôt>), FIDELITY_CHROMIUM (chemin du Chromium,
+// Variables : FIDELITY_OUT (défaut <tmp utilisateur>/educash-fidelity/<hash du dépôt>), FIDELITY_CHROMIUM (chemin du Chromium,
 // obligatoire hors cache Playwright), FIDELITY_MAQUETTES (dossier des planches).
 import { spawnSync } from "node:child_process"
-import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs"
+import { createReadStream, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs"
 import { createHash } from "node:crypto"
 import { createServer } from "node:http"
 import { createRequire } from "node:module"
+import os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { measureSelectors } from "./measure.mjs"
@@ -18,16 +19,40 @@ const SPECS_DIR = path.join(HERE, "specs")
 // Planches : dossier frère de organization/ (valable depuis web/ et depuis organization/web-*).
 const DEFAULT_MAQUETTES = path.resolve(ROOT, "../../design-rebrand/maquettes")
 const STATUS_BAR = 36
-const OUT_BASE = "/tmp/educash-fidelity"
 
 /**
- * Dossier de sortie par défaut : un sous-dossier propre à chaque dépôt (worktree), dérivé d'un hash
- * du chemin, pour que deux bancs lancés depuis deux worktrees n'écrasent pas le même app.css.
- * Stable pour un même chemin, distinct pour deux chemins. FIDELITY_OUT garde la priorité (voir main).
+ * Dossier de sortie par défaut : <tmp utilisateur>/educash-fidelity/<hash>, un sous-dossier propre à chaque
+ * dépôt (worktree), dérivé d'un hash du chemin réel, pour que deux bancs lancés depuis deux worktrees
+ * n'écrasent pas le même app.css. Base = os.tmpdir() (dossier par utilisateur sous macOS, pas un /tmp
+ * partagé). Stable pour un même chemin (barre finale, `..` et liens résolus), distinct pour deux chemins.
+ * FIDELITY_OUT garde la priorité (voir main).
  */
 export function defaultOutDir(repoRoot) {
-  const hash = createHash("sha1").update(path.resolve(repoRoot)).digest("hex").slice(0, 10)
-  return path.join(OUT_BASE, hash)
+  let resolved = path.resolve(repoRoot)
+  try {
+    resolved = realpathSync(resolved)
+  } catch {
+    // chemin inexistant : le chemin résolu suffit
+  }
+  const hash = createHash("sha1").update(resolved).digest("hex").slice(0, 10)
+  return path.join(os.tmpdir(), "educash-fidelity", hash)
+}
+
+/**
+ * Crée le dossier de sortie PAR DÉFAUT en refusant un lien symbolique ou un dossier d'un autre utilisateur
+ * (un /tmp partagé permettrait d'y rediriger les écritures). Appliqué à la base et au sous-dossier.
+ */
+export function ensureSafeOutDir(out) {
+  const base = path.dirname(out)
+  for (const dir of [base, out]) {
+    mkdirSync(dir, { recursive: true })
+    const stat = lstatSync(dir)
+    if (stat.isSymbolicLink()) throw new Error(`Dossier de sortie refusé (lien symbolique) : ${dir}. Définir FIDELITY_OUT.`)
+    if (typeof process.getuid === "function" && stat.uid !== process.getuid()) {
+      throw new Error(`Dossier de sortie refusé (appartient à un autre utilisateur) : ${dir}. Définir FIDELITY_OUT.`)
+    }
+  }
+  return out
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -148,12 +173,27 @@ export function diffProp(prop, board, code, tolerance = 1) {
   return { equal: board === code, delta: null, label: `${prop} ${board} -> ${code}` }
 }
 
+// --t-para (tokens.css) : 16 px, 15 px sous 768 px de viewport.
+const paraSize = (viewportWidth) => (viewportWidth < 768 ? 15 : 16)
+
+/**
+ * Garde-fou propre à A9 (texte secondaire plus grand, jamais plus petit) : sur fontSize, l'écart doit être
+ * positif et la taille du code égale au jeton --t-para ; sur h, w, tw, l'écart doit être positif quand A9
+ * est seul (un texte plus gros ne rétrécit pas sa boîte) ; en cumul (A8+A9), la limite unique porte sur
+ * l'écart total, en valeur absolue. Sans A9, toujours vrai.
+ */
+function a9Allows(rule, prop, delta, codeValue, viewportWidth) {
+  if (!rule.names.includes("A9")) return true
+  if (prop === "fontSize") return delta > 0 && parseFloat(codeValue) === paraSize(viewportWidth)
+  return rule.names.length > 1 || delta > 0
+}
+
 /**
  * Compare les mesures d'un sélecteur. `assume` : { prop: "A3:4" } (règle assumée, écart maximal en px
  * pour les propriétés numériques ; sans maximum seulement pour les chaînes). A1 sur une couleur
  * n'accepte que la correspondance exacte planche -> charte.
  */
-export function compareEntry(board, code, { props, assume = {}, tolerance = 1 }) {
+export function compareEntry(board, code, { props, assume = {}, tolerance = 1, viewportWidth = Infinity }) {
   if (!board && !code) return { status: "ÉCHEC", note: "absent des deux côtés", diffs: [] }
   if (!board) return { status: "ÉCHEC", note: "absent de la planche", diffs: [] }
   if (!code) return { status: "ÉCHEC", note: "absent du code", diffs: [] }
@@ -171,7 +211,7 @@ export function compareEntry(board, code, { props, assume = {}, tolerance = 1 })
       if (rule.names.includes("A1")) {
         accepted = COLOR.has(prop) && rule.names.length === 1 && A1[rgbKey(board[prop])] === rgbKey(code[prop]) && alphaOf(board[prop]) === alphaOf(code[prop])
       } else if (diff.delta !== null) {
-        accepted = rule.max !== null && Math.abs(diff.delta) <= rule.max
+        accepted = rule.max !== null && Math.abs(diff.delta) <= rule.max && a9Allows(rule, prop, diff.delta, code[prop], viewportWidth)
       } else {
         accepted = rule.max === null
       }
@@ -325,7 +365,7 @@ async function runView({ browser, base, spec, view, outDir }) {
     const key = `k${index}`
     const props = selector.props ?? view.props ?? spec.props ?? ["x", "y", "w", "h"]
     const assume = { ...(spec.assume ?? {}), ...(view.assume ?? {}), ...(selector.assume ?? {}) }
-    const result = compareEntry(boardMeasures[key], codeMeasures[key], { props, assume, tolerance: spec.tolerance ?? 1 })
+    const result = compareEntry(boardMeasures[key], codeMeasures[key], { props, assume, tolerance: spec.tolerance ?? 1, viewportWidth: width })
     return { view: view.name, id: selector.id, label: selector.label ?? "", lot: selector.lot ?? "", specNote: selector.note ?? "", board: boardMeasures[key], code: codeMeasures[key], ...result }
   })
 }
@@ -352,7 +392,7 @@ async function main() {
   const args = process.argv.slice(2)
   const reportOnly = args.includes("--report-only")
   const ids = args.filter((a) => !a.startsWith("--")).flatMap((a) => a.split(",")).filter(Boolean)
-  const out = path.resolve(process.env.FIDELITY_OUT || defaultOutDir(ROOT))
+  const out = process.env.FIDELITY_OUT ? path.resolve(process.env.FIDELITY_OUT) : ensureSafeOutDir(defaultOutDir(ROOT))
   const maquettes = process.env.FIDELITY_MAQUETTES || DEFAULT_MAQUETTES
   const specs = loadSpecs(ids)
   mkdirSync(out, { recursive: true })
