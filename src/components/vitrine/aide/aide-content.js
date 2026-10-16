@@ -1,14 +1,14 @@
 // Contenu de la page /aide. Données sérialisables (utilisables côté serveur et côté client).
 import { COMMISSION_RATE } from "@/lib/constants/missions"
 import { MIN_WITHDRAWAL_AMOUNT } from "@/lib/supabase/database.constants"
+import { PAYMENT_WARNING } from "@/lib/purchases/requests"
 
 const COMMISSION_PCT = Math.round(COMMISSION_RATE * 100)
 const NET_PCT = 100 - COMMISSION_PCT
 const MIN_WITHDRAWAL = `${MIN_WITHDRAWAL_AMOUNT.toLocaleString("fr-FR").replace(/\s/g, " ")} FCFA`
 
-/** Avertissement affiché avant tout paiement d'achats (décision 24), repris à l'identique. */
-export const PAYMENT_WARNING =
-  "Vérifiez le nom du bénéficiaire affiché par MoMo avant de payer. EduCash n'intervient pas dans ce paiement."
+// Avertissement affiché avant tout paiement d'achats (décision 24) : source unique dans le domaine des achats.
+export { PAYMENT_WARNING }
 
 /**
  * Thèmes de l'aide. Un item peut porter des étapes (`steps`) et un avertissement (`notice`),
