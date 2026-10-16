@@ -19,6 +19,7 @@ const RAUTO = "20000000-0000-4000-8000-000000000004"
 const MISSION = "10000000-0000-4000-8000-000000000001"
 const MSG_TEXT = "30000000-0000-4000-8000-000000000001"
 const MSG_IMG = "30000000-0000-4000-8000-000000000002"
+const MSG_LOC = "30000000-0000-4000-8000-000000000003"
 const SENDER = uid(2)
 const REPORTER = uid(1)
 
@@ -174,6 +175,11 @@ describe("listAdminReports", () => {
     expect(res.items[2]).toMatchObject({ source: "auto", reporter: null, reference: "SIG-0004" })
   })
 
+  it("renvoie le nombre de signalements de chaque onglet, quel que soit l'onglet affiché", async () => {
+    expect((await listAdminReports()).counts).toEqual({ "a-traiter": 3, resolus: 1, classes: 0 })
+    expect((await listAdminReports({ statut: "resolus" })).counts).toEqual({ "a-traiter": 3, resolus: 1, classes: 0 })
+  })
+
   it("filtre par onglet et trie du plus récent au plus ancien", async () => {
     expect((await listAdminReports({ statut: "resolus" })).items.map((i) => i.id)).toEqual([R3])
     expect((await listAdminReports({ statut: "classes" })).items).toEqual([])
@@ -268,6 +274,17 @@ describe("getAdminReport", () => {
     expect(res.message.mediaUrl).toBe(`https://signed.test/${SENDER}/photo.jpg?t=1`)
     expect(state.queries.find((q) => q.table === "storage:message-media")).toMatchObject({ ttl: 300 })
     expect(Object.keys(res.message)).not.toContain("media_url")
+  })
+
+  it("position : coordonnées renvoyées pour les liens de carte, sans média", async () => {
+    state.messages.push({ id: MSG_LOC, sender_id: SENDER, receiver_id: REPORTER, type: "location", content: "Position partagée", media_url: null, location_lat: 6.37, location_lng: 2.39, created_at: "2026-10-09T10:00:00Z" })
+    state.reports[0].message_id = MSG_LOC
+    const res = await getAdminReport(R1)
+    expect(res.message).toMatchObject({ type: "location", text: null, mediaUrl: null, mediaAvailable: null, lat: 6.37, lng: 2.39 })
+  })
+
+  it("texte ou image : pas de coordonnées", async () => {
+    expect((await getAdminReport(R1)).message).toMatchObject({ lat: null, lng: null })
   })
 
   it("image hors du dossier de l'expéditeur ou signature en échec : média indisponible", async () => {

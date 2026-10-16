@@ -60,6 +60,14 @@ vi.mock("@/lib/notifications/read", () => ({
   markAllRead: vi.fn(),
 }))
 
+// Compteur de signalements : action mockée (elle a ses propres tests).
+let reportsResult = { count: 0 }
+const countOpenAdminReports = vi.fn(async () => {
+  if (reportsResult instanceof Error) throw reportsResult
+  return reportsResult
+})
+vi.mock("./admin-reports.actions", () => ({ countOpenAdminReports: (...a) => countOpenAdminReports(...a) }))
+
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => makeSupabase()) }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: (...a) => createServiceClient(...a) }))
 
@@ -69,6 +77,8 @@ const ADMIN = { role: "admin", full_name: "Awa Admin", city: "Cotonou", is_suspe
 
 beforeEach(() => {
   notificationsResult = { count: 0 }
+  reportsResult = { count: 0 }
+  countOpenAdminReports.mockClear()
   countUnread.mockClear()
   createServiceClient.mockClear()
   state.user = { id: "admin-1", user_metadata: { role: "admin" } }
@@ -83,13 +93,36 @@ beforeEach(() => {
 describe("getAdminShellData", () => {
   it("renvoie l'identité d'affichage et le nombre de dossiers à examiner", async () => {
     state.pending = 4
-    expect(await getAdminShellData()).toEqual({ shell: { userId: "admin-1", fullName: "Awa Admin", pendingCount: 4, notificationCount: 0 } })
+    expect(await getAdminShellData()).toEqual({ shell: { userId: "admin-1", fullName: "Awa Admin", pendingCount: 4, notificationCount: 0, reportsOpenCount: 0 } })
   })
 
   it("ne renvoie que des champs publics", async () => {
     state.profile = { ...ADMIN, phone: "+22997000000", card_url: "secret" }
     const { shell } = await getAdminShellData()
-    expect(Object.keys(shell).sort()).toEqual(["fullName", "notificationCount", "pendingCount", "userId"])
+    expect(Object.keys(shell).sort()).toEqual(["fullName", "notificationCount", "pendingCount", "reportsOpenCount", "userId"])
+  })
+
+  it("renvoie le nombre de signalements ouverts", async () => {
+    reportsResult = { count: 5 }
+    expect((await getAdminShellData()).shell.reportsOpenCount).toBe(5)
+  })
+
+  it("signalements indisponibles (table absente) ou erreur de lecture : compteur à 0, coquille ouverte", async () => {
+    reportsResult = { count: 0, unavailable: true }
+    expect((await getAdminShellData()).shell.reportsOpenCount).toBe(0)
+    reportsResult = { error: "Vous n'avez pas les droits pour effectuer cette action." }
+    expect((await getAdminShellData()).shell.reportsOpenCount).toBe(0)
+    reportsResult = new Error("boom")
+    const res = await getAdminShellData()
+    expect(res.shell.reportsOpenCount).toBe(0)
+    expect(res.shell.userId).toBe("admin-1")
+    expect(console.error).toHaveBeenCalled()
+  })
+
+  it("n'appelle pas le compteur de signalements pour un compte refusé", async () => {
+    state.profile = { ...ADMIN, role: "client" }
+    await getAdminShellData()
+    expect(countOpenAdminReports).not.toHaveBeenCalled()
   })
 
   it("refuse un étudiant, même si user_metadata prétend admin, et l'envoie vers son tableau de bord", async () => {
