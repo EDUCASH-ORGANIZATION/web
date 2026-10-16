@@ -1,0 +1,182 @@
+{
+  "id": "C05",
+  "title": "Profil du candidat (tiroir)",
+  "planche": "client/C05-profil-du-candidat.v2.html",
+  "screen": "c05",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "CA-06",
+          "label": "tiroir",
+          "board": ".drawer",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg",
+            "shadow"
+          ]
+        },
+        {
+          "id": "CA-06",
+          "label": "en-tête",
+          "board": ".drawer__head",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ]
+        },
+        {
+          "id": "CA-06",
+          "label": "avatar",
+          "board": ".drawer__head .av2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ]
+        },
+        {
+          "id": "CA-06",
+          "label": "nom",
+          "board": ".drawer__head .h3",
+          "props": [
+            "x",
+            "y",
+            "tw",
+            "h",
+            "fontSize",
+            "fontWeight"
+          ],
+          "code": ".drawer__head .ds-h3"
+        },
+        {
+          "id": "CA-06",
+          "label": "corps",
+          "board": ".drawer__body",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ]
+        },
+        {
+          "id": "CA-06",
+          "label": "badge vérification",
+          "board": ".actions2 .badge",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "assume": {
+            "w": "A2:5"
+          },
+          "note": "A2 : libellé de 13 px au lieu de 12, w +5 (« jusqu'en juin 2027 »)"
+        },
+        {
+          "id": "CA-06",
+          "label": "chiffres",
+          "board": ".stats2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "assume": {
+            "h": "A2:2"
+          },
+          "note": "A2 : libellé et sous-texte en 13/14 px au lieu de 12/13, h +2"
+        },
+        {
+          "id": "CA-06",
+          "label": "chiffre 1",
+          "board": ".stat2:nth-child(1)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad"
+          ],
+          "assume": {
+            "h": "A2:2"
+          },
+          "note": "A2 : libellé de 13 px au lieu de 12, h +2"
+        },
+        {
+          "id": "CA-06",
+          "label": "motivation",
+          "board": ".drawer__body > div:nth-of-type(2)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "code": ".drawer__body > section:nth-of-type(2)",
+          "assume": {
+            "y": "A2:2"
+          },
+          "note": "A2 : +2 de la rangée de chiffres (cascade)"
+        },
+        {
+          "id": "CA-06",
+          "label": "pied",
+          "board": ".drawer__foot",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ]
+        },
+        {
+          "id": "CA-06",
+          "label": "bouton Accepter",
+          "board": ".drawer__foot .btn--dark",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ]
+        }
+      ]
+    }
+  ]
+}

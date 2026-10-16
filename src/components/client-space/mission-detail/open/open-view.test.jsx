@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { renderToStaticMarkup } from "react-dom/server"
 
 const nav = vi.hoisted(() => ({ query: "" }))
@@ -20,16 +22,19 @@ vi.mock("@/lib/actions/application.actions", () => ({
 vi.mock("@/lib/actions/mission.actions", () => ({ updateMissionStatus: actions.updateMissionStatus }))
 
 const { ToastProvider } = await import("@/components/app-ui/toast")
-const { ConfirmDialogView } = await import("@/components/app-ui/confirm-dialog")
 const { MissionOpenView } = await import("../open-view")
 const { CandidateRow } = await import("./candidate-row")
 const { CandidateDrawer } = await import("./candidate-drawer")
 const { AcceptDialog, AcceptDialogView, submitOnce } = await import("./accept-dialog")
 const { RejectDialog } = await import("./reject-dialog")
-const { CancelDialog, cancelSteps } = await import("./cancel-dialog")
+const { CancelDialog, CancelDialogView, cancelSteps } = await import("./cancel-dialog")
+const { joinNames } = await import("./names")
 const { orderApplications } = await import("./candidate-list")
 const { escrowSplit } = await import("@/lib/app/money")
 const { formatAmount } = await import("@/lib/app/format")
+
+const { declarationsOf, rulesOf } = await import("@/qa/fidelity/css-rules")
+const css = (name) => readFileSync(join(process.cwd(), "src", "app", "design", "client", name), "utf8")
 
 const noop = () => {}
 const LONG_MESSAGE = "Bonjour, je traduis déjà des supports pour une ONG. ".repeat(4)
@@ -167,7 +172,7 @@ describe("C04 avec plusieurs candidatures", () => {
   it("ouvre le tiroir par ?candidat=, mène à la conversation et propose Refuser et Accepter", () => {
     expect(html).toContain('href="/client/missions/m1?candidat=s1"')
     expect(html).toContain('href="/client/messages/m1?studentId=s1"')
-    expect(html).toContain("Accepter Awa")
+    expect(html).toContain('Accepter<span class="ds-desk-only"> Awa</span>')
     expect(html).toContain("Refuser")
     expect(html).toContain('aria-label="Refuser la candidature de Awa Kouassi"')
   })
@@ -229,10 +234,25 @@ describe("message de candidature", () => {
     expect(html).toContain('aria-expanded="true"')
   })
 
-  it("un message court n'a ni repli ni bouton", () => {
+  it("un message court n'a pas de bouton (le repli sur 2 lignes ne le rogne pas)", () => {
     const html = renderToStaticMarkup(<CandidateRow {...props} application={applicationOf("s1")} />)
     expect(html).not.toContain("Lire la suite")
-    expect(html).not.toContain("cand2__msg--clamp")
+    expect(html).toContain("cand2__msg--clamp")
+  })
+
+  it("« Lire la suite » et la fiche de la planche mobile : bureau seulement, résumé sous le nom", () => {
+    const html = renderToStaticMarkup(<CandidateRow {...props} application={applicationOf("s1", { message: LONG_MESSAGE })} />)
+    expect(html).toContain('class="link2 cand2__link ds-desk-only"')
+    expect(html).toContain('class="person2__sub ds-mob-only">4,8 / 5 · 14 missions<')
+    expect(html).toContain('class="facts2 ds-desk-only"')
+    expect(html).toContain('<span class="ds-mob-only">Profil</span>')
+  })
+
+  it("sans avis, le résumé mobile ne montre que les missions", () => {
+    const html = renderToStaticMarkup(
+      <CandidateRow {...props} application={applicationOf("s1", {}, { rating: 0, missionsDone: 0 })} />,
+    )
+    expect(html).toContain('class="person2__sub ds-mob-only">0 mission<')
   })
 
   it("affiche le texte tel quel, échappé", () => {
@@ -262,7 +282,8 @@ describe("onglet Détails et séquestre (commission par escrowSplit)", () => {
     expect(escrow).not.toContain(formatAmount(23000))
     expect(escrow).not.toContain(formatAmount(15000))
     expect(out).not.toContain(formatAmount(23000))
-    expect(out).toContain("Achats estimés : environ")
+    expect(out).not.toContain("Achats estimés : environ")
+    expect(count(out, formatAmount(15000))).toBe(1)
   })
 
   it("affiche le type par son libellé, jamais la valeur brute", () => {
@@ -287,6 +308,72 @@ describe("onglet Détails et séquestre (commission par escrowSplit)", () => {
     expect(html).toContain('role="tablist"')
     expect(count(html, 'role="tab"')).toBe(2)
     expect(count(html, 'role="tabpanel"')).toBe(2)
+  })
+})
+
+describe("paiements en pause : jamais de séquestre", () => {
+  const off = render({ detail: detailOf({ applications: TWO }), flags: { ...FLAGS, paymentsEnabled: false } })
+
+  it("la carte s'appelle Budget, sans badge ni mot « séquestre » nulle part sur la page", () => {
+    expect(off).toContain('aria-label="Budget"')
+    expect(off).not.toContain('aria-label="Séquestre"')
+    expect(off).not.toContain("En séquestre")
+    expect(off).toContain("Montants indicatifs : les paiements ne sont pas encore actifs.")
+    expect(off.toLowerCase()).not.toContain("séquestre")
+  })
+
+  it("la chronologie ne cite aucun montant bloqué", () => {
+    expect(off).toContain("Publiée")
+    expect(off).not.toMatch(/Publiée, /)
+  })
+
+  it("l'échéance dépassée ne parle pas de séquestre, ouverte elle le fait", () => {
+    const overdue = (flags) => render({ detail: detailOf({ applications: TWO, deadline: "2020-01-01" }), flags })
+    const closed = overdue({ ...FLAGS, paymentsEnabled: false })
+    expect(closed).toContain("Rien ne se passe automatiquement")
+    expect(closed).toContain("examinez les candidatures ou annulez la mission.")
+    expect(closed.toLowerCase()).not.toContain("séquestre")
+    expect(overdue({ confirmer: false, publiee: false }).toLowerCase()).not.toContain("séquestre")
+    expect(overdue(FLAGS)).toContain("annulez la mission pour récupérer le séquestre.")
+  })
+
+  it("avec le drapeau absent, même comportement (jamais vrai par défaut)", () => {
+    const missing = render({ detail: detailOf({ applications: TWO }), flags: { confirmer: false, publiee: false } })
+    expect(missing.toLowerCase()).not.toContain("séquestre")
+  })
+
+  it("ouvert, la carte Séquestre et son badge reviennent", () => {
+    const on = render({ detail: detailOf({ applications: TWO }) })
+    expect(on).toContain('aria-label="Séquestre"')
+    expect(on).toContain("En séquestre")
+    expect(on).toContain("Publiée, ")
+  })
+})
+
+describe("carte Achats estimés (mission avec achats)", () => {
+  it("affiche l'estimation hors EduCash sous le séquestre, sans l'ajouter au budget", () => {
+    const out = render({ detail: detailOf({ applications: TWO, budget: 8000, purchasesEstimate: 7450 }) })
+    const card = out.slice(out.indexOf('aria-label="Achats estimés"'))
+    const purchases = card.slice(0, card.indexOf("</section>"))
+    expect(purchases).toContain("Hors EduCash")
+    expect(purchases).toContain(formatAmount(7450))
+    expect(purchases).toContain("directement au vendeur par MoMo")
+    expect(out.indexOf('aria-label="Séquestre"')).toBeLessThan(out.indexOf('aria-label="Achats estimés"'))
+    expect(out).not.toContain(formatAmount(15450))
+  })
+
+  it("sans estimation ou avec une estimation invalide, aucune carte ni NaN", () => {
+    for (const purchasesEstimate of [undefined, null, 0, -5, Number.NaN, "abc"]) {
+      const out = render({ detail: detailOf({ applications: TWO, purchasesEstimate }) })
+      expect(out).not.toContain("Achats estimés")
+      expect(out).not.toContain("NaN")
+      expect(out).not.toContain("undefined")
+    }
+  })
+
+  it("la carte Mission donne la date limite avec une majuscule", () => {
+    const out = render({ detail: detailOf({ applications: TWO, deadline: "2099-12-31" }) })
+    expect(out).toMatch(/Date limite<\/span><b>[A-Z]/)
   })
 })
 
@@ -370,7 +457,7 @@ describe("C05 tiroir du candidat (5 états)", () => {
 
   it("état aucun avis : le dit clairement, sans note inventée", () => {
     const out = withQuery(profileOf({ reviewsTotal: 0, reviews: [] }, { rating: 0, missionsDone: 0 }))
-    expect(out).toContain("Aucun avis")
+    expect(out).toContain('<span class="stat2__label">Avis</span><span class="stat2__value">Aucun</span>')
     expect(out).toContain("n&#x27;a pas encore d&#x27;avis sur EduCash")
     expect(out).not.toContain("0,0")
   })
@@ -426,11 +513,24 @@ describe("modale d'acceptation", () => {
     const out = renderToStaticMarkup(<AcceptDialog {...props} open />)
     expect(out).toContain('role="dialog"')
     expect(out).toContain("Retenir Awa pour cette mission ?")
-    expect(out).toContain("Les autres candidatures seront refusées et la mission passera en cours")
+    expect(out).toContain("La mission passe « En cours » et une conversation s&#x27;ouvre avec Awa")
     expect(out).toContain(formatAmount(split.student))
     expect(out).toContain("btn--dark")
     expect(out).toContain("Accepter Awa")
     expect(out).not.toContain("btn--danger")
+    expect(out).toContain("Licence 3 · UAC · 4,8 / 5")
+  })
+
+  it("prévient les autres candidats en attente et promet le séquestre seulement quand les paiements sont ouverts", () => {
+    const on = renderToStaticMarkup(<AcceptDialog {...props} open othersNames={["Ulrich", "Codjo"]} paymentsEnabled />)
+    expect(on).toContain("Ulrich et Codjo sont prévenus que leur candidature n&#x27;est pas retenue")
+    expect(on).toContain(`Les ${formatAmount(mission.budget)} restent en séquestre : rien de plus à payer`)
+    const off = renderToStaticMarkup(<AcceptDialog {...props} open othersNames={["Ulrich"]} />)
+    expect(off).toContain("Ulrich est prévenu que sa candidature n&#x27;est pas retenue")
+    expect(off).not.toMatch(/séquestre/i)
+    expect(off).toContain("Montants indicatifs : les paiements ne sont pas encore actifs.")
+    expect(on).not.toContain("Montants indicatifs")
+    expect(renderToStaticMarkup(<AcceptDialog {...props} open />)).not.toContain("prévenu")
   })
 
   it("affiche l'erreur de l'action telle quelle et bloque les boutons pendant l'envoi", () => {
@@ -472,11 +572,14 @@ describe("modale d'acceptation", () => {
 
 describe("modale de refus", () => {
   const applicant = { id: "a-s1", studentId: "s1", student: studentOf("s1") }
+  const mission = detailOf().mission
 
   it("confirme par une boîte sans motif ni annulation différée, sans rouge plein", () => {
-    const out = renderToStaticMarkup(<RejectDialog open applicant={applicant} onClose={noop} onConfirm={noop} />)
+    const out = renderToStaticMarkup(<RejectDialog open applicant={applicant} mission={mission} onClose={noop} onConfirm={noop} />)
     expect(out).toContain("Refuser la candidature de Awa ?")
-    expect(out).toContain("Refuser la candidature")
+    expect(out).toContain("Traduire un flyer en anglais")
+    expect(out).toContain("Awa sera prévenu que sa candidature n&#x27;est pas retenue")
+    expect(out).toContain("Garder")
     expect(out).toContain("btn--dark")
     expect(out).not.toContain("btn--danger")
     expect(out).not.toContain("Motif")
@@ -484,60 +587,150 @@ describe("modale de refus", () => {
   })
 
   it("ne rend rien fermée", () => {
-    expect(renderToStaticMarkup(<RejectDialog open={false} applicant={applicant} onClose={noop} onConfirm={noop} />)).toBe("")
+    expect(renderToStaticMarkup(<RejectDialog open={false} applicant={applicant} mission={mission} onClose={noop} onConfirm={noop} />)).toBe("")
   })
 })
 
 describe("C07 annulation en deux étapes", () => {
   const mission = detailOf().mission
-  const steps = cancelSteps({ title: mission.title, refundAmount: 10000 })
-  const view = (step, error = null) =>
+  const names = ["Afiavi", "Ulrich", "Codjo"]
+  const steps = cancelSteps({ title: mission.title, refundAmount: 10000, pendingNames: names })
+  const view = (step, { error = null, refundAmount = 10000, pending = false } = {}) =>
     renderToStaticMarkup(
-      <ConfirmDialogView
-        steps={steps}
+      <CancelDialogView
+        steps={cancelSteps({ title: mission.title, refundAmount, pendingNames: names })}
         step={step}
-        pending={false}
+        refundAmount={refundAmount}
+        subtitle={`${mission.title} · 3 candidatures`}
+        pending={pending}
         error={error}
-        tone="danger"
-        cancelLabel="Garder la mission"
-        onCancel={noop}
+        onClose={noop}
+        onSecondary={noop}
         onConfirm={noop}
         cancelRef={{ current: null }}
       />,
     )
 
-  it("étape 1 : conséquences et remboursement intégral immédiat, bouton encre, pas de rouge", () => {
-    const out = renderToStaticMarkup(<CancelDialog open mission={mission} refundAmount={10000} onClose={noop} onConfirm={noop} />)
+  it("étape 1 : conséquences, candidats prévenus et remboursement intégral, bouton encre, pas de rouge", () => {
+    const out = renderToStaticMarkup(
+      <CancelDialog
+        open
+        mission={mission}
+        refundAmount={10000}
+        pendingNames={names}
+        applicationsCount={3}
+        onClose={noop}
+        onConfirm={noop}
+      />,
+    )
     expect(out).toContain("Annuler cette mission ?")
-    expect(out).toContain(`Les ${formatAmount(10000)} réservés reviennent immédiatement et en entier sur votre portefeuille`)
+    expect(out).toContain("Traduire un flyer en anglais · 3 candidatures")
+    expect(out).toContain("La mission sort tout de suite des recherches")
+    expect(out).toContain("Afiavi, Ulrich et Codjo sont prévenus que la mission est annulée")
+    expect(out).toContain(`Les ${formatAmount(10000)} reviennent sur votre portefeuille, en entier`)
+    expect(out).toContain("Votre portefeuille EduCash")
+    expect(out).toContain("Immédiat")
     expect(out).toContain("Continuer")
     expect(out).toContain("Garder la mission")
     expect(out).toContain("btn--dark")
     expect(out).not.toContain("btn--danger")
+    expect(out).not.toContain("Motif")
   })
 
   it("étape 2 : seul le rouge plein, avec le montant remboursé", () => {
     const out = view(1)
     expect(out).toContain("Confirmer l&#x27;annulation")
+    expect(out).toContain("Étape 2 sur 2")
     expect(out).toContain("C&#x27;est définitif")
+    expect(out).toContain("Remboursé maintenant")
     expect(out).toContain(`Oui, annuler et rembourser ${formatAmount(10000)}`)
+    expect(out).toContain("Retour")
     expect(out).toContain("btn--danger")
     expect(out).not.toContain("btn--dark")
   })
 
   it("affiche l'échec tel quel dans la boîte restée ouverte", () => {
-    const out = view(1, "Cette mission ne peut plus être annulée.")
+    const out = view(1, { error: "Cette mission ne peut plus être annulée." })
     expect(out).toContain('role="alert"')
     expect(out).toContain("Cette mission ne peut plus être annulée.")
   })
 
-  it("sans montant connu, ne promet aucun montant", () => {
+  it("bloque les boutons pendant l'envoi", () => {
+    const out = view(1, { pending: true })
+    expect(out).toContain('aria-busy="true"')
+  })
+
+  it("sans montant connu (ou paiements en pause), ne promet aucun montant ni séquestre", () => {
     const unknown = cancelSteps({ title: "T", refundAmount: 0 })
-    expect(unknown[0].description).not.toMatch(/FCFA/)
+    expect(unknown[0].consequences).toEqual(["La mission sort tout de suite des recherches"])
     expect(unknown[1].confirmLabel).toBe("Oui, annuler la mission")
+    const out = view(0, { refundAmount: 0 })
+    expect(out).not.toMatch(/FCFA|séquestre|Remboursement/i)
+    expect(view(1, { refundAmount: 0 })).not.toContain("Remboursé maintenant")
+  })
+
+  it("accorde le verbe avec le nombre de candidats prévenus", () => {
+    expect(steps[0].consequences[1]).toBe("Afiavi, Ulrich et Codjo sont prévenus que la mission est annulée")
+    expect(cancelSteps({ title: "T", refundAmount: 0, pendingNames: ["Awa"] })[0].consequences[1]).toBe(
+      "Awa est prévenu que la mission est annulée",
+    )
+    expect(joinNames(["A", "B"])).toBe("A et B")
+    expect(joinNames([])).toBe("")
+    expect(joinNames(["A", "B", "C"])).toBe("A, B et C")
+    expect(joinNames(["A", "B", "C", "D"])).toBe("A, B, C et 1 autre")
+    expect(joinNames(Array.from({ length: 15 }, (_, i) => `N${i}`))).toBe("N0, N1, N2 et 12 autres")
+    expect(joinNames(["Awa", "Awa"])).toBe("Awa et Awa")
   })
 
   it("ne rend rien fermée", () => {
     expect(renderToStaticMarkup(<CancelDialog open={false} mission={mission} refundAmount={0} onClose={noop} onConfirm={noop} />)).toBe("")
+  })
+})
+
+describe("feuilles C04 et C05 (planches mobile et tiroir)", () => {
+  const c04 = css("c04.css")
+  const MOBILE = "max-width: 1023.98px"
+
+  it("sous 1024 px : plus d'en-tête de liste, le badge se pose sous le nom", () => {
+    // le tri reste disponible (pas de display: none) et le titre n'est masqué que visuellement
+    const head = declarationsOf(c04, ".c2 .cand2__list .list2__head", { media: MOBILE })
+    expect(head.display).toBeUndefined()
+    expect(head["justify-content"]).toBe("flex-end")
+    const title = declarationsOf(c04, ".c2 .cand2__list .list2__title", { media: MOBILE })
+    expect(title.display).toBeUndefined()
+    expect(title["clip-path"]).toBe("inset(50%)")
+    expect(declarationsOf(c04, ".cand2__top", { media: MOBILE }).display).toBe("contents")
+    expect(declarationsOf(c04, ".cand2__top > .badge", { media: MOBILE })["align-self"]).toBe("flex-start")
+  })
+
+  it("le DOM suit l'ordre mobile ; le bureau seul réordonne Voir le profil avant Discuter", () => {
+    const order = (n, media) => declarationsOf(c04, `.cand2__acts > :nth-child(${n})`, { media }).order
+    expect([1, 2, 3, 4].map((n) => order(n))).toEqual(["2", "1", "3", "4"])
+    expect(declarationsOf(c04, ".cand2__acts > :nth-child(n)", { media: MOBILE }).order).toBe("0")
+    const row = renderToStaticMarkup(<CandidateRow {...{ profileHref: "/p", chatHref: "/c", onAccept: noop, onReject: noop }} application={applicationOf("s1")} />)
+    const at = (needle) => row.indexOf(needle)
+    expect(at("Discuter avec")).toBeLessThan(at("Voir le profil de"))
+    expect(at("Voir le profil de")).toBeLessThan(at("Refuser la candidature de"))
+    expect(at("Refuser la candidature de")).toBeLessThan(at("Accepter la candidature de"))
+  })
+
+  it("le bouton Accepter garde un nom accessible complet quand le prénom est masqué (mobile)", () => {
+    const row = renderToStaticMarkup(<CandidateRow {...{ profileHref: "/p", chatHref: "/c", onAccept: noop, onReject: noop }} application={applicationOf("s1")} />)
+    expect(row).toContain('aria-label="Accepter la candidature de Awa Kouassi"')
+  })
+
+  it("la méta des détails de mission est posée par base.css (un seul propriétaire)", () => {
+    expect(declarationsOf(css("base.css"), ".c2 .head2 + .meta2")["margin-top"]).toBe("10px")
+    expect(rulesOf(c04, ".c2 .head2 + .meta2", { media: "*" })).toEqual([])
+  })
+
+  it("le bouton Accepter garde sa largeur à 480 px (une seule ligne d'actions)", () => {
+    const narrow = rulesOf(c04, ".cand2__acts .btn", { media: "max-width: 480px" })
+    expect(narrow).toEqual([])
+  })
+
+  it("le tiroir a l'avatar de 56 px de la planche", () => {
+    const decl = declarationsOf(css("c05.css"), ".c2 .drawer__head .av2")
+    expect([decl.width, decl.height]).toEqual(["56px", "56px"])
   })
 })
