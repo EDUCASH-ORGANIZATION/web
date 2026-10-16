@@ -47,9 +47,9 @@
           ],
           "lot": "ST-10",
           "assume": {
-            "tw": "A8:160"
+            "tw": "A8+X1:16"
           },
-          "note": "tw : référence EDC-M-xxxx et « retenue <quand> » omises : aucune référence en base, aucune date de rétention fiable (applications.updated_at change à toute mise à jour) ; ticket accepted_at"
+          "note": "tw : la référence EDC-M-xxxx est omise (aucune référence en base, A8) et la date vient de applications.accepted_at (posée par la base) : « retenue le 8 octobre 2026 » en toutes lettres (safeDateFr) contre « retenue le 2 oct. » / « retenue ce matin » dans la planche, et le type affiché est « Marché et achats » ou « Cours particuliers » ; les deux effets se compensent presque, écart net +16 mesuré ; A8 couvre la référence omise, X1 reste déclaré parce que le format de date long « 8 octobre 2026 » contre « 2 oct. » est un choix de format, pas une omission (fixture : accepted_at 2026-10-08, updated_at différent pour prouver qu'il n'est pas lu)"
         },
         {
           "id": "MI-24",
@@ -116,9 +116,9 @@
           "lot": "ST-10",
           "assume": {
             "y": "A3:3",
-            "h": "A8:186"
+            "h": "A8:166"
           },
-          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : séance, barre de progression et drapeau « Ce soir » omis : aucune séance en base"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : séance, barre de progression et drapeau « Ce soir » omis : aucune séance en base ; l'étape « retenue » porte maintenant sa date (accepted_at), +20 px par rapport à la mesure sans date (-186 devient -166)"
         },
         {
           "id": "MI-25",

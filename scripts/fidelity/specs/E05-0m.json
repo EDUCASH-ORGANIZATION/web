@@ -51,11 +51,11 @@
           "lot": "ST-10",
           "assume": {
             "y": "X1:17",
-            "w": "X1:41",
+            "w": "X1:25",
             "h": "X1:2",
             "fontSize": "X1:4"
           },
-          "note": "y : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; boîte du titre plus large dans la planche ; w : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; boîte du titre plus large dans la planche ; h : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; boîte du titre plus large dans la planche ; fontSize : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; boîte du titre plus large dans la planche"
+          "note": "y : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; boîte du titre plus large dans la planche ; w : la boîte du titre prend la largeur de la ligne de date « Cours particuliers · retenue le 8 octobre 2026 » (accepted_at, date en toutes lettres, plus longue que celle de la planche mobile qui n'a pas de ligne retenue), donc plus large que celle de la planche, +25 mesuré ; h : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; boîte du titre plus large dans la planche ; fontSize : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; boîte du titre plus large dans la planche"
         },
         {
           "id": "MI-24",

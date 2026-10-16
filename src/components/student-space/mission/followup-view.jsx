@@ -19,7 +19,7 @@ const MOBILE_TITLES = { in_progress: "Mission en cours", done: "Mission terminé
  * E05 Mission retenue, suivi (données réelles seulement). Composant pur : tout vient de `detail`, déjà filtré
  * par `getStudentMissionDetail` (état "selected", grand livre de l'étudiant seul).
  *
- * `detail` : { state: "selected", mission, client (public), application (createdAt, updatedAt), isSelected,
+ * `detail` : { state: "selected", mission, client (public), application (createdAt, acceptedAt), isSelected,
  * ledger: [{ type: "release", amount (NET), createdAt }], review: { id, rating, comment, createdAt } | null }.
  * Les calculs viennent de `missionDetailView(detail)` : statut, escrowSplit, actions, chronologie, reçu.
  * Aucun bouton « J'ai terminé », aucun état « À confirmer » (aucune donnée en base), aucune séance.
@@ -60,6 +60,7 @@ export function MissionFollowupView({ detail, flags }) {
         withPurchasesLine={false}
         back={{ href: studentApplicationsHref(), label: "Candidatures" }}
         variant="05"
+        retainedAt={detail.application?.acceptedAt ?? null}
       />
       <div className="e2-cols">
         <div className="e2-stack">

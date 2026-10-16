@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { lstatSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
-import { compareEntry, fileForUrl, parseAssume, resolveInside, validateSpec } from "../../../scripts/fidelity/compare.mjs"
+import { compareEntry, defaultOutDir, ensureSafeOutDir, fileForUrl, parseAssume, resolveInside, validateSpec } from "../../../scripts/fidelity/compare.mjs"
 
 const box = (over = {}) => ({ x: 0, y: 0, w: 100, h: 20, tw: 80, fontSize: "14px", ...over })
 
@@ -42,6 +42,39 @@ describe("compareEntry", () => {
     expect(compareEntry(box(), box({ x: 52 }), { props: ["x"], assume: { x: "A8:52" } }).status).toBe("ASSUMÉ A8")
     expect(compareEntry(box(), box({ x: 53 }), { props: ["x"], assume: { x: "A8:52" } }).status).toBe("ÉCHEC")
     expect(compareEntry(box(), box({ w: 112 }), { props: ["w"], assume: { w: "A5+A8:12" } }).status).toBe("ASSUMÉ A5, A8")
+  })
+
+  it("A1 : le citron de la planche (rgb 200,240,60) devient celui de la charte (rgb 193,238,62), seul ce couple est accepté", () => {
+    const run = (code) => compareEntry({ bg: "rgb(200, 240, 60)" }, { bg: code }, { props: ["bg"], assume: { bg: "A1" } }).status
+    expect(run("rgb(193, 238, 62)")).toBe("ASSUMÉ A1")
+    expect(run("rgb(193, 238, 63)")).toBe("ÉCHEC")
+  })
+
+  it("A9 (texte secondaire 16 px) : accepté dans sa limite, ÉCHEC au-delà, cumul avec A8 accepté", () => {
+    const small = box({ fontSize: "14px", h: 20 })
+    const big = box({ fontSize: "16px", h: 24 })
+    const rules = { fontSize: "A9:2", h: "A9:4" }
+    expect(compareEntry(small, big, { props: ["fontSize", "h"], assume: rules }).status).toBe("ASSUMÉ A9")
+    expect(compareEntry(small, box({ fontSize: "17px", h: 24 }), { props: ["fontSize", "h"], assume: rules }).status).toBe("ÉCHEC")
+    expect(compareEntry(small, box({ fontSize: "16px", h: 25 }), { props: ["fontSize", "h"], assume: rules }).status).toBe("ÉCHEC")
+    expect(compareEntry(small, box({ fontSize: "16px", h: 30 }), { props: ["fontSize", "h"], assume: { fontSize: "A9:2", h: "A8+A9:10" } }).status).toBe("ASSUMÉ A8, A9")
+  })
+
+  it("A9 : jamais un texte plus petit, ni une taille autre que --t-para, ni une boîte qui rétrécit", () => {
+    const fs = (px, h = 20) => box({ fontSize: `${px}px`, h })
+    const run = (code, rules, width, board = fs(14)) => compareEntry(board, code, { props: ["fontSize", "h"], assume: rules, viewportWidth: width }).status
+    const rules = { fontSize: "A9:2", h: "A9:10" }
+    expect(run(fs(12, 24), rules)).toBe("ÉCHEC")
+    expect(run(fs(18, 24), rules, undefined, fs(16))).toBe("ÉCHEC")
+    expect(run(fs(18, 24), rules)).toBe("ÉCHEC")
+    expect(run(fs(16, 10), rules)).toBe("ÉCHEC")
+    expect(run(fs(16, 31), { fontSize: "A9:2", h: "A8+A9:10" })).toBe("ÉCHEC")
+    expect(run(fs(16, 30), { fontSize: "A9:2", h: "A8+A9:10" })).toBe("ASSUMÉ A8, A9")
+    expect(run(fs(16, 24), rules)).toBe("ASSUMÉ A9")
+    expect(run(fs(15, 24), rules, 390)).toBe("ASSUMÉ A9")
+    expect(run(fs(16, 24), rules, 390)).toBe("ÉCHEC")
+    expect(run(fs(15), { fontSize: "A9:2" }, 1440, fs(13))).toBe("ÉCHEC")
+    expect(run(fs(15), { fontSize: "A9:2" }, 390, fs(13))).toBe("ASSUMÉ A9")
   })
 
   it("X1 donne un statut distinct, jamais ASSUMÉ", () => {
@@ -87,9 +120,64 @@ describe("compareEntry : rognage par un ancêtre", () => {
   })
 })
 
+describe("defaultOutDir", () => {
+  it("un dossier par dépôt : deux chemins différents, deux dossiers", () => {
+    expect(defaultOutDir("/a/web-ST08")).not.toBe(defaultOutDir("/a/web-ST09"))
+  })
+
+  it("stable : même chemin, même dossier (barre finale ou segments relatifs inclus)", () => {
+    expect(defaultOutDir("/a/web-ST08")).toBe(defaultOutDir("/a/web-ST08"))
+    expect(defaultOutDir("/a/web-ST08")).toBe(defaultOutDir("/a/web-ST08/"))
+    expect(defaultOutDir("/a/b/../web-ST08")).toBe(defaultOutDir("/a/web-ST08"))
+  })
+
+  it("sous /tmp/educash-fidelity, avec un hash hexadécimal court", () => {
+    expect(defaultOutDir("/a/web")).toMatch(/educash-fidelity[\\/][0-9a-f]{10}$/)
+    expect(path.dirname(path.dirname(defaultOutDir("/a/web")))).toBe(os.tmpdir())
+  })
+
+  it("cwd, cwd/ et son realpath donnent le même dossier", () => {
+    const cwd = process.cwd()
+    expect(defaultOutDir(cwd + path.sep)).toBe(defaultOutDir(cwd))
+    expect(defaultOutDir(realpathSync(cwd))).toBe(defaultOutDir(cwd))
+  })
+
+  it("un lien symbolique vers un dossier donne le même dossier que sa cible", () => {
+    const dir = realpathSync(mkdtempSync(path.join(os.tmpdir(), "fidelity-link-")))
+    const link = `${dir}-link`
+    symlinkSync(dir, link)
+    try {
+      expect(defaultOutDir(link)).toBe(defaultOutDir(dir))
+    } finally {
+      rmSync(link, { force: true })
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe("ensureSafeOutDir", () => {
+  it("crée le dossier et sa base, et refuse un lien symbolique", () => {
+    const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), "fidelity-safe-")))
+    try {
+      const ok = path.join(root, "educash-fidelity", "abc")
+      expect(ensureSafeOutDir(ok)).toBe(ok)
+      expect(lstatSync(ok).isDirectory()).toBe(true)
+      const target = path.join(root, "elsewhere")
+      mkdirSync(target)
+      symlinkSync(target, path.join(root, "evil"))
+      expect(() => ensureSafeOutDir(path.join(root, "evil", "abc"))).toThrow(/lien symbolique/)
+      mkdirSync(path.join(root, "base"))
+      symlinkSync(target, path.join(root, "base", "abc"))
+      expect(() => ensureSafeOutDir(path.join(root, "base", "abc"))).toThrow(/lien symbolique/)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
 describe("parseAssume", () => {
   it("refuse un code hors liste blanche", () => {
-    expect(() => parseAssume("A9:100", "y")).toThrow(/inconnue/)
+    expect(() => parseAssume("A10:100", "y")).toThrow(/inconnue/)
     expect(() => parseAssume("Z", "color")).toThrow(/inconnue/)
   })
 
@@ -122,6 +210,15 @@ describe("parseAssume", () => {
     expect(compareEntry(box({ h: 89 }), box({ h: 64 }), { props: ["h"], assume: { h: "BANC:24" } }).status).toBe("ÉCHEC")
   })
 
+  it("A9 : limité à fontSize, h, w, tw, limite obligatoire, cumulable avec A8", () => {
+    expect(parseAssume("A9:2", "fontSize").names).toEqual(["A9"])
+    expect(parseAssume("A8+A9:12", "h").names).toEqual(["A8", "A9"])
+    expect(() => parseAssume("A9", "fontSize")).toThrow(/A9 exige une limite/)
+    expect(() => parseAssume("A9:2", "y")).toThrow(/limité à fontSize/)
+    expect(() => parseAssume("A9:2", "color")).toThrow(/limité à fontSize/)
+    expect(() => parseAssume("A9", "bg")).toThrow(/A9 exige une limite/)
+  })
+
   it("limite obligatoire pour une propriété numérique", () => {
     expect(() => parseAssume("A3", "y")).toThrow(/obligatoire/)
     expect(parseAssume("A1", "color").max).toBeNull()
@@ -142,7 +239,14 @@ describe("validateSpec", () => {
 
   it("accepte la règle avec note, et refuse une règle inconnue", () => {
     expect(validateSpec(spec({ id: "X", label: "a", assume: { h: "A2:4" }, note: "A2 : +3 mesuré" }))).toBeTruthy()
-    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { h: "A9:4" }, note: "n" }))).toThrow(/inconnue/)
+    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { h: "A10:4" }, note: "n" }))).toThrow(/inconnue/)
+  })
+
+  it("A9 : sans note refusé, avec note accepté, sur une couleur refusé", () => {
+    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { fontSize: "A9:2" } }))).toThrow(/sans note/)
+    expect(validateSpec(spec({ id: "X", label: "a", assume: { fontSize: "A9:2" }, note: "16 px, RD-FIX-03" }))).toBeTruthy()
+    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { color: "A9:2" }, note: "n" }))).toThrow(/limité à fontSize/)
+    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { bg: "A9" }, note: "n" }))).toThrow(/A9 exige une limite/)
   })
 
   it("règle de spécification : exige assumeNote", () => {

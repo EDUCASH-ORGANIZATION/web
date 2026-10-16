@@ -16,7 +16,7 @@ const detail = {
     createdAt: "2026-10-07T08:00:00Z",
   },
   client: { name: "Afiavi D.", avatarUrl: null, city: "Cadjèhoun", rating: 4.6, missionsPublished: 5, isVerified: true },
-  application: { id: "a1", status: "accepted", message: "Bonjour", createdAt: "2026-10-07T09:00:00Z", updatedAt: "2026-10-08T08:00:00Z" },
+  application: { id: "a1", status: "accepted", message: "Bonjour", createdAt: "2026-10-07T09:00:00Z", updatedAt: "2026-10-09T08:00:00Z", acceptedAt: "2026-10-08T08:00:00Z" },
   isSelected: true,
   verification: null,
   ledger: [],

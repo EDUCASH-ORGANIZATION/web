@@ -3,10 +3,12 @@
 -- RD-SEC-03b (relevé du 2026-10-14, puis scripts 60, 61 et 62 de RD-SEC-03b), puis
 -- script 70 de RD-MISSION-02 (colonne missions.purchases_estimate), puis script 80 de RD-NOTIF-01
 -- (table public.notifications), puis script 90 de RD-DONE-01 (colonne
--- missions.completion_declared_at).
+-- missions.completion_declared_at), puis script 91 de RD-ACCEPT-01 (colonne
+-- applications.accepted_at).
 -- Script 70 appliqué en production le 2026-10-15.
 -- Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.
--- Script 90 (RD-DONE-01) NON appliqué en production au 2026-10-15 : à retirer après application.
+-- Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.
+-- Script 91 de RD-ACCEPT-01 appliqué en production le 2026-10-16.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
@@ -174,7 +176,8 @@ create table public.applications (
   message text not null,
   status text default 'pending'::text not null,
   created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
+  updated_at timestamp with time zone default now(),
+  accepted_at timestamp with time zone
 );
 
 create table public.messages (
@@ -245,6 +248,7 @@ alter table public.transactions add constraint transactions_status_check CHECK (
 alter table public.wallet_transactions add constraint wallet_transactions_amount_check CHECK ((amount > (0)::numeric));
 alter table public.wallet_transactions add constraint wallet_transactions_type_check CHECK ((type = ANY (ARRAY['deposit'::text, 'reserve'::text, 'release'::text, 'commission'::text, 'refund'::text, 'withdrawal'::text])));
 alter table public.applications add constraint applications_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text])));
+alter table public.applications add constraint applications_accepted_at_check CHECK (((accepted_at IS NULL) OR (status = 'accepted'::text)));
 alter table public.messages add constraint messages_type_check CHECK ((type = ANY (ARRAY['text'::text, 'voice'::text, 'image'::text, 'location'::text])));
 alter table public.profiles add constraint profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.student_profiles add constraint fk_student_profiles_profile FOREIGN KEY (user_id) REFERENCES profiles(user_id) ON DELETE CASCADE;
@@ -455,6 +459,57 @@ $function$;
 
 revoke all on function public.enforce_metadata_role() from public, anon, authenticated, service_role;
 grant execute on function public.enforce_metadata_role() to service_role;
+
+CREATE OR REPLACE FUNCTION public.guard_application_accepted_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare
+  v_interdit boolean;
+begin
+  -- Appelants qui n'ecrivent jamais la colonne : roles API (administrateur applicatif compris, son JWT est
+  -- « authenticated ») et service_role, calcule comme dans edu_is_api_caller() (role effectif).
+  v_interdit := public.edu_is_api_caller()
+    or coalesce(nullif(current_setting('role', true), 'none'), session_user) = 'service_role';
+
+  if tg_op = 'INSERT' then
+    if new.accepted_at is not null then
+      if v_interdit then
+        raise exception 'La date de retention est reservee a la base.'
+          using errcode = '42501';
+      end if;
+      return new; -- role hors API et hors service_role (import) : valeur conservee, le CHECK la valide
+    end if;
+    if new.status = 'accepted' then
+      new.accepted_at := now();
+    end if;
+    return new;
+  end if;
+
+  -- UPDATE : valeur differente de la valeur actuelle
+  if new.accepted_at is distinct from old.accepted_at then
+    if v_interdit then
+      raise exception 'La date de retention est reservee a la base.'
+        using errcode = '42501';
+    end if;
+    return new; -- role hors API et hors service_role (reparation) : le CHECK valide
+  end if;
+
+  -- UPDATE : transitions automatiques, quel que soit le role
+  if new.status = 'accepted' and old.status is distinct from 'accepted' then
+    new.accepted_at := now();
+  elsif new.status is distinct from 'accepted' then
+    new.accepted_at := null;
+  end if;
+  -- sinon : statut « accepted » inchange, valeur conservee
+
+  return new;
+end;
+$function$;
+
+revoke all on function public.guard_application_accepted_at() from public, anon, authenticated, service_role;
+grant execute on function public.guard_application_accepted_at() to service_role;
 
 CREATE OR REPLACE FUNCTION public.guard_applications()
  RETURNS trigger
@@ -1808,6 +1863,7 @@ grant execute on function public.wallet_withdraw_reverse(p_transaction_id uuid, 
 -- 7. TRIGGERS (public, plus les deux triggers posés sur auth.users)
 
 CREATE TRIGGER applications_apply_rules BEFORE INSERT ON public.applications FOR EACH ROW EXECUTE FUNCTION public.applications_apply_rules();
+CREATE TRIGGER guard_application_accepted_at BEFORE INSERT OR UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION public.guard_application_accepted_at();
 CREATE TRIGGER guard_applications BEFORE INSERT OR UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION public.guard_applications();
 CREATE TRIGGER trg_applications_updated_at BEFORE UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER messages_rules BEFORE INSERT ON public.messages FOR EACH ROW EXECUTE FUNCTION public.messages_rules();
@@ -2082,8 +2138,10 @@ alter publication supabase_realtime add table public.messages;
 -- - auth.uid() : utilisé par la plupart des politiques RLS et des fonctions. Table notifications :
 --   auth.uid() uniquement dans ses deux politiques ; la fonction de garde n'utilise que
 --   edu_is_api_caller(), gen_random_uuid() est natif (PostgreSQL 13+), aucune clé vers auth.users.
--- - edu_is_api_caller() : seul point à adapter (détection de l'appelant API
---   par rôle PostgREST/JWT) ; les gardes et fonctions wallet en dépendent.
+-- - edu_is_api_caller() : point à adapter (détection de l'appelant API
+--   par rôle PostgREST/JWT) ; les gardes et fonctions wallet en dépendent. Second point, propre à
+--   Supabase : le littéral 'service_role' de guard_application_accepted_at (script 91), à regrouper
+--   avec le premier dans une seule fonction à terme.
 -- - storage.* : tables storage.buckets et storage.objects, politiques sur
 --   storage.objects (avatars, message-media, student-cards, utilisent
 --   storage.foldername()), triggers storage
