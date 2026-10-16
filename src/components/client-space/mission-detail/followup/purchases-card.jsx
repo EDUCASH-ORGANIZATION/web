@@ -5,10 +5,10 @@ import { StatusBadge } from "@/components/app-ui/status-badge"
 /**
  * Carte « Achats pour votre compte » (C08, C11) : la seule donnée réelle est l'estimation donnée à la
  * publication (`missions.purchases_estimate`), jamais bloquée, sans commission. Aucune demande de paiement,
- * aucun vendeur, aucun montant payé : ces données n'existent pas. Le mot « séquestre » n'est écrit que si les
- * paiements sont activés. `estimate` vient de purchasesEstimateOf (nombre > 0).
+ * aucun vendeur, aucun montant payé : ces données n'existent pas. Le mot « séquestre » n'est écrit que si une réserve existe
+ * (`escrowed` : ligne `reserve` au grand livre). `estimate` vient de purchasesEstimateOf (nombre > 0).
  */
-export function PurchasesCard({ estimate, paymentsEnabled = false }) {
+export function PurchasesCard({ estimate, escrowed = false }) {
   return (
     <section className="card2 fup2__purchases" aria-label="Achats pour votre compte">
       <div className="sec2">
@@ -19,7 +19,7 @@ export function PurchasesCard({ estimate, paymentsEnabled = false }) {
       <p className="note2">
         <Icon name="i-info" />
         <span>
-          {paymentsEnabled
+          {escrowed
             ? "Vous payez les vendeurs directement par MoMo. Ces paiements ne passent pas par le séquestre, ne supportent aucune commission et EduCash ne peut pas les rembourser."
             : "Vous payez les vendeurs directement par MoMo. Ces paiements ne supportent aucune commission et EduCash ne peut pas les rembourser."}
         </span>

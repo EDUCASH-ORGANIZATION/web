@@ -81,26 +81,35 @@ describe("ST-09 carte Séquestre : le service seulement", () => {
 })
 
 describe("ST-09 paiements fermés ou ouverts", () => {
-  it("fermés : la carte achats et la note du Séquestre n'écrivent pas « séquestre »", () => {
-    for (const status of ["in_progress", "done"]) {
-      const html = render(detailOf(status, {}, { ledger: status === "done" ? DONE_LEDGER : [RESERVE] }), CLOSED)
-      expect(plain(section(html, "Achats pour votre compte"))).not.toMatch(/séquestre/i)
-      expect(html).toContain("Achats pour votre compte")
+  it("réserve existante : la carte achats évoque le séquestre, paiements ouverts ou fermés", () => {
+    for (const flags of [OPEN, CLOSED]) {
+      for (const status of ["in_progress", "done"]) {
+        const html = render(detailOf(status, {}, { ledger: status === "done" ? DONE_LEDGER : [RESERVE] }), flags)
+        expect(plain(section(html, "Achats pour votre compte"))).toMatch(/séquestre/i)
+      }
     }
+  })
+
+  it("sans ligne reserve : la carte achats n'écrit pas « séquestre »", () => {
+    for (const flags of [OPEN, CLOSED]) {
+      const html = render(detailOf("in_progress", {}, { ledger: [] }), flags)
+      expect(html).toContain("Achats pour votre compte")
+      expect(plain(section(html, "Achats pour votre compte"))).not.toMatch(/séquestre/i)
+    }
+  })
+
+  it("la note du Séquestre parle du service seul", () => {
     const note = plain(section(render(detailOf("in_progress"), CLOSED), "Séquestre").match(/<p class="note2">[\s\S]*?<\/p>/)[0])
-    expect(note).not.toMatch(/séquestre/i)
     expect(note).toContain("pour le service seulement")
   })
 
-  // Écart connu (documenté, non corrigé par le testeur) : la chronologie écrit « en séquestre » dès qu'une ligne
-  // reserve existe, même paiements fermés. it.fails passera au rouge le jour où le code sera corrigé.
-  it.fails("fermés : la chronologie nouvelle n'écrit pas « séquestre »", () => {
-    const html = render(detailOf("in_progress"), CLOSED)
-    expect(plain(section(html, "Chronologie"))).not.toMatch(/séquestre/i)
-  })
-
-  it("ouverts : la carte achats évoque le séquestre", () => {
-    expect(plain(section(render(detailOf("in_progress"), OPEN), "Achats pour votre compte"))).toMatch(/séquestre/i)
+  it("chronologie : « Publiée, X en séquestre » seulement avec une ligne reserve, paiements fermés ou ouverts", () => {
+    for (const flags of [OPEN, CLOSED]) {
+      expect(plain(section(render(detailOf("in_progress"), flags), "Chronologie"))).toMatch(/Publiée, 8\s000\sFCFA en séquestre/)
+      const none = plain(section(render(detailOf("in_progress", {}, { ledger: [] }), flags), "Chronologie"))
+      expect(none).toContain("Mission publiée")
+      expect(none).not.toMatch(/séquestre/i)
+    }
   })
 
   it("jamais « vous touchez » ni le net (88 %) côté client", () => {

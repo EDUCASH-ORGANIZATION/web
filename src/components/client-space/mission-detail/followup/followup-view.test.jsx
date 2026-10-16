@@ -427,12 +427,12 @@ describe("achats pour votre compte (C08, C11), estimation seule", () => {
     expect(out).toContain("Avec achats")
   })
 
-  it("le mot séquestre n'entre jamais dans la carte achats quand les paiements sont en pause", () => {
-    const out = render(withEstimate("in_progress", { ledger: RESERVE }), FLAGS)
-    expect(section(out, "Achats pour votre compte")).not.toMatch(/séquestre/i)
-    const done = render(withEstimate("done", { ledger: DONE }), FLAGS)
-    expect(section(done, "Achats pour votre compte")).not.toMatch(/séquestre/i)
-    expect(section(render(withEstimate("in_progress", { ledger: RESERVE }), PAYS), "Achats pour votre compte")).toContain("séquestre")
+  it("le mot séquestre dans la carte achats dépend de la réserve, pas du drapeau des paiements", () => {
+    for (const flags of [FLAGS, PAYS]) {
+      expect(section(render(withEstimate("in_progress", { ledger: RESERVE }), flags), "Achats pour votre compte")).toContain("séquestre")
+      expect(section(render(withEstimate("done", { ledger: DONE }), flags), "Achats pour votre compte")).toContain("séquestre")
+      expect(section(render(withEstimate("in_progress", { ledger: [] }), flags), "Achats pour votre compte")).not.toMatch(/séquestre/i)
+    }
   })
 
   it("jamais « vous touchez » côté client", () => {

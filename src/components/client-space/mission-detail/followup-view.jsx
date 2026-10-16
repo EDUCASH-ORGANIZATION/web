@@ -49,7 +49,7 @@ function ReviewCard({ review, studentName }) {
   )
 }
 
-function InProgress({ detail, view, studentName, onConfirm, paymentsEnabled }) {
+function InProgress({ detail, view, studentName, onConfirm }) {
   const { mission, selectedStudent } = detail
   const estimate = purchasesEstimateOf(mission.purchasesEstimate)
   const student = <SelectedStudent title="Étudiant retenu" student={selectedStudent} missionId={mission.id} />
@@ -74,7 +74,7 @@ function InProgress({ detail, view, studentName, onConfirm, paymentsEnabled }) {
               </p>
             </div>
           </section>
-          {estimate === null ? student : <PurchasesCard estimate={estimate} paymentsEnabled={paymentsEnabled} />}
+          {estimate === null ? student : <PurchasesCard estimate={estimate} escrowed={Boolean(view.reservedAt)} />}
           <section className="card2 fup2__timeline" aria-label="Chronologie">
             <div className="sec2">
               <h2 className="sec2__title">Chronologie</h2>
@@ -109,7 +109,7 @@ function InProgress({ detail, view, studentName, onConfirm, paymentsEnabled }) {
   )
 }
 
-function Done({ detail, view, studentName, paymentsEnabled }) {
+function Done({ detail, view, studentName }) {
   const { mission, selectedStudent, ledger, review } = detail
   const estimate = purchasesEstimateOf(mission.purchasesEstimate)
   const rateHref = clientReviewHref(mission.id)
@@ -137,7 +137,7 @@ function Done({ detail, view, studentName, paymentsEnabled }) {
           ) : review ? (
             <ReviewCard review={review} studentName={studentName} />
           ) : null}
-          {estimate === null ? null : <PurchasesCard estimate={estimate} paymentsEnabled={paymentsEnabled} />}
+          {estimate === null ? null : <PurchasesCard estimate={estimate} escrowed={Boolean(view.reservedAt)} />}
           <section className="card2 fup2__timeline" aria-label="Chronologie">
             <div className="sec2">
               <h2 className="sec2__title">Chronologie</h2>
@@ -272,10 +272,9 @@ export function MissionFollowupView({ detail, flags }) {
           view={view}
           studentName={studentName}
           onConfirm={() => setDialogOpen(true)}
-          paymentsEnabled={Boolean(flags?.paymentsEnabled)}
         />
       ) : mission.status === "done" ? (
-        <Done detail={detail} view={view} studentName={studentName} paymentsEnabled={Boolean(flags?.paymentsEnabled)} />
+        <Done detail={detail} view={view} studentName={studentName} />
       ) : (
         <Cancelled detail={detail} view={view} studentName={studentName} />
       )}
