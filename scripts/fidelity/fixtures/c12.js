@@ -32,7 +32,7 @@ export const screens = [
     space: "c2",
     path: "/client/messages",
     view: "@/components/client-space/messages/inbox-view",
-    component: "InboxView",
+    component: "ClientInboxView",
     props: { result: { conversations: CONVERSATIONS }, now: NOW },
   },
 ]

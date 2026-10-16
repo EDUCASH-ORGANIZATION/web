@@ -14,7 +14,7 @@
       "name": "bureau",
       "viewport": [
         1440,
-        880
+        900
       ],
       "frame": "desk",
       "frameIndex": 0,
@@ -42,7 +42,12 @@
             "radius",
             "bg"
           ],
-          "lot": "ST-06"
+          "lot": "ST-06",
+          "assume": {
+            "y": "A3:3",
+            "h": "A3:3"
+          },
+          "note": "A3 : 3,42 px réels du titre de page (39,90 px planche contre 43,32 px code, --lh-display 1.14), +3 en y et -3 de hauteur (la carte remplit la fenêtre, 100dvh - 221 px)"
         },
         {
           "id": "MC-01",
@@ -127,7 +132,11 @@
             "fontWeight",
             "tw"
           ],
-          "lot": "ST-06"
+          "lot": "ST-06",
+          "assume": {
+            "tw": "A7:31"
+          },
+          "note": "A7 : la planche écrit « Ulrich Zinsou », le code « Ulrich Z. » (Prénom N.), largeur de texte -31 px mesurée"
         },
         {
           "id": "MC-04",
@@ -199,7 +208,12 @@
             "radius",
             "pad",
             "gap"
-          ]
+          ],
+          "assume": {
+            "y": "A5+L3:16"
+          },
+          "note": "L3 (+12) et titre de page plus petit (-4) comme le filtre segmenté, plus A5 (+8 de hauteur du filtre au-dessus) : +16 en y",
+          "lot": "ST-06"
         },
         {
           "id": "MC-13",
@@ -210,7 +224,12 @@
             "w",
             "h",
             "radius"
-          ]
+          ],
+          "assume": {
+            "y": "A2+A5+L3:17"
+          },
+          "note": "cumul : L3 (+12), titre de page plus petit (-4) et A5 (+8 du filtre) = +16 comme la ligne, plus A2 (ligne +3 de haut, avatar centré : +1) = +17 mesuré",
+          "lot": "ST-06"
         }
       ]
     }

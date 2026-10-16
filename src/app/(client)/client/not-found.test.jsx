@@ -16,7 +16,9 @@ describe.each(Object.keys(pages))("not-found client : %s", (name) => {
   it("un seul h1, vouvoiement, lien de retour interne", async () => {
     const { default: NotFound } = await pages[name]()
     const html = renderToStaticMarkup(<NotFound />)
-    expect(html.match(/<h1[ >]/g)).toHaveLength(1)
+    // La conversation s'affiche sous le h1 « Messages » du layout : elle porte un h2.
+    expect(html.match(/<h1[ >]/g) ?? []).toHaveLength(name === "conversation" ? 0 : 1)
+    if (name === "conversation") expect(html).toContain("<h2")
     expect(html).toContain("votre compte")
     expect(html).not.toMatch(/\b(tu|ton|ta|tes)\b/i)
     expect(html).toMatch(/href="\/client\//)
