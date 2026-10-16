@@ -1,10 +1,10 @@
 /* @ds-screen RD-STUDENT-01 */
 /* E06 Messages : boîte de réception centrée sur la personne (aussi utilisée par E07 en bureau).
-   La hauteur suit la fenêtre (224 px = barre du haut, titre et marges) : la liste et le volet défilent dans leur cadre.
+   La hauteur suit la fenêtre (244 px = barre du haut, titre et marges : le bas de la liste rejoint celui de la planche à 900 px) : la liste et le volet défilent dans leur cadre.
    Les deux volets restent affichés quand une conversation est ouverte (layout de messages/). */
-.e2-06-inbox { display: grid; grid-template-columns: clamp(280px, 26vw, 360px) minmax(0, 1fr); gap: var(--s-5); height: max(480px, calc(100dvh - 224px)); min-height: 0; }
+.e2-06-inbox { display: grid; grid-template-columns: clamp(280px, 26vw, 360px) minmax(0, 1fr); gap: var(--s-5); height: max(480px, calc(100dvh - 244px)); min-height: 0; }
 .e2-06-inbox > .e2-07-pane { height: 100%; }
-.e2-06-inbox--tall { height: max(560px, calc(100dvh - 224px)); }
+.e2-06-inbox--tall { height: max(560px, calc(100dvh - 244px)); }
 .e2-06-list { background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .e2-06-list__head { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-5) var(--s-5) var(--s-4); border-bottom: 1px solid var(--c-ligne); }
 .e2-06-list__title { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); font-size: var(--t-h4); font-weight: var(--fw-xbold); }

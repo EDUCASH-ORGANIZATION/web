@@ -56,7 +56,7 @@ restent en `ÉCHEC` ; les lignes avec 1 px non expliqué sont en `NON EXPLIQUÉ`
   "id": "E06", "title": "...", "planche": "etudiant/E06-messages.v2.html", "screen": "e06", "tolerance": 1,
   "assume": { "color": "A1", "bg": "A1", "fontSize": "A2:1" },
   "views": [{
-    "name": "bureau", "viewport": [1440, 880], "frame": "desk", "frameIndex": 0,
+    "name": "bureau", "viewport": [1440, 900], "frame": "desk", "frameIndex": 0,
     "assume": { "y": "A3:4" },
     "selectors": [
       { "id": "ME-06", "label": "liste", "board": ".e2-06-list", "code": ".e2-06-list",
@@ -68,9 +68,9 @@ restent en `ÉCHEC` ; les lignes avec 1 px non expliqué sont en `NON EXPLIQUÉ`
 
 - `frame` : `desk` (`.frame-desk__screen`, 1440) ou `phone` (`.frame-phone__screen`, 390 ; la barre
   d'état de 36 px est retranchée des y de la planche).
-- `viewport` du code : coquille du code : cadre `100dvh - 32`, zone principale `100dvh - 60` ; planche :
-  900 - 32 et 900 - 60. Viewport bureau 900 pour C12 ; E06, E07 et C13 restent à 880 jusqu'au ticket de
-  re-mesure.
+- `viewport` du code : 1440 x 900 pour tous les écrans bureau, la hauteur de la planche. La coquille v2
+  du code (`min-height: 100dvh`) a un cadre de `100dvh - 32 px` et une zone principale de `100dvh - 60 px` ;
+  la planche est un cadre de 900 px (900 - 32 et 900 - 60). À 900, les deux se superposent sans correctif.
 - `board` : sélecteur dans le cadre de la planche ; `code` : sélecteur dans le rendu (défaut : `board`).
   Le premier élément correspondant est mesuré des deux côtés.
 - `props` : `x y w h` (tolérance 1 px) et `tw` (largeur du texte lui-même, utile quand la boîte épouse un
