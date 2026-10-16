@@ -82,6 +82,20 @@ describe("parseAssume", () => {
     expect(() => parseAssume("POLICE", "w")).toThrow(/limite/)
   })
 
+  it("A8 exige une limite quel que soit le type de propriété", () => {
+    expect(() => parseAssume("A8", "bg")).toThrow(/A8 exige une limite/)
+    expect(() => parseAssume("A8", "x")).toThrow()
+    expect(() => parseAssume("A8:", "x")).toThrow()
+  })
+
+  it("BANC : limité à h, y, pad, limite obligatoire, hors limite ÉCHEC", () => {
+    expect(parseAssume("BANC:24", "h").max).toBe(24)
+    expect(() => parseAssume("BANC:24", "bg")).toThrow(/limité/)
+    expect(() => parseAssume("BANC", "h")).toThrow()
+    expect(compareEntry(box({ h: 89 }), box({ h: 65 }), { props: ["h"], assume: { h: "BANC:24" } }).status).toBe("ASSUMÉ BANC")
+    expect(compareEntry(box({ h: 89 }), box({ h: 64 }), { props: ["h"], assume: { h: "BANC:24" } }).status).toBe("ÉCHEC")
+  })
+
   it("limite obligatoire pour une propriété numérique", () => {
     expect(() => parseAssume("A3", "y")).toThrow(/obligatoire/)
     expect(parseAssume("A1", "color").max).toBeNull()

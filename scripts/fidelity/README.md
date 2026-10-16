@@ -79,7 +79,7 @@ restent en `ÉCHEC` ; les lignes avec 1 px non expliqué sont en `NON EXPLIQUÉ`
   les écarts du plan RD-FIDELITE-01 :
   A1 couleurs de la charte (vérifiées par correspondance exacte), A2 taille minimale 13 px,
   A3 interligne des titres Anton 1.14 (`--lh-display` : 43,32 px de haut au lieu de 39,90 px, tout ce qui suit descend de 3,42 px réels, soit +3 ou +4 après arrondi), A4 logo de sidebar, A5 cibles tactiles
-  44 px, A6 vouvoiement, A7 noms « Prénom N. », A8 élément de planche omis par décision (D4 fonctions non codées, décision 24 achats : décalage de position ou de largeur causé par l'absence de l'élément, limite `A8:n` exacte et note obligatoires). Codes du banc : `L3` décalage vertical de la coquille
+  44 px, A6 vouvoiement, A7 noms « Prénom N. », A8 omission décidée (D4 fonctions non codées, décision 24 achats : décalage causé par l'absence de l'élément, limite `A8:n` exacte et note obligatoires). Codes du banc : `BANC` valeur d'environnement absente du banc (par exemple `env(safe-area-inset-bottom)` vaut 0 dans Chromium headless), admis sur `h`, `y` et `pad` seulement, limite et note obligatoires ; autres codes : `L3` décalage vertical de la coquille
   mobile (lot 3, déclaré avec `lot`), `POLICE` écart de largeur dû à la police de repli, `X1` écart
   NON expliqué (le pixel reste visible : statut `NON EXPLIQUÉ`, compté à part, à résorber). Liste blanche :
   tout autre code (par exemple `A9`) est refusé au chargement. Syntaxe `"Ax:n"` : écart toléré jusqu'à n px

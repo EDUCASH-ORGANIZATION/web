@@ -327,10 +327,7 @@
             "pad"
           ],
           "lot": "ST-05",
-          "assume": {
-            "h": "A8:14"
-          },
-          "note": "A8 : la planche fixe la hauteur sur le bouton « J'ai terminé » 36 px (D2, RD-DONE-01 : action serveur disponible, interface hors ST-05) ; sans bouton la ligne mesure 43 px au lieu de 57 : -14"
+          "note": "Hauteur liée au bouton « J'ai terminé » 36 px (D2, livraison différée RD-DONE-01 : action serveur disponible, branchement de l'interface hors ST-05) : sans bouton 43 px au lieu de 57 (-14). Reste ÉCHEC jusqu'au branchement, puis A5 éventuel."
         },
         {
           "id": "ME-10",
@@ -356,9 +353,9 @@
             "h"
           ],
           "lot": "ST-05",
-          "note": "A8 : la planche ajoute 34 px de zone sûre simulée du téléphone (h89 = 10 + 44 + 34 + 1) ; le code ajoute env(safe-area-inset-bottom), qui vaut 0 dans le banc (h65 = 10 + 44 + 10 + 1) : -24 mesuré. y non comparé (cadre long de la planche, y1050 contre fenêtre 844)",
+          "note": "BANC : la planche ajoute 34 px de zone sûre simulée du téléphone (h89 = 10 + 44 + 34 + 1) ; le code ajoute env(safe-area-inset-bottom), qui vaut 0 dans le banc (h65 = 10 + 44 + 10 + 1) : -24 mesuré. y non comparé (cadre long de la planche, y1050 contre fenêtre 844)",
           "assume": {
-            "h": "A8:24"
+            "h": "BANC:24"
           }
         },
         {
