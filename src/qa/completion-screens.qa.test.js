@@ -21,6 +21,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/actions/application.actions", () => ({ apply: vi.fn() }))
 vi.mock("@/lib/actions/mission.actions", () => ({ confirmMission: vi.fn() }))
 vi.mock("@/lib/actions/mission-completion.actions", () => ({ declareMissionCompletion: vi.fn() }))
+vi.mock("@/lib/actions/message-report.actions", () => ({ reportClientMessage: vi.fn(), reportStudentMessage: vi.fn() }))
 vi.mock("@/components/app-ui/toast", () => ({ useAppToast: () => ({ success: vi.fn(), error: vi.fn() }) }))
 vi.mock("@/lib/actions/message.actions", () => ({
   sendClientMessage: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock("@/hooks/use-realtime-messages", () => ({
   useMessageMediaUpload: () => vi.fn(),
 }))
 
+const { ANALYSIS_NOTICE_COPY } = await import("@/lib/messaging/contact-copy")
 const { MissionFollowupView: StudentFollowup } = await import("@/components/student-space/mission/followup-view")
 const { MissionFollowupView: ClientFollowup } = await import("@/components/client-space/mission-detail/followup-view")
 const { StudentConversationView } = await import("@/components/student-space/messages/conversation-view")
@@ -121,6 +123,18 @@ const CLIENT_SCREENS = { C08: c08, C13: c13 }
 const SCREENS = { ...STUDENT_SCREENS, ...CLIENT_SCREENS }
 const renders = (screens, completion) => Object.entries(screens).map(([name, fn]) => [name, fn(completion)])
 
+// Extraits où « automatique(ment) » n'est pas précédé de « rien n'est versé / libéré ». Seule la mention exacte de la
+// messagerie (analyse automatique des messages, sans lien avec les fonds) est retirée avant la recherche.
+function unnegatedAutomaticMentions(t) {
+  const scanned = t.replace(ANALYSIS_NOTICE_COPY, " ")
+  const found = []
+  for (const m of scanned.matchAll(/automatique(?:ment)?/gi)) {
+    const before = scanned.slice(Math.max(0, m.index - 40), m.index)
+    if (!/rien n'est (versé|libéré) $/i.test(before)) found.push(scanned.slice(Math.max(0, m.index - 60), m.index + 20))
+  }
+  return found
+}
+
 describe("QA croisée : boutons et état « À confirmer »", () => {
   it.each(Object.keys(STUDENT_SCREENS))("%s : « J'ai terminé » seulement quand la fin n'est pas déclarée et la colonne présente", (name) => {
     const [undeclared, declared, absent] = STATES.map(([, c]) => text(STUDENT_SCREENS[name](c)))
@@ -164,11 +178,19 @@ describe("QA croisée : garde-fous de contenu", () => {
     for (const [name, html] of renders(SCREENS, completion)) {
       const t = text(html)
       expect(t, name).not.toMatch(/72\s?h|délai/i)
-      for (const m of t.matchAll(/automatiquement/gi)) {
-        const before = t.slice(Math.max(0, m.index - 40), m.index)
-        expect(before, `${name} : « ${t.slice(Math.max(0, m.index - 60), m.index + 20)} »`).toMatch(/rien n'est (versé|libéré) $/i)
-      }
+      expect(unnegatedAutomaticMentions(t), name).toEqual([])
     }
+  })
+
+  it("la garde « automatiquement » n'exclut que la mention exacte de la messagerie", () => {
+    expect(unnegatedAutomaticMentions(`Avant. ${ANALYSIS_NOTICE_COPY} Après.`)).toEqual([])
+    expect(unnegatedAutomaticMentions("Aujourd'hui, rien n'est versé automatiquement.")).toEqual([])
+    expect(unnegatedAutomaticMentions("Le paiement est versé automatiquement.")).toHaveLength(1)
+    expect(unnegatedAutomaticMentions("Un versement automatique est prévu, rien n'est versé.")).toHaveLength(1)
+    // Un texte injecté à côté de la mention de la messagerie reste détecté.
+    expect(unnegatedAutomaticMentions(`${ANALYSIS_NOTICE_COPY} Le paiement est versé automatiquement.`)).toHaveLength(1)
+    // Une mention modifiée (même début, autre suite) n'est pas exclue.
+    expect(unnegatedAutomaticMentions(ANALYSIS_NOTICE_COPY.replace("coordonnées", "fonds versés"))).toHaveLength(1)
   })
 
   it.each(STATES)("aucun double point dans les textes rendus (%s)", (_label, completion) => {

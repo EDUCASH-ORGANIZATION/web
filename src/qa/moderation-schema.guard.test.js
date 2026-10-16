@@ -213,8 +213,10 @@ describe("schéma de référence : messages sans INSERT direct (script 93)", () 
 describe("schéma de référence : en-tête des scripts 92 et 93", () => {
   const header = lines.slice(0, 30).join("\n")
 
-  it("signale que les scripts 92 et 93 ne sont pas appliqués", () => {
-    expect(header).toMatch(/Scripts 92 et 93 de RD-MSG-01 NON appliqués en production/)
+  it("signale que le script 92 est appliqué et que le script 93 ne l'est pas", () => {
+    expect(header).toContain("Script 92 de RD-MSG-01 appliqué en production le 2026-10-16.")
+    expect(header).toMatch(/Script 93 de RD-MSG-01 \(retrait du droit INSERT sur public\.messages à authenticated\)\n-- NON appliqué en production/)
+    expect(header).not.toContain("Scripts 92 et 93 de RD-MSG-01 NON appliqués")
     expect(header).toContain("après le déploiement du")
   })
 })
