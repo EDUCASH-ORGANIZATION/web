@@ -10,7 +10,7 @@ import { isUuid } from "@/lib/vitrine/ids"
 const MISSING_COLUMN_CODES = new Set(["42703", "PGRST204"])
 const BATCH_SIZE = 100
 // Tolérance d'horloge entre la base et le serveur applicatif.
-const FUTURE_TOLERANCE_MS = 5 * 60 * 1000
+export const FUTURE_TOLERANCE_MS = 5 * 60 * 1000
 // Format ISO exigé avant Date.parse (qui accepte des formats libres, dont "1", "2026" ou "March 7").
 const ISO_DATE_START = /^\d{4}-\d{2}-\d{2}T/
 

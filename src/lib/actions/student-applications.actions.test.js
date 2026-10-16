@@ -210,6 +210,19 @@ describe("getStudentApplicationsView", () => {
     expect(data.highlight).toBeNull()
   })
 
+  it("date d'acceptation jusqu'à 5 min dans le futur (décalage d'horloge) : la carte s'affiche", async () => {
+    db.applications.find((a) => a.id === ID.a3).accepted_at = "2026-10-08T12:03:00Z"
+    const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(data.highlight).toMatchObject({ missionId: "m-a3", acceptedAt: "2026-10-08T12:03:00Z" })
+  })
+
+  it("plusieurs retenues récentes datées : la plus récente par accepted_at gagne, quel que soit l'ordre de tri", async () => {
+    db.applications.find((a) => a.id === ID.a3).accepted_at = "2026-10-06T09:00:00Z"
+    db.applications.find((a) => a.id === ID.a4).accepted_at = "2026-10-07T09:00:00Z"
+    const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(data.highlight).toMatchObject({ missionId: "m-a4", acceptedAt: "2026-10-07T09:00:00Z" })
+  })
+
   it("retenue sans date : carte seulement si la candidature a été créée il y a 0 à 7 jours", async () => {
     db.applications.find((a) => a.id === ID.a3).accepted_at = "2026-09-20T10:00:00Z"
     const a4 = db.applications.find((a) => a.id === ID.a4)

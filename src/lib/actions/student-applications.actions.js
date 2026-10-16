@@ -14,7 +14,7 @@ import { requireRole } from "@/lib/auth/require-role"
 import { escrowSplit } from "@/lib/app/money"
 import { publicDisplayName, firstName } from "@/lib/vitrine/public-name"
 import { APPLICATION_TABS, applicationTab, defaultApplicationTab } from "@/lib/student-space/applications-tabs"
-import { readAcceptedAt, validAcceptedAt } from "@/lib/actions/application-accepted-core"
+import { readAcceptedAt, validAcceptedAt, FUTURE_TOLERANCE_MS } from "@/lib/actions/application-accepted-core"
 
 const ERR_APPLICATIONS = "Impossible de charger vos candidatures."
 
@@ -158,15 +158,17 @@ export async function getStudentApplicationsView({ onglet } = {}) {
     // plus de 7 jours, ou sans date sur une candidature plus ancienne, n'a jamais de carte.
     const retainedAt = await readRetentionDates(supabase, user.id, groups["en-cours"])
     const now = Date.now()
-    const withinRecent = (time) => {
+    // Une date jusqu'à 5 min dans le futur est acceptée par validAcceptedAt (décalage d'horloge) : même tolérance ici.
+    const withinRecent = (time, tolerance = 0) => {
       const age = now - time
-      return age >= 0 && age <= RECENT_DAYS * DAY_MS
+      return age >= -tolerance && age <= RECENT_DAYS * DAY_MS
     }
+    // Plusieurs retenues récentes datées : la plus récente par accepted_at l'emporte.
+    const datedRecent = inProgress
+      .filter((a) => retainedAt.has(a.id) && withinRecent(new Date(retainedAt.get(a.id)).getTime(), FUTURE_TOLERANCE_MS))
+      .sort((x, y) => new Date(retainedAt.get(y.id)).getTime() - new Date(retainedAt.get(x.id)).getTime())[0]
     const recent =
-      inProgress.find((a) => {
-        const at = retainedAt.get(a.id)
-        return at ? withinRecent(new Date(at).getTime()) : false
-      }) ?? inProgress.find((a) => !retainedAt.has(a.id) && withinRecent(new Date(a.created_at).getTime()))
+      datedRecent ?? inProgress.find((a) => !retainedAt.has(a.id) && withinRecent(new Date(a.created_at).getTime()))
 
     const shown = groups[tab]
     const clientIds = [...new Set([...shown, ...(recent ? [recent] : [])].map((a) => a.missions?.client_id).filter(Boolean))]
