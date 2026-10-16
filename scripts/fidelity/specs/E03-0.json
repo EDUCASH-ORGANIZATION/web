@@ -1,0 +1,309 @@
+{
+  "id": "E03-0",
+  "title": "Détail de mission étudiant (sans achats)",
+  "planche": "etudiant/E03-detail-mission-candidature.v2.html",
+  "screen": "e03-0",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale)",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "MI-18",
+          "label": "titre",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "h": "A2:3"
+          },
+          "note": "h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-18",
+          "label": "méta",
+          "board": ".e2-03-meta",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-22",
+          "label": "grille",
+          "board": ".e2-cols",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "cols",
+            "gap"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A8:120"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : liste « Ce que j'attends » de la planche omise : aucune donnée : la colonne gauche est plus courte"
+        },
+        {
+          "id": "MI-19",
+          "label": "carte description",
+          "board": ".e2-stack > .e2-sec:nth-child(1)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A8:128"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : liste « Ce que j'attends » de la planche omise : aucune donnée"
+        },
+        {
+          "id": "MI-19",
+          "label": "carte client",
+          "board": ".e2-stack > .e2-sec:nth-child(2)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "code": ".e2-stack > [aria-label=\"Le client\"]",
+          "assume": {
+            "y": "A3+A8:124",
+            "h": "A2:4"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; liste « Ce que j'attends » de la planche omise : aucune donnée ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-19",
+          "label": "carte similaires",
+          "board": ".list2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A2+A3+A8:120",
+            "h": "A2:3"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; liste « Ce que j'attends » de la planche omise : aucune donnée ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-21",
+          "label": "carte Postuler",
+          "board": ".e2-03-aside .e2-sec",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A2:4"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-21",
+          "label": "libellé motivation",
+          "board": ".e2-03-aside .field__label",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-21",
+          "label": "champ motivation",
+          "board": ".e2-03-aside textarea",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-21",
+          "label": "lignes gain",
+          "board": ".e2-03-aside .e2-kv",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A2+A3:5"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page)"
+        },
+        {
+          "id": "MI-21",
+          "label": "bouton envoyer",
+          "board": ".e2-03-aside .btn--block",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A2+A3:5"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page)"
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        808
+      ],
+      "frame": "phone",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "MI-X",
+          "label": "en-tête",
+          "board": ".e2-mtop",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "x": "X1:8",
+            "w": "X1:24"
+          },
+          "note": "x : La planche étire l'en-tête sur 390 px (x0, w390) ; le code le décale de 8 px à gauche (marge négative de .e2-mtop dans student/base.css, coquille hors lot) ; w : La planche étire l'en-tête sur 390 px (x0, w390) ; le code le décale de 8 px à gauche (marge négative de .e2-mtop dans student/base.css, coquille hors lot)"
+        },
+        {
+          "id": "MI-18",
+          "label": "titre",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "X1:17",
+            "h": "X1:4",
+            "fontSize": "X1:4"
+          },
+          "note": "y : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; 3 lignes en planche contre 2 en code ; h : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; 3 lignes en planche contre 2 en code ; fontSize : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; 3 lignes en planche contre 2 en code"
+        },
+        {
+          "id": "MI-18",
+          "label": "méta",
+          "board": ".e2-03-meta",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "X1:7",
+            "h": "A8:22"
+          },
+          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : nombre de candidats omis : donnée non lisible par l'étudiant (confidentialité)"
+        },
+        {
+          "id": "MI-21",
+          "label": "barre fixe",
+          "board": ".e2-mbar",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "BANC:16",
+            "h": "BANC:16"
+          },
+          "note": "y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px) ; h : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px)"
+        },
+        {
+          "id": "MI-21",
+          "label": "bouton Postuler",
+          "board": ".e2-mbar .btn",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "x": "X1:4",
+            "y": "BANC:19"
+          },
+          "note": "x : Padding horizontal de la barre réduit à 12 px sous 400 px (student/base.css, coquille hors lot) contre 16 px dans la planche ; y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px)"
+        }
+      ]
+    }
+  ]
+}

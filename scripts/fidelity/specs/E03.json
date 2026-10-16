@@ -32,9 +32,9 @@
           ],
           "lot": "ST-10",
           "assume": {
-            "h": "A3:3"
+            "h": "A2:3"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+          "note": "h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-18",
@@ -50,7 +50,7 @@
           "assume": {
             "y": "A3:3"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; badge Urgent ajouté pour les missions urgentes (information de l'ancienne carte Détails) ; le cadre 1 de la planche n'est pas urgent, aucune mesure touchée"
         },
         {
           "id": "MI-18",
@@ -66,11 +66,12 @@
           ],
           "lot": "ST-10",
           "assume": {
-            "x": "X1:45",
+            "x": "A8+X1:66",
             "y": "A3:3",
-            "w": "A2:6"
+            "w": "A2:6",
+            "fontSize": "X1:1"
           },
-          "note": "x : Le texte de la date diffère (planche « Sam. 10 oct., 8:00 », code « Avant le 10 octobre 2999 » : la mission n'a pas d'heure, formatDateFr en toutes lettres, mission-header.jsx de ST-03) : la position x du badge suit la largeur de ce texte ; w : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (badge 12 px porté à 13 px) ; y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+          "note": "x : x : Texte de date différent : la planche affiche une date courte avec heure (« Sam. 10 oct., 8:00 »), le code « Avant le 10 octobre 2999 » (mission sans heure, formatDateFr en toutes lettres dans mission-header.jsx, format conservé) ; nombre de candidats omis : donnée non lisible par l'étudiant (confidentialité) (la planche a « 3 candidats » avant le badge) ; y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; w : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (badge 12 px porté à 13 px) ; fontSize : Écart non expliqué"
         },
         {
           "id": "MI-22",
@@ -89,7 +90,7 @@
             "y": "A3:3",
             "h": "A2:13"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (somme des écarts de hauteur de la colonne gauche : déroulé +8, client +4, arrondis)"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-19",
@@ -105,7 +106,7 @@
           "assume": {
             "y": "A3:3"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
         },
         {
           "id": "MI-19",
@@ -124,7 +125,7 @@
           "assume": {
             "y": "A3:4"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
         },
         {
           "id": "MI-19",
@@ -140,7 +141,7 @@
           "assume": {
             "y": "A3:4"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
         },
         {
           "id": "MI-20",
@@ -158,7 +159,7 @@
             "y": "A3:4",
             "h": "A2:8"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (sous-titres des 3 étapes à 14 px au lieu de 13 px)"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-20",
@@ -175,7 +176,7 @@
           "assume": {
             "y": "A3:3"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
         },
         {
           "id": "MI-19",
@@ -193,7 +194,7 @@
             "y": "A2+A3:12",
             "h": "A2:4"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) : déroulé +8 puis légende du séquestre à 14 px"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page) ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-21",
@@ -210,7 +211,7 @@
             "y": "A3:3",
             "h": "A2:9"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (aide +1, note des achats +4 et arrondis)"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-21",
@@ -226,7 +227,7 @@
           "assume": {
             "y": "A3:4"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
         },
         {
           "id": "MI-21",
@@ -242,7 +243,7 @@
           "assume": {
             "y": "A3:4"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
         },
         {
           "id": "MI-21",
@@ -259,7 +260,7 @@
             "y": "A3:4",
             "h": "A2:1"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-21",
@@ -275,7 +276,7 @@
           "assume": {
             "y": "A2+A3:5"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (aide +1)"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page)"
         },
         {
           "id": "MI-21",
@@ -291,7 +292,7 @@
           "assume": {
             "y": "A2+A3:5"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (aide +1)"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page)"
         },
         {
           "id": "MI-21",
@@ -307,9 +308,10 @@
           "lot": "ST-10",
           "assume": {
             "y": "A2+A3:5",
-            "h": "A2:4"
+            "h": "A2:4",
+            "fontSize": "X1:1"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) : légende de 3 lignes à 14 px au lieu de 13 px"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page) ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) ; fontSize : Écart non expliqué"
         },
         {
           "id": "MI-21",
@@ -326,7 +328,7 @@
           "assume": {
             "y": "A2+A3:9"
           },
-          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (aide +1, note +4)"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page)"
         }
       ]
     },
@@ -354,7 +356,7 @@
             "x": "X1:8",
             "w": "X1:24"
           },
-          "note": "La planche étire l'en-tête sur 390 px (x0, w390) ; le code le décale de 8 px à gauche et de 24 px en largeur (marge négative et padding de .e2-mtop dans student/base.css, hors lot ST-10)"
+          "note": "x : La planche étire l'en-tête sur 390 px (x0, w390) ; le code le décale de 8 px à gauche (marge négative de .e2-mtop dans student/base.css, coquille hors lot) ; w : La planche étire l'en-tête sur 390 px (x0, w390) ; le code le décale de 8 px à gauche (marge négative de .e2-mtop dans student/base.css, coquille hors lot)"
         },
         {
           "id": "MI-18",
@@ -373,7 +375,7 @@
             "h": "X1:36",
             "fontSize": "X1:4"
           },
-          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10"
+          "note": "y : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; 3 lignes en planche contre 2 en code ; h : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; 3 lignes en planche contre 2 en code ; fontSize : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; 3 lignes en planche contre 2 en code"
         },
         {
           "id": "MI-18",
@@ -388,9 +390,9 @@
           "lot": "ST-10",
           "assume": {
             "y": "X1:24",
-            "h": "X1:26"
+            "h": "A2:1"
           },
-          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10"
+          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-19",
@@ -405,9 +407,9 @@
           "lot": "ST-10",
           "code": ".e2-stack > section:nth-of-type(1)",
           "assume": {
-            "y": "X1:2"
+            "y": "X1:23"
           },
-          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10"
+          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit"
         },
         {
           "id": "MI-19",
@@ -420,10 +422,11 @@
             "h"
           ],
           "lot": "ST-10",
+          "code": ".e2-note.ds-mob-only",
           "assume": {
-            "y": "X1:3"
+            "y": "X1:22"
           },
-          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10"
+          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit"
         },
         {
           "id": "MI-21",
@@ -438,10 +441,10 @@
           "lot": "ST-10",
           "code": ".e2-stack > section:nth-of-type(2)",
           "assume": {
-            "y": "X1:3",
+            "y": "X1:22",
             "h": "A2:5"
           },
-          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10 ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-20",
@@ -456,10 +459,10 @@
           "lot": "ST-10",
           "code": ".e2-stack > section:nth-of-type(3)",
           "assume": {
-            "y": "X1:8",
+            "y": "X1:17",
             "h": "A2:13"
           },
-          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10 ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (sous-titres des étapes à 14 px, une ligne de plus par étape)"
+          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-19",
@@ -474,10 +477,10 @@
           "lot": "ST-10",
           "code": ".e2-stack > section:nth-of-type(4)",
           "assume": {
-            "y": "X1:20",
+            "y": "X1:5",
             "h": "A2:2"
           },
-          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10 ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-21",
@@ -494,7 +497,7 @@
             "y": "BANC:19",
             "h": "BANC:19"
           },
-          "note": "BANC : la planche simule la zone sûre du téléphone par 34 px de padding bas, le code compte env(safe-area-inset-bottom) une seule fois (0 dans Chromium headless) : -22 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) : texte de la barre à 13 px au lieu de 12 px, +3 px"
+          "note": "y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px) ; h : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px)"
         },
         {
           "id": "MI-21",
@@ -511,7 +514,7 @@
             "x": "X1:4",
             "y": "BANC:20"
           },
-          "note": "x : le code réduit le padding horizontal de la barre à 12 px sous 400 px (student/base.css, hors lot) contre 16 px dans la planche, le bouton se décale de 4 px ; y : BANC (zone sûre simulée de 34 px) et A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+          "note": "x : Padding horizontal de la barre réduit à 12 px sous 400 px (student/base.css, coquille hors lot) contre 16 px dans la planche ; y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px)"
         }
       ]
     }
