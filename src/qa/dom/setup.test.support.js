@@ -14,6 +14,9 @@ window.matchMedia = (query) => ({
 
 // jsdom ne calcule aucune mise en page : getClientRects() est toujours vide, ce qui ferait tenir tous
 // les éléments pour masqués par le piège de focus. Les éléments rendus comptent ici comme visibles.
+// Limite : tout élément attaché est tenu pour visible, donc un élément caché seulement par CSS
+// (display:none via une classe) serait tenu pour focalisable. Le piège de focus écarte déjà [hidden]
+// et [inert]. Ne pas tester la visibilité CSS en jsdom.
 Element.prototype.getClientRects = function getClientRects() {
   return this.isConnected ? [{ width: 1, height: 1 }] : []
 }

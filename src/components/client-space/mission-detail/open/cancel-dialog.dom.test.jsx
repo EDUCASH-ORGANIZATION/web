@@ -42,6 +42,7 @@ describe("CancelDialog (interactions réelles)", () => {
 
   it("un double clic sur « Continuer » ne confirme pas l'annulation", () => {
     const { onConfirm } = setup()
+    vi.spyOn(Date, "now").mockReturnValue(1_000_000)
     const next = screen.getByRole("button", { name: "Continuer" })
     fireEvent.click(next)
     const confirm = screen.getByRole("button", { name: /Oui, annuler et rembourser/ })

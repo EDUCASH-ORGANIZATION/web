@@ -111,7 +111,7 @@ describe("ConfirmDialog (interactions réelles)", () => {
     expect(document.activeElement).toBe(close)
   })
 
-  it("un double clic sur la confirmation n'appelle l'action qu'une fois, puis ferme", async () => {
+  it("bouton désactivé dès le premier clic : un double clic n'appelle l'action qu'une fois, puis ferme", async () => {
     const gate = deferred()
     const onConfirm = vi.fn(() => gate.promise)
     const onClosed = vi.fn()
@@ -125,6 +125,22 @@ describe("ConfirmDialog (interactions réelles)", () => {
     })
     expect(onClosed).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
+  it("le verrou synchrone bloque un second clic arrivé avant tout rendu (bouton encore actif)", async () => {
+    const gate = deferred()
+    const onConfirm = vi.fn(() => gate.promise)
+    openDialog({ onConfirm })
+    const confirm = screen.getByRole("button", { name: "Supprimer" })
+    // Les deux clics partent dans le même act : React n'a pas encore appliqué `disabled`.
+    act(() => {
+      fireEvent.click(confirm)
+      fireEvent.click(confirm)
+    })
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      gate.resolve({})
+    })
   })
 
   it("pendant l'envoi : Échap, fond et Annuler sont sans effet, le bouton est occupé", async () => {
