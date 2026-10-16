@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
+vi.mock("server-only", () => ({}))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 
 import { requireRole } from "@/lib/auth/require-role"
@@ -90,6 +91,10 @@ function makeSupabase() {
           return q.ors.every((expr) => splitTop(expr).some((cond) => matchCondition(row, cond)))
         })
       const run = (single) => {
+        // Lecture tolérante de la fin déclarée (requête séparée, colonne seule).
+        if (table === "missions" && q.columns === "id, completion_declared_at" && failures.completion) {
+          return Promise.resolve({ data: null, error: failures.completion })
+        }
         const failure = failures[`${table}.${q.op}`]
         if (failure) return Promise.resolve({ data: null, error: { message: failure }, count: null })
         if (q.op === "insert") {
@@ -744,7 +749,7 @@ describe("espace étudiant", () => {
       expect(reads("profiles")[0].columns).toBe("user_id, full_name, avatar_url")
       expect(JSON.stringify(result)).not.toContain("Dossou")
       expect(Object.keys(result.conversations[0]).sort()).toEqual(
-        ["avatarUrl", "key", "lastAt", "missionId", "missionTitle", "name", "preview", "state", "unreadCount"].sort(),
+        ["avatarUrl", "key", "lastAt", "lastUnreadAt", "missionId", "missionTitle", "name", "preview", "state", "unreadCount"].sort(),
       )
     })
 
@@ -1402,5 +1407,133 @@ describe("informations de mission : cas limites", () => {
     const { conversation } = await getStudentConversation({ missionId: MA })
     expect(conversation.mission.budget).toBe(6000)
     expect(conversation.mission.net).toBe(netAmount(6000))
+  })
+})
+
+// ─── Fin déclarée (RD-DONE-01) ─────────────────────────────────────────────────────────────────────────────
+
+const DECLARED_AT = "2026-10-14T09:30:00Z"
+const completionReads = () => log.filter((q) => q.table === "missions" && q.columns === "id, completion_declared_at")
+
+describe("fin déclarée : conversation client", () => {
+  it("in_progress déclarée : completionDeclaredAt renvoyé, state inchangé, lecture sur la mission seule", async () => {
+    db.missions.find((m) => m.id === M2).completion_declared_at = DECLARED_AT
+    const { conversation } = await getClientConversation({ missionId: M2, studentId: S2 })
+    expect(conversation).toMatchObject({
+      state: "in_progress", canWrite: true, completionDeclaredAt: DECLARED_AT, completionAvailable: true,
+    })
+    expect(completionReads()).toHaveLength(1)
+    expect(completionReads()[0].filters).toEqual([["in", "id", [M2]]])
+  })
+
+  it("in_progress non déclarée : null", async () => {
+    const { conversation } = await getClientConversation({ missionId: M2, studentId: S2 })
+    expect(conversation).toMatchObject({ state: "in_progress", completionDeclaredAt: null, completionAvailable: true })
+  })
+
+  it("candidat non retenu sur une mission en cours : state closed, aucune lecture", async () => {
+    db.applications.push({ mission_id: M2, student_id: S1, status: "pending" })
+    const other = await getClientConversation({ missionId: M2, studentId: S1 })
+    expect(other.conversation).toMatchObject({ state: "closed", completionDeclaredAt: null, completionAvailable: false })
+    expect(completionReads()).toHaveLength(0)
+  })
+
+  it("ligne non renvoyée par la lecture (RLS, réattribution) : indisponible, jamais un faux non déclaré", async () => {
+    db.missions.find((m) => m.id === M2).completion_declared_at = DECLARED_AT
+    const supabase = makeSupabase()
+    requireRole.mockResolvedValue({
+      supabase: {
+        ...supabase,
+        from: (table) => {
+          const b = supabase.from(table)
+          if (table !== "missions") return b
+          const select = b.select
+          b.select = (columns, opts) => {
+            if (columns === "id, completion_declared_at") {
+              const empty = { in: () => empty, then: (ok) => Promise.resolve({ data: [], error: null }).then(ok) }
+              return empty
+            }
+            return select(columns, opts)
+          }
+          return b
+        },
+      },
+      user: { id: CLIENT }, role: "client", profile: {},
+    })
+    const { conversation } = await getClientConversation({ missionId: M2, studentId: S2 })
+    expect(conversation).toMatchObject({ state: "in_progress", completionDeclaredAt: null, completionAvailable: false })
+  })
+
+  it("candidat (mission ouverte) : aucune lecture, null", async () => {
+    const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+    expect(conversation).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
+    expect(completionReads()).toHaveLength(0)
+  })
+
+  it("mission d'un autre client : introuvable, aucune lecture de la colonne", async () => {
+    expect(await getClientConversation({ missionId: M_OTHER, studentId: S1 })).toEqual({ notFound: true })
+    expect(completionReads()).toHaveLength(0)
+  })
+
+  it.each(["42703", "PGRST204"])("colonne absente (%s) : conversation rendue, null", async (code) => {
+    failures.completion = { code, message: "column does not exist" }
+    const { conversation } = await getClientConversation({ missionId: M2, studentId: S2 })
+    expect(conversation).toMatchObject({ state: "in_progress", completionDeclaredAt: null, completionAvailable: false })
+    expect(conversation.messages.length).toBeGreaterThan(0)
+  })
+
+  it("autre erreur : erreur neutre sans texte SQL", async () => {
+    failures.completion = { code: "XX000", message: "relation boom" }
+    expect(await getClientConversation({ missionId: M2, studentId: S2 })).toEqual({
+      error: "Impossible de charger vos messages. Veuillez réessayer.",
+    })
+  })
+})
+
+describe("fin déclarée : conversation étudiant", () => {
+  beforeEach(() => {
+    seedStudent()
+    requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: STUDENT }, role: "student", profile: {} })
+  })
+
+  it("in_progress déclarée : completionDeclaredAt renvoyé, state inchangé", async () => {
+    db.missions.find((m) => m.id === MB).completion_declared_at = DECLARED_AT
+    const { conversation } = await getStudentConversation({ missionId: MB })
+    expect(conversation).toMatchObject({
+      state: "in_progress", canWrite: true, completionDeclaredAt: DECLARED_AT, completionAvailable: true,
+    })
+    expect(completionReads()[0].filters).toEqual([["in", "id", [MB]]])
+  })
+
+  it("in_progress non déclarée : null", async () => {
+    const { conversation } = await getStudentConversation({ missionId: MB })
+    expect(conversation).toMatchObject({ state: "in_progress", completionDeclaredAt: null, completionAvailable: true })
+  })
+
+  it("candidat, mission terminée : aucune lecture, null", async () => {
+    for (const missionId of [MA, ME]) {
+      expect((await getStudentConversation({ missionId })).conversation).toMatchObject({
+        completionDeclaredAt: null, completionAvailable: false,
+      })
+    }
+    expect(completionReads()).toHaveLength(0)
+  })
+
+  it("mission sans lien avec l'étudiant : introuvable, aucune lecture de la colonne", async () => {
+    expect(await getStudentConversation({ missionId: MC })).toEqual({ notFound: true })
+    expect(completionReads()).toHaveLength(0)
+  })
+
+  it.each(["42703", "PGRST204"])("colonne absente (%s) : conversation rendue, null", async (code) => {
+    failures.completion = { code, message: "column does not exist" }
+    const { conversation } = await getStudentConversation({ missionId: MB })
+    expect(conversation).toMatchObject({ state: "in_progress", completionDeclaredAt: null, completionAvailable: false })
+  })
+
+  it("autre erreur : erreur neutre", async () => {
+    failures.completion = { code: "XX000", message: "relation boom" }
+    expect(await getStudentConversation({ missionId: MB })).toEqual({
+      error: "Impossible de charger vos messages. Veuillez réessayer.",
+    })
   })
 })

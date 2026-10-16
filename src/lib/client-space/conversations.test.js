@@ -22,6 +22,7 @@ import {
   safeSignedMediaUrl,
   toMessage,
   unreadTotal,
+  withCompletionDeclared,
 } from "./conversations"
 
 const ME = "client-1"
@@ -57,6 +58,26 @@ describe("buildConversations", () => {
     expect(list.map((c) => c.key)).toEqual([conversationKey(M1, S2), conversationKey(M1, S1)])
     expect(list[0].last.content).toBe("De S2")
     expect(list[1].last.content).toBe("De S1")
+  })
+
+  it("lastUnreadAt : date du message REÇU non lu le plus récent, jamais celle d'un message envoyé", () => {
+    const [conv] = buildConversations(
+      [
+        row({ created_at: "2026-10-10T08:00:00Z", read: false }),
+        row({ created_at: "2026-10-10T09:00:00Z", read: false }),
+        row({ created_at: "2026-10-12T09:00:00Z", read: true }),
+        row({ created_at: "2026-10-13T09:00:00Z", sender_id: ME, receiver_id: S1, read: false }),
+      ],
+      ME,
+    )
+    expect(conv.last.createdAt).toBe("2026-10-13T09:00:00Z")
+    expect(conv.lastUnreadAt).toBe("2026-10-10T09:00:00Z")
+  })
+
+  it("lastUnreadAt vaut null sans message reçu non lu", () => {
+    const [conv] = buildConversations([row({ read: true }), row({ sender_id: ME, receiver_id: S1, read: false })], ME)
+    expect(conv.unreadCount).toBe(0)
+    expect(conv.lastUnreadAt).toBeNull()
   })
 
   it("sépare aussi deux missions avec le même étudiant", () => {
@@ -391,5 +412,38 @@ describe("createMediaRefresher", () => {
     await refresh(undefined)
     expect(fetchUrl).not.toHaveBeenCalled()
     expect(applied).toEqual([])
+  })
+})
+
+describe("withCompletionDeclared", () => {
+  const running = conversationAccess({ mission: { status: "in_progress", selectedStudentId: S1 }, application: { status: "accepted" }, studentId: S1 })
+
+  it("in_progress disponible : la date est exposée à côté de state, qui reste in_progress", () => {
+    expect(withCompletionDeclared(running, "2026-10-14T09:30:00Z", true)).toEqual({
+      allowed: true, canWrite: true, state: "in_progress", completionDeclaredAt: "2026-10-14T09:30:00Z", completionAvailable: true,
+    })
+  })
+
+  it.each([null, undefined, "", 42])("date absente ou invalide %j : null mais disponible", (value) => {
+    expect(withCompletionDeclared(running, value, true)).toMatchObject({
+      state: "in_progress", completionDeclaredAt: null, completionAvailable: true,
+    })
+  })
+
+  it("colonne indisponible (ou argument omis) : ni date ni disponibilité", () => {
+    expect(withCompletionDeclared(running, "2026-10-14T09:30:00Z", false)).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
+    expect(withCompletionDeclared(running, "2026-10-14T09:30:00Z")).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
+  })
+
+  it.each(["done", "cancelled"])("état %s : jamais de date ni de disponibilité", (status) => {
+    const access = conversationAccess({ mission: { status, selectedStudentId: S1 }, application: { status: "accepted" }, studentId: S1 })
+    expect(withCompletionDeclared(access, "2026-10-14T09:30:00Z", true)).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
+  })
+
+  it("candidat ou accès refusé : jamais de date ni de disponibilité", () => {
+    const candidate = conversationAccess({ mission: { status: "open", selectedStudentId: null }, application: { status: "pending" }, studentId: S1 })
+    expect(withCompletionDeclared(candidate, "2026-10-14T09:30:00Z", true)).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
+    const denied = conversationAccess({ mission: { status: "in_progress", selectedStudentId: S2 }, application: null, studentId: S1 })
+    expect(withCompletionDeclared(denied, "2026-10-14T09:30:00Z", true)).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
   })
 })

@@ -240,13 +240,31 @@ export function conversationAccess({ mission, application, studentId }) {
   return { allowed: true, canWrite: false, state: "closed" }
 }
 
+/**
+ * Ajoute la fin déclarée (RD-DONE-01) à côté de `state`. Elle n'est portée que par l'état `in_progress`
+ * (paire autorisée, étudiant retenu). `completionAvailable` vaut false hors `in_progress` et quand la colonne
+ * est absente ou la ligne non lue : le bandeau garde alors son texte actuel (aucun « J'ai terminé »).
+ * `completionDeclaredAt` : date ISO, ou null si non déclarée ou indisponible. `state` n'est pas modifié.
+ * @param {{ allowed: boolean, canWrite: boolean, state: string|null }} access
+ * @param {unknown} declaredAt date ISO lue dans `missions.completion_declared_at`, ou null
+ * @param {boolean} available la colonne a été lue (pas d'erreur de colonne absente, ligne présente)
+ * @returns {{ allowed: boolean, canWrite: boolean, state: string|null, completionDeclaredAt: string|null, completionAvailable: boolean }}
+ */
+export function withCompletionDeclared(access, declaredAt, available = false) {
+  const open = access?.state === "in_progress" && available === true
+  const declared = open && typeof declaredAt === "string" && declaredAt !== ""
+  return { ...access, completionDeclaredAt: declared ? declaredAt : null, completionAvailable: open }
+}
+
 // ─── Boîte de réception ───────────────────────────────────────────────────────────────────────
 
 /**
  * Une conversation par (mission, interlocuteur), du plus récent au plus ancien. `rows` : lignes de `messages`
  * (mission_id, sender_id, receiver_id, content, type, read, created_at) où `userId` est expéditeur ou
- * destinataire ; les autres lignes sont ignorées. Les non lus sont les messages reçus avec read = false.
- * @returns {Array<{ key: string, missionId: string, studentId: string, unreadCount: number, last: { mine: boolean, type: string, content: string, createdAt: string } }>}
+ * destinataire ; les autres lignes sont ignorées. Les non lus sont les messages reçus avec read = false ;
+ * `lastUnreadAt` est la date du plus récent d'entre eux (null s'il n'y en a pas), distincte de `last`
+ * qui couvre aussi les messages envoyés.
+ * @returns {Array<{ key: string, missionId: string, studentId: string, unreadCount: number, lastUnreadAt: string|null, last: { mine: boolean, type: string, content: string, createdAt: string } }>}
  */
 export function buildConversations(rows, userId) {
   const byKey = new Map()
@@ -265,13 +283,17 @@ export function buildConversations(rows, userId) {
         missionId: row.mission_id,
         studentId: other,
         unreadCount: 0,
+        lastUnreadAt: null,
         last: { mine: sent, type: row.type, content: row.content, createdAt: row.created_at },
       }
       byKey.set(key, conv)
     } else if (row.created_at > conv.last.createdAt) {
       conv.last = { mine: sent, type: row.type, content: row.content, createdAt: row.created_at }
     }
-    if (received && row.read === false) conv.unreadCount += 1
+    if (received && row.read === false) {
+      conv.unreadCount += 1
+      if (!conv.lastUnreadAt || row.created_at > conv.lastUnreadAt) conv.lastUnreadAt = row.created_at
+    }
   }
   return [...byKey.values()].sort((a, b) => (a.last.createdAt < b.last.createdAt ? 1 : a.last.createdAt > b.last.createdAt ? -1 : 0))
 }

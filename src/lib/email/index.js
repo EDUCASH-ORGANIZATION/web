@@ -12,6 +12,7 @@ import PaymentReceivedWallet   from "./templates/payment-received-wallet.jsx"
 import VerificationApproved    from "./templates/verification-approved.jsx"
 import VerificationRejected  from "./templates/verification-rejected.jsx"
 import VerificationExpired   from "./templates/verification-expired.jsx"
+import CompletionDeclared    from "./templates/completion-declared.jsx"
 import ContactMessage        from "./templates/contact-message.jsx"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -29,6 +30,7 @@ const TEMPLATES = {
   "verification-rejected":  VerificationRejected,
   "verification-expired":   VerificationExpired,
   "contact-message":        ContactMessage,
+  "completion-declared":    CompletionDeclared,
 }
 
 const SUBJECTS = {
@@ -43,6 +45,7 @@ const SUBJECTS = {
   "wallet-deposited":           "Votre portefeuille a été rechargé",
   "payment-received-wallet":    "Paiement reçu dans votre portefeuille",
   "contact-message":            "Contact EduCash",
+  "completion-declared":        "Mission terminée : votre confirmation est attendue",
 }
 
 /**
@@ -87,13 +90,13 @@ export async function sendEmail(template, to, data = {}, options = {}) {
     })
 
     if (error) {
-      console.error("[email] Erreur Resend:", error)
+      console.error("[email] Erreur Resend:", error?.name ?? error?.statusCode ?? "erreur")
       return { error: error.message }
     }
 
     return { success: true }
   } catch (err) {
-    console.error("[email] Exception:", err)
+    console.error("[email] Exception:", err?.name ?? "erreur")
     return { error: err?.message ?? "Erreur inconnue" }
   }
 }

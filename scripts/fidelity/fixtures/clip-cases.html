@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Cas du contrôle de rognage (measure.mjs, clippedBy). Chaque cas : un conteneur et une cible #t-<cas>.
+     Les résultats attendus sont dans src/qa/fidelity/clip.test.js. -->
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 8px; }
+  .case { margin-bottom: 8px; }
+  .clip { overflow: hidden; width: 100px; height: 50px; }
+  .tall { width: 200px; height: 20px; }
+</style>
+
+<!-- c1 : ancêtre hidden qui coupe -->
+<div class="case clip"><div id="t-c1" class="tall"></div></div>
+<!-- c1b : contenu entier dans l'ancêtre hidden -->
+<div class="case clip"><div id="t-c1b" style="width: 50px; height: 20px"></div></div>
+<!-- c2 : ancêtre défilant, jamais rogné -->
+<div class="case" style="overflow: auto; width: 100px; height: 50px"><div id="t-c2" style="width: 200px; height: 200px"></div></div>
+<!-- c2b : défilant plus grand que son parent hidden : le parent rogne -->
+<div class="case clip"><div style="overflow: auto; width: 100px; height: 200px"><div id="t-c2b" style="width: 50px; height: 20px"></div></div></div>
+<!-- c3 : absolu dont le bloc conteneur est hors de l'ancêtre hidden : jamais rogné -->
+<div class="case" style="position: relative; height: 60px"><div class="clip"><div id="t-c3" style="position: absolute; left: 0; top: 0; width: 200px; height: 20px"></div></div></div>
+<!-- c3b : absolu dont le bloc conteneur est dans l'ancêtre hidden : rogné -->
+<div class="case clip"><div style="position: relative"><div id="t-c3b" style="position: absolute; left: 0; top: 0; width: 200px; height: 20px"></div></div></div>
+<!-- c4 : ancêtre inline avec overflow, sans effet -->
+<div class="case"><span style="overflow: hidden"><b id="t-c4" style="display: inline-block; width: 200px; height: 20px"></b></span></div>
+<!-- c6 : ancêtre display: contents avec overflow, sans effet -->
+<div class="case"><div style="display: contents; overflow: hidden"><div id="t-c6" class="tall"></div></div></div>
+<!-- c7 : fixed sans bloc conteneur particulier : jamais rogné -->
+<div class="case clip"><div id="t-c7" style="position: fixed; right: 0; bottom: 0; width: 20px; height: 20px"></div></div>
+<!-- c7b : fixed dans un ancêtre transformé hidden : rogné -->
+<div class="case clip" style="transform: translateX(0)"><div id="t-c7b" style="position: fixed; left: 0; top: 0; width: 200px; height: 20px"></div></div>
+<!-- c8 : absolu dans un ancêtre statique transformé hidden : le transform en fait le bloc conteneur, rogné -->
+<div class="case clip" style="filter: opacity(1)"><div id="t-c8" style="position: absolute; left: 0; top: 0; width: 200px; height: 20px"></div></div>
+<!-- c9 : overflow: clip avec overflow-clip-margin large : non rogné -->
+<div class="case" style="overflow: clip; overflow-clip-margin: 150px; width: 100px; height: 50px"><div id="t-c9" class="tall"></div></div>
+<!-- c10 : overflow: clip sans marge : rogné -->
+<div class="case" style="overflow: clip; width: 100px; height: 50px"><div id="t-c10" class="tall"></div></div>
+<!-- c13 : contain: paint se comporte comme overflow: clip -->
+<div class="case" style="contain: paint; width: 100px; height: 50px"><div id="t-c13" class="tall"></div></div>
+<!-- c14 : élément du calque supérieur (dialogue modal) dans un ancêtre hidden : jamais rogné -->
+<div class="case" style="overflow: hidden; width: 10px; height: 10px"><dialog id="dlg" style="width: 200px; height: 50px"><div id="t-c14" class="tall"></div></dialog></div>
+<script>document.getElementById("dlg").showModal()</script>
