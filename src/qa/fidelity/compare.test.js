@@ -50,6 +50,16 @@ describe("compareEntry", () => {
     expect(run("rgb(193, 238, 63)")).toBe("ÉCHEC")
   })
 
+  it("A9 (texte secondaire 16 px) : accepté dans sa limite, ÉCHEC au-delà, cumul avec A8 accepté", () => {
+    const small = box({ fontSize: "14px", h: 20 })
+    const big = box({ fontSize: "16px", h: 24 })
+    const rules = { fontSize: "A9:2", h: "A9:4" }
+    expect(compareEntry(small, big, { props: ["fontSize", "h"], assume: rules }).status).toBe("ASSUMÉ A9")
+    expect(compareEntry(small, box({ fontSize: "17px", h: 24 }), { props: ["fontSize", "h"], assume: rules }).status).toBe("ÉCHEC")
+    expect(compareEntry(small, box({ fontSize: "16px", h: 25 }), { props: ["fontSize", "h"], assume: rules }).status).toBe("ÉCHEC")
+    expect(compareEntry(small, box({ fontSize: "16px", h: 30 }), { props: ["fontSize", "h"], assume: { fontSize: "A9:2", h: "A8+A9:10" } }).status).toBe("ASSUMÉ A8, A9")
+  })
+
   it("X1 donne un statut distinct, jamais ASSUMÉ", () => {
     const result = compareEntry(box(), box({ y: 4 }), { props: ["y"], assume: { y: "A3+X1:4" } })
     expect(result.status).toBe("NON EXPLIQUÉ A3, X1")
@@ -95,7 +105,7 @@ describe("compareEntry : rognage par un ancêtre", () => {
 
 describe("parseAssume", () => {
   it("refuse un code hors liste blanche", () => {
-    expect(() => parseAssume("A9:100", "y")).toThrow(/inconnue/)
+    expect(() => parseAssume("A10:100", "y")).toThrow(/inconnue/)
     expect(() => parseAssume("Z", "color")).toThrow(/inconnue/)
   })
 
@@ -128,6 +138,15 @@ describe("parseAssume", () => {
     expect(compareEntry(box({ h: 89 }), box({ h: 64 }), { props: ["h"], assume: { h: "BANC:24" } }).status).toBe("ÉCHEC")
   })
 
+  it("A9 : limité à fontSize, h, w, tw, limite obligatoire, cumulable avec A8", () => {
+    expect(parseAssume("A9:2", "fontSize").names).toEqual(["A9"])
+    expect(parseAssume("A8+A9:12", "h").names).toEqual(["A8", "A9"])
+    expect(() => parseAssume("A9", "fontSize")).toThrow(/A9 exige une limite/)
+    expect(() => parseAssume("A9:2", "y")).toThrow(/limité à fontSize/)
+    expect(() => parseAssume("A9:2", "color")).toThrow(/limité à fontSize/)
+    expect(() => parseAssume("A9", "bg")).toThrow(/A9 exige une limite/)
+  })
+
   it("limite obligatoire pour une propriété numérique", () => {
     expect(() => parseAssume("A3", "y")).toThrow(/obligatoire/)
     expect(parseAssume("A1", "color").max).toBeNull()
@@ -148,7 +167,14 @@ describe("validateSpec", () => {
 
   it("accepte la règle avec note, et refuse une règle inconnue", () => {
     expect(validateSpec(spec({ id: "X", label: "a", assume: { h: "A2:4" }, note: "A2 : +3 mesuré" }))).toBeTruthy()
-    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { h: "A9:4" }, note: "n" }))).toThrow(/inconnue/)
+    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { h: "A10:4" }, note: "n" }))).toThrow(/inconnue/)
+  })
+
+  it("A9 : sans note refusé, avec note accepté, sur une couleur refusé", () => {
+    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { fontSize: "A9:2" } }))).toThrow(/sans note/)
+    expect(validateSpec(spec({ id: "X", label: "a", assume: { fontSize: "A9:2" }, note: "16 px, RD-FIX-03" }))).toBeTruthy()
+    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { color: "A9:2" }, note: "n" }))).toThrow(/limité à fontSize/)
+    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { bg: "A9" }, note: "n" }))).toThrow(/A9 exige une limite/)
   })
 
   it("règle de spécification : exige assumeNote", () => {

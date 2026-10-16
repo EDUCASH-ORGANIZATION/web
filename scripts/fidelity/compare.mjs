@@ -42,10 +42,12 @@ function parsePxList(value) {
   return numbers.every((n) => n !== null) ? numbers : null
 }
 
-// Codes autorisés : A1..A8 (plan ; A8 = élément de planche omis par décision, D4 et décision 24), BANC (valeur d'environnement absente du banc), L3 (coquille mobile), POLICE (police de repli), X1 (écart non expliqué).
-const RULES = new Set(["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "BANC", "L3", "POLICE", "X1"])
+// Codes autorisés : A1..A9 (plan ; A8 = élément de planche omis par décision, D4 et décision 24 ; A9 = texte secondaire 16 px, décision RD-FIX-03), BANC (valeur d'environnement absente du banc), L3 (coquille mobile), POLICE (police de repli), X1 (écart non expliqué).
+const RULES = new Set(["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "BANC", "L3", "POLICE", "X1"])
 const POLICE_PROPS = new Set(["w", "tw"])
 const BANC_PROPS = new Set(["h", "y", "pad"])
+// A9 : taille du texte secondaire et boîte qui en découle (hauteur de ligne, largeur du texte).
+const A9_PROPS = new Set(["fontSize", "h", "w", "tw"])
 
 /**
  * Analyse une règle assumée : "A3:4", "A2+A3:5" (cumul : plusieurs codes pour une limite), "A1".
@@ -67,6 +69,10 @@ export function parseAssume(rule, prop) {
     if (prop && !COLOR.has(prop)) throw new Error(`A1 est limité aux couleurs, pas « ${prop} » (« ${rule} »)`)
   }
   if (names.includes("A8") && max === null) throw new Error(`A8 exige une limite (« ${rule} »)`)
+  if (names.includes("A9")) {
+    if (max === null) throw new Error(`A9 exige une limite (« ${rule} »)`)
+    if (prop && !A9_PROPS.has(prop)) throw new Error(`A9 est limité à fontSize, h, w et tw, pas « ${prop} » (« ${rule} »)`)
+  }
   if (names.includes("BANC")) {
     if (names.length > 1) throw new Error(`BANC ne se cumule pas (« ${rule} »)`)
     if (max === null) throw new Error(`BANC exige une limite (« ${rule} »)`)
