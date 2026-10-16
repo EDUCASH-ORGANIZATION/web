@@ -4,6 +4,8 @@ import {
   adminMissionHref,
   adminMissionsHref,
   adminNotificationsHref,
+  adminReportHref,
+  adminReportsHref,
   adminTransactionsHref,
   adminUserHref,
   adminUsersHref,
@@ -61,6 +63,23 @@ describe("fabriques d'URL admin", () => {
     expect(adminTransactionsHref({ type: "commission", periode: "30j", q: "ref-1" })).toBe(
       "/admin/transactions?type=commission&periode=30j&q=ref-1",
     )
+  })
+})
+
+describe("signalements admin", () => {
+  it("file : onglet et tri par défaut omis, page 1 omise", () => {
+    expect(adminReportsHref()).toBe("/admin/reports")
+    expect(adminReportsHref({ statut: "a-traiter", tri: "anciens", page: 1 })).toBe("/admin/reports")
+    expect(adminReportsHref({ statut: "resolus" })).toBe("/admin/reports?statut=resolus")
+    expect(adminReportsHref({ statut: "classes", tri: "recents", page: 3 })).toBe("/admin/reports?statut=classes&tri=recents&page=3")
+    expect(adminReportsHref({ page: "x" })).toBe("/admin/reports")
+  })
+
+  it("détail : identifiant encodé, retour à la file sans identifiant", () => {
+    expect(adminReportHref(ID)).toBe(`/admin/reports/${ID}`)
+    expect(adminReportHref("a/b")).toBe("/admin/reports/a%2Fb")
+    expect(adminReportHref(null)).toBe("/admin/reports")
+    expect(adminReportHref("")).toBe("/admin/reports")
   })
 })
 

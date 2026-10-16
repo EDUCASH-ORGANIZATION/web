@@ -24,7 +24,7 @@ const DAY_MS = 86_400_000
 const REPORT_COLUMNS =
   "id, number, source, target_type, message_id, mission_id, reporter_id, reported_user_id, reason, status, handled_by, handled_at, created_at"
 const REPORT_DETAIL_COLUMNS = `${REPORT_COLUMNS}, details, resolution_note, updated_at`
-const MESSAGE_COLUMNS = "id, sender_id, receiver_id, type, content, media_url, created_at"
+const MESSAGE_COLUMNS = "id, sender_id, receiver_id, type, content, media_url, location_lat, location_lng, created_at"
 
 // Onglets de la file : valeur d'URL -> statuts de la base.
 const TABS = {
@@ -55,6 +55,18 @@ function normalizeNote(raw) {
   if (trimmed === "") return { value: null }
   // Défense en profondeur : une coordonnée saisie dans la note est masquée comme dans la messagerie.
   return { value: maskContacts(trimmed).text.slice(0, REPORT_NOTE_MAX) }
+}
+
+// Nombre de signalements par onglet (indicateurs de la file). Sonde GET, comme `countOpenAdminReports`.
+async function readTabCounts(service) {
+  const entries = await Promise.all(
+    Object.entries(TABS).map(async ([tab, statuses]) => {
+      const { error, count } = await service.from("reports").select("id", { count: "exact" }).in("status", statuses).limit(1)
+      if (error) throw new Error("Lecture impossible.")
+      return [tab, count ?? 0]
+    }),
+  )
+  return Object.fromEntries(entries)
 }
 
 async function readNames(service, ids) {
@@ -111,7 +123,7 @@ export async function listAdminReports(searchParams = {}) {
   const sort = first(searchParams?.tri) === "recents" ? "recents" : "anciens"
   const rawPage = Number(first(searchParams?.page))
   const page = Number.isSafeInteger(rawPage) && rawPage >= 1 && rawPage <= 10_000 ? rawPage : 1
-  const empty = { tab, sort, page, pageSize: PAGE_SIZE, total: 0, items: [] }
+  const empty = { tab, sort, page, pageSize: PAGE_SIZE, total: 0, items: [], counts: { "a-traiter": 0, resolus: 0, classes: 0 } }
 
   try {
     const from = (page - 1) * PAGE_SIZE
@@ -127,11 +139,12 @@ export async function listAdminReports(searchParams = {}) {
     if (error) throw new Error("Lecture impossible.")
 
     const rows = data ?? []
-    const [names, titles] = await Promise.all([
+    const [names, titles, counts] = await Promise.all([
       readNames(service, rows.flatMap((r) => [r.reporter_id, r.reported_user_id, r.handled_by])),
       readMissionTitles(service, rows.map((r) => r.mission_id)),
+      readTabCounts(service),
     ])
-    return { ...empty, total: count ?? rows.length, items: rows.map((r) => toItem(r, names, titles)) }
+    return { ...empty, total: count ?? rows.length, items: rows.map((r) => toItem(r, names, titles)), counts }
   } catch (err) {
     console.error("[listAdminReports]", err)
     return { error: ERR_LOAD }
@@ -226,7 +239,9 @@ export async function getAdminReport(id) {
           type: m.type ?? "text",
           text: isText ? (m.content ?? "") : null,
           mediaUrl,
-          mediaAvailable: isText ? null : mediaUrl !== null,
+          mediaAvailable: isText || m.type === "location" ? null : mediaUrl !== null,
+          lat: m.type === "location" ? (m.location_lat ?? null) : null,
+          lng: m.type === "location" ? (m.location_lng ?? null) : null,
           senderId: m.sender_id,
           createdAt: m.created_at,
         }
