@@ -109,9 +109,10 @@ describe("schéma de référence : applications.accepted_at", () => {
     expect(SCHEMA).not.toMatch(/update\s+public\.applications\s+set\s+accepted_at/i)
   })
 
-  it("l'en-tête signale le script 91 non appliqué et le script 90 appliqué", () => {
+  it("l'en-tête signale les scripts 90 et 91 comme appliqués en production", () => {
     const head = SCHEMA.slice(0, 2200)
-    expect(head).toMatch(/Script 91 \(RD-ACCEPT-01\) NON appliqué en production au \d{4}-\d{2}-\d{2} : à retirer après application\./)
+    expect(head).toContain("Script 91 de RD-ACCEPT-01 appliqué en production le 2026-10-16.")
+    expect(SCHEMA).not.toContain("Script 91 (RD-ACCEPT-01) NON appliqué")
     expect(head).toContain("Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.")
     expect(SCHEMA).not.toContain("Script 90 (RD-DONE-01) NON appliqué")
   })

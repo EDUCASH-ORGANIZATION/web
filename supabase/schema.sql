@@ -8,7 +8,7 @@
 -- Script 70 appliqué en production le 2026-10-15.
 -- Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.
 -- Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.
--- Script 91 (RD-ACCEPT-01) NON appliqué en production au 2026-10-16 : à retirer après application.
+-- Script 91 de RD-ACCEPT-01 appliqué en production le 2026-10-16.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
