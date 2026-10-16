@@ -81,7 +81,7 @@
           "assume": {
             "y": "A3:3"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; RD-ACCEPT-01 : la date de rétention vient de applications.accepted_at, le banc rend la fixture AVEC date (mesures inchangées) ; sans date le drapeau dit « Retenue » seul, cas hors mesure"
         },
         {
           "id": "CA-02",
@@ -420,7 +420,7 @@
           "assume": {
             "y": "L3:12"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12)"
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; RD-ACCEPT-01 : la date de rétention vient de applications.accepted_at, le banc rend la fixture AVEC date (mesures inchangées) ; sans date le drapeau dit « Retenue » seul, cas hors mesure"
         },
         {
           "id": "CA-02",

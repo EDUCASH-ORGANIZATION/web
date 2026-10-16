@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { readFileSync } from "node:fs"
 
 // Faux client Supabase : base en mémoire qui applique réellement les filtres eq/in, pour prouver l'isolation.
 const calls = []
 let db
 let failTable
+// Erreur simulée sur la lecture séparée de accepted_at (requête "id, accepted_at")
+let acceptedError
 
 function makeQuery(table) {
   const q = { table, columns: undefined, filters: [], range: undefined }
@@ -15,6 +18,9 @@ function makeQuery(table) {
     range: (a, b) => { q.range = [a, b]; return chain },
     then: (resolve, reject) => {
       calls.push(q)
+      if (acceptedError && table === "applications" && q.columns === "id, accepted_at") {
+        return Promise.resolve({ data: null, error: acceptedError }).then(resolve, reject)
+      }
       if (failTable === table) return Promise.resolve({ data: null, error: { message: "boom" } }).then(resolve, reject)
       let rows = db[table] ?? []
       for (const [op, c, v] of q.filters) rows = rows.filter((r) => (op === "eq" ? r[c] === v : v.includes(r[c])))
@@ -27,6 +33,10 @@ function makeQuery(table) {
 
 const supabase = { from: (table) => makeQuery(table) }
 const requireRole = vi.fn()
+vi.mock("server-only", () => ({}))
+// Identifiants courts de la base en mémoire ("a3") : le filtre uuid du module de lecture est testé dans
+// application-accepted-core.test.js.
+vi.mock("@/lib/vitrine/ids", () => ({ isUuid: (v) => typeof v === "string" && v.length > 0 }))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: (...a) => requireRole(...a) }))
 
 const { getStudentApplicationsView } = await import("./student-applications.actions")
@@ -44,14 +54,15 @@ const app = (id, status, m, over = {}) => ({
 beforeEach(() => {
   calls.length = 0
   failTable = undefined
+  acceptedError = undefined
   vi.useFakeTimers()
   vi.setSystemTime(NOW)
   db = {
     applications: [
       app("a1", "pending", mission({})),
       app("a2", "pending", mission({ status: "in_progress", selected_student_id: "other" })),
-      app("a3", "accepted", mission({ status: "in_progress", budget: 15000, client_id: "c2" }), { updated_at: "2026-10-07T17:40:00Z" }),
-      app("a4", "accepted", mission({ status: "in_progress", budget: 10000 }), { updated_at: "2026-09-01T17:40:00Z" }),
+      app("a3", "accepted", mission({ status: "in_progress", budget: 15000, client_id: "c2" }), { updated_at: "2026-10-07T17:40:00Z", accepted_at: "2026-10-07T17:40:00Z" }),
+      app("a4", "accepted", mission({ status: "in_progress", budget: 10000 }), { updated_at: "2026-09-01T17:40:00Z", accepted_at: "2026-09-01T17:40:00Z" }),
       app("a5", "accepted", mission({ status: "done", budget: 8000 })),
       app("a6", "rejected", mission({ status: "in_progress" })),
       app("a7", "pending", null),
@@ -162,6 +173,104 @@ describe("getStudentApplicationsView", () => {
     expect(data.highlight).toMatchObject({ missionId: "m-a3", net: 13200, clientFirst: "Nadège", acceptedAt: "2026-10-07T17:40:00Z" })
     db.applications = db.applications.filter((a) => a.id !== "a3")
     expect((await getStudentApplicationsView()).data.highlight).toBeNull()
+  })
+
+  it("date de rétention : accepted_at lu dans une requête séparée, jamais updated_at", async () => {
+    const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(data.rows.map((r) => [r.id, r.acceptedAt])).toEqual([["a3", "2026-10-07T17:40:00Z"], ["a4", "2026-09-01T17:40:00Z"]])
+    const read = calls.filter((c) => c.columns === "id, accepted_at")
+    expect(read).toHaveLength(1)
+    expect(read[0].filters).toContainEqual(["in", "id", ["a3", "a4"]])
+    expect(read[0].filters).toContainEqual(["eq", "student_id", "stu-1"])
+    // la requête principale n'ajoute pas accepted_at à son select
+    expect(calls.find((c) => c.table === "applications").columns).not.toContain("accepted_at")
+  })
+
+  it("updated_at récent mais accepted_at ancien : aucune carte, date ancienne", async () => {
+    db.applications.find((a) => a.id === "a3").accepted_at = "2026-09-20T10:00:00Z"
+    const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(data.highlight).toBeNull()
+    expect(data.rows.find((r) => r.id === "a3").acceptedAt).toBe("2026-09-20T10:00:00Z")
+  })
+
+  it("accepted_at NULL : carte sans date, ligne sans date, updated_at ignoré", async () => {
+    db.applications.find((a) => a.id === "a3").accepted_at = null
+    const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(data.rows.find((r) => r.id === "a3").acceptedAt).toBeNull()
+    expect(data.highlight).toMatchObject({ missionId: "m-a3", acceptedAt: null })
+    expect(JSON.stringify(data.highlight)).not.toContain("2026-10-07")
+  })
+
+  it("une retenue datée de plus de 7 jours n'est pas choisie avant une retenue sans date", async () => {
+    db.applications.find((a) => a.id === "a3").accepted_at = "2026-09-20T10:00:00Z"
+    db.applications.find((a) => a.id === "a4").accepted_at = null
+    const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(data.highlight).toMatchObject({ missionId: "m-a4", acceptedAt: null })
+  })
+
+  it("une retenue récente datée passe avant une retenue sans date", async () => {
+    db.applications.find((a) => a.id === "a3").accepted_at = null
+    db.applications.find((a) => a.id === "a4").accepted_at = "2026-10-06T09:00:00Z"
+    const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(data.highlight).toMatchObject({ missionId: "m-a4", acceptedAt: "2026-10-06T09:00:00Z" })
+  })
+
+  it("accepted_at invalide ou dans le futur : traité comme absent", async () => {
+    db.applications.find((a) => a.id === "a3").accepted_at = "pas une date"
+    db.applications.find((a) => a.id === "a4").accepted_at = "2027-01-01T00:00:00Z"
+    const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(data.rows.map((r) => r.acceptedAt)).toEqual([null, null])
+    expect(data.highlight).toMatchObject({ missionId: "m-a3", acceptedAt: null })
+  })
+
+  it("ligne manquante dans la lecture de la date : carte sans date, page rendue", async () => {
+    const original = db.applications
+    db.applications = original.filter((a) => a.id !== "a3")
+    const res = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(res.data.rows.map((r) => r.id)).toEqual(["a4"])
+    // a3 n'existe plus : seule a4 (datée de septembre) reste, donc aucune carte
+    expect(res.data.highlight).toBeNull()
+  })
+
+  it("colonne absente (42703 et PGRST204) : page rendue, compteurs exacts, carte et notes sans date", async () => {
+    for (const code of ["42703", "PGRST204"]) {
+      acceptedError = { code, message: "column applications.accepted_at does not exist" }
+      const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
+      expect(data.counts).toEqual({ "en-attente": 1, "en-cours": 2, terminees: 1, "non-retenues": 3 })
+      expect(data.rows.map((r) => r.acceptedAt)).toEqual([null, null])
+      expect(data.highlight).toMatchObject({ missionId: "m-a3", acceptedAt: null })
+      expect(data.escrow).toEqual({ total: 22000, count: 2 })
+    }
+  })
+
+  it("autre erreur de la lecture de la date : page rendue sans date, journal par code seulement", async () => {
+    acceptedError = { code: "57014", message: "secret interne de la base" }
+    const { data, error } = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(error).toBeUndefined()
+    expect(data.rows.map((r) => r.acceptedAt)).toEqual([null, null])
+    expect(data.highlight).toMatchObject({ acceptedAt: null })
+    const logged = console.error.mock.calls.flat().join(" ")
+    expect(logged).toContain("57014")
+    expect(logged).not.toContain("secret interne")
+  })
+
+  it("plusieurs retenues en cours : chacune a sa propre date", async () => {
+    db.applications.push(app("a9", "accepted", mission({ status: "in_progress" }), { accepted_at: "2026-10-08T09:00:00Z" }))
+    const { data } = await getStudentApplicationsView({ onglet: "en-cours" })
+    expect(Object.fromEntries(data.rows.map((r) => [r.id, r.acceptedAt]))).toEqual({
+      a3: "2026-10-07T17:40:00Z", a4: "2026-09-01T17:40:00Z", a9: "2026-10-08T09:00:00Z",
+    })
+  })
+
+  it("onglets hors En cours : aucune date de rétention", async () => {
+    const { data } = await getStudentApplicationsView({ onglet: "terminees" })
+    expect(data.rows.map((r) => r.acceptedAt)).toEqual([null])
+  })
+
+  it("aucun usage de updated_at pour la date de rétention (source)", () => {
+    const src = readFileSync(new URL("./student-applications.actions.js", import.meta.url), "utf8")
+    expect(src).not.toMatch(/acceptedAt:\s*recent\.updated_at/)
+    expect(src).not.toMatch(/new Date\([^)]*updated_at/)
   })
 
   it("client public : prénom et initiale, jamais téléphone ni email, colonnes explicites", async () => {

@@ -1,5 +1,7 @@
 // Données de la planche E04 (Mes candidatures étudiant, onglet « En attente »). Jeudi 8 octobre 2026, 14 h 32.
-// Vouvoiement (A6) et noms « Prénom N. » (A7). Candidature retenue la veille à 17 h 40.
+// Vouvoiement (A6) et noms « Prénom N. » (A7). Candidature retenue la veille à 17 h 40
+// (acceptedAt : date posée par la base, applications.accepted_at, RD-ACCEPT-01 ; le banc rend la carte AVEC date,
+// sans date la carte affiche « Retenue » seul et les mesures de la planche ne s'appliquent plus à ce libellé).
 const NOW = "2026-10-08T14:32:00+01:00"
 
 const row = (over) => ({
@@ -15,6 +17,7 @@ const row = (over) => ({
   status: "pending",
   appliedAt: "2026-10-06T09:00:00+01:00",
   updatedAt: "2026-10-06T09:00:00+01:00",
+  acceptedAt: null,
   clientName: "Mawuli A.",
   clientFirst: "Mawuli",
   review: null,
