@@ -94,6 +94,18 @@ const PHONES = [
   ["01    97    12    34    56", M],
   ["01 97 12 \n\n 34 56", M],
   ["appelez 01 97 12 34 56 ou 97 12 34 56", `appelez ${M} ou ${M}`],
+  ["9712 5000", M],
+  ["appelle 9712 5000", `appelle ${M}`],
+  ["9712 3400", M],
+  ["9750 1234", M],
+  ["97 1250 34", M],
+  ["97 12 3450", M],
+  ["971250 34", M],
+  ["97 123400", M],
+  ["Facture 97 12 34 56", `Facture ${M}`],
+  ["Appelez le code 97 12 34 56", `Appelez le code ${M}`],
+  ["ref 9712 3456", `ref ${M}`],
+  ["97\u{1F4DE}12\u{1F4DE}34\u{1F4DE}56", M],
 ]
 
 const LEGIT = [
@@ -162,7 +174,19 @@ const LEGIT = [
   "Je pars.Info: le marché ferme",
   "Il fait chaud.Tv allumée",
   "merci beaucoup.App bien",
-  "Rdv au Bénin.Bj",
+  "Prix 2500 / 3500 / 4500 / 5500",
+  "Prix 2 500 / 3 500",
+  "2 500 3 500",
+  "2.500 / 3.500",
+  "prix: 2 500 - 4 500",
+  "🥖 20 🥛 25 🍌 30 🍊 45",
+  "🍅 25 🧅 30 🥔 45 🍌 60",
+  "25 🍅, 30 🧅, 45 🥔, 60 🍌",
+  "Prix: 25 ✅ 30 ✅ 45 ✅ 60",
+  "Tickets : 20 ; 25 ; 30 ; 45",
+  "2*3*4*5*6*7*8*9",
+  "étages 2|3|4|5|6|7|8|9",
+  "20 ' 25 ' 30 ' 45",
   "Bonjour, êtes-vous disponible samedi ?",
 ]
 
@@ -231,6 +255,62 @@ describe("messages légitimes", () => {
     for (const input of ["un", "j'ai un chat", "ok o 2 fois", "il l'a vu", "un ou deux", "Vingt minutes plus tard"]) {
       expect(maskContacts(input).masked, input).toBe(false)
     }
+  })
+})
+
+describe("anti-régression des relectures", () => {
+  // Relecture de 77b5cc9 : prix côte à côte, point/dot, point collé, plages de dates, séparateurs, bundle client.
+  // Relecture de f6b320b : vrais numéros contenant 00/50, suffixes toujours masqués, forme entre crochets,
+  // référence seulement pour un bloc collé, listes à symboles, milliers sans devise.
+  it("masque tout vrai numéro écrit normalement, quel que soit le regroupement", () => {
+    for (const input of ["9712 5000", "9712 3400", "9750 1234", "97 1250 34", "97 12 3450", "971250 34", "97 123400", "9712 3456", "97.12.34.50", "970 123 45", "97-12-50-00"]) {
+      expect(maskContacts(input).text, input).toBe(M)
+    }
+  })
+
+  it("ne masque pas les prix ronds côte à côte", () => {
+    for (const input of ["2000 2500", "9500 4500", "5000 6000", "2500 / 3500", "Prix 2500 / 3500 / 4500 / 5500", "2 500 / 3 500", "prix: 2 500 - 4 500"]) {
+      expect(maskContacts(input).masked, input).toBe(false)
+    }
+  })
+
+  it("masque toujours les domaines dont le suffixe n'est pas un mot courant", () => {
+    for (const input of ["Monsite.Com", "Rejoignez Moncv.Net", "Portfolio.Io", "Jean.Dupont.Net", "Site.Bj", "Contactez-moi sur Moncv.Bj", "Rdv au Bénin.Bj"]) {
+      expect(maskContacts(input).masked, input).toBe(true)
+    }
+  })
+
+  it("lit « point » en lettres : crochets toujours, forme espacée seulement devant un suffixe sans ambiguïté", () => {
+    for (const input of ["monsite point com", "monsite(point)com", "monsite [dot] bj", "monsite dot fr"]) {
+      expect(maskContacts(input).masked, input).toBe(true)
+    }
+    for (const input of ["au point info", "au point co", "faire le point tv"]) {
+      expect(maskContacts(input).masked, input).toBe(false)
+    }
+  })
+
+  it("une référence annoncée par un mot ne protège qu'un bloc collé", () => {
+    expect(maskContacts("ticket 45879632").masked).toBe(false)
+    expect(maskContacts("facture 50012345").masked).toBe(false)
+    expect(maskContacts("Facture 97 12 34 56").masked).toBe(true)
+    expect(maskContacts("mono 97123456").masked).toBe(true)
+  })
+
+  it("un écart de symboles doit être identique et collé aux chiffres", () => {
+    for (const input of ["01*97*12*34*56", "01|97|12|34|56", "97\u{1F4DE}12\u{1F4DE}34\u{1F4DE}56"]) {
+      expect(maskContacts(input).text, input).toBe(M)
+    }
+    for (const input of ["01*97|12*34|56", "20 ; 25 ; 30 ; 45", "2*3*4*5*6*7*8*9"]) {
+      expect(maskContacts(input).text, input).toBe(input)
+    }
+  })
+
+  it("coupe l'entrée trop longue sans casser une paire de substitution", () => {
+    const text = `${"a".repeat(3999)}\u{1F600}`
+    const out = maskContacts(text).text
+    expect(out.length).toBeLessThanOrEqual(4000)
+    expect(out).not.toMatch(/[\ud800-\udbff]$/)
+    expect(maskDigitRuns(text)).not.toMatch(/[\ud800-\udbff]$/)
   })
 })
 

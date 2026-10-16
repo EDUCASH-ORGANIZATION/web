@@ -3,7 +3,7 @@
 // aucun accès aux données, aucun import serveur. La valeur détectée n'est jamais journalisée ni renvoyée à part :
 // seuls les TYPES sont exposés.
 //
-// Principe : le texte est normalisé dans une copie (minuscules, sans accents, chiffres Unicode ramenés à l'ASCII,
+// Principe : le texte est normalisé dans une copie (minuscules, sans accents, chiffres pleine largeur, mathématiques et emoji ramenés à l'ASCII (pas les chiffres arabes-indiens),
 // caractères invisibles retirés, chiffres écrits en lettres convertis), chaque caractère de la copie gardant sa position
 // dans le texte d'ORIGINE. Les détecteurs travaillent sur la copie ; le masquage remplace la portion d'origine.
 // Toutes les expressions régulières sont à quantificateurs bornés ou sans imbrication ambiguë (pas de retour arrière
@@ -14,6 +14,14 @@ import { SPLIT_LOOKBACK, CONTACT_KINDS, MASKABLE_KINDS } from "@/lib/messaging/m
 
 export { CONTACT_KINDS, MASKABLE_KINDS }
 export const MASK_TOKEN = "[coordonnées masquées]"
+
+/** Premiers MAX_TEXT caractères, sans couper une paire de substitution. */
+function clip(text) {
+  if (typeof text !== "string") return ""
+  if (text.length <= MAX_TEXT) return text
+  const last = text.charCodeAt(MAX_TEXT - 1)
+  return text.slice(0, last >= 0xd800 && last <= 0xdbff ? MAX_TEXT - 1 : MAX_TEXT)
+}
 
 /** Longueur maximale analysée et renvoyée (le serveur limite déjà un message à 2000 caractères). */
 const MAX_TEXT = 4000
@@ -188,6 +196,8 @@ const PROTECT_PATTERNS = [
   { re: new RegExp(`${NOT_AFTER_DIGIT}(${GROUPED}|\\d{1,7})(?:[.,]\\d{1,2})?\\s?${CUR}`, "g"), group: 1 },
   // fourchette de prix : 2500-3500 F, 2500 a 3500 FCFA
   { re: new RegExp(`${NOT_AFTER_DIGIT}\\d{1,7}\\s?(?:-|/|a)\\s?\\d{1,7}\\s?${CUR}`, "g"), group: 0 },
+  // fourchette avec milliers sans devise : 2 500 / 3 500, 2.500 - 4.500, 2 500 3 500 (milliers finissant par 00 ou 50)
+  { re: new RegExp(`${NOT_AFTER_DIGIT}\\d{1,3}[ .,]\\d(?:00|50)\\s?(?:-|/|a)?\\s?\\d{1,3}[ .,]\\d(?:00|50)(?!\\d)(?![ .,]\\d)`, "g"), group: 0 },
   // FCFA 2500-3500
   { re: /(?:fcfa|cfa|xof)\s?\d{1,7}\s?(?:-|\/|a)\s?\d{1,7}(?!\d)/g, group: 0 },
   // FCFA 15000
@@ -250,9 +260,12 @@ function parseNumberWord(tk, text, i) {
   return null
 }
 
-// Écart toléré entre deux groupes de chiffres : espaces, retours à la ligne, ponctuation courante, émojis (6 au plus).
+// Écart ordinaire toléré entre deux groupes de chiffres : espaces, retours à la ligne, ponctuation courante (3 au plus), ou 4 à 6 blancs seulement.
 // Le deux-points est exclu : 12:34 est une heure.
-const CHAIN_GAP = /^(?:[\s.\-_/,()*|;~']|\p{Extended_Pictographic}){0,6}$/u
+const CHAIN_GAP = /^(?:[\s.\-_/,()]{0,3}|\s{4,6})$/
+// Écart « symbole » (* | ; ~ ' ou émojis, collés aux chiffres) : accepté seulement si tous les écarts de la chaîne sont
+// identiques et si les groupes ont 2 chiffres ou plus, sinon les listes (2*3*4*5, 25 ✅ 30 ✅ 45) seraient lues comme des numéros.
+const SYMBOL_GAP = /^(?:[*|;~']|\p{Extended_Pictographic}){1,6}$/u
 
 /** Chiffres sous forme de texte où les caractères protégés ne sont plus des chiffres. */
 function digitView(t) {
@@ -322,12 +335,24 @@ function digitChains(t) {
   const u = digitView(t)
   const chains = []
   let chain = []
+  let symbol = null // écart symbole commun de la chaîne en cours
   let prevEnd = -1
   for (const m of u.matchAll(/\d+/g)) {
     const start = m.index
-    if (chain.length && !CHAIN_GAP.test(u.slice(prevEnd, start))) {
-      chains.push(chain)
-      chain = []
+    if (chain.length) {
+      const gap = u.slice(prevEnd, start)
+      const prev = chain[chain.length - 1]
+      let linked = false
+      if (CHAIN_GAP.test(gap)) linked = symbol === null
+      else if (SYMBOL_GAP.test(gap) && prev.digits.length >= 2 && m[0].length >= 2) {
+        linked = symbol === gap || (symbol === null && chain.length === 1)
+        if (linked) symbol = gap
+      }
+      if (!linked) {
+        chains.push(chain)
+        chain = []
+        symbol = null
+      }
     }
     const plus = u[start - 1] === "+" || (u[start - 1] === " " && u[start - 2] === "+")
     chain.push({ start, end: start + m[0].length, digits: m[0], plus })
@@ -338,19 +363,21 @@ function digitChains(t) {
 }
 
 // Un bloc de 8 chiffres précédé de ces mots est une référence, pas un numéro (ticket 45879632, facture 50012345).
-const REFERENCE_BEFORE = /(?:ticket|ref|reference|facture|commande|code|n°|nº)\s{0,2}[:.]?\s{0,2}$/
+const REFERENCE_BEFORE = /(?<![a-z])(?:ticket|ref|reference|facture|commande|code|n[o°])\s{0,2}[:.]?\s{0,2}$/
 
 /**
- * Filtre les faux numéros de 8 chiffres sans indicatif : deux prix de 4 chiffres côte à côte (2000 2500, 1500, 2500) ou
- * une référence annoncée par un mot (ticket, facture...). Les autres formes (10 chiffres en 01, indicatif +) passent.
+ * Filtre les faux numéros de 8 chiffres sans indicatif : prix ronds côte à côte (2000 2500, 1500, 2500) ou bloc collé
+ * annoncé par un mot de référence (ticket, facture...). Les autres formes (10 chiffres en 01, indicatif +) passent.
  */
 function plausibleGroups(chain, i, j, u) {
   if (chain[i].plus) return true
   let total = 0
   for (let k = i; k <= j; k++) total += chain[k].digits.length
   if (total !== 8) return true
-  if (j > i && chain.slice(i, j + 1).some((g) => g.digits.length >= 4 && /(?:00|50)$/.test(g.digits))) return false
-  return !REFERENCE_BEFORE.test(u.slice(Math.max(0, chain[i].start - 20), chain[i].start))
+  // Que des prix ronds (2000 2500, 9500 4500) : un vrai numéro mêle des groupes qui ne finissent pas par 00 ou 50.
+  if (j > i && chain.slice(i, j + 1).every((g) => g.digits.length >= 3 && /(?:00|50)$/.test(g.digits))) return false
+  // Une référence annoncée par un mot ne vaut que pour un bloc collé : « facture 97 12 34 56 » reste un numéro.
+  return j > i || !REFERENCE_BEFORE.test(u.slice(Math.max(0, chain[i].start - 20), chain[i].start))
 }
 
 /** Numéros trouvés dans la copie normalisée : plages [start, end) de `t`. */
@@ -386,6 +413,10 @@ const DOT_WORDS = new RegExp(
   "g",
 )
 
+// Réécriture limitée pour les domaines nus : la forme entre crochets ou parenthèses compte toujours, la forme espacée
+// « monsite point com » seulement devant un suffixe sans ambiguïté (« au point info » n'est pas une adresse).
+const DOT_WORDS_DOMAIN = /\s{0,3}[([{]\s{0,3}(?:dot|point)\s{0,3}[)\]}]\s{0,3}|\s{1,3}(?:dot|point)\s{1,3}(?=(?:com|net|org|bj|fr|io)(?![a-z0-9]))/g
+
 const EMAIL_RE = /(?<![a-z0-9._%+-])[a-z0-9][a-z0-9._%+-]{0,63}@[a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63})*\.[a-z]{2,24}(?![a-z0-9])/g
 const URL_RE = /(?:https?:\/\/|www\.)[^\s<>"']{1,200}/g
 const SOCIAL_HOSTS =
@@ -408,15 +439,21 @@ function hostOf(raw) {
   return h
 }
 
+// Suffixes qui sont aussi des mots courants : après un point collé en début de phrase, ce n'est pas une adresse.
+const SENTENCE_WORD_TLDS = new Set(["me", "info", "co", "tv", "app", "site", "shop", "store", "online", "link"])
+
 /**
- * Un domaine nu (sans schéma, www. ni chemin) dont le suffixe commence par une majuscule suivie d'une minuscule est une
- * phrase sans espace après le point (« Je pars.Info », « arrivé.Me voici »), pas une adresse (EXEMPLE.COM reste masqué).
+ * Un domaine nu (sans schéma, www. ni chemin) dont le suffixe est un mot courant écrit Majuscule+minuscules est une
+ * phrase sans espace après le point (« Je pars.Info », « arrivé.Me voici »). com, net, org, bj, fr, io... restent
+ * toujours masqués (« Monsite.Com », « Site.Bj »), comme EXEMPLE.COM.
  */
-function isSentenceJoin(src, t0, raw, index) {
+function isSentenceJoin(src, t, raw, index) {
   if (/^(?:https?:\/\/|www\.)/.test(raw) || /[/?#]/.test(raw)) return false
-  const at = index + raw.lastIndexOf(".") + 1
-  const first = src[t0.st[at]]
-  const second = src[t0.st[at + 1]]
+  const dot = raw.lastIndexOf(".")
+  if (!SENTENCE_WORD_TLDS.has(raw.slice(dot + 1))) return false
+  const at = index + dot + 1
+  const first = src[t.st[at]]
+  const second = src[t.st[at + 1]]
   return first !== undefined && first !== first.toLowerCase() && second !== undefined && second === second.toLowerCase() && second !== second.toUpperCase()
 }
 
@@ -441,13 +478,16 @@ function linkRanges(t0, src) {
     if (!raw || ALLOWED_HOST.test(hostOf(raw))) continue
     found.push({ s: t.st[m.index], e: t.en[m.index + raw.length - 1], kind: "social" })
   }
-  // Sur la copie non réécrite : « au point info » ne devient pas un domaine.
-  for (const re of [URL_RE, DOMAIN_RE]) {
-    for (const m of t0.s.matchAll(re)) {
+  // Liens et domaines nus : copie à réécriture limitée (« au point info » ne devient pas un domaine).
+  const dd = []
+  for (const m of t0.s.matchAll(DOT_WORDS_DOMAIN)) dd.push({ from: m.index, to: m.index + m[0].length, rep: "." })
+  const td = rewrite(t0, dd)
+  for (const [re, tt] of [[URL_RE, t0], [DOMAIN_RE, td]]) {
+    for (const m of tt.s.matchAll(re)) {
       const raw = m[0].replace(/[.,;:!?)\]}]+$/, "")
       const host = hostOf(raw)
-      if (!raw || ALLOWED_HOST.test(host) || (re === DOMAIN_RE && isSentenceJoin(src, t0, raw, m.index))) continue
-      found.push({ s: t0.st[m.index], e: t0.en[m.index + raw.length - 1], kind: SOCIAL_HOST_RE.test(host) ? "social" : "link" })
+      if (!raw || ALLOWED_HOST.test(host) || (re === DOMAIN_RE && isSentenceJoin(src, tt, raw, m.index))) continue
+      found.push({ s: tt.st[m.index], e: tt.en[m.index + raw.length - 1], kind: SOCIAL_HOST_RE.test(host) ? "social" : "link" })
     }
   }
   return found
@@ -497,7 +537,7 @@ function mergeSpans(spans) {
 
 /** @returns {{ groups: { s: number, e: number, kinds: Set<string> }[], keywordKinds: Set<string>, keywordCount: number, src: string }} */
 function analyze(text) {
-  const src = typeof text === "string" ? text.slice(0, MAX_TEXT) : ""
+  const src = clip(text)
   const t0 = normalize(src)
   const t2 = digitsCopy(t0)
   const spans = linkRanges(t0, src)
@@ -612,7 +652,7 @@ export function detectSplitPhone(previousTexts, current) {
  * @returns {string}
  */
 export function maskDigitRuns(text) {
-  const src = typeof text === "string" ? text.slice(0, MAX_TEXT) : ""
+  const src = clip(text)
   const t = digitsCopy(normalize(src))
   const spans = digitChains(t).map((chain) => ({
     s: t.st[chain[0].start],

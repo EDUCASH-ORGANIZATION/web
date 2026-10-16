@@ -47,7 +47,7 @@ describe("contact-keywords.js", () => {
     expect(source).not.toMatch(/\b(?:function|=>|return|class)\b/)
     for (const list of [CONTACT_KEYWORDS, PAYMENT_KEYWORDS]) {
       expect(list.length).toBeGreaterThan(10)
-      expect(list.every((w) => typeof w === "string" && w.trim() === w && w.length >= 2)).toBe(true)
+      expect(list.every((w) => typeof w === "string" && w.trim() === w && (w.length >= 3 || ["fb"].includes(w)))).toBe(true)
       expect(new Set(list).size).toBe(list.length)
     }
     expect(source).not.toContain(String.fromCharCode(0x2014))
