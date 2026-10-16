@@ -27,8 +27,12 @@ export const FAQ_ITEMS = [
     question: "Dois-je avancer l'argent du marché ?",
     answer: (
       <>
-        Non. Les achats sont réglés par le client directement au vendeur, par Mobile Money. Vous, vous n&rsquo;avancez
-        rien. Les détails sont dans les{" "}
+        Non. Les achats sont réglés par le client directement au vendeur, par Mobile Money, hors EduCash. Vous, vous
+        n&rsquo;avancez jamais d&rsquo;argent. Vous envoyez au client, dans la conversation de la mission, une carte de
+        paiement d&rsquo;achats&nbsp;: numéro à payer, nom du vendeur, montant, photo du numéro marchand ou du panneau,
+        et photo du ticket. Le client paie, joint la capture du SMS, puis vous confirmez que le vendeur a bien reçu. Seul
+        votre service passe par le séquestre&nbsp;; EduCash n&rsquo;est ni partie, ni dépositaire, ni garant des achats
+        et ne rembourse pas un paiement fait hors plateforme. Les détails sont dans les{" "}
         <AnchorLink className="link" href="/legal/terms#achats">conditions d&rsquo;utilisation</AnchorLink>.
       </>
     ),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { AIDE_THEMES, ESCROW_STEPS, PAYMENT_WARNING } from "./aide-content"
+import { PURCHASE_NO_REFUND_NOTE } from "@/lib/purchases/requests"
 import { filterThemes, normalize } from "./aide-search"
 
 const ids = (themes) => themes.flatMap((theme) => theme.items.map((item) => item.id))
@@ -46,6 +47,32 @@ describe("contenu de l'aide", () => {
     const achats = sequestre.items.find((item) => item.id === "achats")
     expect(achats.notice).toBe(PAYMENT_WARNING)
     expect(PAYMENT_WARNING).toContain("Vérifiez le nom du bénéficiaire affiché par MoMo")
+  })
+
+  it("décrit le modèle des achats : paiement direct hors EduCash, carte, capture du SMS, confirmation", () => {
+    const sequestre = AIDE_THEMES.find((theme) => theme.id === "sequestre")
+    const achats = sequestre.items.find((item) => item.id === "achats")
+    const text = [...achats.answer, ...achats.steps.flatMap((s) => [s.title, s.text])].join(" ")
+    expect(achats.steps).toHaveLength(3)
+    expect(text).toMatch(/directement au vendeur/)
+    expect(text).toMatch(/hors EduCash/)
+    expect(text).toMatch(/n'avancez jamais d'argent/)
+    expect(text).toMatch(/ni partie, ni dépositaire, ni garant/)
+    expect(text).toMatch(/numéro à payer/)
+    expect(text).toMatch(/photo du numéro marchand ou du panneau/)
+    expect(text).toMatch(/photo du ticket/)
+    expect(text).toMatch(/capture du SMS/)
+    expect(text).toMatch(/confirmez la réception/)
+    expect(text).toMatch(/ne bloque aucun fonds et ne porte aucune commission/)
+  })
+
+  it("explique le signalement d'un paiement d'achats sans promettre de remboursement", () => {
+    const sequestre = AIDE_THEMES.find((theme) => theme.id === "sequestre")
+    const probleme = sequestre.items.find((item) => item.id === "achats-probleme")
+    expect(probleme.notice).toBe(PURCHASE_NO_REFUND_NOTE)
+    expect(probleme.answer.join(" ")).toMatch(/signalée/)
+    expect(probleme.answer.join(" ")).toMatch(/ni remboursement ni compensation/)
+    expect(ids(filterThemes(AIDE_THEMES, "rembourse signale"))).toContain("achats-probleme")
   })
 
   it("a des identifiants de question uniques", () => {
