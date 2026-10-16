@@ -1,0 +1,92 @@
+{
+  "id": "E05-t",
+  "title": "Mission retenue, modale « J'ai terminé » (bureau)",
+  "planche": "etudiant/E05-mission-retenue-suivi.v2.html",
+  "screen": "e05-t",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale)",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 2,
+      "selectors": [
+        {
+          "id": "MI-25",
+          "label": "modale",
+          "board": ".modal",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "y": "A8:129",
+            "h": "A8:258"
+          },
+          "note": "h : A8 : la planche montre le champ « Un mot pour <client> » (facultatif, écarté : l'action n'a qu'un argument, l'étudiant écrit dans la messagerie), une note de rappel de la mission et une chronologie en trois étapes ; le code les remplace par trois lignes « Statut », « Ensuite » et « Votre part » (plan RD-DONE-01, décisions P2 et A8). y : la modale est centrée verticalement dans le cadre : le décalage vaut la moitié de la hauteur omise"
+        },
+        {
+          "id": "MI-25",
+          "label": "titre de la modale",
+          "board": ".modal__title",
+          "props": [
+            "x",
+            "y",
+            "h",
+            "fontSize",
+            "fontWeight"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "y": "A8:129"
+          },
+          "note": "y : modale centrée verticalement, décalage égal à la moitié de la hauteur omise (A8) ; la largeur n'est pas mesurée : titre vouvoyé « Vous confirmez avoir terminé ? » (COMPLETION_COPY) contre « Déclarer la mission terminée ? » de la planche"
+        },
+        {
+          "id": "MI-25",
+          "label": "pied de la modale",
+          "board": ".modal__foot",
+          "props": [
+            "x",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "note": "le pied suit la hauteur de la modale : seule sa position verticale change (non mesurée, A8 sur la modale)"
+        },
+        {
+          "id": "MI-25",
+          "label": "bouton Annuler",
+          "board": ".modal__foot .btn--soft",
+          "props": [
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "note": "la largeur n'est pas mesurée : libellé « Annuler » (COMPLETION_COPY, décision P2) à la place de « Pas encore » pour éviter la confusion avec « Pas encore terminé » écarté"
+        },
+        {
+          "id": "MI-25",
+          "label": "bouton Oui",
+          "board": ".modal__foot .btn--dark",
+          "props": [
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09"
+        }
+      ]
+    }
+  ]
+}

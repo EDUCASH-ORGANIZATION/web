@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { readFileSync } from "node:fs"
 
 vi.mock("@/lib/actions/application.actions", () => ({ apply: vi.fn() }))
+vi.mock("@/lib/actions/mission-completion.actions", () => ({ declareMissionCompletion: vi.fn() }))
 
 const { MissionApplyView } = await import("./apply-view")
 const { MissionFollowupView } = await import("./followup-view")
@@ -155,7 +156,7 @@ describe("E05 suivi d'une mission avec achats", () => {
     expect(html).toContain("Vous avez fini ?")
   })
 
-  it("ne code ni « J'ai terminé » ni « À confirmer »", () => {
+  it("colonne de fin absente : ni « J'ai terminé » ni « À confirmer » (rendu d'origine)", () => {
     expect(html).not.toContain("J&#x27;ai terminé")
     expect(html).not.toContain("À confirmer")
   })

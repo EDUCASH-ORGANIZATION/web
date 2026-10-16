@@ -4,6 +4,10 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { readFileSync } from "node:fs"
 
 vi.mock("@/lib/actions/application.actions", () => ({ apply: vi.fn() }))
+const declareMock = vi.fn()
+vi.mock("@/lib/actions/mission-completion.actions", () => ({ declareMissionCompletion: (...a) => declareMock(...a) }))
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
+vi.mock("@/components/app-ui/toast", () => ({ useAppToast: () => ({ success: vi.fn(), error: vi.fn() }) }))
 
 const { MissionFollowupView } = await import("../followup-view")
 const { escrowSplit } = await import("@/lib/app/money")
@@ -33,7 +37,7 @@ const text = (html) => html.replace(/<[^>]+>/g, " ")
 const release = [{ type: "release", amount: 22000, createdAt: "2026-10-20T10:00:00Z" }]
 
 describe("MissionFollowupView (E05)", () => {
-  it("en cours : suivi neutre, anneau sur l'etape en cours, votre part par escrowSplit, badge en sequestre", () => {
+  it("en cours, colonne de fin absente : suivi neutre, anneau sur l'etape en cours, votre part par escrowSplit, badge en sequestre", () => {
     const html = render(detail("in_progress"))
     const split = escrowSplit(25000)
     expect((html.match(/<h1[\s>]/g) ?? []).length).toBe(1)
@@ -78,7 +82,7 @@ describe("MissionFollowupView (E05)", () => {
     }
   })
 
-  it("en cours : ecrire au client, signaler un probleme, aucun bouton J'ai terminé, pas de citron ni de carte bleue", () => {
+  it("en cours, colonne de fin absente : ecrire au client, signaler un probleme, aucun bouton J'ai terminé, pas de citron ni de carte bleue", () => {
     const html = render(detail("in_progress"))
     expect(html).toContain('href="/messages/m1"')
     expect(html).toContain("Écrire au client")
@@ -137,7 +141,7 @@ describe("MissionFollowupView (E05)", () => {
     expect(html).not.toMatch(/@|\+229|phone|email/i)
   })
 
-  it("aucune mention d'achats, de 72 h, de liberation automatique, d'avis croises differes ni de tutoiement", () => {
+  it("aucune mention d'achats, de 72 h, de liberation automatique, d'avis croises differes ni de tutoiement (colonne absente : ni « À confirmer »)", () => {
     for (const d of [detail("in_progress"), detail("done", { ledger: release }), detail("cancelled")]) {
       const t = text(render(d))
       expect(t).not.toMatch(/achat|72 ?h|automatique|croisé|séance|À confirmer/i)
@@ -147,7 +151,14 @@ describe("MissionFollowupView (E05)", () => {
   })
 
   it("fichiers de l'ecran : marqueur, aucune couleur en dur ni style en ligne", () => {
-    for (const f of ["followup-view.jsx", "followup/track.jsx", "followup/earning-lines.jsx", "followup/receipt.jsx"]) {
+    for (const f of [
+      "followup-view.jsx",
+      "followup/track.jsx",
+      "followup/earning-lines.jsx",
+      "followup/receipt.jsx",
+      "followup/declare-end.jsx",
+      "followup/declare-copy.js",
+    ]) {
       const src = readFileSync(`src/components/student-space/mission/${f}`, "utf8")
       expect(src).toContain("@ds-screen RD-STUDENT-01")
       expect(src).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|style=\{|0\.88|0\.12/)

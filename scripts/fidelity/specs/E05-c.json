@@ -1,0 +1,52 @@
+{
+  "id": "E05-c",
+  "title": "Mission retenue, fin déclarée « À confirmer » (mobile)",
+  "planche": "etudiant/E05-mission-retenue-suivi.v2.html",
+  "screen": "e05-c",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale)",
+  "views": [
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        1064
+      ],
+      "frame": "phone",
+      "frameIndex": 2,
+      "selectors": [
+        {
+          "id": "MI-25",
+          "label": "chronologie",
+          "board": ".e2-track",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "note": "la hauteur n'est pas mesurée : la planche n'a pas de sous-titre sous « Avis croisés » et le code garde « Après la fin de la mission » (étape d'avis partagée avec les autres états)"
+        },
+        {
+          "id": "MI-25",
+          "label": "étape en cours",
+          "board": ".e2-step--now",
+          "props": [
+            "x",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "h": "A2:3"
+          },
+          "note": "h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) ; étape « Paiement libéré » de la planche = étape « Paiement sur votre portefeuille » du code, phrase « Quand <Prénom> confirme la fin de la mission ; votre part reste en séquestre d'ici là »"
+        }
+      ]
+    }
+  ]
+}
