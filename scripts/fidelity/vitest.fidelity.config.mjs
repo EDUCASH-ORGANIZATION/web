@@ -7,6 +7,9 @@ const ROOT = path.resolve(import.meta.dirname, "../..")
 
 process.env.TZ = "Africa/Porto-Novo"
 
+// Pas de dossier de sortie par défaut ici : un défaut partagé ferait s'écraser les worktrees.
+if (!process.env.FIDELITY_OUT) throw new Error("FIDELITY_OUT est obligatoire (le banc se lance par `npm run fidelity`).")
+
 // Les fichiers .js du projet contiennent du JSX : on les transforme en amont (comme vitest.config.mjs).
 const jsxInJs = {
   name: "jsx-in-js",
