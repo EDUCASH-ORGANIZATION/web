@@ -36,6 +36,28 @@ export function LockedComposer({ text }) {
 }
 
 /**
+ * Bouton à droite du champ : l'envoi dès qu'il y a du texte, sinon le micro (message vocal).
+ * @param {{ hasText: boolean, onRecord: () => void }} props
+ */
+/** Un texte est envoyable s'il contient autre chose que des blancs. */
+export const hasSendableText = (text) => text.trim().length > 0
+
+export function SendOrMic({ hasText, onRecord }) {
+  if (hasText) {
+    return (
+      <button type="submit" className="composer__send" aria-label="Envoyer">
+        <Icon name="i-send" />
+      </button>
+    )
+  }
+  return (
+    <button type="button" className="iconbtn2" aria-label="Enregistrer un message vocal" onClick={onRecord}>
+      <Icon name="i-mic" />
+    </button>
+  )
+}
+
+/**
  * Zone d'écriture : texte, image, message vocal, position. `onSend(payload)` reçoit
  * `{ type: "text", content }`, `{ type: "image"|"voice", file, ext }` ou `{ type: "location", lat, lng }` ;
  * l'envoi, les échecs et les reprises sont gérés par la conversation (bulle « non envoyé » avec Réessayer).
@@ -214,11 +236,8 @@ export function Composer({ onSend }) {
             <button type="button" className="iconbtn2" aria-label="Joindre une image" onClick={() => imageInput.current?.click()}>
               <Icon name="i-image" />
             </button>
-            <button type="button" className="iconbtn2" aria-label="Enregistrer un message vocal" onClick={startRecording}>
-              <Icon name="i-mic" />
-            </button>
             <button type="button" className="iconbtn2" aria-label="Partager une position" onClick={() => setLocating(true)}>
-              <Icon name="i-map-pin" />
+              <Icon name="i-navigation" />
             </button>
           </div>
           <label className="composer__field">
@@ -229,14 +248,12 @@ export function Composer({ onSend }) {
               value={text}
               rows={1}
               maxLength={MESSAGE_MAX_LENGTH}
-              placeholder="Écrivez un message..."
+              placeholder="Écrivez un message…"
               onChange={(e) => setText(e.target.value)}
               onKeyDown={onKeyDown}
             />
           </label>
-          <button type="submit" className="composer__send" aria-label="Envoyer" disabled={!text.trim()}>
-            <Icon name="i-send" />
-          </button>
+          <SendOrMic hasText={hasSendableText(text)} onRecord={startRecording} />
         </form>
       </div>
       {preview ? <ImageDialog file={preview.file} previewUrl={preview.url} onConfirm={confirmImage} onCancel={() => setPreview(null)} /> : null}

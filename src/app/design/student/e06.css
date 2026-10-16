@@ -31,7 +31,7 @@
   /* Une seule colonne : la liste seule sur /messages, la conversation seule sur /messages/<mission> (son en-tête
      remplace alors le titre de page) */
   .e2-06-inbox, .e2-06-inbox--tall { grid-template-columns: minmax(0, 1fr); height: auto; }
-  .e2-06-inbox > .e2-07-pane { height: calc(100dvh - var(--s-2) - env(safe-area-inset-bottom, 0px)); }
+  .e2-06-inbox > .e2-07-pane { height: calc(100dvh - var(--s-2)); }
   .e2-06-inbox[data-view="list"] > :not(.e2-06-list) { display: none; }
   .e2-06-inbox[data-view="conversation"] > .e2-06-list { display: none; }
   /* Titre masqué à l'œil seulement : le h1 « Messages » reste lu par les lecteurs d'écran */

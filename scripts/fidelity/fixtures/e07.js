@@ -32,7 +32,7 @@ export const conversation = {
   canWrite: true,
   messages: [
     msg(0, true, "Je suis chez Tantie Awa, c'est réglé pour le riz. Je passe à la boutique pour l'huile."),
-    msg(1, false, "Parfait, merci. Payé, la capture est jointe.", { read: false }),
+    msg(1, false, "Payé, la capture est jointe. Vérifiez avec Codjo svp.", { read: false }),
     msg(2, true, "Bien reçu, je vous confirme à mon retour."),
   ],
 }
@@ -50,7 +50,7 @@ export const screens = [
     child: {
       view: "@/components/student-space/messages/conversation-view",
       component: "StudentConversationView",
-      props: { conversation, now: NOW },
+      props: { conversation, now: NOW, paymentsEnabled: true },
     },
   },
 ]

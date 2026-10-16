@@ -105,7 +105,11 @@
             "pad",
             "gap"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "assume": {
+            "h": "A2:2"
+          },
+          "note": "A2 : sous-titre 13 -> 14 px (--t-caption), interligne 1,5 : +1,5 de hauteur, +2 mesuré (planche 71 px, code 73 px)"
         },
         {
           "id": "ME-08",
@@ -133,7 +137,11 @@
             "h",
             "radius"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "note": "A8 : la planche place un menu ⋮ 40 px (Plus d'actions : signaler) et un gap de 12 px à droite du bouton ; Signaler n'existe pas (D4), le menu est omis : le bouton est 52 px plus à droite (x1196 planche, x1248 code)",
+          "assume": {
+            "x": "A8:52"
+          }
         },
         {
           "id": "ME-09",
@@ -147,7 +155,11 @@
             "gap",
             "bg"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "assume": {
+            "h": "A2:2"
+          },
+          "note": "A2 : texte du bandeau 12 -> 14 px (--t-caption) sur deux lignes : 38 px de texte contre 32 px, +2 mesuré (planche 57 px, code 59 px)"
         },
         {
           "id": "ME-09",
@@ -174,7 +186,11 @@
             "w",
             "h"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "assume": {
+            "w": "A2:6"
+          },
+          "note": "A2 : texte 12 -> 13 px (--t-micro), +6 mesuré (planche 106 px, code 112 px)"
         },
         {
           "id": "ME-09",
@@ -185,7 +201,8 @@
             "h",
             "radius"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "note": "Bouton « J'ai terminé » (D2) absent de l'interface : l'action serveur declareMissionCompletion est disponible (RD-DONE-01), le branchement de l'interface est hors ST-05. L'écart (absent, 138x36 en planche) reste ÉCHEC tant que le bouton n'est pas branché"
         },
         {
           "id": "ME-12",
@@ -205,12 +222,19 @@
           "label": "champ de saisie",
           "board": ".composer__field",
           "props": [
+            "x",
             "w",
             "h",
             "radius",
             "bg"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "note": "A8 : la planche place un troisième outil i-receipt (Demander un paiement d'achats) que la décision 24 supprime (achats = photos dans la conversation) : le champ commence 42 px plus à gauche et est 42 px plus large (x811 w522 planche, x769 w564 code). A1 sur le fond",
+          "assume": {
+            "x": "A8:42",
+            "w": "A8:42",
+            "bg": "A1"
+          }
         },
         {
           "id": "ME-14",
@@ -288,7 +312,8 @@
             "y",
             "w"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "note": "La planche montre le menu ⋮ (D4, Signaler et Voir la mission) à droite ; le code place une icône i-briefcase 44x44 « Voir la mission » (libellé lisible par lecteur d'écran) car le menu n'existe pas"
         },
         {
           "id": "ME-10",
@@ -301,7 +326,8 @@
             "h",
             "pad"
           ],
-          "lot": "ST-05"
+          "lot": "ST-05",
+          "note": "Hauteur liée au bouton « J'ai terminé » 36 px (D2, livraison différée RD-DONE-01 : action serveur disponible, branchement de l'interface hors ST-05) : sans bouton 43 px au lieu de 57 (-14). Reste ÉCHEC jusqu'au branchement, puis A5 éventuel."
         },
         {
           "id": "ME-10",
@@ -315,7 +341,7 @@
           "assume": {
             "h": "A5:8"
           },
-          "note": "A5 : cible tactile (+8 de hauteur toléré) ; le bouton est absent du code (lot ST-05), aucune mesure possible"
+          "note": "Bouton « J'ai terminé » (D2) absent de l'interface : l'action serveur declareMissionCompletion est disponible (RD-DONE-01), le branchement de l'interface est hors ST-05. L'écart (absent, 138x36 en planche) reste ÉCHEC tant que le bouton n'est pas branché ; A5 reste valable pour la hauteur une fois le bouton branché"
         },
         {
           "id": "ME-13",
@@ -323,29 +349,30 @@
           "board": ".composer",
           "props": [
             "x",
-            "y",
             "w",
             "h"
           ],
           "lot": "ST-05",
+          "note": "BANC : la planche ajoute 34 px de zone sûre simulée du téléphone (h89 = 10 + 44 + 34 + 1) ; le code ajoute env(safe-area-inset-bottom), qui vaut 0 dans le banc (h65 = 10 + 44 + 10 + 1) : -24 mesuré. y non comparé (cadre long de la planche, y1050 contre fenêtre 844)",
           "assume": {
-            "h": "A5:8"
-          },
-          "note": "A5 : cible tactile 44 px (+8 de hauteur toléré) ; mesuré h+24 (planche 89 px, code 113 px) : hors limite, reste en ÉCHEC"
+            "h": "BANC:24"
+          }
         },
         {
           "id": "ME-13",
           "label": "champ de saisie",
           "board": ".composer__field",
           "props": [
-            "y",
+            "x",
+            "w",
             "h"
           ],
           "lot": "ST-05",
+          "note": "A5 : outils et micro à 44 px sous 1024 au lieu de 40 : le champ commence 8 px plus à droite (x110 contre x102) et est 12 px plus étroit (w216 contre w228). y non comparé (cadre long, voir saisie)",
           "assume": {
-            "h": "A5:5"
-          },
-          "note": "A5 : cible tactile 44 -> 48 px (+4 mesuré)"
+            "x": "A5:8",
+            "w": "A5:12"
+          }
         }
       ]
     }
