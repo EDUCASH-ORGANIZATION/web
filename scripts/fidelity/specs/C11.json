@@ -228,7 +228,7 @@
             "y": "A3:3",
             "h": "A8:71"
           },
-          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : ligne « Référence EDC-R-0436 » (référence non codée, D4) et lien « Télécharger le reçu (PDF) » (non codé, D4) absents : -42 px et -29 px"
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : ligne « Référence EDC-R-0436 » (référence non codée, D4) et lien « Télécharger le reçu (PDF) » (non codé, D4) absents : -42 px et -29 px. Écart décidé : la carte « Coût total » (service + achats payés en direct) est omise, la planche additionne des montants d'achats payés qui n'existent pas en base"
         },
         {
           "id": "MI-10",
@@ -298,11 +298,16 @@
           "board": "section.card2[aria-label=\"Reçu du service\"]",
           "props": [
             "x",
+            "y",
             "w",
             "radius",
             "pad"
           ],
-          "lot": "ST-09"
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:100"
+          },
+          "note": "X1 : en-tête mobile du code plus haut que celui de la planche (voir C08 mobile, lot ST-03)"
         },
         {
           "id": "MI-10",
@@ -311,11 +316,16 @@
           "code": "section.card2[aria-label=\"Achats pour votre compte\"]",
           "props": [
             "x",
+            "y",
             "w",
             "radius",
             "pad"
           ],
-          "lot": "ST-09"
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:231"
+          },
+          "note": "X1 : décalage de l'en-tête mobile et hauteur du reçu du code (reçu complet avec « Libéré le » et « Moyen » contre un reçu compact de 2 lignes dans la planche mobile)"
         }
       ]
     }

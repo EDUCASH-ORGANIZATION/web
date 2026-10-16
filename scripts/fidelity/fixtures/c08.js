@@ -36,6 +36,36 @@ export const detail = {
   review: null,
 }
 
+// Planche C09 (modale « Confirmer la fin », cadre bureau 0 et mobile 0) : mission sans achats, 15 000 FCFA bloqués
+// depuis le 1 oct., étudiante Nadège Kpadonou. La modale s'ouvre par le drapeau confirmer (sans action).
+const nadege = {
+  ...student,
+  id: "22222222-2222-4222-8222-222222222223",
+  fullName: "Nadège Kpadonou",
+  rating: 4.7,
+  missionsDone: 9,
+  school: "ENEAM",
+  level: "Licence 2 Gestion",
+}
+
+export const detailC09 = {
+  mission: {
+    ...detail.mission,
+    title: "Saisie de 200 fiches clients",
+    type: "Saisie",
+    city: null,
+    budget: 15000,
+    purchasesEstimate: null,
+    deadline: "2026-10-09",
+    createdAt: "2026-10-01T11:05:00+01:00",
+    selectedStudentId: nadege.id,
+  },
+  applications: [],
+  selectedStudent: nadege,
+  ledger: [{ type: "reserve", amount: 15000, createdAt: "2026-10-01T11:05:00+01:00" }],
+  review: null,
+}
+
 export const screens = [
   {
     name: "c08",
@@ -44,5 +74,13 @@ export const screens = [
     view: "@/components/client-space/mission-detail/followup-view",
     component: "MissionFollowupView",
     props: { detail, flags: { confirmer: false, publiee: false, paymentsEnabled: true } },
+  },
+  {
+    name: "c09",
+    space: "c2",
+    path: "/client/missions/11111111-1111-4111-8111-111111111111",
+    view: "@/components/client-space/mission-detail/followup-view",
+    component: "MissionFollowupView",
+    props: { detail: detailC09, flags: { confirmer: true, publiee: false, paymentsEnabled: true } },
   },
 ]

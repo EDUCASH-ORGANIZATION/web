@@ -1,0 +1,190 @@
+{
+  "id": "C09",
+  "title": "Confirmer la fin (modale ouverte, bureau ; la feuille mobile n'est pas mesurable : Modal la choisit par matchMedia, absent du rendu statique)",
+  "planche": "client/C09-confirmer-la-fin.v2.html",
+  "screen": "c09",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A2 : texte de 12 px des planches porté à 13 px (--t-micro) ; RD-FIDELITE-01",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "MI-11",
+          "label": "scrim",
+          "board": ".scrim",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-11",
+          "label": "modale",
+          "board": ".scrim .modal",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:10",
+            "h": "X1:18"
+          },
+          "note": "Modale centrée verticalement dans le cadre : le décalage vient de la hauteur (-18 px), pas d'un autre calage. X1 : l'icône d'en-tête (modal__icon, 44 px) de la planche est absente de ConfirmEndDialog, à garder intact dans ST-09 (confirmMission, releaseOnce, ConfirmEndDialog) : titre décalé de 68 px, en-tête 3 px moins haut. Lot : RD-FIDELITE-01, ajout de l'icône dans un lot qui autorise la modification de ConfirmEndDialog. X1 : la sous-ligne « fiches-clients.xlsx, livré le mer. 7 oct. à 10:00 » de la case à cocher est absente (le fichier livré et la déclaration de fin de l'étudiant n'existent pas dans les données de la modale) : -16 px sur la case, -15 px sur le corps. Lot : RD-DONE-01 (livraison différée, jamais A8). "
+        },
+        {
+          "id": "MI-11",
+          "label": "tête",
+          "board": ".modal__head",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:10",
+            "h": "X1:3"
+          },
+          "note": "Modale centrée verticalement dans le cadre : le décalage vient de la hauteur (-18 px), pas d'un autre calage. X1 : l'icône d'en-tête (modal__icon, 44 px) de la planche est absente de ConfirmEndDialog, à garder intact dans ST-09 (confirmMission, releaseOnce, ConfirmEndDialog) : titre décalé de 68 px, en-tête 3 px moins haut. Lot : RD-FIDELITE-01, ajout de l'icône dans un lot qui autorise la modification de ConfirmEndDialog. "
+        },
+        {
+          "id": "MI-11",
+          "label": "icône d'en-tête",
+          "board": ".modal__icon",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-09",
+          "note": "X1 : l'icône d'en-tête (modal__icon, 44 px) de la planche est absente de ConfirmEndDialog, à garder intact dans ST-09 (confirmMission, releaseOnce, ConfirmEndDialog) : titre décalé de 68 px, en-tête 3 px moins haut. Lot : RD-FIDELITE-01, ajout de l'icône dans un lot qui autorise la modification de ConfirmEndDialog."
+        },
+        {
+          "id": "MI-11",
+          "label": "titre",
+          "board": ".modal__title",
+          "props": [
+            "x",
+            "fontSize",
+            "fontWeight"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "x": "X1:68"
+          },
+          "note": "X1 : l'icône d'en-tête (modal__icon, 44 px) de la planche est absente de ConfirmEndDialog, à garder intact dans ST-09 (confirmMission, releaseOnce, ConfirmEndDialog) : titre décalé de 68 px, en-tête 3 px moins haut. Lot : RD-FIDELITE-01, ajout de l'icône dans un lot qui autorise la modification de ConfirmEndDialog. "
+        },
+        {
+          "id": "MI-11",
+          "label": "corps",
+          "board": ".modal__body",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:7",
+            "h": "X1:15"
+          },
+          "note": "Modale centrée verticalement dans le cadre : le décalage vient de la hauteur (-18 px), pas d'un autre calage. X1 : l'icône d'en-tête (modal__icon, 44 px) de la planche est absente de ConfirmEndDialog, à garder intact dans ST-09 (confirmMission, releaseOnce, ConfirmEndDialog) : titre décalé de 68 px, en-tête 3 px moins haut. Lot : RD-FIDELITE-01, ajout de l'icône dans un lot qui autorise la modification de ConfirmEndDialog. X1 : la sous-ligne « fiches-clients.xlsx, livré le mer. 7 oct. à 10:00 » de la case à cocher est absente (le fichier livré et la déclaration de fin de l'étudiant n'existent pas dans les données de la modale) : -16 px sur la case, -15 px sur le corps. Lot : RD-DONE-01 (livraison différée, jamais A8). "
+        },
+        {
+          "id": "MI-11",
+          "label": "lignes",
+          "board": ".modal .lines2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:7"
+          },
+          "note": "Modale centrée verticalement dans le cadre : le décalage vient de la hauteur (-18 px), pas d'un autre calage. X1 : l'icône d'en-tête (modal__icon, 44 px) de la planche est absente de ConfirmEndDialog, à garder intact dans ST-09 (confirmMission, releaseOnce, ConfirmEndDialog) : titre décalé de 68 px, en-tête 3 px moins haut. Lot : RD-FIDELITE-01, ajout de l'icône dans un lot qui autorise la modification de ConfirmEndDialog. X1 : la sous-ligne « fiches-clients.xlsx, livré le mer. 7 oct. à 10:00 » de la case à cocher est absente (le fichier livré et la déclaration de fin de l'étudiant n'existent pas dans les données de la modale) : -16 px sur la case, -15 px sur le corps. Lot : RD-DONE-01 (livraison différée, jamais A8). "
+        },
+        {
+          "id": "MI-11",
+          "label": "case à cocher",
+          "board": ".modal .check",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:6",
+            "h": "X1:16"
+          },
+          "note": "Modale centrée verticalement dans le cadre : le décalage vient de la hauteur (-18 px), pas d'un autre calage. X1 : l'icône d'en-tête (modal__icon, 44 px) de la planche est absente de ConfirmEndDialog, à garder intact dans ST-09 (confirmMission, releaseOnce, ConfirmEndDialog) : titre décalé de 68 px, en-tête 3 px moins haut. Lot : RD-FIDELITE-01, ajout de l'icône dans un lot qui autorise la modification de ConfirmEndDialog. X1 : la sous-ligne « fiches-clients.xlsx, livré le mer. 7 oct. à 10:00 » de la case à cocher est absente (le fichier livré et la déclaration de fin de l'étudiant n'existent pas dans les données de la modale) : -16 px sur la case, -15 px sur le corps. Lot : RD-DONE-01 (livraison différée, jamais A8). "
+        },
+        {
+          "id": "MI-11",
+          "label": "pied",
+          "board": ".modal__foot",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:10"
+          },
+          "note": "Modale centrée verticalement dans le cadre : le décalage vient de la hauteur (-18 px), pas d'un autre calage. Le pied suit le corps plus court (-18 px de la modale) : X1 : l'icône d'en-tête (modal__icon, 44 px) de la planche est absente de ConfirmEndDialog, à garder intact dans ST-09 (confirmMission, releaseOnce, ConfirmEndDialog) : titre décalé de 68 px, en-tête 3 px moins haut. Lot : RD-FIDELITE-01, ajout de l'icône dans un lot qui autorise la modification de ConfirmEndDialog. X1 : la sous-ligne « fiches-clients.xlsx, livré le mer. 7 oct. à 10:00 » de la case à cocher est absente (le fichier livré et la déclaration de fin de l'étudiant n'existent pas dans les données de la modale) : -16 px sur la case, -15 px sur le corps. Lot : RD-DONE-01 (livraison différée, jamais A8). "
+        },
+        {
+          "id": "MI-11",
+          "label": "bouton Libérer le paiement",
+          "board": ".modal__foot .btn--dark",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:10"
+          },
+          "note": "Modale centrée verticalement dans le cadre : le décalage vient de la hauteur (-18 px), pas d'un autre calage. Le bouton suit le pied : X1 : l'icône d'en-tête (modal__icon, 44 px) de la planche est absente de ConfirmEndDialog, à garder intact dans ST-09 (confirmMission, releaseOnce, ConfirmEndDialog) : titre décalé de 68 px, en-tête 3 px moins haut. Lot : RD-FIDELITE-01, ajout de l'icône dans un lot qui autorise la modification de ConfirmEndDialog. X1 : la sous-ligne « fiches-clients.xlsx, livré le mer. 7 oct. à 10:00 » de la case à cocher est absente (le fichier livré et la déclaration de fin de l'étudiant n'existent pas dans les données de la modale) : -16 px sur la case, -15 px sur le corps. Lot : RD-DONE-01 (livraison différée, jamais A8). "
+        }
+      ]
+    }
+  ]
+}
