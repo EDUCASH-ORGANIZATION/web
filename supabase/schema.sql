@@ -7,13 +7,15 @@
 -- applications.accepted_at), puis scripts 92 et 93 de RD-MSG-01 (tables
 -- public.message_contact_events et public.reports, retrait du droit INSERT de
 -- authenticated sur public.messages).
--- Scripts 92 et 93 de RD-MSG-01 NON appliqués en production au 2026-10-16 : à retirer
--- de cet en-tête après application. Le 93 ne se lance qu'après le déploiement du
--- nouveau code en production ET en staging (base partagée).
 -- Script 70 appliqué en production le 2026-10-15.
 -- Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.
 -- Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.
 -- Script 91 de RD-ACCEPT-01 appliqué en production le 2026-10-16.
+-- Script 92 de RD-MSG-01 appliqué en production le 2026-10-16.
+-- Script 93 de RD-MSG-01 (retrait du droit INSERT sur public.messages à authenticated)
+-- NON appliqué en production : à retirer de cet en-tête après application. Il ne se
+-- lance qu'après le déploiement du nouveau code en production ET en staging (base
+-- partagée).
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
