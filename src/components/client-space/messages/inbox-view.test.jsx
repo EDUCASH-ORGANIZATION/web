@@ -358,10 +358,19 @@ describe("segment client/messages", () => {
     expect(page).not.toMatch(/<Suspense|searchParams/)
   })
 
-  it("la page de conversation rend son erreur en h2 (le layout porte le seul h1)", () => {
+  it("la page de conversation rend son erreur en h2 avec le lien de retour (le layout porte le seul h1)", async () => {
     const page = readFileSync(join(root, "[missionId]", "page.js"), "utf8")
     expect(page).toContain('titleAs="h2"')
     expect(page).not.toContain('titleAs="h1"')
+    vi.resetModules()
+    vi.doMock("@/lib/actions/message.actions", () => ({ getClientConversation: async () => ({ error: "Impossible de charger." }) }))
+    const { default: Page } = await import("@/app/(client)/client/messages/[missionId]/page")
+    const html = renderToStaticMarkup(await Page({ params: Promise.resolve({ missionId: M1 }), searchParams: Promise.resolve({}) }))
+    vi.doUnmock("@/lib/actions/message.actions")
+    expect(html).toContain("<h2")
+    expect(html).not.toContain("<h1")
+    expect(html).toContain('href="/client/messages"')
+    expect(html).toContain("Retour aux messages")
   })
 
   it("la conversation introuvable porte un h2 et aucun h1 (le layout porte le h1)", async () => {
