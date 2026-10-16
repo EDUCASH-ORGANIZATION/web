@@ -73,7 +73,8 @@ function pendingMessage(item) {
  *   getStudentConversation ; `paymentsEnabled` : lu côté serveur par la page (formulation du bandeau)
  */
 export function StudentConversationView({ conversation, now, paymentsEnabled = false }) {
-  const { userId, missionId, clientId, client, mission, state, canWrite } = conversation
+  const { userId, missionId, clientId, client, mission, state, canWrite, completionDeclaredAt, completionAvailable } =
+    conversation
   const nowDate = useMemo(() => (now ? new Date(now) : new Date()), [now])
   const markRead = useCallback(() => {
     markStudentConversationRead({ missionId }).catch(() => {})
@@ -164,7 +165,14 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
         </Link>
       </header>
 
-      <StatusBanner state={state} missionId={missionId} mission={mission} paymentsEnabled={paymentsEnabled} />
+      <StatusBanner
+        state={state}
+        missionId={missionId}
+        mission={mission}
+        paymentsEnabled={paymentsEnabled}
+        completionDeclaredAt={completionDeclaredAt}
+        completionAvailable={completionAvailable}
+      />
 
       <div
         ref={chatRef}

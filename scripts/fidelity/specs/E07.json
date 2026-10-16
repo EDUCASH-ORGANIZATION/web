@@ -202,7 +202,7 @@
             "radius"
           ],
           "lot": "ST-05",
-          "note": "Bouton « J'ai terminé » (D2) absent de l'interface : l'action serveur declareMissionCompletion est disponible (RD-DONE-01), le branchement de l'interface est hors ST-05. L'écart (absent, 138x36 en planche) reste ÉCHEC tant que le bouton n'est pas branché"
+          "note": "Bouton « J'ai terminé » (D2) branché (RD-DONE-01 ST-10) : lien vers la fiche de la mission avec ?terminer=1, aucune action dans le bandeau ; mesure identique à la planche (138x36)"
         },
         {
           "id": "ME-12",
@@ -327,7 +327,10 @@
             "pad"
           ],
           "lot": "ST-05",
-          "note": "Hauteur liée au bouton « J'ai terminé » 36 px (D2, branchement différé RD-DONE-01 : action serveur disponible, branchement de l'interface hors ST-05) : sans bouton 43 px au lieu de 57 (-14). Reste ÉCHEC jusqu'au branchement, puis A5 éventuel."
+          "assume": {
+            "h": "A5:8"
+          },
+          "note": "A5 : la hauteur suit le bouton « J'ai terminé » (D2, branché par RD-DONE-01 ST-10) porté à 44 px sous 1024 au lieu de 36 : +8 mesuré (planche 57 px, code 65 px)"
         },
         {
           "id": "ME-10",
@@ -341,7 +344,7 @@
           "assume": {
             "h": "A5:8"
           },
-          "note": "Bouton « J'ai terminé » (D2) absent de l'interface : l'action serveur declareMissionCompletion est disponible (RD-DONE-01), le branchement de l'interface est hors ST-05. L'écart (absent, 138x36 en planche) reste ÉCHEC tant que le bouton n'est pas branché ; A5 reste valable pour la hauteur une fois le bouton branché"
+          "note": "A5 : bouton « J'ai terminé » (D2, branché par RD-DONE-01 ST-10) à 44 px sous 1024 au lieu de 36, +8 mesuré (planche 36 px, code 44 px) ; libellé sur une ligne (nowrap)"
         },
         {
           "id": "ME-13",
