@@ -37,7 +37,7 @@ function BackLink() {
 function Header({ data }) {
   const { mission } = data
   const view = missionStatusView({ status: mission.status, deadline: mission.deadline }, data.today)
-  const confirm = mission.status === "in_progress" && Boolean(data.completion)
+  const confirm = mission.status === "in_progress" && Boolean(data.completion?.declaredAt)
   const facts = [missionTypeLabel(mission.type), mission.city, formatAmount(mission.budget)].filter(Boolean)
   return (
     <div className="head2">

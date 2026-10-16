@@ -43,6 +43,7 @@ export function moneySummary({ budget, clientId, ledger }) {
 /**
  * Étapes de la frise, fondées sur les seules dates connues : aucune date de sélection n'est stockée, l'étape
  * « Étudiant retenu » n'en porte donc pas. Les états sont `done`, `current` ou `todo`.
+ * `completion` = `{ declaredAt, finishedAt }` (déclaration de l'étudiant, fin enregistrée).
  * @returns {Array<{ state: "done"|"current"|"todo", icon: string, title: string, at: string|null }>}
  */
 export function buildMissionTimeline({ mission, studentName, completion, ledger, clientId }) {
@@ -65,14 +66,17 @@ export function buildMissionTimeline({ mission, studentName, completion, ledger,
     return items
   }
   if (mission.status === "done") {
-    items.push({ state: "done", icon: "i-check-circle", title: "Mission terminée", at: completion?.createdAt ?? mission.updatedAt ?? null })
+    if (completion?.declaredAt) {
+      items.push({ state: "done", icon: "i-check", title: "Fin déclarée par l'étudiant", at: completion.declaredAt })
+    }
+    items.push({ state: "done", icon: "i-check-circle", title: "Mission terminée", at: completion?.finishedAt ?? mission.updatedAt ?? null })
     const release = first("release", (m) => m.userId === clientId)
     if (release) items.push({ state: "done", icon: "i-coins", title: `${formatAmount(abs(release.amount))} libérés du séquestre`, at: release.createdAt })
     return items
   }
   if (mission.status === "in_progress") {
-    if (completion) {
-      items.push({ state: "current", icon: "i-clock", title: "Fin enregistrée, à confirmer par le client", at: completion.createdAt })
+    if (completion?.declaredAt) {
+      items.push({ state: "current", icon: "i-clock", title: "Fin déclarée par l'étudiant, à confirmer par le client", at: completion.declaredAt })
     } else {
       items.push({ state: "current", icon: "i-clock", title: "Mission en cours", at: null })
     }

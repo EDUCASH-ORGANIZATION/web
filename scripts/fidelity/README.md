@@ -35,10 +35,32 @@ par exemple `ASSUMÉ A2, A3`), `ASSUMÉ-POLICE` (police seule), `NON EXPLIQUÉ .
 à part chaque statut ; un statut mixte `ASSUMÉ A3, POLICE` est compté dans ASSUMÉ (rappelé par « dont avec POLICE »).
 Code de sortie 1 s'il reste un `ÉCHEC` (sauf `--report-only`), 2 en cas d'erreur du banc.
 
-Sortie attendue pour `npm run fidelity -- E06` : toutes les lignes ME-04, ME-06, ME-07 en `ASSUMÉ` (écarts
-mesurés et déclarés), sauf la pastille « En cours » (ME-04, lot ST-04, filtre inexistant), la date de page
-bureau (contenu « Jeudi 8 octobre · » absent du code) et le titre mobile (30 px planche, 26 px code), qui
-restent en `ÉCHEC` ; les lignes avec 1 px non expliqué sont en `NON EXPLIQUÉ`.
+Rognage : le banc mesure des boîtes entières, qu'un parent peut couper à l'affichage. Pour chaque sélecteur
+du code, `measure.mjs` remonte les blocs conteneurs ; si l'un a `overflow: hidden` ou `clip` (ou
+`contain: paint`) et coupe la boîte de plus de 1 px, la ligne passe en `ÉCHEC` avec l'écart « rogné par
+<balise.classe> » (jamais `OK`, aucune règle `assume` ne l'efface). Le test porte sur le code seulement, pas
+sur la planche. Règles de la remontée :
+
+- un ancêtre défilant (`overflow: auto` ou `scroll`) ne rogne pas, le contenu reste atteignable ; sa propre
+  boîte remplace alors celle de l'élément pour les ancêtres suivants (choix prudent : un défilant plus grand
+  que son parent hidden est signalé rogné, même si l'élément visé est dans la partie visible) ;
+- un élément `absolute` n'est rogné que par les ancêtres de son bloc conteneur (premier ancêtre positionné,
+  transformé, filtré ou `contain`), un élément `fixed` seulement par un ancêtre transformé, filtré ou `contain` ;
+- `overflow-clip-margin` agrandit la zone d'un `overflow: clip` ; les ancêtres `display: inline`, `contents`
+  ou de tableau (lignes, groupes) sont ignorés (`overflow` ne s'y applique pas) ;
+- la remontée s'arrête à un dialogue modal ou un popover ouvert (calque supérieur) ;
+- un descendant d'un bloc « sr-only » (1 px, `overflow: hidden`) est signalé rogné : ne jamais viser un tel
+  descendant dans une spécification.
+
+Limites connues : `clip-path`, `border-radius` et les masques ne sont pas pris en compte ; les rectangles des
+ancêtres transformés (rotation) sont des boîtes englobantes ; le rognage par le document lui-même (`html`)
+n'est pas signalé (défilement de page). Les cas vérifiés sont dans `fixtures/clip-cases.html`, testés par
+`src/qa/fidelity/clip.test.js`, test facultatif sauté sans `FIDELITY_CHROMIUM`.
+
+Sortie attendue pour `npm run fidelity -- E06` (viewport bureau 1440 x 900) : un seul `ÉCHEC`, le titre de page
+mobile ME-19 (30 px planche, 26 px code, ST-03). La pastille « En cours » (ME-04) et la date de page
+bureau sont en `OK`, les autres lignes ME-04, ME-06, ME-07 en `ASSUMÉ` (écarts mesurés et déclarés,
+dont la liste ME-06 : y+3 et h-3, `A3`) ; les lignes avec 1 px non expliqué sont en `NON EXPLIQUÉ`.
 
 ## Structure
 
@@ -56,7 +78,7 @@ restent en `ÉCHEC` ; les lignes avec 1 px non expliqué sont en `NON EXPLIQUÉ`
   "id": "E06", "title": "...", "planche": "etudiant/E06-messages.v2.html", "screen": "e06", "tolerance": 1,
   "assume": { "color": "A1", "bg": "A1", "fontSize": "A2:1" },
   "views": [{
-    "name": "bureau", "viewport": [1440, 880], "frame": "desk", "frameIndex": 0,
+    "name": "bureau", "viewport": [1440, 900], "frame": "desk", "frameIndex": 0,
     "assume": { "y": "A3:4" },
     "selectors": [
       { "id": "ME-06", "label": "liste", "board": ".e2-06-list", "code": ".e2-06-list",
@@ -68,9 +90,9 @@ restent en `ÉCHEC` ; les lignes avec 1 px non expliqué sont en `NON EXPLIQUÉ`
 
 - `frame` : `desk` (`.frame-desk__screen`, 1440) ou `phone` (`.frame-phone__screen`, 390 ; la barre
   d'état de 36 px est retranchée des y de la planche).
-- `viewport` du code : coquille du code : cadre `100dvh - 32`, zone principale `100dvh - 60` ; planche :
-  900 - 32 et 900 - 60. Viewport bureau 900 pour C12 ; E06, E07 et C13 restent à 880 jusqu'au ticket de
-  re-mesure.
+- `viewport` du code : 1440 x 900 pour tous les écrans bureau, la hauteur de la planche. La coquille v2
+  du code (`min-height: 100dvh`) a un cadre de `100dvh - 32 px` et une zone principale de `100dvh - 60 px` ;
+  la planche est un cadre de 900 px (900 - 32 et 900 - 60). À 900, les deux se superposent sans correctif.
 - `board` : sélecteur dans le cadre de la planche ; `code` : sélecteur dans le rendu (défaut : `board`).
   Le premier élément correspondant est mesuré des deux côtés.
 - `props` : `x y w h` (tolérance 1 px) et `tw` (largeur du texte lui-même, utile quand la boîte épouse un

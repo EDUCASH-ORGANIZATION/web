@@ -30,6 +30,7 @@
 
 import { z } from "zod"
 import { requireRole } from "@/lib/auth/require-role"
+import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
 import { toOwnedStoragePath, toProjectAvatarUrl } from "@/lib/storage/owned-paths"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
 import { netAmount } from "@/lib/constants/missions"
@@ -42,6 +43,7 @@ import {
   MESSAGE_MAX_LENGTH,
   buildConversations,
   conversationAccess,
+  withCompletionDeclared,
   coordsValid,
   isPairRow,
   mediaKindOfPath,
@@ -326,7 +328,7 @@ export async function getClientConversation({ missionId, studentId } = {}) {
   if (pair.status === "forbidden") return { notFound: true }
   const other = pair.studentId
 
-  const [messagesRes, profileRes] = await Promise.all([
+  const [messagesRes, profileRes, completionAccess] = await Promise.all([
     supabase
       .from("messages")
       .select(MESSAGE_COLUMNS)
@@ -335,9 +337,13 @@ export async function getClientConversation({ missionId, studentId } = {}) {
       .order("created_at", { ascending: false })
       .limit(THREAD_ROWS_LIMIT),
     supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("user_id", other).maybeSingle(),
+    readPairCompletion(supabase, pair.access, missionId).catch((e) => ({ failure: e })),
   ])
-  if (messagesRes.error || profileRes.error) {
-    console.error("[getClientConversation] lecture", messagesRes.error?.message ?? profileRes.error?.message)
+  if (messagesRes.error || profileRes.error || completionAccess.failure) {
+    console.error(
+      "[getClientConversation] lecture",
+      messagesRes.error?.message ?? profileRes.error?.message ?? completionAccess.failure?.code ?? completionAccess.failure?.message,
+    )
     return { error: ERR_LOAD }
   }
 
@@ -358,8 +364,10 @@ export async function getClientConversation({ missionId, studentId } = {}) {
       student: toStudent(other, profileRes.data),
       mission: toMissionInfo(pair.mission),
       relation: pair.mission.selectedStudentId === other ? "selected" : "candidate",
-      state: pair.access.state,
-      canWrite: pair.access.canWrite,
+      state: completionAccess.state,
+      completionDeclaredAt: completionAccess.completionDeclaredAt,
+      completionAvailable: completionAccess.completionAvailable,
+      canWrite: completionAccess.canWrite,
       messages,
     },
   }
@@ -508,6 +516,18 @@ const studentSendSchema = z.object({
   lng: z.number().optional(),
 })
 
+/**
+ * Date de fin déclarée de la mission d'une conversation autorisée, lue SEULEMENT pour l'état `in_progress`
+ * (paire déjà établie : mission du client, ou étudiant retenu). Colonne absente : `available: false`, date null.
+ * Toute autre erreur lève, l'appelant répond par l'erreur neutre.
+ */
+async function readPairCompletion(supabase, access, missionId) {
+  if (access.state !== "in_progress") return withCompletionDeclared(access, null)
+  const { available, byId } = await readCompletionDeclared(supabase, [missionId])
+  // Réponse sans la ligne (RLS, mission réattribuée) : indisponible, jamais un faux « non déclaré ».
+  return withCompletionDeclared(access, byId.get(missionId) ?? null, available && byId.has(missionId))
+}
+
 const toStudentMission = (m) => ({ ...toMission(m), clientId: m.client_id })
 
 /**
@@ -640,7 +660,7 @@ export async function getStudentConversation({ missionId } = {}) {
   if (pair.status === "forbidden") return { notFound: true }
   const other = pair.clientId
 
-  const [messagesRes, profileRes] = await Promise.all([
+  const [messagesRes, profileRes, completionAccess] = await Promise.all([
     supabase
       .from("messages")
       .select(MESSAGE_COLUMNS)
@@ -649,9 +669,13 @@ export async function getStudentConversation({ missionId } = {}) {
       .order("created_at", { ascending: false })
       .limit(THREAD_ROWS_LIMIT),
     supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("user_id", other).maybeSingle(),
+    readPairCompletion(supabase, pair.access, missionId).catch((e) => ({ failure: e })),
   ])
-  if (messagesRes.error || profileRes.error) {
-    console.error("[getStudentConversation] lecture", messagesRes.error?.message ?? profileRes.error?.message)
+  if (messagesRes.error || profileRes.error || completionAccess.failure) {
+    console.error(
+      "[getStudentConversation] lecture",
+      messagesRes.error?.message ?? profileRes.error?.message ?? completionAccess.failure?.code ?? completionAccess.failure?.message,
+    )
     return { error: ERR_LOAD }
   }
 
@@ -670,8 +694,10 @@ export async function getStudentConversation({ missionId } = {}) {
       clientId: other,
       client: toClientParty(other, profileRes.data),
       mission: { ...toMissionInfo(pair.mission), net: pair.mission.budget === null ? null : netAmount(pair.mission.budget) },
-      state: pair.access.state,
-      canWrite: pair.access.canWrite,
+      state: completionAccess.state,
+      completionDeclaredAt: completionAccess.completionDeclaredAt,
+      completionAvailable: completionAccess.completionAvailable,
+      canWrite: completionAccess.canWrite,
       messages,
     },
   }

@@ -1,6 +1,7 @@
 "use server"
 
 import { requireRole } from "@/lib/auth/require-role"
+import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
 import { isUuid } from "@/lib/vitrine/ids"
 import { firstName } from "@/lib/vitrine/public-name"
@@ -77,6 +78,10 @@ const CANDIDATE_REVIEWS_LIMIT = 20
  * @property {number} reviewsTotal Nombre total d'avis reçus
  * @property {Array<{ id: string, rating: number, comment: string|null, createdAt: string, authorFirstName: string }>} reviews
  *   Avis reçus (20 au plus, récents d'abord), l'auteur réduit à son prénom
+ * @property {{ available: boolean, declaredAt: string|null }} completion
+ *   Fin déclarée par l'étudiant (RD-DONE-01), lue pour les missions in_progress et done seulement.
+ *   `available: false` quand la colonne n'existe pas encore en base ou pour les autres statuts ;
+ *   `declaredAt` : date ISO (conservée une fois la mission terminée) ou null
  */
 
 function toStudent(userId, profile, studentProfile) {
@@ -149,7 +154,7 @@ export async function getClientMissionDetail(id) {
   if (!mission) return null
 
   // Tout ce qui suit est filtré par l'identifiant d'une mission dont la propriété est établie.
-  const [applicationsRes, ledgerRes, reviewRes] = await Promise.all([
+  const [applicationsRes, ledgerRes, reviewRes, completionRes] = await Promise.all([
     supabase
       .from("applications")
       .select(APPLICATION_COLUMNS)
@@ -170,6 +175,9 @@ export async function getClientMissionDetail(id) {
       .eq("reviewer_id", user.id)
       .limit(1)
       .maybeSingle(),
+    mission.status === "in_progress" || mission.status === "done"
+      ? readCompletionDeclared(supabase, [mission.id]).catch((failure) => ({ failure }))
+      : Promise.resolve({ available: false, byId: new Map() }),
   ])
   if (applicationsRes.error || ledgerRes.error || reviewRes.error) {
     console.error(
@@ -178,6 +186,14 @@ export async function getClientMissionDetail(id) {
     )
     throw new Error(ERR_LOAD)
   }
+
+  if (completionRes.failure) {
+    console.error("[getClientMissionDetail] fin déclarée", completionRes.failure?.code ?? completionRes.failure?.message)
+    throw new Error(ERR_LOAD)
+  }
+  // Réponse sans la ligne (filtrée par la RLS, mission réattribuée) : indisponible, jamais un faux « non déclaré ».
+  const known = completionRes.available && completionRes.byId.has(mission.id)
+  const completion = { available: known, declaredAt: known ? (completionRes.byId.get(mission.id) ?? null) : null }
 
   const rawApplications = applicationsRes.data ?? []
   const students = await loadStudents(
@@ -210,6 +226,7 @@ export async function getClientMissionDetail(id) {
       createdAt: a.created_at,
       student: students.get(a.student_id),
     })),
+    completion,
     selectedStudent: mission.selected_student_id ? (students.get(mission.selected_student_id) ?? null) : null,
     ledger: (ledgerRes.data ?? []).map((m) => ({
       type: m.type,
