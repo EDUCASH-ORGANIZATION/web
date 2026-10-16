@@ -63,6 +63,9 @@
 @media (max-width: 480px) {
   /* Les cartes mobiles des planches C08 et C11 (card2--m) gardent 20 px de marge intérieure à 390 px */
   .fup2 .card2 { padding: var(--s-5); }
+  /* À 320 px, « Discuter » et « Confirmer la fin » ne tiennent pas sur une ligne : la barre passe sur deux lignes */
+  .fup2 .mbar2__row { flex-wrap: wrap; }
+  .fup2 .mbar2__row .btn { min-width: 0; flex: 1 1 auto; }
 }
 
 @media (max-width: 767.98px) {
