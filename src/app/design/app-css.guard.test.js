@@ -1685,7 +1685,7 @@ const ADMIN_FILE_CSS = ADMIN_FILES.map((f) => stripComments(read(`admin/${f}`)))
 const ADMIN = ADMIN_FILE_CSS.join("\n")
 const ADMIN_BASE = stripComments(read("admin/base.css"))
 const ADMIN_IMPORTS = [...read("admin.css").matchAll(/@import "\.\/(admin\/[\w-]+\.css)";/g)].map((m) => m[1])
-const ADMIN_SCREENS = ["ad01", "ad02", "ad03", "ad04", "ad06", "ad07", "ad11", "ad12", "ad13"]
+const ADMIN_SCREENS = ["ad01", "ad02", "ad03", "ad04", "ad06", "ad07", "ad09", "ad10", "ad11", "ad12", "ad13"]
 
 // Classes des selecteurs de v2-admin.css (la planche), au renommage ds- pres, moins REMOVED_A2 et RENAMED_A2.
 const ADMIN_SOURCE_CLASSES = `
