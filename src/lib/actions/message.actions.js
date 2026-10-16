@@ -637,6 +637,7 @@ export async function getStudentConversations() {
       preview: previewOf(conv.last),
       lastAt: conv.last.createdAt,
       unreadCount: conv.unreadCount,
+      lastUnreadAt: conv.lastUnreadAt,
     }
   })
   return { conversations }
