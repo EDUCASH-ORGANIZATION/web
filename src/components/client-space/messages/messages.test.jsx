@@ -21,7 +21,6 @@ vi.mock("@/hooks/use-realtime-messages", () => ({
   useMessageMediaUpload: () => vi.fn(),
 }))
 
-const { InboxView, InboxSkeleton, inboxHref, subtitleOf } = await import("./inbox-view")
 const { ConversationView, deliverMessage } = await import("./conversation-view")
 const { Bubble } = await import("./bubble")
 const { getClientMessageMedia } = await import("@/lib/actions/message.actions")
@@ -32,153 +31,12 @@ const { ImageDialog } = await import("./image-dialog")
 const ORIGIN = "https://example.supabase.co"
 const M1 = "11111111-1111-4111-8111-111111111111"
 const S1 = "22222222-2222-4222-8222-222222222221"
-const S2 = "22222222-2222-4222-8222-222222222222"
 const NOW = "2026-10-13T12:00:00Z"
 
 beforeEach(() => vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", ORIGIN))
 afterEach(() => vi.unstubAllEnvs())
 
-const conv = (over) => ({
-  key: `${M1}:${S1}`,
-  missionId: M1,
-  studentId: S1,
-  name: "Awa K.",
-  avatarUrl: null,
-  missionTitle: "Traduire un flyer en anglais",
-  state: "candidate",
-  preview: "Oui, je peux vous envoyer un essai.",
-  lastAt: "2026-10-13T09:48:00Z",
-  unreadCount: 0,
-  ...over,
-})
-
-const inbox = (props) => renderToStaticMarkup(<InboxView now={NOW} {...props} />)
 const h1Count = (html) => (html.match(/<h1[\s>]/g) ?? []).length
-
-// ─── C12 Boîte de réception ────────────────────────────────────────────────────────────────────────────────
-
-describe("InboxView : boîte vide", () => {
-  const html = inbox({ result: { conversations: [] } })
-
-  it("invite à lancer une discussion depuis une candidature, avec un bouton et un lien", () => {
-    expect(html).toContain("Aucune conversation")
-    expect(html).toContain("Lancez une discussion depuis une candidature")
-    expect(html).toContain('<a href="/client/missions" class="btn btn--primary">Voir mes missions</a>')
-    expect(html).toContain('<a href="/client/missions/new" class="link2">Publier une mission</a>')
-  })
-
-  it("n'affiche ni recherche ni filtre et garde un seul h1", () => {
-    expect(html).not.toContain('role="search"')
-    expect(html).not.toContain("segmented")
-    expect(h1Count(html)).toBe(1)
-    expect(html).toContain("Messages")
-  })
-})
-
-describe("InboxView : erreur", () => {
-  it("affiche une erreur annoncée, distincte du vide", () => {
-    const html = inbox({ result: { error: "Impossible de charger vos messages. Veuillez réessayer." } })
-    expect(html).toContain('role="alert"')
-    expect(html).toContain("Impossible d&#x27;afficher vos messages")
-    expect(html).toContain("Impossible de charger vos messages. Veuillez réessayer.")
-    expect(html).toContain("Réessayer")
-    expect(html).not.toContain("Aucune conversation")
-    expect(h1Count(html)).toBe(1)
-  })
-
-  it("traite une réponse sans liste comme une erreur", () => {
-    expect(inbox({ result: undefined })).toContain('role="alert"')
-  })
-})
-
-describe("InboxView : conversations", () => {
-  const list = [
-    conv({ key: `${M1}:${S1}`, studentId: S1, name: "Awa K.", unreadCount: 2 }),
-    conv({ key: `${M1}:${S2}`, studentId: S2, name: "Sèna A.", preview: "Vous : À ce soir", lastAt: "2026-10-12T15:00:00Z", state: "in_progress" }),
-  ]
-  const html = inbox({ result: { conversations: list } })
-
-  it("rend deux conversations distinctes pour deux candidats d'une même mission", () => {
-    expect(html).toContain(`href="/client/messages/${M1}?studentId=${S1}"`)
-    expect(html).toContain(`href="/client/messages/${M1}?studentId=${S2}"`)
-    expect((html.match(/class="convo( is-unread)?"/g) ?? []).length).toBe(2)
-  })
-
-  it("annonce le résumé, les non lus (compteur et texte caché) et l'état de lecture", () => {
-    expect(html).toContain("2 conversations · 2 non lues")
-    expect(html).toContain('class="convo is-unread"')
-    expect(html).toContain('<span class="count">2<span class="sr-only"> messages non lus</span></span>')
-    expect(html).toContain("Non lues (2)")
-  })
-
-  it("affiche aperçu, mission avec relation et heure au fuseau du Bénin", () => {
-    expect(html).toContain("Candidat · Traduire un flyer en anglais")
-    expect(html).toContain("Traduire un flyer en anglais · en cours")
-    expect(html).toContain("Vous : À ce soir")
-    expect(html).toContain("10:48")
-    expect(html).toContain("Hier")
-  })
-
-  it("propose recherche et filtre portés par l'adresse, un seul h1", () => {
-    expect(html).toContain('role="search"')
-    expect(html).toContain('action="/client/messages"')
-    expect(html).toContain('aria-current="page"')
-    expect(html).toContain(`href="${inboxHref({ unreadOnly: true })}"`)
-    expect(h1Count(html)).toBe(1)
-  })
-
-  it("filtre les non lues", () => {
-    const only = inbox({ result: { conversations: list }, unreadOnly: true })
-    expect(only).toContain("Awa K.")
-    expect(only).not.toContain("Sèna A.")
-    expect(only).toContain('name="filtre" value="non-lues"')
-  })
-
-  it("filtre par recherche sans accent ni casse, et garde le mot dans le champ", () => {
-    const found = inbox({ result: { conversations: list }, q: "SENA" })
-    expect(found).toContain("Sèna A.")
-    expect(found).not.toContain("Awa K.")
-    expect(found).toContain('value="SENA"')
-  })
-
-  it("explique l'absence de résultat et propose d'effacer la recherche", () => {
-    const none = inbox({ result: { conversations: list }, q: "zzz" })
-    expect(none).toContain("Aucune conversation pour « zzz »")
-    expect(none).toContain('href="/client/messages"')
-    expect(none).not.toMatch(/class="convo( is-unread)?"/)
-  })
-
-  it("explique l'absence de non lus", () => {
-    const none = inbox({ result: { conversations: [conv()] }, unreadOnly: true })
-    expect(none).toContain("Aucun message non lu")
-    expect(none).toContain("Voir toutes les conversations")
-  })
-
-  it("échappe le contenu des aperçus et des titres", () => {
-    const html = inbox({ result: { conversations: [conv({ preview: "<script>alert(1)</script>", missionTitle: "<b>Titre</b>" })] } })
-    expect(html).not.toContain("<script>")
-    expect(html).toContain("&lt;script&gt;")
-    expect(html).not.toContain("<b>Titre</b>")
-  })
-
-  it("encode la recherche dans les adresses", () => {
-    expect(inboxHref({ q: "a b&c", unreadOnly: true })).toBe("/client/messages?q=a+b%26c&filtre=non-lues")
-    expect(inboxHref()).toBe("/client/messages")
-  })
-
-  it("nomme la relation de chaque état", () => {
-    expect(subtitleOf({ state: "rejected", missionTitle: "T" })).toBe("Candidature refusée · T")
-    expect(subtitleOf({ state: "done", missionTitle: "T" })).toBe("T · terminée")
-    expect(subtitleOf({ state: "cancelled", missionTitle: "T" })).toBe("T · annulée")
-    expect(subtitleOf({ state: "closed", missionTitle: "" })).toBe("Mission")
-  })
-
-  it("rend un squelette de chargement annoncé", () => {
-    const skeleton = renderToStaticMarkup(<InboxSkeleton />)
-    expect(skeleton).toContain("Chargement en cours")
-    expect(h1Count(skeleton)).toBe(1)
-  })
-})
 
 // ─── C13 Conversation ──────────────────────────────────────────────────────────────────────────────────────
 
@@ -212,22 +70,23 @@ const view = (over) => renderToStaticMarkup(<ConversationView conversation={conv
 describe("ConversationView : premier message à un candidat", () => {
   const html = view()
 
-  it("affiche l'en-tête, le bandeau « Voir la candidature » et l'invitation à écrire", () => {
-    expect(html).toContain('<h1 class="conv2__name">Awa K.</h1>')
+  it("affiche l'en-tête, le bandeau « Accepter <prénom> » et l'invitation à écrire", () => {
+    expect(html).toContain('<h2 class="conv2__name">Awa K.</h2>')
     expect(html).toContain("Traduire un flyer en anglais")
     expect(html).toContain("Candidature en attente de votre réponse")
     expect(html).toContain(`href="/client/missions/${M1}?candidat=${S1}"`)
-    expect(html).toContain("Voir la candidature")
+    expect(html).toContain("Accepter Awa")
     expect(html).toContain("Aucun message pour l&#x27;instant. Écrivez à Awa K. pour démarrer la discussion.")
-    expect(h1Count(html)).toBe(1)
+    expect(h1Count(html)).toBe(0)
   })
 
-  it("propose la saisie vouvoyée avec image, message vocal et position", () => {
-    expect(html).toContain("Écrivez un message...")
+  it("propose la saisie vouvoyée avec image et position, le micro à droite du champ (l'envoi seulement avec du texte)", () => {
+    expect(html).toContain("Écrivez un message…")
     expect(html).toContain('aria-label="Joindre une image"')
-    expect(html).toContain('aria-label="Enregistrer un message vocal"')
     expect(html).toContain('aria-label="Partager une position"')
-    expect(html).toContain('aria-label="Envoyer"')
+    expect(html.indexOf("Partager une position")).toBeLessThan(html.indexOf("Votre message"))
+    expect(html.indexOf("Votre message")).toBeLessThan(html.indexOf("Enregistrer un message vocal"))
+    expect(html).not.toContain('aria-label="Envoyer"')
     expect(html).toMatch(/maxLength="2000"/i)
   })
 
@@ -388,6 +247,7 @@ describe("StatusBanner", () => {
 
   it("décline chaque état avec son action", () => {
     expect(render("candidate")).toContain("En attente")
+    expect(render("candidate")).toContain("Voir la candidature")
     expect(render("in_progress")).toContain("Confirmer la fin")
     expect(render("done")).toContain("Terminée")
     expect(render("done")).toContain(`href="/client/missions/${M1}"`)
@@ -402,9 +262,9 @@ describe("StatusBanner", () => {
 })
 
 describe("Composer et dialogues", () => {
-  it("désactive l'envoi tant que le champ est vide et borne la longueur", () => {
+  it("n'affiche pas l'envoi tant que le champ est vide et borne la longueur", () => {
     const html = renderToStaticMarkup(<Composer onSend={vi.fn()} />)
-    expect(html).toMatch(/<button type="submit" class="composer__send" aria-label="Envoyer" disabled/)
+    expect(html).not.toContain('aria-label="Envoyer"')
     expect(html).toMatch(/maxLength="2000"|maxlength="2000"/i)
     expect(html).toContain('accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"')
   })

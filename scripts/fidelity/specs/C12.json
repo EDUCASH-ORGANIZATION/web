@@ -14,7 +14,7 @@
       "name": "bureau",
       "viewport": [
         1440,
-        880
+        900
       ],
       "frame": "desk",
       "frameIndex": 0,
@@ -40,9 +40,15 @@
             "y",
             "w",
             "radius",
-            "bg"
+            "bg",
+            "h"
           ],
-          "lot": "ST-06"
+          "lot": "ST-06",
+          "assume": {
+            "y": "A3:3",
+            "h": "A3:3"
+          },
+          "note": "A3 : 3,42 px réels du titre de page (39,90 px planche contre 43,32 px code, --lh-display 1.14) : +3 en y et -3 de hauteur (planche 659, code 656), la carte remplit la zone principale (flex: 1) ; viewport 900 = cadre de la planche"
         },
         {
           "id": "MC-01",
@@ -51,9 +57,14 @@
           "props": [
             "x",
             "w",
-            "pad"
+            "pad",
+            "h"
           ],
-          "lot": "ST-06"
+          "lot": "ST-06",
+          "assume": {
+            "h": "A3:3"
+          },
+          "note": "A3 : hauteur -3 (planche 657, code 654), la carte remplit la zone principale sous le titre de page plus haut de 3 px (--lh-display 1.14)"
         },
         {
           "id": "MC-01",
@@ -61,9 +72,14 @@
           "board": ".c-inbox__thread",
           "props": [
             "x",
-            "w"
+            "w",
+            "h"
           ],
-          "lot": "ST-06"
+          "lot": "ST-06",
+          "assume": {
+            "h": "A3:3"
+          },
+          "note": "A3 : hauteur -3 (planche 657, code 654), la carte remplit la zone principale sous le titre de page plus haut de 3 px (--lh-display 1.14)"
         },
         {
           "id": "MC-03",
@@ -105,7 +121,7 @@
           "assume": {
             "h": "A2:3"
           },
-          "note": "A2 : texte 13 -> 14 px, hauteur de ligne +3 (mesure de E06 ME-06, même composant ; la ligne n'est pas mesurable dans le code avant le lot ST-06)"
+          "note": "A2 : texte 13 -> 14 px, hauteur de ligne +3 (mesuré : planche 83, code 86). Non mesuré par le banc : sous-titre « Candidate · ... » (planche) -> « Candidat · ... » (code), aucune donnée de genre en base ; « ... · à confirmer » (planche) -> « ... · en cours » (code), getClientConversations ne lit pas missions.completion_declared_at (RD-DONE-01) ; ticket : lecture tolérante de la colonne (42703/PGRST204) puis subtitleOf « · à confirmer » quand completionState(...) === \"declared\""
         },
         {
           "id": "MC-04",
@@ -127,7 +143,11 @@
             "fontWeight",
             "tw"
           ],
-          "lot": "ST-06"
+          "lot": "ST-06",
+          "assume": {
+            "tw": "A7:31"
+          },
+          "note": "A7 : la planche écrit « Ulrich Zinsou », le code « Ulrich Z. » (Prénom N.), largeur de texte -31 px mesurée"
         },
         {
           "id": "MC-04",
@@ -199,7 +219,12 @@
             "radius",
             "pad",
             "gap"
-          ]
+          ],
+          "assume": {
+            "y": "A5+L3:16"
+          },
+          "note": "L3 (+12) et titre de page plus petit (-4) comme le filtre segmenté, plus A5 (+8 de hauteur du filtre au-dessus) : +16 en y",
+          "lot": "ST-06"
         },
         {
           "id": "MC-13",
@@ -210,7 +235,12 @@
             "w",
             "h",
             "radius"
-          ]
+          ],
+          "assume": {
+            "y": "A2+A5+L3:17"
+          },
+          "note": "cumul : L3 (+12), titre de page plus petit (-4) et A5 (+8 du filtre) = +16 comme la ligne, plus A2 (ligne +3 de haut, avatar centré : +1) = +17 mesuré",
+          "lot": "ST-06"
         }
       ]
     }
