@@ -19,8 +19,10 @@ const TAB_OF = {
 // En-tête partagé du détail de mission (C04, C08, C11) : ligne « Mes missions · <onglet> » (lien vers l'onglet),
 // titre unique, puis la méta de la planche : statut, « Avec achats » si estimation, ville, date, puis
 // « Publiée le » (open) ou le type (autres statuts). Le séquestre vit dans la colonne droite.
-// `status` vient de missionStatusView ; `actions` (optionnel) se place à droite du titre.
-export function MissionHeader({ mission, status, actions }) {
+// `status` vient de missionStatusView ; `actions` (optionnel) se place à droite du titre. `purchasesLine`
+// (défaut vrai) affiche la ligne provisoire des achats estimés ; une vue qui porte déjà l'estimation dans une
+// carte (C08, C11) la désactive.
+export function MissionHeader({ mission, status, actions, purchasesLine: showPurchasesLine = true }) {
   const tab = TAB_OF[mission.status]
   const withPurchases = purchasesEstimateOf(mission.purchasesEstimate) !== null
   const deadline = mission.deadline ? formatDateFr(mission.deadline) : ""
@@ -72,7 +74,7 @@ export function MissionHeader({ mission, status, actions }) {
         ) : null}
       </div>
       {/* Provisoire : migre vers les cartes en ST-08/ST-09/ST-11/ST-12 */}
-      {purchases ? <p className="body-s">{purchases}</p> : null}
+      {showPurchasesLine && purchases ? <p className="body-s">{purchases}</p> : null}
     </header>
   )
 }

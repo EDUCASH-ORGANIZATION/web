@@ -8,6 +8,8 @@ const { MissionFollowupView } = await import("../followup-view")
 const { ConfirmEndDialogView, ConfirmEndSuccess, releaseOnce, refreshAndClose } = await import("./confirm-end-dialog")
 const { buildTimeline } = await import("./timeline")
 const { missionView } = await import("@/lib/client-space/mission-view")
+const { readFileSync } = await import("node:fs")
+const { declarationsOf } = await import("@/qa/fidelity/css-rules")
 const { escrowSplit } = await import("@/lib/app/money")
 
 const student = {
@@ -70,8 +72,7 @@ describe("C08 mission en cours", () => {
   })
 
   it("garde une chronologie fondée sur les dates connues", () => {
-    expect(html).toContain("Mission publiée")
-    expect(html).toContain("placés en séquestre")
+    expect(html).toMatch(/Publiée, 25\s000\sFCFA en séquestre/)
     expect(html).toContain("Candidature de Sèna acceptée")
   })
 
@@ -309,8 +310,7 @@ describe("chronologie", () => {
     const d = detailOf("in_progress")
     const titles = buildTimeline(d, missionView(d), "Sèna").map((i) => i.title)
     expect(titles).toEqual([
-      "Mission publiée",
-      expect.stringContaining("placés en séquestre"),
+      expect.stringMatching(/^Publiée, 25\s000\sFCFA en séquestre$/),
       "Candidature de Sèna acceptée",
       "Mission en cours",
       "Votre validation de la fin",
@@ -359,7 +359,7 @@ describe("le séquestre reste le budget seul (estimation d'achats jamais ajouté
       { type: "commission", amount: 960, createdAt: "2026-10-08T09:02:00Z" },
     ]
     const out = render(withPurchases("done", { ledger }))
-    const receipt = section(out, "Reçu")
+    const receipt = section(out, "Reçu du service")
     expect(receipt).toMatch(/8\s000/)
     expect(receipt).not.toMatch(/23\s000|15\s000/)
     expect(out).not.toMatch(/23\s000/)
@@ -377,3 +377,242 @@ describe("le séquestre reste le budget seul (estimation d'achats jamais ajouté
     expect(out).not.toMatch(/23\s000/)
   })
 })
+
+describe("achats pour votre compte (C08, C11), estimation seule", () => {
+  const withEstimate = (status, over = {}, estimate = 15000) => {
+    const base = detailOf(status, over)
+    return { ...base, mission: { ...base.mission, budget: 8000, purchasesEstimate: estimate } }
+  }
+  const RESERVE = [{ type: "reserve", amount: 8000, createdAt: "2026-10-02T10:14:00Z" }]
+  const DONE = [
+    ...RESERVE,
+    { type: "release", amount: 8000, createdAt: "2026-10-08T09:02:00Z" },
+    { type: "commission", amount: 960, createdAt: "2026-10-08T09:02:00Z" },
+  ]
+  const section = (out, label) => {
+    const from = out.slice(out.indexOf(`aria-label="${label}"`))
+    return from.slice(0, from.indexOf("</section>"))
+  }
+  const at = (out, label) => out.indexOf(`aria-label="${label}"`)
+  const PAYS = { ...FLAGS, paymentsEnabled: true }
+
+  it("C08 avec estimation : carte achats, Hors EduCash, estimation seule, étudiant et séquestre à droite", () => {
+    const out = render(withEstimate("in_progress", { ledger: RESERVE }), PAYS)
+    const card = section(out, "Achats pour votre compte")
+    expect(card).toContain("Hors EduCash")
+    expect(card).toMatch(/Estimation donnée à la publication/)
+    expect(card).toMatch(/15\s000/)
+    expect(card).toContain("directement par MoMo")
+    expect(card).not.toMatch(/Demande de paiement|Payé en direct|vendeur\s:/)
+    expect(at(out, "Mission en cours")).toBeLessThan(at(out, "Achats pour votre compte"))
+    expect(at(out, "Achats pour votre compte")).toBeLessThan(at(out, "Chronologie"))
+    expect(at(out, "Chronologie")).toBeLessThan(at(out, "Étudiant retenu"))
+    expect(at(out, "Étudiant retenu")).toBeLessThan(at(out, "Séquestre"))
+    expect(out.match(/Hors EduCash/g)).toHaveLength(1)
+  })
+
+  it("C08 : le séquestre reste le budget seul, ni 23 000 ni 15 000 dans la carte Séquestre", () => {
+    const out = render(withEstimate("in_progress", { ledger: RESERVE }), PAYS)
+    const escrow = section(out, "Séquestre")
+    expect(escrow).toMatch(/8\s000/)
+    expect(escrow).not.toMatch(/23\s000|15\s000/)
+    expect(escrow).toContain("pour le service seulement")
+    expect(out).not.toMatch(/23\s000/)
+  })
+
+  it("C08 : la ligne provisoire de l'en-tête migre vers la carte, une seule mention de l'estimation", () => {
+    const out = render(withEstimate("in_progress", { ledger: RESERVE }), PAYS)
+    expect(out).not.toContain("Achats estimés")
+    expect(out.match(/15\s000/g)).toHaveLength(1)
+    expect(out).toContain("Avec achats")
+  })
+
+  it("le mot séquestre dans la carte achats dépend de la réserve, pas du drapeau des paiements", () => {
+    for (const flags of [FLAGS, PAYS]) {
+      expect(section(render(withEstimate("in_progress", { ledger: RESERVE }), flags), "Achats pour votre compte")).toContain("séquestre")
+      expect(section(render(withEstimate("done", { ledger: DONE }), flags), "Achats pour votre compte")).toContain("séquestre")
+      expect(section(render(withEstimate("in_progress", { ledger: [] }), flags), "Achats pour votre compte")).not.toMatch(/séquestre/i)
+    }
+  })
+
+  it("jamais « vous touchez » côté client", () => {
+    const all = [render(withEstimate("in_progress", { ledger: RESERVE }), PAYS), render(withEstimate("done", { ledger: DONE }), PAYS)].join("")
+    expect(all).not.toMatch(/vous touchez/i)
+  })
+
+  it("sans estimation ou estimation invalide : aucune carte achats, étudiant à gauche", () => {
+    for (const estimate of [null, 0, -5, "abc"]) {
+      const out = render(withEstimate("in_progress", { ledger: RESERVE }, estimate), PAYS)
+      expect(out).not.toContain("Achats pour votre compte")
+      expect(out).not.toContain("Hors EduCash")
+      expect(at(out, "Étudiant retenu")).toBeLessThan(at(out, "Chronologie"))
+      expect(at(out, "Chronologie")).toBeLessThan(at(out, "Séquestre"))
+    }
+  })
+
+  it("C08 sans estimation : l'emplacement de Confirmer la fin reste actif (aucune déclaration de l'étudiant)", () => {
+    const out = render(detailOf("in_progress"), PAYS)
+    expect(section(out, "Séquestre")).toMatch(/<button[^>]*btn--dark[^>]*>/)
+    expect(out).not.toMatch(/à confirmer|Disponible quand/i)
+  })
+
+  it("C11 terminée non notée avec estimation : À faire, achats, chronologie, Reçu du service puis Réalisée par, sans Coût total", () => {
+    const out = render(withEstimate("done", { ledger: DONE }), PAYS)
+    expect(at(out, "Votre avis")).toBeLessThan(at(out, "Achats pour votre compte"))
+    expect(at(out, "Achats pour votre compte")).toBeLessThan(at(out, "Chronologie"))
+    expect(at(out, "Chronologie")).toBeLessThan(at(out, "Reçu du service"))
+    expect(at(out, "Reçu du service")).toBeLessThan(at(out, "Réalisée par"))
+    expect(out).not.toContain("Coût total")
+    expect(out).toContain("Avis à laisser")
+    const receipt = section(out, "Reçu du service")
+    expect(receipt).toMatch(/8\s000/)
+    expect(receipt).not.toMatch(/23\s000|15\s000/)
+    expect(receipt).toContain("Libéré le")
+    expect(out).not.toContain("Achats estimés")
+  })
+
+  it("C11 terminée notée avec estimation : la carte achats et l'avis donné cohabitent", () => {
+    const out = render(
+      withEstimate("done", { ledger: DONE, review: { id: "r1", rating: 5, comment: null, createdAt: "2026-10-09T08:00:00Z" } }),
+      PAYS,
+    )
+    expect(out).toContain("Achats pour votre compte")
+    expect(out).toContain("Votre avis")
+    expect(out).not.toContain("Avis à laisser")
+  })
+
+  it("C11 sans estimation : titre Reçu, Réalisée par avant le reçu, aucune carte achats", () => {
+    const out = render(detailOf("done", { ledger: DONE_LEDGER }), PAYS)
+    expect(out).not.toContain("Achats pour votre compte")
+    expect(out).not.toContain("Reçu du service")
+    expect(at(out, "Réalisée par")).toBeLessThan(at(out, "Reçu"))
+  })
+
+  it("C11 annulée avec estimation : la ligne de l'en-tête reste, aucune carte achats", () => {
+    const ledger = [...RESERVE, { type: "refund", amount: 8000, createdAt: "2026-10-05T16:20:00Z" }]
+    const out = render(withEstimate("cancelled", { selectedStudent: null, ledger }), PAYS)
+    expect(out).toContain("Achats estimés")
+    expect(out).not.toContain("Achats pour votre compte")
+  })
+
+  it("un seul h1 par page", () => {
+    for (const status of ["in_progress", "done", "cancelled"]) {
+      expect(render(withEstimate(status, { ledger: status === "done" ? DONE : RESERVE }), PAYS).match(/<h1/g)).toHaveLength(1)
+    }
+  })
+
+  it("la modale et Libérer le paiement restent inchangées avec une estimation", () => {
+    const out = render(withEstimate("in_progress", { ledger: RESERVE }), { ...PAYS, confirmer: true })
+    expect(out).toContain('role="dialog"')
+    expect(out).toContain("Libérer le paiement")
+  })
+})
+
+describe("feuilles C08 et C11 (planches mobiles)", () => {
+  const c08 = readFileSync(new URL("../../../../app/design/client/c08.css", import.meta.url), "utf8")
+  const c11 = readFileSync(new URL("../../../../app/design/client/c11.css", import.meta.url), "utf8")
+  const mobile = "max-width: 1023.98px"
+
+  it("sous 1024 px, les colonnes s'effacent et les cartes suivent l'ordre des planches", () => {
+    expect(declarationsOf(c08, ".fup2 .fup2__split > .col2", { media: mobile }).display).toBe("contents")
+    const order = (selector, css = c08) => declarationsOf(css, selector, { media: mobile }).order
+    expect([".fup2 .fup2__status", ".fup2 .fup2__student", ".fup2 .fup2__purchases", ".fup2 .fup2__money", ".fup2 .fup2__timeline"].map((s) => order(s)))
+      .toEqual(["1", "2", "3", "4", "5"])
+    expect(order(".fup2 .fup2__split--done .fup2__money", c11)).toBe("3")
+    expect(order(".fup2 .fup2__split--done .fup2__purchases", c11)).toBe("4")
+  })
+
+  it("la méta de l'en-tête descend de 10 px (8 px sur mobile) et les cartes mobiles gardent 20 px à 390 px", () => {
+    expect(declarationsOf(c08, ".fup2 > header .meta2")["margin-top"]).toBe("10px")
+    expect(declarationsOf(c08, ".fup2 > header .meta2", { media: "max-width: 767.98px" })["margin-top"]).toBe("8px")
+    expect(declarationsOf(c08, ".fup2 .card2", { media: "max-width: 480px" }).padding).toBe("var(--s-5)")
+  })
+})
+
+describe("carte étudiant compacte sous 1024 px et ordre mobile de C11", () => {
+  const c08 = readFileSync(new URL("../../../../app/design/client/c08.css", import.meta.url), "utf8")
+  const c11 = readFileSync(new URL("../../../../app/design/client/c11.css", import.meta.url), "utf8")
+  const mobile = "max-width: 1023.98px"
+  const doneWith = (estimate, extra = {}) => {
+    const base = detailOf("done", { ledger: DONE_LEDGER, ...extra })
+    return { ...base, mission: { ...base.mission, purchasesEstimate: estimate } }
+  }
+
+  it("la version compacte garde le profil et la discussion, avec des libellés nommés", () => {
+    const out = render(detailOf("in_progress"))
+    const mini = out.slice(out.indexOf('class="fup2__mini"'), out.indexOf("</section>", out.indexOf('class="fup2__mini"')))
+    expect(mini).not.toContain('aria-label="Voir le profil')
+    expect(mini).toMatch(/<span class="sr-only">Voir le profil de <!-- -->Sèna<\/span>|<span class="sr-only">Voir le profil de Sèna<\/span>/)
+    expect(mini).toContain('href="/talents/s1"')
+    expect(mini).toContain('aria-label="Discuter avec Sèna"')
+    expect(mini).toContain('href="/client/messages/m1?studentId=s1"')
+    expect(mini).toMatch(/4,9 \/ 5 · 23 missions/)
+  })
+
+  it("le détail est masqué et la version compacte affichée sous 1024 px seulement", () => {
+    expect(declarationsOf(c08, ".fup2 .fup2__full").display).toBe("contents")
+    expect(declarationsOf(c08, ".fup2 .fup2__mini").display).toBe("none")
+    expect(declarationsOf(c08, ".fup2 .fup2__full", { media: mobile }).display).toBe("none")
+    expect(declarationsOf(c08, ".fup2 .fup2__mini", { media: mobile }).display).toBe("flex")
+    expect(declarationsOf(c08, ".fup2 .fup2__mini .iconbtn2", { media: mobile }).width).toBe("44px")
+  })
+
+  it("C11 avec achats sur mobile : reçu, achats, étudiant, chronologie, et la carte À faire masquée (Noter est dans la barre)", () => {
+    const o = (sel) => declarationsOf(c11, sel, { media: mobile })
+    expect([o(".fup2 .fup2__split--done .fup2__money").order, o(".fup2 .fup2__split--done .fup2__purchases").order,
+      o(".fup2 .fup2__split--purchases .fup2__student").order, o(".fup2 .fup2__split--purchases .fup2__timeline").order]).toEqual(["3", "4", "5", "6"])
+    expect(o(".fup2 .fup2__split--purchases .fup2__status--todo").display).toBe("none")
+  })
+
+  it("la carte À faire masquable n'existe que si Noter est dans la barre ; elle est absente de la classe sans estimation", () => {
+    const withEst = render(doneWith(15000))
+    expect(withEst).toContain("fup2__split--purchases")
+    expect(withEst).toContain("fup2__status--todo")
+    expect(withEst).toMatch(/mbar2[\s\S]*Noter Sèna/)
+    const noEst = render(doneWith(null))
+    expect(noEst).not.toContain("fup2__split--purchases")
+    const rated = render(doneWith(15000, { review: { rating: 5, comment: null, createdAt: "2026-10-09T00:00:00Z" } }))
+    expect(rated).not.toContain("fup2__status--todo")
+  })
+})
+
+describe("accessibilité de la carte compacte et texte d'état sans réserve", () => {
+  const c08 = readFileSync(new URL("../../../../app/design/client/c08.css", import.meta.url), "utf8")
+  const withStudent = (over) => {
+    const base = detailOf("in_progress")
+    return { ...base, selectedStudent: { ...base.selectedStudent, ...over } }
+  }
+  const section = (out, label) => {
+    const from = out.slice(out.indexOf(`aria-label="${label}"`))
+    return from.slice(0, from.indexOf("</section>"))
+  }
+  const mini = (out) => out.slice(out.indexOf('class="fup2__mini"'), out.indexOf("</section>", out.indexOf('class="fup2__mini"')))
+
+  it("le nom visible est dans le nom accessible : préfixe masqué avant le nom, aucun aria-label sur le lien", () => {
+    const m = mini(render(detailOf("in_progress")))
+    expect(m).not.toMatch(/<a[^>]*fup2__mini-who[^>]*aria-label/)
+    expect(m.indexOf("Voir le profil de")).toBeLessThan(m.indexOf("Sèna Agossou"))
+    expect(m).toContain("4,9 / 5 · 23 missions")
+  })
+
+  it("nom hostile échappé, nom vide et id vide", () => {
+    expect(mini(render(withStudent({ fullName: "<img src=x onerror=alert(1)>" })))).not.toContain("<img")
+    expect(mini(render(withStudent({ fullName: "" })))).toContain("Voir le profil de l&#x27;étudiant".replace("&#x27;", "'"))
+    const noId = render(withStudent({ id: "" }))
+    expect(mini(noId)).toContain('href="/talents"')
+    expect(noId).not.toContain('href="/talents/"')
+  })
+
+  it("texte d'état : le mot séquestre seulement avec une réserve", () => {
+    const withReserve = section(render(detailOf("in_progress", { ledger: [{ type: "reserve", amount: 25000, createdAt: "2026-10-02T10:14:00Z" }] })), "Mission en cours")
+    expect(withReserve).toContain("restent en séquestre")
+    const none = section(render(detailOf("in_progress", { ledger: [] })), "Mission en cours")
+    expect(none).not.toMatch(/séquestre/i)
+    expect(none).toContain("Le paiement n'est versé qu'après votre validation")
+  })
+
+  it("à 320 px, la barre d'action passe sur deux lignes", () => {
+    expect(declarationsOf(c08, ".fup2 .mbar2__row", { media: "max-width: 480px" })["flex-wrap"]).toBe("wrap")
+  })
+})
+
