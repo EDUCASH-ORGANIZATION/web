@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 const state = vi.hoisted(() => ({ supabase: null, serviceCalls: 0 }))
 
+vi.mock("server-only", () => ({}))
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => state.supabase }))
 vi.mock("@/lib/supabase/service", () => ({
   createServiceClient: () => {

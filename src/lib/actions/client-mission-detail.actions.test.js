@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
+vi.mock("server-only", () => ({}))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 
 import { requireRole } from "@/lib/auth/require-role"
@@ -21,6 +22,8 @@ function makeSupabase() {
       const state = { table, columns: null, filters: [] }
       calls.push(state)
       const resolve = () => {
+        // Lecture tolérante de la fin déclarée : requête séparée, réponse dédiée.
+        if (table === "missions" && state.columns === "id, completion_declared_at") return responses.completion
         const r = responses[table]
         return typeof r === "function" ? r(state) : (r ?? { data: null, error: null })
       }
@@ -57,6 +60,7 @@ beforeEach(() => {
     },
     wallet_transactions: { data: [{ type: "reserve", amount: 10000, created_at: "2026-10-01T09:00:00Z" }], error: null },
     reviews: { data: null, error: null },
+    completion: { data: [{ id: MISSION, completion_declared_at: null }], error: null },
     profiles: {
       data: [
         { user_id: S1, full_name: "Awa Kouassi", avatar_url: null, city: "Cotonou", rating: 4.5, missions_done: 3, is_verified: true, verified_until: "2027-01-01" },
@@ -271,5 +275,63 @@ describe("getClientMissionDetail : mission avec achats", () => {
     await getClientMissionDetail(MISSION)
     expect(callsOn("missions")[0].columns).toContain("purchases_estimate")
     expect(callsOn("missions")[0].columns).not.toContain("*")
+  })
+})
+
+describe("getClientMissionDetail : fin déclarée (RD-DONE-01)", () => {
+  const completionCalls = () => callsOn("missions").filter((c) => c.columns === "id, completion_declared_at")
+
+  it("in_progress non déclaré : completion disponible, declaredAt null", async () => {
+    const detail = await getClientMissionDetail(MISSION)
+    expect(detail.completion).toEqual({ available: true, declaredAt: null })
+    expect(completionCalls()[0].filters).toEqual([["in", "id", [MISSION]]])
+  })
+
+  it("in_progress déclaré : declaredAt renvoyé", async () => {
+    responses.completion = { data: [{ id: MISSION, completion_declared_at: "2026-10-12T10:00:00Z" }], error: null }
+    expect((await getClientMissionDetail(MISSION)).completion).toEqual({ available: true, declaredAt: "2026-10-12T10:00:00Z" })
+  })
+
+  it("done : la date conservée est renvoyée", async () => {
+    responses.missions = { data: { ...mission, status: "done" }, error: null }
+    responses.completion = { data: [{ id: MISSION, completion_declared_at: "2026-10-12T10:00:00Z" }], error: null }
+    expect((await getClientMissionDetail(MISSION)).completion).toEqual({ available: true, declaredAt: "2026-10-12T10:00:00Z" })
+  })
+
+  it("ligne non renvoyée (RLS, réattribution) : indisponible, jamais un faux non déclaré", async () => {
+    responses.completion = { data: [], error: null }
+    expect((await getClientMissionDetail(MISSION)).completion).toEqual({ available: false, declaredAt: null })
+  })
+
+  it("la lecture part en parallèle des autres lectures, après le contrôle de propriété", async () => {
+    await getClientMissionDetail(MISSION)
+    const order = calls.map((c) => `${c.table}:${c.columns}`)
+    expect(order[0]).toMatch(/^missions:/)
+    expect(order.slice(1, 5)).toContain("missions:id, completion_declared_at")
+  })
+
+  it.each(["open", "cancelled"])("mission %s : aucune lecture de la colonne", async (status) => {
+    responses.missions = { data: { ...mission, status, selected_student_id: null }, error: null }
+    const detail = await getClientMissionDetail(MISSION)
+    expect(detail.completion).toEqual({ available: false, declaredAt: null })
+    expect(completionCalls()).toHaveLength(0)
+  })
+
+  it("mission d'un autre client : null, aucune lecture de la colonne", async () => {
+    responses.missions = { data: null, error: null }
+    expect(await getClientMissionDetail(MISSION)).toBeNull()
+    expect(completionCalls()).toHaveLength(0)
+  })
+
+  it.each(["42703", "PGRST204"])("colonne absente (%s) : page rendue, available false", async (code) => {
+    responses.completion = { data: null, error: { code, message: "column does not exist" } }
+    const detail = await getClientMissionDetail(MISSION)
+    expect(detail.mission.id).toBe(MISSION)
+    expect(detail.completion).toEqual({ available: false, declaredAt: null })
+  })
+
+  it("autre erreur : erreur neutre sans message SQL", async () => {
+    responses.completion = { data: null, error: { code: "XX000", message: "relation boom" } }
+    await expect(getClientMissionDetail(MISSION)).rejects.toThrow("Impossible de charger la mission.")
   })
 })
