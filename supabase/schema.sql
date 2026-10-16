@@ -4,7 +4,12 @@
 -- script 70 de RD-MISSION-02 (colonne missions.purchases_estimate), puis script 80 de RD-NOTIF-01
 -- (table public.notifications), puis script 90 de RD-DONE-01 (colonne
 -- missions.completion_declared_at), puis script 91 de RD-ACCEPT-01 (colonne
--- applications.accepted_at).
+-- applications.accepted_at), puis scripts 92 et 93 de RD-MSG-01 (tables
+-- public.message_contact_events et public.reports, retrait du droit INSERT de
+-- authenticated sur public.messages).
+-- Scripts 92 et 93 de RD-MSG-01 NON appliqués en production au 2026-10-16 : à retirer
+-- de cet en-tête après application. Le 93 ne se lance qu'après le déploiement du
+-- nouveau code en production ET en staging (base partagée).
 -- Script 70 appliqué en production le 2026-10-15.
 -- Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.
 -- Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.
@@ -213,6 +218,38 @@ create table public.notifications (
   created_at timestamp with time zone default now() not null
 );
 
+-- Script 92 de RD-MSG-01 (NON appliqué en production au 2026-10-16) : journal des détections de
+-- coordonnées (le TYPE seulement, jamais la valeur) et signalements (utilisateurs et alertes automatiques).
+create table public.message_contact_events (
+  id uuid default gen_random_uuid() not null,
+  message_id uuid,
+  mission_id uuid not null,
+  sender_id uuid not null,
+  kinds text[] not null,
+  match_count smallint not null,
+  action text not null,
+  created_at timestamp with time zone default now() not null
+);
+
+create table public.reports (
+  id uuid default gen_random_uuid() not null,
+  number bigint generated always as identity not null,
+  source text not null,
+  target_type text not null,
+  message_id uuid,
+  mission_id uuid not null,
+  reporter_id uuid,
+  reported_user_id uuid not null,
+  reason text not null,
+  details text,
+  status text default 'open'::text not null,
+  handled_by uuid,
+  handled_at timestamp with time zone,
+  resolution_note text,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone default now() not null
+);
+
 -- 4. CONTRAINTES (clés primaires, uniques, checks, puis clés étrangères)
 
 alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
@@ -287,6 +324,31 @@ alter table public.notifications add constraint notifications_recipient_id_fkey 
 alter table public.notifications add constraint notifications_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;
 alter table public.notifications add constraint notifications_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(user_id) ON DELETE SET NULL;
 
+alter table public.message_contact_events add constraint message_contact_events_pkey PRIMARY KEY (id);
+alter table public.message_contact_events add constraint message_contact_events_kinds_check CHECK (((cardinality(kinds) >= 1) AND (kinds <@ ARRAY['phone'::text, 'email'::text, 'link'::text, 'social'::text, 'phone_split'::text, 'contact_keyword'::text, 'payment_keyword'::text])));
+alter table public.message_contact_events add constraint message_contact_events_match_count_check CHECK (((match_count >= 1) AND (match_count <= 50)));
+alter table public.message_contact_events add constraint message_contact_events_action_check CHECK ((action = ANY (ARRAY['masked'::text, 'flagged'::text])));
+alter table public.message_contact_events add constraint message_contact_events_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.messages(id) ON DELETE SET NULL;
+alter table public.message_contact_events add constraint message_contact_events_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;
+alter table public.message_contact_events add constraint message_contact_events_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+alter table public.reports add constraint reports_pkey PRIMARY KEY (id);
+alter table public.reports add constraint reports_number_key UNIQUE (number);
+alter table public.reports add constraint reports_source_check CHECK ((source = ANY (ARRAY['user'::text, 'auto'::text])));
+alter table public.reports add constraint reports_target_type_check CHECK ((target_type = 'message'::text));
+alter table public.reports add constraint reports_message_target_check CHECK (((target_type <> 'message'::text) OR (message_id IS NOT NULL)));
+alter table public.reports add constraint reports_reporter_source_check CHECK ((((source = 'user'::text) AND (reporter_id IS NOT NULL)) OR ((source = 'auto'::text) AND (reporter_id IS NULL))));
+alter table public.reports add constraint reports_not_self_check CHECK ((reporter_id <> reported_user_id));
+alter table public.reports add constraint reports_reason_check CHECK ((reason = ANY (ARRAY['harassment'::text, 'scam'::text, 'contact_details'::text, 'inappropriate'::text, 'other'::text])));
+alter table public.reports add constraint reports_details_check CHECK ((char_length(details) <= 1000));
+alter table public.reports add constraint reports_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'resolved'::text, 'dismissed'::text])));
+alter table public.reports add constraint reports_resolution_note_check CHECK ((char_length(resolution_note) <= 500));
+alter table public.reports add constraint reports_message_reporter_key UNIQUE (message_id, reporter_id);
+alter table public.reports add constraint reports_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.messages(id) ON DELETE CASCADE;
+alter table public.reports add constraint reports_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;
+alter table public.reports add constraint reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.profiles(user_id);
+alter table public.reports add constraint reports_reported_user_id_fkey FOREIGN KEY (reported_user_id) REFERENCES public.profiles(user_id);
+alter table public.reports add constraint reports_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.profiles(user_id) ON DELETE SET NULL;
+
 -- 5. INDEX (hors index portés par une contrainte)
 
 CREATE UNIQUE INDEX applications_one_accepted_per_mission ON public.applications USING btree (mission_id) WHERE (status = 'accepted'::text);
@@ -313,6 +375,10 @@ CREATE INDEX idx_wallets_user_id ON public.wallets USING btree (user_id);
 
 CREATE INDEX notifications_recipient_created_idx ON public.notifications USING btree (recipient_id, created_at DESC, id DESC);
 CREATE INDEX notifications_recipient_unread_idx ON public.notifications USING btree (recipient_id, created_at DESC) WHERE (read_at IS NULL);
+
+CREATE INDEX message_contact_events_sender_created_idx ON public.message_contact_events USING btree (sender_id, created_at DESC);
+CREATE INDEX reports_status_created_idx ON public.reports USING btree (status, created_at DESC);
+CREATE UNIQUE INDEX reports_auto_open_per_user_idx ON public.reports USING btree (reported_user_id) WHERE ((source = 'auto'::text) AND (status = ANY (ARRAY['open'::text, 'in_progress'::text])));
 
 -- 6. FONCTIONS (propriétaire postgres ; SECURITY DEFINER et search_path dans la définition)
 
@@ -2004,6 +2070,8 @@ create policy "Étudiant gère sa carte" on storage.objects as permissive for al
   with check (((bucket_id = 'student-cards'::text) AND ((auth.uid())::text = (string_to_array(name, '/'::text))[1])));
 
 alter table public.notifications enable row level security;
+alter table public.message_contact_events enable row level security;
+alter table public.reports enable row level security;
 
 create policy notifications_select_own on public.notifications as permissive for select to authenticated
   using ((recipient_id = ( SELECT auth.uid() AS uid)));
@@ -2049,9 +2117,12 @@ revoke all on table public.applications from anon, authenticated, service_role;
 grant SELECT on table public.applications to anon;
 grant INSERT, SELECT, UPDATE on table public.applications to authenticated;
 grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.applications to service_role;
+-- messages : le droit INSERT de authenticated est retiré par le script 93 de RD-MSG-01 (NON appliqué en
+-- production au 2026-10-16) ; avant ce script, la production garde "grant INSERT, SELECT ... to authenticated".
+-- La politique messages_insert reste décrite plus haut, sans effet faute de droit.
 revoke all on table public.messages from anon, authenticated, service_role;
 grant SELECT on table public.messages to anon;
-grant INSERT, SELECT on table public.messages to authenticated;
+grant SELECT on table public.messages to authenticated;
 grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.messages to service_role;
 revoke all on table public.mission_completions from anon, authenticated, service_role;
 grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.mission_completions to service_role;
@@ -2109,6 +2180,15 @@ grant SELECT on table public.notifications to authenticated;
 grant UPDATE (read_at) on table public.notifications to authenticated;
 grant DELETE, INSERT, SELECT, UPDATE on table public.notifications to service_role;
 
+-- Scripts 92 et 93 de RD-MSG-01 (NON appliqués en production au 2026-10-16). Les deux tables du script 92
+-- n'ont aucune politique et aucun droit pour anon ni authenticated : seul le serveur (service_role) y accède.
+revoke all on table public.message_contact_events from public, anon, authenticated, service_role;
+grant DELETE, INSERT, SELECT, UPDATE on table public.message_contact_events to service_role;
+revoke all on table public.reports from public, anon, authenticated, service_role;
+grant DELETE, INSERT, SELECT, UPDATE on table public.reports to service_role;
+revoke all on sequence public.reports_number_seq from public, anon, authenticated, service_role;
+grant USAGE, SELECT on sequence public.reports_number_seq to service_role;
+
 -- 10. BUCKETS (storage.buckets ; les politiques storage.objects sont en section 8)
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -2146,7 +2226,12 @@ alter publication supabase_realtime add table public.messages;
 --   storage.objects (avatars, message-media, student-cards, utilisent
 --   storage.foldername()), triggers storage
 --   gérés par Supabase (non repris ici).
--- - realtime : publication supabase_realtime (table public.messages ; notifications n'y est pas).
+-- - realtime : publication supabase_realtime (table public.messages ; notifications,
+--   message_contact_events et reports n'y sont pas).
+-- - Tables message_contact_events et reports (script 92) : SQL standard, gen_random_uuid()
+--   natif (PostgreSQL 13+), clés étrangères vers public.profiles(user_id), aucune dépendance à
+--   auth.uid(). Seuls les noms de rôles du GRANT (service_role) sont propres à Supabase.
+-- - Script 93 : revoke insert standard ; seul le nom du rôle authenticated est propre à Supabase.
 -- - rôles API : anon, authenticated, service_role et leurs GRANT/REVOKE.
 -- - extensions : pg_cron (schéma pg_catalog), pg_net (public), supabase_vault
 --   (vault), pg_stat_statements, uuid-ossp et pgcrypto (extensions).
