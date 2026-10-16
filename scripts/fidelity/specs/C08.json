@@ -392,7 +392,7 @@
       "name": "mobile",
       "viewport": [
         390,
-        844
+        808
       ],
       "frame": "phone",
       "frameIndex": 1,
@@ -429,10 +429,10 @@
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "X1:113",
+            "y": "X1+A8:113",
             "h": "A2:1"
           },
-          "note": "A2 : sous-titre de 12 à 13 px, +1 px de hauteur. X1 : décalage de l'en-tête mobile (voir la carte de statut) et hauteur de la carte de statut du code (256 px contre 217 px)"
+          "note": "A2 : sous-titre de 12 à 13 px, +1 px de hauteur. y+113 = 73 px d'en-tête mobile (X1, lot ST-03) + 39 px de carte de statut plus haute (256 px contre 217 px : A8, la carte « À faire » de demande de paiement est remplacée par la carte de statut, décision 24 révisée) + 1 px d'arrondi"
         },
         {
           "id": "MI-07",
@@ -448,9 +448,9 @@
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "X1:114"
+            "y": "X1+A8:114"
           },
-          "note": "X1 : décalages cumulés de l'en-tête mobile et des cartes du dessus ; la planche ne montre pas le Séquestre avant « Achats » alors que le code le place après (ordre mobile du cadre 0)"
+          "note": "y+114 = 73 px d'en-tête mobile (X1, lot ST-03) + 39 px de carte de statut plus haute (A8, carte « À faire » remplacée) + 1 px d'arrondi. L'ordre statut, étudiant, achats est celui de la planche ; le Séquestre vient après les achats dans le code, hors du cadre de la planche"
         },
         {
           "id": "MI-08",
@@ -466,9 +466,9 @@
           "lot": "ST-09",
           "assume": {
             "h": "BANC:18",
-            "y": "BANC:54"
+            "y": "BANC:18"
           },
-          "note": "BANC : y, la barre d'état de 36 px de la planche (cadre de 808 px de haut contre 844 px dans le banc) plus 18 px ; h,  la planche réserve 18 px sous les boutons pour l'indicateur d'accueil ; env(safe-area-inset-bottom) vaut 0 dans Chromium headless"
+          "note": "BANC : la planche réserve 18 px sous les boutons (zone de l'indicateur d'accueil) ; env(safe-area-inset-bottom) vaut 0 dans Chromium headless, la barre du code est 18 px plus basse et plus courte. Vue mesurée à 808 px de haut, hauteur du cadre mobile de la planche"
         }
       ]
     }

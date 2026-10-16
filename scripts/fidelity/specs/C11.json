@@ -325,7 +325,7 @@
           "assume": {
             "y": "X1:231"
           },
-          "note": "X1 : décalage de l'en-tête mobile et hauteur du reçu du code (reçu complet avec « Libéré le » et « Moyen » contre un reçu compact de 2 lignes dans la planche mobile)"
+          "note": "X1 : décalage de l'en-tête mobile et hauteur du reçu du code (reçu complet avec « Libéré le » et « Moyen » contre un reçu compact de 2 lignes dans la planche mobile). Lot : aucun, écart décidé : le reçu complet est conservé sur mobile (ni PDF ni référence codés, rien à compacter sans perdre « Libéré le »)"
         }
       ]
     }
