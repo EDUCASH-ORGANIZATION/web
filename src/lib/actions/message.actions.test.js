@@ -744,7 +744,7 @@ describe("espace étudiant", () => {
       expect(reads("profiles")[0].columns).toBe("user_id, full_name, avatar_url")
       expect(JSON.stringify(result)).not.toContain("Dossou")
       expect(Object.keys(result.conversations[0]).sort()).toEqual(
-        ["avatarUrl", "key", "lastAt", "missionId", "missionTitle", "name", "preview", "state", "unreadCount"].sort(),
+        ["avatarUrl", "key", "lastAt", "lastUnreadAt", "missionId", "missionTitle", "name", "preview", "state", "unreadCount"].sort(),
       )
     })
 

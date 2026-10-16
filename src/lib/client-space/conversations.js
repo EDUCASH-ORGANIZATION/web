@@ -245,8 +245,10 @@ export function conversationAccess({ mission, application, studentId }) {
 /**
  * Une conversation par (mission, interlocuteur), du plus récent au plus ancien. `rows` : lignes de `messages`
  * (mission_id, sender_id, receiver_id, content, type, read, created_at) où `userId` est expéditeur ou
- * destinataire ; les autres lignes sont ignorées. Les non lus sont les messages reçus avec read = false.
- * @returns {Array<{ key: string, missionId: string, studentId: string, unreadCount: number, last: { mine: boolean, type: string, content: string, createdAt: string } }>}
+ * destinataire ; les autres lignes sont ignorées. Les non lus sont les messages reçus avec read = false ;
+ * `lastUnreadAt` est la date du plus récent d'entre eux (null s'il n'y en a pas), distincte de `last`
+ * qui couvre aussi les messages envoyés.
+ * @returns {Array<{ key: string, missionId: string, studentId: string, unreadCount: number, lastUnreadAt: string|null, last: { mine: boolean, type: string, content: string, createdAt: string } }>}
  */
 export function buildConversations(rows, userId) {
   const byKey = new Map()
@@ -265,13 +267,17 @@ export function buildConversations(rows, userId) {
         missionId: row.mission_id,
         studentId: other,
         unreadCount: 0,
+        lastUnreadAt: null,
         last: { mine: sent, type: row.type, content: row.content, createdAt: row.created_at },
       }
       byKey.set(key, conv)
     } else if (row.created_at > conv.last.createdAt) {
       conv.last = { mine: sent, type: row.type, content: row.content, createdAt: row.created_at }
     }
-    if (received && row.read === false) conv.unreadCount += 1
+    if (received && row.read === false) {
+      conv.unreadCount += 1
+      if (!conv.lastUnreadAt || row.created_at > conv.lastUnreadAt) conv.lastUnreadAt = row.created_at
+    }
   }
   return [...byKey.values()].sort((a, b) => (a.last.createdAt < b.last.createdAt ? 1 : a.last.createdAt > b.last.createdAt ? -1 : 0))
 }

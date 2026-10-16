@@ -59,6 +59,26 @@ describe("buildConversations", () => {
     expect(list[1].last.content).toBe("De S1")
   })
 
+  it("lastUnreadAt : date du message REÇU non lu le plus récent, jamais celle d'un message envoyé", () => {
+    const [conv] = buildConversations(
+      [
+        row({ created_at: "2026-10-10T08:00:00Z", read: false }),
+        row({ created_at: "2026-10-10T09:00:00Z", read: false }),
+        row({ created_at: "2026-10-12T09:00:00Z", read: true }),
+        row({ created_at: "2026-10-13T09:00:00Z", sender_id: ME, receiver_id: S1, read: false }),
+      ],
+      ME,
+    )
+    expect(conv.last.createdAt).toBe("2026-10-13T09:00:00Z")
+    expect(conv.lastUnreadAt).toBe("2026-10-10T09:00:00Z")
+  })
+
+  it("lastUnreadAt vaut null sans message reçu non lu", () => {
+    const [conv] = buildConversations([row({ read: true }), row({ sender_id: ME, receiver_id: S1, read: false })], ME)
+    expect(conv.unreadCount).toBe(0)
+    expect(conv.lastUnreadAt).toBeNull()
+  })
+
   it("sépare aussi deux missions avec le même étudiant", () => {
     const list = buildConversations([row({ mission_id: M1 }), row({ mission_id: M2 })], ME)
     expect(list).toHaveLength(2)
