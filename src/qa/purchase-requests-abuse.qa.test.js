@@ -259,8 +259,7 @@ describe("structure du code des actions", () => {
   })
 
   it("aucune lecture de colonne privée de profils au-delà du téléphone de l'appelant, jamais de renvoi", () => {
-    expect(source).toMatch(/const PROFILE_PHONE_COLUMNS = "user_id, phone"/)
-    expect(source).toMatch(/service\.from\("profiles"\)\.select\(PROFILE_PHONE_COLUMNS\)\.eq\("user_id", userId\)/)
+    expect(source).toMatch(/service\.from\("profiles"\)\.select\("user_id, phone"\)\.eq\("user_id", userId\)/)
     const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1")
     expect(code.match(/\bphone\b/g)).toHaveLength(2)
     expect(code).toMatch(/return \{ same: isProfilePhone\(payeeNumber, data\?\.phone\) \}/)

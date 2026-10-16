@@ -203,11 +203,10 @@ async function announce({ service, updated, mission, auth, event }) {
 }
 
 // Téléphone de profil de l'étudiant (colonne privée), lu par le client SERVICE ROLE passé par l'action, après ses
-// contrôles, pour la seule comparaison avec le numéro à payer. Il n'est jamais renvoyé ni journalisé.
-const PROFILE_PHONE_COLUMNS = "user_id, phone"
-
+// contrôles, pour la seule comparaison avec le numéro à payer. Il n'est jamais renvoyé ni journalisé. Le fichier figure dans
+// SERVER_ALLOWLIST du garde « colonnes privées » (profile.actions.test.js).
 async function payeeIsProfilePhone(service, userId, payeeNumber) {
-  const { data, error } = await service.from("profiles").select(PROFILE_PHONE_COLUMNS).eq("user_id", userId).maybeSingle()
+  const { data, error } = await service.from("profiles").select("user_id, phone").eq("user_id", userId).maybeSingle()
   if (error) {
     console.error("[purchase-request.actions] profil", error.code ?? "erreur")
     return { error: true }

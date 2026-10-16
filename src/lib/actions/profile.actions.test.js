@@ -779,6 +779,9 @@ const SERVER_ALLOWLIST = [
   "lib/actions/admin-verifications.actions.js",
   "lib/actions/admin-dashboard.actions.js",
   "lib/actions/admin-users.actions.js",
+  // RD-ACHATS-01 : lit le SEUL téléphone privé de l'ÉTUDIANT, par le client service role, après contrôle d'identité,
+  // de rôle et de propriété, pour refuser un « numéro à payer » égal à son propre téléphone. Jamais renvoyé.
+  "lib/actions/purchase-request.actions.js",
 ]
 
 const SELECT_ARG = /\.select\(\s*(`[^`]*`|"[^"]*"|'[^']*')/g
