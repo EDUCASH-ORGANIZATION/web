@@ -1,7 +1,7 @@
 /* ---------- C12 Messages, C13 Conversation ---------- */
 .c2 .c-inbox { border-radius: var(--r-l); flex: 1; min-height: 0; }
-/* Carte unique à deux volets sans gouttière (liste 360 px, filet vertical) : hauteur de la fenêtre moins la barre du haut, le titre et les marges */
-.inbox2 { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 0; height: max(480px, calc(100dvh - 221px)); }
+/* Carte unique à deux volets sans gouttière (liste 360 px, filet vertical) : elle remplit la zone principale (flex: 1 de .c-inbox) */
+.inbox2 { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 0; }
 .c2 .c-inbox__list { padding: 14px; gap: 2px; overflow: hidden; min-height: 0; }
 .c2 .c-inbox__list .search { margin-bottom: 8px; }
 .c2 .c-inbox__list .segmented { margin-bottom: 8px; flex: none; }
@@ -52,6 +52,8 @@
   .c2 .inbox2 .c-inbox__list { border-right: 0; padding: 0; gap: var(--s-3); overflow: visible; }
   .c2 .inbox2 .c-inbox__list .search { margin-bottom: 0; }
   .c2 .inbox2 .c-inbox__list .segmented { margin-bottom: var(--s-1); }
+  /* Conversation seule : la hauteur mobile de c13.css (zone sûre comptée une seule fois) */
+  .c2 .c-inbox__thread > .conv2 { flex: none; height: calc(100dvh - 148px - env(safe-area-inset-bottom, 0px)); }
   .c2 .convos2 { padding: 6px; overflow-y: visible; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); }
   .c2 .c-inbox__list .search:not(:focus-within) { background: var(--c-blanc); border-color: var(--c-ligne); }
   .c2 .segmented__item { height: 44px; }

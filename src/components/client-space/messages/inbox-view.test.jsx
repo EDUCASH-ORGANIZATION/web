@@ -131,8 +131,10 @@ describe("ClientInboxView : liste", () => {
     expect(html.indexOf(S2)).toBeLessThan(html.indexOf(S3))
   })
 
-  it("propose trois filtres : Toutes, Non lues avec compteur, En cours", () => {
-    expect(html).toMatch(/>Toutes<\/a>.*Non lues \(2\)<\/a>.*En cours<\/a>/s)
+  it("propose deux filtres : Toutes et Non lues avec compteur", () => {
+    expect(html.match(/class="segmented__item/g)).toHaveLength(2)
+    expect(html).toMatch(/>Toutes<\/a>.*Non lues \(2\)<\/a>/s)
+    expect(html).not.toContain("En cours</a>")
     expect(html).toContain('href="/client/messages" class="segmented__item is-active" aria-current="page"')
   })
 })
@@ -155,12 +157,14 @@ describe("ClientInboxView : deux volets et ligne active", () => {
     expect(html).not.toContain(`href="/client/messages/${M1}?studentId=${S1}" class="convo is-unread is-active"`)
   })
 
-  it("sans studentId : la ligne retenue, ou la seule ligne de la mission", () => {
+  it("sans studentId : seulement la ligne de l'étudiant retenu", () => {
     expect(activeKeyOf(LIST, `/client/messages/${M2}`, null)).toBe(`${M2}:${S3}`)
     // Deux candidats, aucun retenu : aucune ligne n'est devinée.
     expect(activeKeyOf(LIST, `/client/messages/${M1}`, null)).toBeNull()
     const retained = [LIST[0], { ...LIST[1], state: "in_progress" }]
     expect(activeKeyOf(retained, `/client/messages/${M1}`, null)).toBe(`${M1}:${S2}`)
+    // Une seule candidature : la page n'ouvre aucun étudiant retenu, aucune ligne n'est marquée.
+    expect(activeKeyOf([LIST[0]], `/client/messages/${M1}`, null)).toBeNull()
     expect(activeKeyOf(LIST, "/client/messages", null)).toBeNull()
     expect(activeKeyOf(LIST, `/client/messages/${M1}`, "autre")).toBeNull()
   })
@@ -174,7 +178,7 @@ describe("ClientInboxView : deux volets et ligne active", () => {
   it("garde recherche, filtre et étudiant dans les liens et l'action de la conversation ouverte", () => {
     const html = render(
       { result: { conversations: LIST }, children: PANE },
-      { pathname: `/client/messages/${M1}`, search: `studentId=${S2}&filtre=en-cours&q=Sena` },
+      { pathname: `/client/messages/${M1}`, search: `studentId=${S2}&filtre=non-lues&q=Sena` },
     )
     expect(html).toContain(`action="/client/messages/${M1}"`)
     expect(html).toContain(`<input type="hidden" name="studentId" value="${S2}"/>`)
@@ -210,20 +214,12 @@ describe("ClientInboxView : filtres et recherche", () => {
     expect(html).toContain('<input type="hidden" name="filtre" value="non-lues"/>')
   })
 
-  it("filtre en cours, seul le filtre En cours est actif", () => {
+  it("traite filtre=en-cours (réservé à l'étudiant) comme un filtre inconnu", () => {
     const html = render({ result: { conversations: LIST } }, { search: "filtre=en-cours" })
-    expect(rows(html)).toBe(1)
-    expect(html).toContain("Rosine H.")
-    expect(html).toContain('class="segmented__item is-active" aria-current="page">En cours')
-    expect(html).toContain(`href="/client/messages/${M2}?studentId=${S3}&amp;filtre=en-cours"`)
-  })
-
-  it("combine en-cours et recherche, et dit qu'aucune conversation n'est en cours", () => {
-    const both = render({ result: { conversations: LIST } }, { search: "filtre=en-cours&q=rosine" })
-    expect(rows(both)).toBe(1)
-    const none = render({ result: { conversations: [conv()] } }, { search: "filtre=en-cours" })
-    expect(none).toContain("Aucune conversation en cours")
-    expect(none).toContain('href="/client/messages"')
+    expect(rows(html)).toBe(3)
+    expect(html).not.toContain('name="filtre"')
+    expect(html).not.toContain("filtre=en-cours")
+    expect(html).toMatch(/segmented__item is-active"[^>]*aria-current="page">Toutes/)
   })
 
   it("dit que tout est lu quand rien n'est non lu", () => {
@@ -267,7 +263,6 @@ describe("aides de la boîte de réception", () => {
     expect(inboxHref()).toBe("/client/messages")
     expect(inboxHref({ q: "" })).toBe("/client/messages")
     expect(inboxHref({ q: "a b&c", unreadOnly: true })).toBe("/client/messages?q=a+b%26c&filtre=non-lues")
-    expect(inboxHref({ inProgressOnly: true })).toBe("/client/messages?filtre=en-cours")
     expect(inboxHref({ base: `/client/messages/${M1}`, studentId: S1, q: "x" })).toBe(`/client/messages/${M1}?studentId=${S1}&q=x`)
   })
 
@@ -363,6 +358,12 @@ describe("segment client/messages", () => {
     expect(page).not.toMatch(/<Suspense|searchParams/)
   })
 
+  it("la page de conversation rend son erreur en h2 (le layout porte le seul h1)", () => {
+    const page = readFileSync(join(root, "[missionId]", "page.js"), "utf8")
+    expect(page).toContain('titleAs="h2"')
+    expect(page).not.toContain('titleAs="h1"')
+  })
+
   it("la conversation introuvable porte un h2 et aucun h1 (le layout porte le h1)", async () => {
     const { default: NotFound } = await import("@/app/(client)/client/messages/[missionId]/not-found")
     const html = renderToStaticMarkup(<NotFound />)
@@ -390,6 +391,15 @@ describe("styles des deux volets", () => {
     expect(declarationsOf(css, ".inbox2", MOBILE)["grid-template-columns"]).toBe("minmax(0, 1fr)")
     expect(declarationsOf(css, '.c2 .inbox2[data-view="list"] > :not(.c-inbox__list)', MOBILE).display).toBe("none")
     expect(declarationsOf(css, '.c2 .inbox2[data-view="conversation"] > .c-inbox__list', MOBILE).display).toBe("none")
+  })
+
+  it("la conversation du volet remplit le bureau sans écraser la hauteur mobile de c13.css", () => {
+    const desk = declarationsOf(css, ".c2 .c-inbox__thread > .conv2")
+    expect(desk.flex).toBe("1")
+    expect(desk.height).toBe("auto")
+    const mobile = declarationsOf(css, ".c2 .c-inbox__thread > .conv2", MOBILE)
+    expect(mobile.flex).toBe("none")
+    expect(mobile.height).toBe("calc(100dvh - 148px - env(safe-area-inset-bottom, 0px))")
   })
 
   it("sous 1024 px : titre de page masqué à l'œil seulement en conversation", () => {

@@ -66,7 +66,6 @@ describe("ligne active : deux candidats sur la même mission", () => {
     expect(html).toContain(`href="/client/messages/${M2}?studentId=${S3}&amp;q=a"`)
     // Filtres (pastilles) : étudiant ouvert
     expect(html).toContain(`href="/client/messages/${M1}?studentId=${S2}&amp;q=a&amp;filtre=non-lues"`)
-    expect(html).toContain(`href="/client/messages/${M1}?studentId=${S2}&amp;q=a&amp;filtre=en-cours"`)
     expect(html).toContain(`action="/client/messages/${M1}"`)
     expect(html).toContain(`name="studentId" value="${S2}"`)
   })
@@ -81,11 +80,12 @@ describe("filtre et recherche hostiles", () => {
     expect(html).toContain("Rosine H.")
   })
 
-  it("en-cours combiné à q", () => {
+  it("en-cours (réservé à l'étudiant) ignoré, la recherche reste appliquée", () => {
     const html = render({ result: { conversations: LIST } }, { search: "filtre=en-cours&q=Rosine" })
     expect(html).toContain("Rosine H.")
     expect(html).not.toContain("Awa K.")
-    expect(html).toContain('name="filtre" value="en-cours"')
+    expect(html).not.toContain('name="filtre"')
+    expect(html).not.toContain("filtre=en-cours")
     expect(html).toContain("q=Rosine")
   })
 

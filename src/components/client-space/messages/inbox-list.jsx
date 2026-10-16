@@ -12,7 +12,6 @@ import { filterConversations, formatListTime, unreadTotal } from "@/lib/client-s
 
 const INBOX_PATH = "/client/messages"
 const UNREAD_PARAM = "non-lues"
-const IN_PROGRESS_PARAM = "en-cours"
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
 
@@ -24,14 +23,13 @@ function normalizeSearch(raw) {
 /**
  * Adresse d'une liste filtrée (paramètres vides omis). `base` est le chemin courant : la recherche et les
  * filtres gardent la conversation ouverte, `studentId` repère l'étudiant d'une mission à plusieurs candidats.
- * @param {{ q?: string, unreadOnly?: boolean, inProgressOnly?: boolean, base?: string, studentId?: string }} [options]
+ * @param {{ q?: string, unreadOnly?: boolean, base?: string, studentId?: string }} [options]
  */
-export function inboxHref({ q, unreadOnly, inProgressOnly, base = INBOX_PATH, studentId } = {}) {
+export function inboxHref({ q, unreadOnly, base = INBOX_PATH, studentId } = {}) {
   const query = new URLSearchParams()
   if (studentId) query.set("studentId", studentId)
   if (q) query.set("q", q)
   if (unreadOnly) query.set("filtre", UNREAD_PARAM)
-  else if (inProgressOnly) query.set("filtre", IN_PROGRESS_PARAM)
   const qs = query.toString()
   return qs ? `${base}?${qs}` : base
 }
@@ -57,7 +55,7 @@ export function subtitleOf(conversation) {
 
 /**
  * Clé de la conversation ouverte, d'après le chemin et le paramètre `studentId`. Sans `studentId`, la page ouvre
- * l'étudiant retenu : la seule ligne de la mission, sinon celle qui n'est ni candidate ni refusée.
+ * l'étudiant retenu : la ligne de la mission qui n'est ni candidate ni refusée, sinon aucune.
  * @param {object[]} conversations
  * @param {string} pathname
  * @param {string|null|undefined} studentId
@@ -67,7 +65,6 @@ export function activeKeyOf(conversations, pathname, studentId) {
   const ofMission = (conversations ?? []).filter((c) => pathname === clientConversationHref(c.missionId))
   if (ofMission.length === 0) return null
   if (studentId) return ofMission.find((c) => c.studentId === studentId)?.key ?? null
-  if (ofMission.length === 1) return ofMission[0].key
   return ofMission.find((c) => c.state !== "candidate" && c.state !== "rejected")?.key ?? null
 }
 
@@ -102,7 +99,7 @@ function ConversationRow({ conversation, now, active, query }) {
 }
 
 // Aucun résultat : recherche sans réponse, aucun message non lu ou aucune conversation en cours.
-function NoResult({ q, unreadOnly, inProgressOnly, base }) {
+function NoResult({ q, unreadOnly, base }) {
   if (q) {
     return (
       <EmptyState
@@ -110,18 +107,7 @@ function NoResult({ q, unreadOnly, inProgressOnly, base }) {
         icon="i-search"
         title={`Aucune conversation pour « ${q} »`}
         text="Essayez un autre mot."
-        action={{ label: "Effacer la recherche", href: inboxHref({ unreadOnly, inProgressOnly, base }) }}
-      />
-    )
-  }
-  if (inProgressOnly) {
-    return (
-      <EmptyState
-        compact
-        icon="i-message"
-        title="Aucune conversation en cours"
-        text="Les échanges des missions en cours apparaîtront ici."
-        action={{ label: "Voir toutes les conversations", href: inboxHref({ base }) }}
+        action={{ label: "Effacer la recherche", href: inboxHref({ unreadOnly, base }) }}
       />
     )
   }
@@ -137,7 +123,7 @@ function NoResult({ q, unreadOnly, inProgressOnly, base }) {
 }
 
 /**
- * Volet gauche de la messagerie : recherche, filtres (Toutes, Non lues, En cours) et lignes. La recherche et le
+ * Volet gauche de la messagerie : recherche et filtres (Toutes, Non lues) et lignes. La recherche et le
  * filtre sont lus dans l'adresse ; la ligne de la conversation ouverte est repérée par le chemin et `studentId`.
  * @param {{ conversations: object[], now: Date }} props conversations déjà lues (toutes, non filtrées)
  */
@@ -147,11 +133,10 @@ export function ClientInboxList({ conversations, now }) {
   const q = normalizeSearch(params?.get("q"))
   const filter = params?.get("filtre")
   const unreadOnly = filter === UNREAD_PARAM
-  const inProgressOnly = filter === IN_PROGRESS_PARAM
   const unreadCount = unreadTotal(conversations)
-  const shown = filterConversations(conversations, { q, unreadOnly, inProgressOnly })
+  const shown = filterConversations(conversations, { q, unreadOnly })
   const activeKey = activeKeyOf(conversations, pathname, params?.get("studentId"))
-  const query = { q, unreadOnly, inProgressOnly }
+  const query = { q, unreadOnly }
   // Les liens de filtre restent sur la conversation ouverte, avec son étudiant.
   const openStudentId = activeKey ? conversations.find((c) => c.key === activeKey)?.studentId : undefined
 
@@ -159,7 +144,7 @@ export function ClientInboxList({ conversations, now }) {
     <section className="c-inbox__list" aria-label="Conversations">
       <form role="search" method="get" action={pathname}>
         {openStudentId ? <input type="hidden" name="studentId" value={openStudentId} /> : null}
-        {unreadOnly || inProgressOnly ? <input type="hidden" name="filtre" value={filter} /> : null}
+        {unreadOnly ? <input type="hidden" name="filtre" value={UNREAD_PARAM} /> : null}
         <label className="search">
           <Icon name="i-search" />
           <input
@@ -175,9 +160,9 @@ export function ClientInboxList({ conversations, now }) {
       </form>
       <nav className="segmented segmented--block" aria-label="Filtrer les conversations">
         <Link
-          className={cx("segmented__item", !unreadOnly && !inProgressOnly && "is-active")}
+          className={cx("segmented__item", !unreadOnly && "is-active")}
           href={inboxHref({ q, base: pathname, studentId: openStudentId })}
-          aria-current={unreadOnly || inProgressOnly ? undefined : "page"}
+          aria-current={unreadOnly ? undefined : "page"}
         >
           Toutes
         </Link>
@@ -188,20 +173,13 @@ export function ClientInboxList({ conversations, now }) {
         >
           {unreadCount > 0 ? `Non lues (${unreadCount})` : "Non lues"}
         </Link>
-        <Link
-          className={cx("segmented__item", inProgressOnly && "is-active")}
-          href={inboxHref({ q, inProgressOnly: true, base: pathname, studentId: openStudentId })}
-          aria-current={inProgressOnly ? "page" : undefined}
-        >
-          En cours
-        </Link>
       </nav>
       {shown.length === 0 ? (
         <div className="inbox-rows2 convos2">
-          <NoResult q={q} unreadOnly={unreadOnly} inProgressOnly={inProgressOnly} base={pathname} />
+          <NoResult q={q} unreadOnly={unreadOnly} base={pathname} />
         </div>
       ) : (
-        <ul className="inbox-rows2 convos2" aria-label="Conversations">
+        <ul className="inbox-rows2 convos2">
           {shown.map((conversation) => (
             <ConversationRow
               key={conversation.key}
