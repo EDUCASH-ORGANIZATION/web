@@ -345,8 +345,8 @@ alter table public.reports add constraint reports_resolution_note_check CHECK ((
 alter table public.reports add constraint reports_message_reporter_key UNIQUE (message_id, reporter_id);
 alter table public.reports add constraint reports_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.messages(id) ON DELETE CASCADE;
 alter table public.reports add constraint reports_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;
-alter table public.reports add constraint reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.profiles(user_id);
-alter table public.reports add constraint reports_reported_user_id_fkey FOREIGN KEY (reported_user_id) REFERENCES public.profiles(user_id);
+alter table public.reports add constraint reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+alter table public.reports add constraint reports_reported_user_id_fkey FOREIGN KEY (reported_user_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
 alter table public.reports add constraint reports_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.profiles(user_id) ON DELETE SET NULL;
 
 -- 5. INDEX (hors index portés par une contrainte)
@@ -377,6 +377,11 @@ CREATE INDEX notifications_recipient_created_idx ON public.notifications USING b
 CREATE INDEX notifications_recipient_unread_idx ON public.notifications USING btree (recipient_id, created_at DESC) WHERE (read_at IS NULL);
 
 CREATE INDEX message_contact_events_sender_created_idx ON public.message_contact_events USING btree (sender_id, created_at DESC);
+CREATE INDEX message_contact_events_message_id_idx ON public.message_contact_events USING btree (message_id);
+CREATE INDEX message_contact_events_mission_id_idx ON public.message_contact_events USING btree (mission_id);
+CREATE INDEX reports_mission_id_idx ON public.reports USING btree (mission_id);
+CREATE INDEX reports_reporter_created_idx ON public.reports USING btree (reporter_id, created_at DESC);
+CREATE INDEX reports_reported_created_idx ON public.reports USING btree (reported_user_id, created_at DESC);
 CREATE INDEX reports_status_created_idx ON public.reports USING btree (status, created_at DESC);
 CREATE UNIQUE INDEX reports_auto_open_per_user_idx ON public.reports USING btree (reported_user_id) WHERE ((source = 'auto'::text) AND (status = ANY (ARRAY['open'::text, 'in_progress'::text])));
 

@@ -54,6 +54,18 @@ describe("schéma de référence : journal des détections (script 92)", () => {
     )
   })
 
+  it("les index des clés étrangères et de l'historique existent", () => {
+    const expected = [
+      "CREATE INDEX message_contact_events_message_id_idx ON public.message_contact_events USING btree (message_id);",
+      "CREATE INDEX message_contact_events_mission_id_idx ON public.message_contact_events USING btree (mission_id);",
+      "CREATE INDEX reports_mission_id_idx ON public.reports USING btree (mission_id);",
+      "CREATE INDEX reports_reporter_created_idx ON public.reports USING btree (reporter_id, created_at DESC);",
+      "CREATE INDEX reports_reported_created_idx ON public.reports USING btree (reported_user_id, created_at DESC);",
+      "CREATE INDEX reports_status_created_idx ON public.reports USING btree (status, created_at DESC);",
+    ]
+    for (const line of expected) expect(SCHEMA).toContain(line)
+  })
+
   it("l'index de récidive porte (sender_id, created_at DESC)", () => {
     expect(SCHEMA).toContain(
       "CREATE INDEX message_contact_events_sender_created_idx ON public.message_contact_events USING btree (sender_id, created_at DESC);"
@@ -103,6 +115,17 @@ describe("schéma de référence : signalements (script 92)", () => {
   it("le numéro SIG est une identité GENERATED ALWAYS unique", () => {
     expect(SCHEMA).toContain("number bigint generated always as identity not null,")
     expect(SCHEMA).toContain("alter table public.reports add constraint reports_number_key UNIQUE (number);")
+  })
+
+  it("la suppression d'un compte emporte ses signalements (signalant comme signalé), jamais de blocage", () => {
+    expect(SCHEMA).toContain(
+      "reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;"
+    )
+    expect(SCHEMA).toContain(
+      "reports_reported_user_id_fkey FOREIGN KEY (reported_user_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;"
+    )
+    const fks = onTable("reports").filter((l) => l.includes("FOREIGN KEY") && !l.includes("handled_by"))
+    expect(fks.every((l) => l.includes("ON DELETE CASCADE"))).toBe(true)
   })
 
   it("les clés étrangères visent les tables publiques, jamais auth.users", () => {
