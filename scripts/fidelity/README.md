@@ -68,8 +68,9 @@ restent en `ÉCHEC` ; les lignes avec 1 px non expliqué sont en `NON EXPLIQUÉ`
 
 - `frame` : `desk` (`.frame-desk__screen`, 1440) ou `phone` (`.frame-phone__screen`, 390 ; la barre
   d'état de 36 px est retranchée des y de la planche).
-- `viewport` du code : la hauteur 880 aligne la coquille du code (`100vh - 40 px`) sur le cadre de la
-  planche (900 - 60 px).
+- `viewport` du code : coquille du code : cadre `100dvh - 32`, zone principale `100dvh - 60` ; planche :
+  900 - 32 et 900 - 60. Viewport bureau 900 pour C12 ; E06, E07 et C13 restent à 880 jusqu'au ticket de
+  re-mesure.
 - `board` : sélecteur dans le cadre de la planche ; `code` : sélecteur dans le rendu (défaut : `board`).
   Le premier élément correspondant est mesuré des deux côtés.
 - `props` : `x y w h` (tolérance 1 px) et `tw` (largeur du texte lui-même, utile quand la boîte épouse un

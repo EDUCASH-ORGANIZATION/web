@@ -70,6 +70,18 @@
           "lot": "ST-06"
         },
         {
+          "id": "MC-05",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "tw"
+          ],
+          "lot": "ST-07",
+          "note": "Écart de contenu non toléré : la planche C13 écrit « Ulrich Zinsou · Courses au marché Dantokpa », la ligne de date rendue par le layout de ST-06 est le résumé de la liste (« 5 conversations · 2 non lues », cadre 0 de C12) ; à traiter par ST-07"
+        },
+        {
           "id": "MC-06",
           "label": "en-tête de conversation",
           "board": ".c-inbox__head",
