@@ -176,6 +176,21 @@ describe("TabsNav", () => {
     expect(html).toContain("tab is-active")
     expect(html).toContain('<span class="count">2</span>')
     expect(html.match(/class="count"/g)).toHaveLength(1)
+    expect(html).toContain('class="tabs"')
+    expect(html).not.toContain("e2-tab")
+  })
+
+  it("variante e2 : classes sobres, compteur en <b>, même nav accessible et même dégradé de défilement", () => {
+    const html = renderToStaticMarkup(<TabsNav variant="e2" items={items} activeKey="open" label="Mes candidatures" />)
+    expect(html).toContain('class="tabs-wrap"')
+    expect(html).toContain('class="e2-tabs"')
+    expect(html).toContain('class="e2-tab is-active"')
+    expect(html).toContain("<b>2</b>")
+    expect(html.match(/<b>/g)).toHaveLength(1)
+    expect(html).toContain('aria-label="Mes candidatures"')
+    expect(html.match(/aria-current="page"/g)).toHaveLength(1)
+    expect(html).not.toContain("role=")
+    expect(html).not.toContain('class="count"')
   })
 })
 

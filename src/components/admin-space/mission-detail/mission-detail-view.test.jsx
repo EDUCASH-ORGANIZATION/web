@@ -36,7 +36,7 @@ const data = (over = {}, missionOver = {}) => ({
       { id: "a2", studentId: "44444444-4444-4444-8444-444444444444", name: "", status: "rejected", createdAt: "2026-10-11T09:00:00Z", selected: false },
     ],
   },
-  completion: null,
+  completion: { declaredAt: null, finishedAt: null },
   reviews: [],
   ledger: [{ id: "w1", userId: CLIENT, type: "reserve", amount: 10000, createdAt: "2026-10-10T08:01:00Z", party: "client" }],
   ...over,
@@ -99,17 +99,21 @@ describe("MissionDetailView : statuts", () => {
     expect(render({ data: data({ ledger: [] }, { status: "open", deadline: "2026-10-01" }) })).toContain("Échéance dépassée")
   })
 
-  it("à confirmer : fin enregistrée sur une mission en cours", () => {
-    const html = render({ data: data({ completion: { createdAt: "2026-10-13T08:00:00Z" } }) })
+  it("à confirmer : fin déclarée sur une mission en cours", () => {
+    const html = render({ data: data({ completion: { declaredAt: "2026-10-13T08:00:00Z", finishedAt: null } }) })
     expect(html).toContain("Fin à confirmer")
-    expect(html).toContain("Fin enregistrée, à confirmer par le client")
+    expect(html).toContain("Fin déclarée par l&#x27;étudiant, à confirmer par le client")
+  })
+
+  it("en cours sans déclaration : pas de « Fin à confirmer »", () => {
+    expect(render({ data: data() })).not.toContain("Fin à confirmer")
   })
 
   it("terminée avec avis et libération", () => {
     const html = render({
       data: data(
         {
-          completion: { createdAt: "2026-10-13T08:00:00Z" },
+          completion: { declaredAt: "2026-10-12T08:00:00Z", finishedAt: "2026-10-13T08:00:00Z" },
           reviews: [{ id: "r1", rating: 5, comment: "Parfait", createdAt: "2026-10-14T08:00:00Z", byRole: "client" }],
           ledger: [
             { id: "w1", userId: CLIENT, type: "reserve", amount: 10000, createdAt: "2026-10-10T08:01:00Z", party: "client" },

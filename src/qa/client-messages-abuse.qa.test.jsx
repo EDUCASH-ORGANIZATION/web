@@ -16,6 +16,7 @@ const S2 = "22222222-2222-4222-8222-222222222222"
 const STRANGER = "22222222-2222-4222-8222-222222222229"
 
 const ctx = { db: {}, log: [], failures: {}, user: null, origin: ORIGIN, delay: null }
+vi.mock("server-only", () => ({}))
 vi.mock("@/lib/supabase/server", async () => {
   const { makeFakeSupabase: make } = await import("./fixtures/fake-supabase.js")
   return { createClient: async () => make(ctx) }

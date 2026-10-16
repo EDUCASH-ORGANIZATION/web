@@ -2,7 +2,7 @@
 // Logique pure de la liste des missions admin (AD06) : paramètres d'URL validés, onglets, libellés.
 import { CITIES, MISSION_TYPES } from "@/lib/constants/missions"
 
-/** Onglets-filtres : valeurs en base, plus « toutes » et « à confirmer » (en cours avec une fin enregistrée). */
+/** Onglets-filtres : valeurs en base, plus « toutes » et « à confirmer » (en cours avec une fin déclarée par l'étudiant, colonne `completion_declared_at`). */
 export const MISSION_TABS = ["toutes", "open", "in_progress", "a-confirmer", "done", "cancelled"]
 export const DEFAULT_MISSION_TAB = "toutes"
 export const MISSIONS_ADMIN_PAGE_SIZE = 25

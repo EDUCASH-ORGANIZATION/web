@@ -30,6 +30,7 @@ const supabase = {
   auth: { getUser: async () => ({ data: { user: session }, error: session ? null : new Error("no session") }) },
   from: (n) => table(n),
 }
+vi.mock("server-only", () => ({}))
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => supabase) }))
 
 const { getClientDashboard } = await import("@/lib/actions/client-dashboard.actions")
