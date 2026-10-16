@@ -38,16 +38,17 @@ describe("ADMIN_NAV", () => {
 
   it("bureau : groupes Général puis Finances, clés uniques par liste", () => {
     expect(ADMIN_NAV.groups.map((g) => g.title)).toEqual(["Général", "Finances"])
-    expect(ADMIN_NAV.groups[0].items.map((i) => i.key)).toEqual(["accueil", "verifications", "utilisateurs", "missions"])
+    expect(ADMIN_NAV.groups[0].items.map((i) => i.key)).toEqual(["accueil", "verifications", "utilisateurs", "missions", "signalements"])
     expect(ADMIN_NAV.groups[1].items.map((i) => i.key)).toEqual(["transactions", "portefeuilles", "retraits"])
     expect(new Set(desktop.map((i) => i.key)).size).toBe(desktop.length)
   })
 
-  it("mobile : Accueil, Vérifs, Missions, Utilisateurs puis Plus (Transactions, Portefeuilles, Retraits)", () => {
+  it("mobile : Accueil, Vérifs, Missions, Utilisateurs puis Plus (Signalements, Transactions, Portefeuilles, Retraits)", () => {
     expect(mobile.map((i) => i.key)).toEqual(["accueil", "verifications", "missions", "utilisateurs"])
     expect(mobile.map((i) => i.label)).toEqual(["Accueil", "Vérifs", "Missions", "Utilisateurs"])
     expect(mobileMore).toMatchObject({ key: "plus", label: "Plus", icon: "i-more-h" })
-    expect(mobileMore.items.map((i) => i.key)).toEqual(["transactions", "portefeuilles", "retraits"])
+    expect(mobileMore.items.map((i) => i.key)).toEqual(["signalements", "transactions", "portefeuilles", "retraits"])
+    expect(mobile).toHaveLength(4)
     expect(mobile.some((i) => i.cta)).toBe(false)
     expect(ADMIN_NAV.mobileHideBelow).toBeUndefined()
   })
@@ -75,7 +76,14 @@ describe("ADMIN_NAV", () => {
       expect(v.badge).toBe("verifications")
       expect(v.badgeUnit).toBe("à examiner")
     }
-    expect(all.filter((i) => i.badge && i.badge !== "verifications")).toEqual([])
+    expect(all.filter((i) => i.badge && !["verifications", "reports"].includes(i.badge))).toEqual([])
+  })
+
+  it("Signalements : lien vers la file, badge « ouverts » au bureau, absent de la barre mobile", () => {
+    const s = desktop.find((i) => i.key === "signalements")
+    expect(s).toMatchObject({ label: "Signalements", href: "/admin/reports", icon: "i-flag", badge: "reports", badgeUnit: "ouverts" })
+    expect(mobile.some((i) => i.key === "signalements")).toBe(false)
+    expect(mobileMore.items.find((i) => i.key === "signalements")).toMatchObject({ href: "/admin/reports", icon: "i-flag" })
   })
 
   it("bureau et mobile : mêmes destinations pour la même clé", () => {
@@ -94,6 +102,8 @@ describe("ADMIN_NAV", () => {
     expect(activeKey("/admin/wallets", desktop)).toBe("portefeuilles")
     expect(activeKey("/admin/transactions", desktop)).toBe("transactions")
     expect(activeKey("/admin/withdrawals", desktop)).toBe("retraits")
+    expect(activeKey("/admin/reports", desktop)).toBe("signalements")
+    expect(activeKey("/admin/reports/abc", desktop)).toBe("signalements")
     expect(activeKey("/admin/walletsx", desktop)).toBeNull()
   })
 
@@ -107,6 +117,11 @@ describe("ADMIN_NAV", () => {
       activeKey: null,
       moreActive: true,
       moreActiveKey: "retraits",
+    })
+    expect(resolveMobileActive("/admin/reports/abc", mobile, mobileMore)).toMatchObject({
+      activeKey: null,
+      moreActive: true,
+      moreActiveKey: "signalements",
     })
     expect(resolveMobileActive("/admin/verifications", mobile, mobileMore)).toMatchObject({
       activeKey: "verifications",

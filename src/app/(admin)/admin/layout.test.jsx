@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { readFileSync } from "node:fs"
 import path from "node:path"
 
-const state = { user: null, profile: null, pending: 0 }
+const state = { user: null, profile: null, pending: 0, reports: 0 }
 const redirect = vi.fn((to) => {
   throw new Error(`REDIRECT:${to}`)
 })
@@ -39,7 +39,9 @@ function makeService() {
         gte: () => b,
         order: () => b,
         range: () => b,
+        limit: () => b,
         then: (res, rej) => {
+          if (table === "reports") return Promise.resolve({ data: [], error: null, count: state.reports }).then(res, rej)
           const rows = Array.from({ length: state.pending }, (_, i) =>
             table === "student_profiles" ? { user_id: `s${i}` } : { user_id: `s${i}`, verified_until: null },
           )
@@ -81,6 +83,7 @@ beforeEach(() => {
   state.user = forged
   state.profile = { ...ADMIN }
   state.pending = 0
+  state.reports = 0
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
 
@@ -149,6 +152,21 @@ describe("(admin)/layout", () => {
     const html = renderToStaticMarkup(await AdminLayout({ children: null }))
     expect(html.match(/Vérifications, 7 à examiner/g)).toHaveLength(1)
     expect(html).toContain("Vérifs, 7 à examiner")
+  })
+
+  it("transmet le nombre de signalements ouverts à la barre latérale, sans changer la barre mobile", async () => {
+    state.reports = 3
+    const html = renderToStaticMarkup(await AdminLayout({ children: null }))
+    expect(html.match(/Signalements, 3 ouverts/g)).toHaveLength(1)
+    const start = html.indexOf('<nav class="bottom-nav')
+    const nav = html.slice(start, html.indexOf("</nav>", start))
+    expect(nav).not.toContain("Signalements, 3 ouverts")
+  })
+
+  it("aucun signalement ouvert : pas de badge, entrée présente", async () => {
+    const html = renderToStaticMarkup(await AdminLayout({ children: null }))
+    expect(html).toContain('href="/admin/reports"')
+    expect(html).not.toContain("Signalements, ")
   })
 
   it("aucun abonnement temps réel aux messages dans l'espace admin", async () => {
