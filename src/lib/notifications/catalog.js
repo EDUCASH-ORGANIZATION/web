@@ -17,6 +17,7 @@ import {
   studentVerifyHref,
 } from "../app/student-routes.js"
 import { adminHomeHref, adminVerificationsHref } from "../app/admin-routes.js"
+import { PAYMENT_WARNING } from "../purchases/requests.js"
 
 // Même liste que le CHECK de la table `notifications` (garde de cohérence : notifications-schema.guard).
 export const NOTIFICATION_TYPES = Object.freeze([
@@ -34,6 +35,13 @@ export const NOTIFICATION_TYPES = Object.freeze([
   "card_submitted",
   "message_received",
   "completion_declared",
+  "purchase_requested",
+  "purchase_updated",
+  "purchase_cancelled",
+  "purchase_paid",
+  "purchase_received",
+  "purchase_reported",
+  "purchase_report_closed",
 ])
 
 export const NOTIFICATION_SPACES = Object.freeze(["client", "student", "admin"])
@@ -274,6 +282,103 @@ export function completionDeclared({ missionId, missionTitle, studentId, student
   })
 }
 
+// Demandes de paiement d'achats (RD-ACHATS-01). Aucun texte ne contient de numéro de vendeur, de nom de vendeur ni
+// de montant : le détail se lit dans la carte de la conversation. `version` est la version de la demande à
+// l'instant de l'événement ; elle sépare les modifications successives dans la clé d'idempotence
+// `purchase:<demande>:<événement>:<version>`. `studentId` ou `clientId` désigne l'acteur (lien vers la conversation).
+
+function purchaseKey({ requestId, event, version }) {
+  const safeVersion = Number.isInteger(version) && version >= 1 ? version : 1
+  return `purchase:${requestId}:${event}:${safeVersion}`
+}
+
+/** Au client : l'étudiant retenu envoie une demande de paiement d'achats. Le corps reprend l'avertissement. */
+export function purchaseRequested({ requestId, missionId, missionTitle, studentId, studentName, version }) {
+  return build({
+    type: "purchase_requested",
+    title: "Nouvelle demande de paiement d'achats",
+    body: `${shortName(studentName, "L'étudiant")} vous envoie une demande de paiement d'achats pour ${quoted(missionTitle)}. ${PAYMENT_WARNING}`,
+    dedupeKey: purchaseKey({ requestId, event: "requested", version }),
+    missionId,
+    actorId: studentId,
+  })
+}
+
+/** Au client : l'étudiant a modifié sa demande encore en attente. */
+export function purchaseUpdated({ requestId, missionId, missionTitle, studentId, studentName, version }) {
+  return build({
+    type: "purchase_updated",
+    title: "Demande de paiement modifiée",
+    body: `${shortName(studentName, "L'étudiant")} a modifié sa demande de paiement d'achats pour ${quoted(missionTitle)}. Consultez-la avant de payer.`,
+    dedupeKey: purchaseKey({ requestId, event: "updated", version }),
+    missionId,
+    actorId: studentId,
+  })
+}
+
+/** Au client : l'étudiant a annulé sa demande encore en attente. */
+export function purchaseCancelled({ requestId, missionId, missionTitle, studentId, studentName, version }) {
+  return build({
+    type: "purchase_cancelled",
+    title: "Demande de paiement annulée",
+    body: `${shortName(studentName, "L'étudiant")} a annulé sa demande de paiement d'achats pour ${quoted(missionTitle)}. Vous n'avez plus rien à payer pour cette demande.`,
+    dedupeKey: purchaseKey({ requestId, event: "cancelled", version }),
+    missionId,
+    actorId: studentId,
+  })
+}
+
+/** À l'étudiant : le client indique avoir payé le vendeur. L'étudiant confirme ensuite la réception. */
+export function purchasePaid({ requestId, missionId, missionTitle, clientId, clientName, version }) {
+  return build({
+    type: "purchase_paid",
+    title: "Paiement indiqué par le client",
+    body: `${shortName(clientName, "Le client")} indique avoir payé votre demande d'achats pour ${quoted(missionTitle)}. Confirmez la réception dès que le vendeur a reçu l'argent.`,
+    dedupeKey: purchaseKey({ requestId, event: "paid", version }),
+    missionId,
+    actorId: clientId,
+  })
+}
+
+/** Au client : l'étudiant confirme que le vendeur a reçu le paiement. */
+export function purchaseReceived({ requestId, missionId, missionTitle, studentId, studentName, version }) {
+  return build({
+    type: "purchase_received",
+    title: "Paiement reçu par le vendeur",
+    body: `${shortName(studentName, "L'étudiant")} confirme que le vendeur a reçu votre paiement pour ${quoted(missionTitle)}.`,
+    dedupeKey: purchaseKey({ requestId, event: "received", version }),
+    missionId,
+    actorId: studentId,
+  })
+}
+
+/**
+ * À l'autre partie seulement (jamais à l'auteur du signalement ni à un administrateur). Aucun nom : l'auteur du
+ * signalement n'est pas désigné. `actorId` : l'auteur du signalement, utilisé seulement pour le lien du client.
+ */
+export function purchaseReported({ requestId, missionId, missionTitle, actorId, version }) {
+  return build({
+    type: "purchase_reported",
+    title: "Demande de paiement signalée",
+    body: `Une demande de paiement d'achats a été signalée pour ${quoted(missionTitle)}. L'équipe EduCash examine le signalement.`,
+    dedupeKey: purchaseKey({ requestId, event: "reported", version }),
+    missionId,
+    actorId,
+  })
+}
+
+/** Aux deux parties : l'équipe EduCash a clos le signalement. `actorId` : l'autre partie (lien du client). */
+export function purchaseReportClosed({ requestId, missionId, missionTitle, actorId, version }) {
+  return build({
+    type: "purchase_report_closed",
+    title: "Signalement examiné",
+    body: `L'équipe EduCash a examiné le signalement d'une demande de paiement d'achats pour ${quoted(missionTitle)}. Consultez la conversation.`,
+    dedupeKey: purchaseKey({ requestId, event: "report_closed", version }),
+    missionId,
+    actorId,
+  })
+}
+
 // ─── Validation (avant écriture) ─────────────────────────────────────────────────────────────
 
 /**
@@ -296,7 +401,19 @@ export function isValidNotification(n) {
 
 // Types propres à chaque espace (un type d'un autre espace n'a pas de lien : jamais de redirection croisée).
 const SPACE_TYPES = {
-  client: ["application_received", "review_received", "account_reactivated", "message_received", "completion_declared"],
+  client: [
+    "application_received",
+    "review_received",
+    "account_reactivated",
+    "message_received",
+    "completion_declared",
+    "purchase_requested",
+    "purchase_updated",
+    "purchase_cancelled",
+    "purchase_received",
+    "purchase_reported",
+    "purchase_report_closed",
+  ],
   student: [
     "application_accepted",
     "application_rejected",
@@ -309,6 +426,9 @@ const SPACE_TYPES = {
     "badge_revoked",
     "account_reactivated",
     "message_received",
+    "purchase_paid",
+    "purchase_reported",
+    "purchase_report_closed",
   ],
   admin: ["card_submitted", "account_reactivated"],
 }
@@ -331,7 +451,7 @@ export function notificationHref(row, space) {
       return missionId ? clientMissionHref(missionId, actorId ? { candidat: actorId } : {}) : clientMissionHref(null)
     }
     if (type === "review_received" || type === "completion_declared") return clientMissionHref(missionId)
-    if (type === "message_received") return clientConversationHref(missionId, actorId)
+    if (type === "message_received" || type.startsWith("purchase_")) return clientConversationHref(missionId, actorId)
     return "/client/dashboard"
   }
 
@@ -344,7 +464,10 @@ export function notificationHref(row, space) {
       case "review_received": return studentProfileHref()
       // Badge retiré : la page de vérification permet d'agir (renvoyer une carte).
       case "badge_revoked": return studentVerifyHref()
-      case "message_received": return studentConversationHref(missionId)
+      case "message_received":
+      case "purchase_paid":
+      case "purchase_reported":
+      case "purchase_report_closed": return studentConversationHref(missionId)
       case "account_reactivated": return studentHomeHref()
       default: return studentVerifyHref()
     }
@@ -373,6 +496,13 @@ const ICONS = {
   card_submitted: "i-id-card",
   message_received: "i-message",
   completion_declared: "i-check-circle",
+  purchase_requested: "i-receipt",
+  purchase_updated: "i-pencil",
+  purchase_cancelled: "i-ban",
+  purchase_paid: "i-banknote",
+  purchase_received: "i-check-circle",
+  purchase_reported: "i-flag",
+  purchase_report_closed: "i-scale",
 }
 
 /** Icône du sprite (toujours une icône existante). */
@@ -387,6 +517,12 @@ const ACTION_LABELS = {
   verification_rejected: "Envoyer une nouvelle carte",
   card_submitted: "Examiner",
   completion_declared: "Confirmer la fin",
+  purchase_requested: "Voir la demande",
+  purchase_updated: "Voir la demande",
+  purchase_paid: "Confirmer la réception",
+  purchase_received: "Voir la demande",
+  purchase_reported: "Voir la demande",
+  purchase_report_closed: "Voir la demande",
 }
 
 /** Libellé de l'action d'une notification, ou `null` (l'élément entier est alors le lien). */
