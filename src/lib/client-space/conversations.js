@@ -241,16 +241,19 @@ export function conversationAccess({ mission, application, studentId }) {
 }
 
 /**
- * Ajoute la date de fin déclarée (RD-DONE-01) à côté de `state`. Elle n'est portée que par l'état
- * `in_progress` (paire autorisée, étudiant retenu) ; toute autre valeur, ou une date absente, donne null.
- * `state` n'est pas modifié : le bandeau décide de l'affichage « à confirmer ».
+ * Ajoute la fin déclarée (RD-DONE-01) à côté de `state`. Elle n'est portée que par l'état `in_progress`
+ * (paire autorisée, étudiant retenu). `completionAvailable` vaut false hors `in_progress` et quand la colonne
+ * est absente ou la ligne non lue : le bandeau garde alors son texte actuel (aucun « J'ai terminé »).
+ * `completionDeclaredAt` : date ISO, ou null si non déclarée ou indisponible. `state` n'est pas modifié.
  * @param {{ allowed: boolean, canWrite: boolean, state: string|null }} access
  * @param {unknown} declaredAt date ISO lue dans `missions.completion_declared_at`, ou null
- * @returns {{ allowed: boolean, canWrite: boolean, state: string|null, completionDeclaredAt: string|null }}
+ * @param {boolean} available la colonne a été lue (pas d'erreur de colonne absente, ligne présente)
+ * @returns {{ allowed: boolean, canWrite: boolean, state: string|null, completionDeclaredAt: string|null, completionAvailable: boolean }}
  */
-export function withCompletionDeclared(access, declaredAt) {
-  const declared = access?.state === "in_progress" && typeof declaredAt === "string" && declaredAt !== ""
-  return { ...access, completionDeclaredAt: declared ? declaredAt : null }
+export function withCompletionDeclared(access, declaredAt, available = false) {
+  const open = access?.state === "in_progress" && available === true
+  const declared = open && typeof declaredAt === "string" && declaredAt !== ""
+  return { ...access, completionDeclaredAt: declared ? declaredAt : null, completionAvailable: open }
 }
 
 // ─── Boîte de réception ───────────────────────────────────────────────────────────────────────

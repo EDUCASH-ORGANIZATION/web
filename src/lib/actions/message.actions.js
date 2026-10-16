@@ -328,7 +328,7 @@ export async function getClientConversation({ missionId, studentId } = {}) {
   if (pair.status === "forbidden") return { notFound: true }
   const other = pair.studentId
 
-  const [messagesRes, profileRes, access] = await Promise.all([
+  const [messagesRes, profileRes, completionAccess] = await Promise.all([
     supabase
       .from("messages")
       .select(MESSAGE_COLUMNS)
@@ -339,10 +339,10 @@ export async function getClientConversation({ missionId, studentId } = {}) {
     supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("user_id", other).maybeSingle(),
     readPairCompletion(supabase, pair.access, missionId).catch((e) => ({ failure: e })),
   ])
-  if (messagesRes.error || profileRes.error || access.failure) {
+  if (messagesRes.error || profileRes.error || completionAccess.failure) {
     console.error(
       "[getClientConversation] lecture",
-      messagesRes.error?.message ?? profileRes.error?.message ?? access.failure?.code ?? access.failure?.message,
+      messagesRes.error?.message ?? profileRes.error?.message ?? completionAccess.failure?.code ?? completionAccess.failure?.message,
     )
     return { error: ERR_LOAD }
   }
@@ -364,9 +364,10 @@ export async function getClientConversation({ missionId, studentId } = {}) {
       student: toStudent(other, profileRes.data),
       mission: toMissionInfo(pair.mission),
       relation: pair.mission.selectedStudentId === other ? "selected" : "candidate",
-      state: access.state,
-      completionDeclaredAt: access.completionDeclaredAt,
-      canWrite: access.canWrite,
+      state: completionAccess.state,
+      completionDeclaredAt: completionAccess.completionDeclaredAt,
+      completionAvailable: completionAccess.completionAvailable,
+      canWrite: completionAccess.canWrite,
       messages,
     },
   }
@@ -522,8 +523,9 @@ const studentSendSchema = z.object({
  */
 async function readPairCompletion(supabase, access, missionId) {
   if (access.state !== "in_progress") return withCompletionDeclared(access, null)
-  const { byId } = await readCompletionDeclared(supabase, [missionId])
-  return withCompletionDeclared(access, byId.get(missionId) ?? null)
+  const { available, byId } = await readCompletionDeclared(supabase, [missionId])
+  // Réponse sans la ligne (RLS, mission réattribuée) : indisponible, jamais un faux « non déclaré ».
+  return withCompletionDeclared(access, byId.get(missionId) ?? null, available && byId.has(missionId))
 }
 
 const toStudentMission = (m) => ({ ...toMission(m), clientId: m.client_id })
@@ -657,7 +659,7 @@ export async function getStudentConversation({ missionId } = {}) {
   if (pair.status === "forbidden") return { notFound: true }
   const other = pair.clientId
 
-  const [messagesRes, profileRes, access] = await Promise.all([
+  const [messagesRes, profileRes, completionAccess] = await Promise.all([
     supabase
       .from("messages")
       .select(MESSAGE_COLUMNS)
@@ -668,10 +670,10 @@ export async function getStudentConversation({ missionId } = {}) {
     supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("user_id", other).maybeSingle(),
     readPairCompletion(supabase, pair.access, missionId).catch((e) => ({ failure: e })),
   ])
-  if (messagesRes.error || profileRes.error || access.failure) {
+  if (messagesRes.error || profileRes.error || completionAccess.failure) {
     console.error(
       "[getStudentConversation] lecture",
-      messagesRes.error?.message ?? profileRes.error?.message ?? access.failure?.code ?? access.failure?.message,
+      messagesRes.error?.message ?? profileRes.error?.message ?? completionAccess.failure?.code ?? completionAccess.failure?.message,
     )
     return { error: ERR_LOAD }
   }
@@ -691,9 +693,10 @@ export async function getStudentConversation({ missionId } = {}) {
       clientId: other,
       client: toClientParty(other, profileRes.data),
       mission: { ...toMissionInfo(pair.mission), net: pair.mission.budget === null ? null : netAmount(pair.mission.budget) },
-      state: access.state,
-      completionDeclaredAt: access.completionDeclaredAt,
-      canWrite: access.canWrite,
+      state: completionAccess.state,
+      completionDeclaredAt: completionAccess.completionDeclaredAt,
+      completionAvailable: completionAccess.completionAvailable,
+      canWrite: completionAccess.canWrite,
       messages,
     },
   }
