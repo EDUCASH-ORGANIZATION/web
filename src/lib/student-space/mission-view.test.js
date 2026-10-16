@@ -45,10 +45,33 @@ describe("missionActions", () => {
   it("plus ouverte : aucune action", () => {
     expect(Object.values(missionActions({ state: "closed", mission: { id: "m1" } })).every((v) => v === false)).toBe(true)
   })
-  it("retenu en cours : écrire et signaler, jamais de bouton J'ai terminé", () => {
+  it("retenu en cours, colonne de fin absente : écrire et signaler, pas de J'ai terminé", () => {
     const actions = missionActions(selected("in_progress"))
-    expect(actions).toMatchObject({ writeToClient: true, reportProblem: true, rate: false })
+    expect(actions).toMatchObject({ writeToClient: true, reportProblem: true, rate: false, declareEnd: false })
     expect(Object.keys(actions)).not.toContain("confirmEnd")
+  })
+  describe("declareEnd (J'ai terminé)", () => {
+    const completion = (over) => ({ available: true, declaredAt: null, ...over })
+    it("nominal : retenu, en cours, colonne disponible, non déclarée", () => {
+      expect(missionActions(selected("in_progress", { completion: completion() })).declareEnd).toBe(true)
+    })
+    it("colonne indisponible : faux", () => {
+      expect(missionActions(selected("in_progress", { completion: completion({ available: false }) })).declareEnd).toBe(false)
+      expect(missionActions(selected("in_progress")).declareEnd).toBe(false)
+    })
+    it("étudiant non retenu : faux", () => {
+      expect(missionActions(selected("in_progress", { isSelected: false, completion: completion() })).declareEnd).toBe(false)
+    })
+    it.each(["open", "done", "cancelled"])("mission %s : faux", (status) => {
+      expect(missionActions(selected(status, { completion: completion() })).declareEnd).toBe(false)
+    })
+    it("déjà déclarée : faux", () => {
+      const declared = completion({ declaredAt: "2026-10-12T09:00:00Z" })
+      expect(missionActions(selected("in_progress", { completion: declared })).declareEnd).toBe(false)
+    })
+    it("mission plus ouverte : faux", () => {
+      expect(missionActions({ state: "closed", mission: { id: "m1" } }).declareEnd).toBe(false)
+    })
   })
   it("retenu terminé : noter si aucun avis, sinon avis donné", () => {
     expect(missionActions(selected("done"))).toMatchObject({ rate: true, viewReview: false, writeToClient: true })
@@ -113,6 +136,34 @@ describe("buildTimeline", () => {
   it("annulée : candidature et retenue seulement", () => {
     expect(keys(buildTimeline(selected("cancelled")))).toEqual(["applied:done", "selected:done"])
   })
+  describe("étape work (fin déclarée)", () => {
+    const col = (declaredAt = null) => ({ completion: { available: true, declaredAt } })
+    it("en cours, non déclarée : travail en cours (sans date), paiement à venir", () => {
+      const steps = buildTimeline(selected("in_progress", col()))
+      expect(keys(steps)).toEqual(["applied:done", "selected:done", "work:now", "paid:todo", "reviewed:todo"])
+      expect(steps[2].date).toBeNull()
+    })
+    it("en cours, déclarée : travail terminé daté de la déclaration, le paiement passe en cours", () => {
+      const steps = buildTimeline(selected("in_progress", col("2026-10-12T09:00:00Z")))
+      expect(keys(steps)).toEqual(["applied:done", "selected:done", "work:done", "paid:now", "reviewed:todo"])
+      expect(steps[2].date).toBe("2026-10-12T09:00:00Z")
+    })
+    it("terminée avec date de déclaration : étape work faite", () => {
+      const steps = buildTimeline(selected("done", col("2026-10-12T09:00:00Z")))
+      expect(keys(steps)).toEqual(["applied:done", "selected:done", "work:done", "paid:done", "reviewed:now"])
+    })
+    it("terminée sans date de déclaration : aucune étape work", () => {
+      expect(keys(buildTimeline(selected("done", col())))).toEqual(["applied:done", "selected:done", "paid:done", "reviewed:now"])
+    })
+    it("colonne indisponible : chronologie d'origine, même avec une date parasite", () => {
+      const off = { completion: { available: false, declaredAt: "2026-10-12T09:00:00Z" } }
+      expect(keys(buildTimeline(selected("in_progress", off)))).toEqual(["applied:done", "selected:done", "paid:now", "reviewed:todo"])
+      expect(keys(buildTimeline(selected("done", off)))).toEqual(["applied:done", "selected:done", "paid:done", "reviewed:now"])
+    })
+    it("annulée : jamais d'étape work", () => {
+      expect(keys(buildTimeline(selected("cancelled", col("2026-10-12T09:00:00Z"))))).toEqual(["applied:done", "selected:done"])
+    })
+  })
 })
 
 describe("missionDetailView", () => {
@@ -134,6 +185,14 @@ describe("missionDetailView", () => {
     const view = missionDetailView(detail({ mission: mission({ deadline: "2026-10-01" }) }), "2026-10-14")
     expect(view.deadlinePassed).toBe(true)
     expect(view.status.key).toBe("overdue")
+  })
+  it("completion : état, date et disponibilité de la colonne", () => {
+    const declared = selected("in_progress", { completion: { available: true, declaredAt: "2026-10-12T09:00:00Z" } })
+    expect(missionDetailView(declared).completion).toEqual({ state: "declared", declaredAt: "2026-10-12T09:00:00Z", available: true })
+    const none = selected("in_progress", { completion: { available: true, declaredAt: null } })
+    expect(missionDetailView(none).completion).toEqual({ state: "none", declaredAt: null, available: true })
+    expect(missionDetailView(selected("in_progress")).completion).toEqual({ state: "none", declaredAt: null, available: false })
+    expect(missionDetailView(selected("done")).completion.state).toBe("confirmed")
   })
   it("mission suivie : chronologie et reçu", () => {
     const view = missionDetailView(selected("done", { ledger: [{ type: "release", amount: 17600, createdAt: "2026-10-20T10:00:00Z" }] }))
