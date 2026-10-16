@@ -47,9 +47,9 @@
           ],
           "lot": "ST-10",
           "assume": {
-            "tw": "A8:16"
+            "tw": "A8+X1:16"
           },
-          "note": "tw : la référence EDC-M-xxxx est omise (aucune référence en base, A8) et la date vient de applications.accepted_at (posée par la base) : « retenue le 8 octobre 2026 » en toutes lettres (safeDateFr) contre « retenue le 2 oct. » / « retenue ce matin » dans la planche, et le type affiché est « Marché et achats » ou « Cours particuliers » ; les deux effets se compensent presque, écart net +16 mesuré (fixture : accepted_at 2026-10-08, updated_at différent pour prouver qu'il n'est pas lu)"
+          "note": "tw : la référence EDC-M-xxxx est omise (aucune référence en base, A8) et la date vient de applications.accepted_at (posée par la base) : « retenue le 8 octobre 2026 » en toutes lettres (safeDateFr) contre « retenue le 2 oct. » / « retenue ce matin » dans la planche, et le type affiché est « Marché et achats » ou « Cours particuliers » ; les deux effets se compensent presque, écart net +16 mesuré ; A8 couvre la référence omise, X1 reste déclaré parce que le format de date long « 8 octobre 2026 » contre « 2 oct. » est un choix de format, pas une omission (fixture : accepted_at 2026-10-08, updated_at différent pour prouver qu'il n'est pas lu)"
         },
         {
           "id": "MI-24",
