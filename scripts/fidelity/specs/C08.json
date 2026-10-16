@@ -1,0 +1,446 @@
+{
+  "id": "C08",
+  "title": "Mission en cours avec achats (client)",
+  "planche": "client/C08-mission-en-cours.v2.html",
+  "screen": "c08",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : encre et givre de la charte. A2 : texte de 12 px des planches porté à 13 px (--t-micro), 13 px à 14 px (--t-caption) ; RD-FIX-03",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 1,
+      "selectors": [
+        {
+          "id": "MI-08",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "tw"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-08",
+          "label": "titre",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "fontSize"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-08",
+          "label": "méta",
+          "board": ".meta2",
+          "props": [
+            "y"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
+          "id": "MI-08",
+          "label": "grille",
+          "board": ".split2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "gap",
+            "cols"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
+          "id": "MI-08",
+          "label": "colonne gauche",
+          "board": ".split2 > .col2:nth-child(1)",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-08",
+          "label": "colonne droite",
+          "board": ".split2 > .col2:nth-child(2)",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-07",
+          "label": "carte achats",
+          "board": "section.card2[aria-label=\"Achats pour votre compte\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad",
+            "bg"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A8:13",
+            "h": "A8:214"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). Ligne « À faire » de la planche (Ulrich vous demande de payer 6 200 FCFA) absente : aucune demande de paiement n'existe (décision 24 révisée), la carte de statut « Mission en cours » prend sa place (211 px contre 227 px). A8 : lignes de vendeurs, statuts de demandes et lignes « Payé en direct » / « En attente » absentes de la carte achats (décision 24 révisée, seule l'estimation est une donnée) : -214 px. "
+        },
+        {
+          "id": "MI-07",
+          "label": "achats : titre",
+          "board": "section.card2[aria-label=\"Achats pour votre compte\"] .sec2",
+          "props": [
+            "y",
+            "h",
+            "fontSize"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A8:13"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). Ligne « À faire » de la planche (Ulrich vous demande de payer 6 200 FCFA) absente : aucune demande de paiement n'existe (décision 24 révisée), la carte de statut « Mission en cours » prend sa place (211 px contre 227 px). "
+        },
+        {
+          "id": "MI-07",
+          "label": "achats : badge « Hors EduCash »",
+          "board": "section.card2[aria-label=\"Achats pour votre compte\"] .badge",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "x": "A2:7",
+            "w": "A2:7"
+          },
+          "note": "A2 : texte du badge porté de 12 à 13 px, largeur +7 px, le badge reste calé à droite"
+        },
+        {
+          "id": "MI-07",
+          "label": "achats : estimation",
+          "board": "section.card2[aria-label=\"Achats pour votre compte\"] .lines2",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-07",
+          "label": "achats : note",
+          "board": "section.card2[aria-label=\"Achats pour votre compte\"] .note2",
+          "props": [
+            "x",
+            "w",
+            "fontSize"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-08",
+          "label": "chronologie",
+          "board": "section.card2[aria-label=\"Chronologie\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A8:226",
+            "h": "A8:25"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). Ligne « À faire » de la planche (Ulrich vous demande de payer 6 200 FCFA) absente : aucune demande de paiement n'existe (décision 24 révisée), la carte de statut « Mission en cours » prend sa place (211 px contre 227 px). A8 : lignes de vendeurs, statuts de demandes et lignes « Payé en direct » / « En attente » absentes de la carte achats (décision 24 révisée, seule l'estimation est une donnée) : -214 px. Chronologie : l'étape « retenu » n'a pas de date (non connue) et l'étape en cours n'a pas la ligne « 1 demande payée, 1 en attente » (A8 : demandes de paiement) : -25 px"
+        },
+        {
+          "id": "MI-08",
+          "label": "chronologie : liste",
+          "board": "section.card2[aria-label=\"Chronologie\"] .timeline",
+          "props": [
+            "x",
+            "y",
+            "w"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A8:227"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). Ligne « À faire » de la planche (Ulrich vous demande de payer 6 200 FCFA) absente : aucune demande de paiement n'existe (décision 24 révisée), la carte de statut « Mission en cours » prend sa place (211 px contre 227 px). A8 : lignes de vendeurs, statuts de demandes et lignes « Payé en direct » / « En attente » absentes de la carte achats (décision 24 révisée, seule l'estimation est une donnée) : -214 px. "
+        },
+        {
+          "id": "MI-08",
+          "label": "chronologie : première étape",
+          "board": "section.card2[aria-label=\"Chronologie\"] .tl-item",
+          "props": [
+            "x",
+            "h"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-08",
+          "label": "carte étudiant",
+          "board": "section.card2[aria-label=\"Étudiant retenu\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3",
+            "h": "A8:23"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : la ligne « 01 97 •• •• 08 » (téléphone masqué, colonne privée) et « · 6 avis » (nombre d'avis non exposé) sont absents : la ligne des faits passe de 2 lignes à 1 (-23 px)"
+        },
+        {
+          "id": "MI-08",
+          "label": "étudiant : titre",
+          "board": "section.card2[aria-label=\"Étudiant retenu\"] .sec2",
+          "props": [
+            "y",
+            "h"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
+          "id": "MI-08",
+          "label": "étudiant : identité",
+          "board": "section.card2[aria-label=\"Étudiant retenu\"] .person2",
+          "props": [
+            "y",
+            "h",
+            "gap"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:4",
+            "h": "A2:1"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A2 : sous-titre de 12 à 13 px, +1 px de hauteur"
+        },
+        {
+          "id": "MI-08",
+          "label": "étudiant : faits",
+          "board": "section.card2[aria-label=\"Étudiant retenu\"] .facts2",
+          "props": [
+            "y",
+            "h",
+            "gap"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A2:5",
+            "h": "A8:24"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A2 : +1 px sur l'identité. A8 : téléphone masqué et nombre d'avis absents (2 lignes de faits dans la planche, 1 dans le code)"
+        },
+        {
+          "id": "MI-08",
+          "label": "étudiant : actions",
+          "board": "section.card2[aria-label=\"Étudiant retenu\"] .person2__acts",
+          "props": [
+            "y",
+            "h",
+            "gap"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A8:19"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : ligne de faits supprimée (-24 px)"
+        },
+        {
+          "id": "MI-08",
+          "label": "carte séquestre",
+          "board": "section.card2[aria-label=\"Séquestre\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A8:19"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : -23 px de la carte étudiant au-dessus. ÉCHEC conservé sur la hauteur : la planche porte sous le bouton le texte « Disponible quand Ulrich aura déclaré la mission terminée » (2 lignes) que le code n'a pas (déclaration de fin de l'étudiant : lot RD-DONE-01 ST-11, rien n'est câblé ici)"
+        },
+        {
+          "id": "MI-08",
+          "label": "séquestre : titre",
+          "board": "section.card2[aria-label=\"Séquestre\"] .sec2",
+          "props": [
+            "y",
+            "h",
+            "fontSize"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A8:19"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : carte étudiant au-dessus (-23 px)"
+        },
+        {
+          "id": "MI-08",
+          "label": "séquestre : badge « En séquestre »",
+          "board": "section.card2[aria-label=\"Séquestre\"] .badge",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "x": "A2:6",
+            "w": "A2:6"
+          },
+          "note": "A2 : texte du badge porté de 12 à 13 px, largeur +6 px, le badge reste calé à droite"
+        },
+        {
+          "id": "MI-08",
+          "label": "séquestre : lignes",
+          "board": "section.card2[aria-label=\"Séquestre\"] .lines2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A8:20"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : carte étudiant au-dessus (-23 px), 1 px d'arrondi"
+        },
+        {
+          "id": "MI-09",
+          "label": "Confirmer la fin",
+          "board": "section.card2[aria-label=\"Séquestre\"] .btn",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A8:19"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : carte étudiant au-dessus (-23 px). ÉCHEC conservé sur le fond : la planche montre le bouton désactivé (btn--soft is-disabled) tant que l'étudiant n'a pas déclaré la fin ; le code garde « Confirmer la fin » actif et encre (aucune déclaration de fin en base, décision du plan MI-09, lot RD-DONE-01 ST-11)"
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        844
+      ],
+      "frame": "phone",
+      "frameIndex": 1,
+      "selectors": [
+        {
+          "id": "MI-08",
+          "label": "carte de statut",
+          "board": "section.card2[aria-label=\"À faire\"]",
+          "code": "section.card2[aria-label=\"Mission en cours\"]",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-08",
+          "label": "carte étudiant",
+          "board": "section.card2[aria-label=\"Étudiante retenue\"]",
+          "code": "section.card2[aria-label=\"Étudiant retenu\"]",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-09",
+          "note": "ÉCHEC conservé sur la hauteur : la planche mobile montre une carte compacte (avatar, nom, « 4,5 / 5 · 7 missions », icône de discussion) ; le code garde la carte complète (faits, Discuter avec, Voir le profil), la compacte demande une décision (« Voir le profil » disparaîtrait du mobile)"
+        },
+        {
+          "id": "MI-07",
+          "label": "carte achats",
+          "board": "section.card2[aria-label=\"Achats\"]",
+          "code": "section.card2[aria-label=\"Achats pour votre compte\"]",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-08",
+          "label": "barre d'action",
+          "board": ".mbar2",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "bg"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "h": "BANC:18"
+          },
+          "note": "BANC : la planche réserve 18 px sous les boutons pour l'indicateur d'accueil ; env(safe-area-inset-bottom) vaut 0 dans Chromium headless"
+        }
+      ]
+    }
+  ]
+}
