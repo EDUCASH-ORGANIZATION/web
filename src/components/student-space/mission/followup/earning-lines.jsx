@@ -51,7 +51,7 @@ export function EarningLines({ split, cancelled, paymentsEnabled = false, withPu
                 <b>{formatFcfa(split.student)}</b>
               </div>
             </div>
-            <p className="e2-05-caption">
+            <p className={withPurchases && paymentsEnabled ? "e2-05-caption e2-05-caption--seq" : "e2-05-caption"}>
               {withPurchases
                 ? `${paymentsEnabled ? "Seul le service est bloqué en séquestre." : "Ces montants sont indicatifs : les paiements ne sont pas encore ouverts sur la plateforme."} Les achats sont payés à part, par ${who}.`
                 : paymentsEnabled

@@ -1,6 +1,6 @@
 // @ds-screen RD-STUDENT-01
 import { Icon } from "@/components/design/icon"
-import { formatDateFr } from "@/lib/app/format"
+import { safeDateFr } from "@/lib/student-space/mission-view"
 
 const ICONS = { applied: "i-check", selected: "i-check", paid: "i-coins", reviewed: "i-star", cancelled: "i-x" }
 
@@ -12,7 +12,7 @@ const ICONS = { applied: "i-check", selected: "i-check", paid: "i-coins", review
  */
 export function trackSteps(timeline, { status, hasLedger }) {
   const steps = timeline.map((step) => {
-    const date = step.date ? formatDateFr(step.date) : ""
+    const date = safeDateFr(step.date)
     switch (step.key) {
       case "applied":
         return { ...step, title: "Candidature envoyée", sub: date }

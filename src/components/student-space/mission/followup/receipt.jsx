@@ -1,6 +1,7 @@
 // @ds-screen RD-STUDENT-01
 import { Icon } from "@/components/design/icon"
-import { formatDateFr, formatFcfa } from "@/lib/app/format"
+import { formatFcfa } from "@/lib/app/format"
+import { safeDateFr } from "@/lib/student-space/mission-view"
 import { commissionLabel } from "./earning-lines"
 
 /**
@@ -11,7 +12,7 @@ import { commissionLabel } from "./earning-lines"
  */
 export function Receipt({ split, receipt }) {
   const paid = receipt.hasLedger && receipt.net !== null
-  const date = receipt.date ? formatDateFr(receipt.date) : ""
+  const date = safeDateFr(receipt.date)
   return (
     <section className="e2-sec e2-05-lines" aria-label="Reçu">
       <div className="e2-sec__head">

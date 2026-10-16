@@ -33,8 +33,6 @@
 .sheet .e2-03-sfoot .btn--dark { flex: 1; }
 .e2-03-modal { width: 560px; }
 
-/* Le texte « Achats estimés » provisoire de l'en-tête (mission-header.jsx) est repris par les cartes de la planche. */
-.e2-03-top > .body-s { display: none; }
 /* Carte client : le bureau garde l'en-tête, la ville, le badge des missions et le détail du séquestre ; le mobile de la
    planche n'a que la note, les missions publiées et le badge de séquestre. */
 .e2-03-sub-mob { display: none; }
@@ -46,6 +44,8 @@
   .e2-03-top .e2-back { display: none; }
   /* Le bloc de candidature du bureau disparaît : la barre fixe et la feuille sont rendues à plat dans la page */
   .e2-03-aside { display: contents; }
-  .e2-03-clientcard .e2-sec__head, .e2-03-badge-desk, .e2-03-caption-desk, .e2-03-sub-desk { display: none; }
+  /* Titre « Le client » masqué à l'œil seulement : il reste annoncé par les lecteurs d'écran */
+  .e2-03-clientcard .e2-sec__head { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .e2-03-badge-desk, .e2-03-caption-desk, .e2-03-sub-desk { display: none; }
   .e2-03-sub-mob { display: inline; }
 }

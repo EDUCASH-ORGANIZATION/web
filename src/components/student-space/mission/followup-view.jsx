@@ -2,11 +2,13 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
+import { StatusBadge } from "@/components/app-ui/status-badge"
 import { MissionHeader } from "./mission-header"
 import { Track, trackSteps } from "./followup/track"
 import { EarningLines } from "./followup/earning-lines"
 import { Receipt } from "./followup/receipt"
 import { PurchasesBlock } from "./followup/purchases-block"
+import { ratingText } from "./apply/client-card"
 import { clientFirstName, missionDetailView } from "@/lib/student-space/mission-view"
 import { studentApplicationsHref, studentConversationHref, studentReviewHref } from "@/lib/app/student-routes"
 
@@ -30,15 +32,12 @@ const MOBILE_TITLES = { in_progress: "Mission en cours", done: "Mission terminé
  */
 export function MissionFollowupView({ detail, flags }) {
   const view = missionDetailView(detail)
-  const { mission, client, application } = detail
+  const { mission, client } = detail
   const { actions, receipt } = view
   const split = view.gainValid ? view.split : null
   const paymentsOn = flags?.paymentsEnabled === true
   const clientFirst = clientFirstName(client.name)
-  const sub = [client.city, client.rating > 0 ? `${client.rating.toFixed(1).replace(".", ",")} / 5` : null]
-    .filter(Boolean)
-    .join(" · ")
-  const retainedAt = application?.status === "accepted" ? application.updatedAt : null
+  const sub = [client.city, ratingText(client.rating)].filter(Boolean).join(" · ")
   const steps = trackSteps(view.timeline, { status: mission.status, hasLedger: receipt.hasLedger })
 
   return (
@@ -58,7 +57,7 @@ export function MissionFollowupView({ detail, flags }) {
       </header>
       <MissionHeader
         mission={mission}
-        retainedAt={retainedAt}
+        withPurchasesLine={false}
         back={{ href: studentApplicationsHref(), label: "Candidatures" }}
         variant="05"
       />
@@ -74,6 +73,7 @@ export function MissionFollowupView({ detail, flags }) {
           <section className="e2-sec" aria-label="Où en est la mission">
             <div className="e2-sec__head">
               <h2 className="e2-sec__title">Où en est la mission</h2>
+              {mission.status === "in_progress" ? <StatusBadge label="En cours" /> : null}
             </div>
             <div className="e2-sec__body">
               <Track steps={steps} />

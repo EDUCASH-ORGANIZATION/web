@@ -237,11 +237,10 @@ describe("(4) prénom du client hostile", () => {
   })
 })
 
-describe("(5) date de rétention", () => {
+describe("(5) date de rétention : omise, aucune date fiable (applications.updated_at change à toute mise à jour)", () => {
   const withApp = (status, updatedAt) => followed("in_progress", { application: { ...accepted, status, updatedAt } })
-  it("seulement si accepted", () => {
-    expect(follow(withApp("accepted", "2026-10-08T08:00:00Z"))).toContain("retenue le")
-    for (const status of ["pending", "rejected", "withdrawn", "cancelled"]) {
+  it("jamais de « retenue le », quel que soit le statut de la candidature", () => {
+    for (const status of ["accepted", "pending", "rejected", "withdrawn", "cancelled"]) {
       expect(follow(withApp(status, "2026-10-08T08:00:00Z"))).not.toContain("retenue le")
     }
   })
@@ -253,13 +252,13 @@ describe("(5) date de rétention", () => {
       expect(html).not.toContain("retenue le")
     }
   })
-  // BUG DOCUMENTÉ (antérieur à ST-10, track.jsx/formatDateFr) : une date invalide fait lever RangeError au rendu
-  // au lieu de n'afficher aucune ligne. it.fails : passe tant que le bug existe, devient rouge une fois corrigé.
-  it.fails("date invalide : aucune ligne et aucune exception (RangeError aujourd'hui)", () => {
+  // Corrigé en ST-10b : trackSteps, le reçu, l'en-tête et le bloc de candidature passent par safeDateFr (jamais de RangeError).
+  it("date invalide : aucune ligne, aucune exception, l'étape s'affiche sans date", () => {
     for (const bad of ["pas une date", "2026-13-45", "NaN"]) {
       const html = follow(withApp("accepted", bad))
       expect(html).not.toContain("Invalid Date")
       expect(html).not.toContain("retenue le")
+      expect(html).toContain("Votre candidature a été retenue")
     }
   })
   it("pas de candidature du tout : aucune ligne", () => {
@@ -317,25 +316,29 @@ describe("(7) un seul h1", () => {
   })
 })
 
-describe("(8) paragraphe provisoire « Achats estimés » de mission-header.jsx", () => {
-  const css = (f) => readFileSync(join(process.cwd(), "src/app/design/student", f), "utf8")
-  it("présent dans le DOM (classe body-s, enfant direct de l'en-tête)", () => {
+describe("(8) ligne provisoire « Achats estimés » de mission-header.jsx", () => {
+  const props = { back: { href: "/x", label: "Retour" } }
+  it("présente par défaut (classe body-s, enfant direct de l'en-tête)", () => {
     for (const variant of ["03", "05"]) {
-      const html = renderToStaticMarkup(
-        <MissionHeader mission={mission()} back={{ href: "/x", label: "Retour" }} variant={variant} />,
-      )
+      const html = renderToStaticMarkup(<MissionHeader mission={mission()} variant={variant} {...props} />)
       expect(html).toContain(`<header class="e2-${variant}-top">`)
       expect(html).toMatch(/<p class="body-s">Achats estimés : environ [^<]+, non bloqués<\/p>/)
     }
   })
-  it("masqué en CSS pour E03 et E05", () => {
-    expect(css("e03.css")).toContain(".e2-03-top > .body-s { display: none; }")
-    expect(css("e05.css")).toContain(".e2-05-top > .body-s { display: none; }")
+  it("coupée par withPurchasesLine={false}, et absente des vues E03 et E05", () => {
+    const html = renderToStaticMarkup(<MissionHeader mission={mission()} withPurchasesLine={false} {...props} />)
+    expect(html).not.toContain("non bloqués")
+    expect(html).toContain("Avec achats")
+    expect(apply(open())).not.toContain("non bloqués")
+    expect(follow(followed("in_progress"))).not.toContain("non bloqués")
   })
-  it("absent sans estimation valide", () => {
-    const html = renderToStaticMarkup(
-      <MissionHeader mission={mission({ purchasesEstimate: 0 })} back={{ href: "/x", label: "R" }} />,
-    )
+  it("plus aucune règle CSS de masquage", () => {
+    const css = (f) => readFileSync(join(process.cwd(), "src/app/design/student", f), "utf8")
+    expect(css("e03.css")).not.toContain(".body-s")
+    expect(css("e05.css")).not.toContain(".body-s")
+  })
+  it("absente sans estimation valide", () => {
+    const html = renderToStaticMarkup(<MissionHeader mission={mission({ purchasesEstimate: 0 })} {...props} />)
     expect(html).not.toContain("body-s")
     expect(html).not.toContain("Achats estimés")
   })

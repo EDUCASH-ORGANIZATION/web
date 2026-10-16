@@ -54,7 +54,7 @@ describe("MissionFollowupView (E05)", () => {
     const html = render(detail("in_progress", {}, { budget: 8000, purchasesEstimate: 15000 }))
     expect(html).toContain(formatFcfa(escrowSplit(8000).total))
     expect(html).not.toContain(formatFcfa(23000))
-    expect(html).toContain("Achats estimés : environ")
+    expect(html).toContain("Achats estimés · indicatif")
   })
 
   it("en cours, paiements ouverts : badge et phrase du sequestre", () => {

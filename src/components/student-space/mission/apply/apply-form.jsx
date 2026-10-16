@@ -13,7 +13,8 @@ import { TextareaField } from "@/components/app-ui/fields"
 import { splitAmount } from "@/components/app-ui/amount"
 import { apply } from "@/lib/actions/application.actions"
 import { applicationStatusView } from "@/lib/app/application-status"
-import { formatAmount, formatDateFr } from "@/lib/app/format"
+import { formatAmount } from "@/lib/app/format"
+import { safeDateFr } from "@/lib/student-space/mission-view"
 import { studentApplicationsHref, studentMissionsHref, studentVerifyHref } from "@/lib/app/student-routes"
 import { GainRecap, STUDENT_PERCENT } from "./gain-recap"
 
@@ -83,7 +84,8 @@ function ApplicationBadge({ status }) {
 }
 
 function sentOn(createdAt) {
-  return createdAt ? `Envoyée le ${formatDateFr(createdAt)}. ` : ""
+  const date = safeDateFr(createdAt)
+  return date ? `Envoyée le ${date}. ` : ""
 }
 
 function DeskBody({

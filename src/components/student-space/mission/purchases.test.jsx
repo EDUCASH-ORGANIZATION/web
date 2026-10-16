@@ -1,6 +1,7 @@
 // @ds-screen RD-STUDENT-01
 import { describe, it, expect, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
+import { readFileSync } from "node:fs"
 
 vi.mock("@/lib/actions/application.actions", () => ({ apply: vi.fn() }))
 
@@ -8,7 +9,8 @@ const { MissionApplyView } = await import("./apply-view")
 const { MissionFollowupView } = await import("./followup-view")
 const { netAmount } = await import("@/lib/constants/missions")
 const { formatAmount, formatFcfa } = await import("@/lib/app/format")
-const { clientFirstName, gainIsValid } = await import("@/lib/student-space/mission-view")
+const { rulesOf } = await import("@/qa/fidelity/css-rules")
+const { clientFirstName, gainIsValid, safeDateFr } = await import("@/lib/student-space/mission-view")
 
 const on = { postuler: false, paymentsEnabled: true }
 const off = { postuler: false, paymentsEnabled: false }
@@ -40,6 +42,12 @@ describe("clientFirstName et gainIsValid", () => {
     expect(clientFirstName("Client EduCash")).toBeNull()
     expect(clientFirstName("")).toBeNull()
     expect(clientFirstName(undefined)).toBeNull()
+  })
+
+  it("prénom tronqué à 40 caractères", () => {
+    const long = "A".repeat(200)
+    expect(clientFirstName(`${long} B.`)).toBe(`${"A".repeat(40)}…`)
+    expect(follow(followed("in_progress", { client: { ...client, name: `${long} B.` } }))).toContain(`Écrire à ${"A".repeat(40)}…`)
   })
 
   it("gain valide : budget fini > 0 et net >= 0", () => {
@@ -105,13 +113,19 @@ describe("E03 mission avec achats", () => {
     expect(clean(broken)).not.toContain("Budget du client")
   })
 
-  it("nombre de candidats seulement s'il est fourni", () => {
-    expect(apply(open({ mission: mission({ applicationsCount: 3 }) }))).toContain("3 candidats")
-    expect(html).not.toContain("candidat<")
-    expect(html).not.toMatch(/\d+ candidats?</)
+  it("jamais de nombre de candidats, même si la donnée est fournie, ni de ligne provisoire d'achats", () => {
+    const out = clean(apply(open({ mission: mission({ applicationsCount: 3 }) })))
+    expect(out).not.toMatch(/\d+ candidats?/)
+    expect(out).not.toContain("non bloqués")
   })
 
-  it("candidature déjà envoyée : le déroulé reste, aucune mutation par lecture", () => {
+  it("paiements fermés : le montant du service est le budget réel, formulation indicative", () => {
+    const paused = clean(apply(open({ mission: mission({ budget: 12345 }) }), off))
+    expect(paused).toContain(`Seul le service (${formatAmount(12345)}) passera par EduCash ; montants indicatifs tant que les paiements ne sont pas ouverts.`)
+    expect(paused).not.toContain(formatAmount(8000))
+  })
+
+  it("candidature déjà envoyée : le déroulé reste affiché", () => {
     const sent = apply(open({ application: { id: "a1", status: "pending", message: "Bonjour", createdAt: "2026-10-08T08:00:00Z", updatedAt: null } }))
     expect(sent).toContain("Candidature envoyée")
     expect(sent).toContain("Comment se passent les achats")
@@ -144,10 +158,14 @@ describe("E05 suivi d'une mission avec achats", () => {
     expect(html).not.toContain("À confirmer")
   })
 
-  it("date de rétention transmise à l'en-tête, jamais une candidature non retenue", () => {
-    expect(html).toContain("retenue le")
-    const pending = follow(followed("in_progress", { application: { id: "a1", status: "pending", message: "x", createdAt: "2026-10-07T09:00:00Z", updatedAt: "2026-10-08T08:00:00Z" } }))
-    expect(pending).not.toContain("retenue le")
+  it("aucune date de rétention affichée (applications.updated_at n'est pas fiable) ni ligne provisoire d'achats", () => {
+    expect(html).not.toContain("retenue le")
+    expect(html).not.toContain("non bloqués")
+  })
+
+  it("badge En cours dans la carte de suivi seulement pour une mission en cours", () => {
+    expect(html).toContain("En cours")
+    expect(follow(followed("done"))).not.toContain(">En cours<")
   })
 
   it("paiements coupés : le mot séquestre disparaît, les achats restent expliqués", () => {
@@ -179,5 +197,51 @@ describe("E05 suivi d'une mission avec achats", () => {
     expect(html).toContain("Mission en cours")
     expect(html).toContain('aria-label="Retour aux candidatures"')
     expect(html).toContain('aria-label="Écrire au client"')
+  })
+})
+
+describe("dates invalides : jamais de plantage", () => {
+  it.each(["pas une date", "2026-13-45", "NaN"])("E05 et E03, date %s", (bad) => {
+    expect(() => follow(followed("done", { ledger: [{ type: "release", amount: 7040, createdAt: bad }], application: { id: "a", status: "accepted", message: "x", createdAt: bad, updatedAt: bad } }, { createdAt: bad, deadline: bad }))).not.toThrow()
+    expect(() => apply(open({ mission: mission({ createdAt: bad, deadline: bad }) }))).not.toThrow()
+  })
+
+  it("safeDateFr : vide pour absent ou invalide, date lisible sinon", () => {
+    expect(safeDateFr(null)).toBe("")
+    expect(safeDateFr("")).toBe("")
+    expect(safeDateFr("pas une date")).toBe("")
+    expect(safeDateFr("2026-10-08")).toBe("8 octobre 2026")
+  })
+})
+
+describe("légende du séquestre masquée en mobile", () => {
+  const css = readFileSync("src/app/design/student/e05.css", "utf8")
+
+  it("la règle mobile ne vise que la classe dédiée", () => {
+    const rules = rulesOf(css, ".e2-05-caption--seq", { media: "max-width" })
+    expect(rules).toHaveLength(1)
+    expect(rules[0].declarations.display).toBe("none")
+    expect(rulesOf(css, ".e2-05-caption", { media: "*" }).some((r) => r.declarations.display === "none")).toBe(false)
+    expect(rulesOf(css, ".e2-05-lines--p .e2-05-caption", { media: "*" })).toHaveLength(0)
+  })
+
+  it("classe posée seulement avec achats, paiements ouverts, mission non annulée", () => {
+    expect(follow(followed(), on)).toContain("e2-05-caption e2-05-caption--seq")
+  })
+
+  it("paiements fermés : la légende indicative est rendue, sans classe de masquage", () => {
+    const paused = follow(followed(), off)
+    expect(paused).toContain("Ces montants sont indicatifs")
+    expect(paused).not.toContain("e2-05-caption--seq")
+  })
+
+  it("mission annulée : la ligne d'annulation est rendue, sans classe de masquage", () => {
+    const cancelled = follow(followed("cancelled"), on)
+    expect(cancelled).toContain("Cette mission a été annulée : aucun montant ne vous est dû.")
+    expect(cancelled).not.toContain("e2-05-caption--seq")
+  })
+
+  it("sans estimation : aucune classe de masquage", () => {
+    expect(follow(followed("in_progress", {}, { purchasesEstimate: null }), on)).not.toContain("e2-05-caption--seq")
   })
 })

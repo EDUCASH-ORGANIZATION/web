@@ -29,16 +29,16 @@ describe("MissionHeader étudiant", () => {
     expect(html.match(/class="badge /g)).toHaveLength(1)
   })
 
-  it("ordonne lieu, date, candidats, Avec achats dans .e2-03-meta", () => {
-    const html = render(mission({ purchasesEstimate: 5000, applicationsCount: 2 }))
+  it("ordonne lieu, date, Urgent, Avec achats dans .e2-03-meta", () => {
+    const html = render(mission({ purchasesEstimate: 5000, status: "open", urgency: "high" }))
     const meta = html.slice(html.indexOf('class="e2-03-meta"'))
-    const order = ["Cadjèhoun", "Avant le", "2 candidats", "Avec achats"].map((t) => meta.indexOf(t))
+    const order = ["Cadjèhoun", "Avant le", "Urgent", "Avec achats"].map((t) => meta.indexOf(t))
     expect(order.every((i) => i > -1)).toBe(true)
     expect([...order].sort((a, b) => a - b)).toEqual(order)
     expect(meta).toContain("badge--sm")
   })
 
-  it("garde la ligne d'achats provisoire sous la méta, avec le badge", () => {
+  it("garde par défaut la ligne d'achats sous la méta, avec le badge", () => {
     const html = render(mission({ purchasesEstimate: 5000 }))
     expect(text(html)).toContain("Achats estimés : environ")
     expect(html).toContain("Avec achats")
@@ -65,12 +65,27 @@ describe("MissionHeader étudiant", () => {
     }
   })
 
-  it("omet candidats et badge sans donnée, accorde le singulier", () => {
-    const html = text(render(mission({ applicationsCount: 0 })))
-    expect(html).not.toContain("candidat")
-    expect(html).not.toContain("Avec achats")
-    expect(text(render(mission({ applicationsCount: 1 })))).toContain("1 candidat")
-    expect(text(render(mission({ applicationsCount: 1 })))).not.toContain("1 candidats")
+  it("jamais de nombre de candidats, même si la donnée est fournie", () => {
+    expect(text(render(mission({ applicationsCount: 3 })))).not.toContain("candidat")
+    expect(text(render(mission()))).not.toContain("Avec achats")
+  })
+
+  it.each([
+    ["high", "open", true],
+    ["high", "in_progress", false],
+    ["medium", "open", false],
+    ["low", "open", false],
+    [undefined, "open", false],
+  ])("badge Urgent : urgence %s, statut %s -> %s", (urgency, status, shown) => {
+    const html = render(mission({ urgency, status }))
+    expect(html.includes("Urgent")).toBe(shown)
+    if (shown) expect(html).toContain("badge badge--neutre badge--sm")
+  })
+
+  it("ligne d'achats coupée par withPurchasesLine={false}, badge conservé", () => {
+    const html = render(mission({ purchasesEstimate: 5000 }), { withPurchasesLine: false })
+    expect(html).not.toContain("non bloqués")
+    expect(html).toContain("Avec achats")
   })
 
   it("E05 : « <type> · retenue le <date> » seulement si la date existe", () => {

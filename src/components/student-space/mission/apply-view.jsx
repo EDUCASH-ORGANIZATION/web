@@ -89,7 +89,7 @@ function PurchasesNote({ budget, purchases, paymentsEnabled, className }) {
   const service = Number.isFinite(budget) && budget > 0 ? ` (${formatAmount(budget)})` : ""
   const lead = paymentsEnabled
     ? `Seul le service${service} est bloqué en séquestre.`
-    : `Le service${service} est le seul montant payé via EduCash.`
+    : `Seul le service${service} passera par EduCash ; montants indicatifs tant que les paiements ne sont pas ouverts.`
   return (
     <div className={className}>
       <Icon name="i-receipt" />
@@ -152,7 +152,7 @@ export function MissionApplyView({ detail, flags }) {
           <Icon name="i-flag" />
         </Link>
       </header>
-      <MissionHeader mission={mission} back={back} />
+      <MissionHeader mission={mission} back={back} withPurchasesLine={false} />
       {note ? <div className="ds-mob-only">{note}</div> : null}
       <div className="e2-cols">
         <div className="e2-stack">
@@ -174,7 +174,7 @@ export function MissionApplyView({ detail, flags }) {
           </section>
           {purchases ? (
             <PurchasesNote
-              className="e2-note e2-note--m ds-mob-only"
+              className="e2-note ds-mob-only"
               budget={mission.budget}
               purchases={purchases}
               paymentsEnabled={paymentsOn}

@@ -5,7 +5,7 @@ import { formatAmount } from "@/lib/app/format"
 import { clientFirstName } from "@/lib/student-space/mission-view"
 import { STUDENT_PERCENT } from "./gain-recap"
 
-function ratingText(rating) {
+export function ratingText(rating) {
   return rating > 0 ? `${rating.toFixed(1).replace(".", ",")} / 5` : null
 }
 

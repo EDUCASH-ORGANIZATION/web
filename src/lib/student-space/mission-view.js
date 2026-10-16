@@ -3,22 +3,25 @@
 // Aucune donnée, aucun import serveur. Entrée : `detail` de getStudentMissionDetail (voir son JSDoc).
 import { missionStatusView } from "../app/mission-status.js"
 import { escrowSplit } from "../app/money.js"
+import { ANONYMOUS_CLIENT_NAME } from "../constants/client-name.js"
 import { purchasesEstimateOf } from "../app/purchases.js"
+import { formatDateFr } from "../app/format.js"
 import { todayInBenin, isPastDeadline } from "../vitrine/dates.js"
 
-// Nom public de repli de getStudentMissionDetail quand le client n'a pas de nom : pas de prénom à citer.
-const ANONYMOUS_CLIENT = "Client EduCash"
+
+const FIRST_NAME_MAX = 40
 
 /**
  * Prénom du client pour une phrase (« Écrire à Afiavi »), tiré du nom public « Prénom N. » ; null si le nom est
- * absent ou anonyme (la vue dit alors « le client »). Jamais de coordonnée : le nom public seul.
+ * absent ou anonyme (la vue dit alors « le client »), tronqué à 40 caractères. Jamais de coordonnée : le nom public seul.
  * @param {string|null|undefined} name
  * @returns {string|null}
  */
 export function clientFirstName(name) {
   const text = typeof name === "string" ? name.trim() : ""
-  if (!text || text === ANONYMOUS_CLIENT) return null
-  return text.split(/\s+/)[0]
+  if (!text || text === ANONYMOUS_CLIENT_NAME) return null
+  const first = text.split(/\s+/)[0]
+  return first.length > FIRST_NAME_MAX ? `${first.slice(0, FIRST_NAME_MAX)}…` : first
 }
 
 /**
@@ -142,5 +145,20 @@ export function missionDetailView(detail, today = todayInBenin()) {
     actions: missionActions(detail),
     timeline: detail.state === "selected" ? buildTimeline(detail) : [],
     receipt: receiptFromLedger(detail.ledger),
+  }
+}
+
+/**
+ * Date en toutes lettres, ou "" si la valeur est absente ou invalide : une date illisible ne fait jamais planter la page
+ * (formatDateFr lève RangeError sur une date invalide).
+ * @param {string|Date|null|undefined} value
+ * @returns {string}
+ */
+export function safeDateFr(value) {
+  if (value === null || value === undefined || value === "") return ""
+  try {
+    return formatDateFr(value)
+  } catch {
+    return ""
   }
 }
