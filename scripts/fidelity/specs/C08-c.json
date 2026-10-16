@@ -1,0 +1,153 @@
+{
+  "id": "C08-c",
+  "title": "Mission en cours, travail déclaré à confirmer (client)",
+  "planche": "client/C08-mission-en-cours.v2.html",
+  "screen": "c08c",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : encre, givre et citron de la charte. A2 : texte de 12 px des planches porté à 13 px (--t-micro), 13 px à 14 px (--t-caption) ; RD-FIX-03. Positions verticales et hauteurs de cartes non mesurées : la planche porte la carte « Livrable » (fichier joint dans la messagerie, A8) et l'étudiante sous la chronologie, le code garde l'ordre des cartes de C08 ; le badge d'en-tête n'a pas l'icône de la planche (MissionHeader partagé)",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 2,
+      "selectors": [
+        {
+          "id": "MI-08",
+          "label": "titre",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "fontSize"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MI-08",
+          "label": "grille",
+          "board": ".split2",
+          "props": [
+            "x",
+            "w",
+            "gap",
+            "cols"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MI-08",
+          "label": "badge d'en-tête « À confirmer »",
+          "board": ".meta2 .badge",
+          "props": [
+            "x",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MI-08",
+          "label": "carte « À confirmer »",
+          "board": "section.card2[aria-label=\"À confirmer\"]",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "pad",
+            "bg"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MI-08",
+          "label": "drapeau citron",
+          "board": "section.card2[aria-label=\"À confirmer\"] .flag2",
+          "props": [
+            "x",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MI-08",
+          "label": "titre de la carte",
+          "board": "section.card2[aria-label=\"À confirmer\"] .status2__title",
+          "props": [
+            "x",
+            "fontSize",
+            "fontWeight"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MI-09",
+          "label": "Confirmer la fin",
+          "board": "section.card2[aria-label=\"À confirmer\"] .btn",
+          "props": [
+            "x",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MI-08",
+          "label": "chronologie",
+          "board": "section.card2[aria-label=\"Chronologie\"]",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MI-08",
+          "label": "chronologie : première étape",
+          "board": "section.card2[aria-label=\"Chronologie\"] .tl-item",
+          "props": [
+            "x",
+            "h"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MI-08",
+          "label": "carte séquestre",
+          "board": "section.card2[aria-label=\"Séquestre\"]",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MI-08",
+          "label": "séquestre : lignes",
+          "board": "section.card2[aria-label=\"Séquestre\"] .lines2",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "ST-11"
+        }
+      ]
+    }
+  ]
+}

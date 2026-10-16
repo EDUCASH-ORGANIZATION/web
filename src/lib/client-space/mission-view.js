@@ -2,6 +2,7 @@
 // Entrée : `detail` de getClientMissionDetail (voir son JSDoc).
 import { missionStatusView } from "../app/mission-status.js"
 import { escrowSplit } from "../app/money.js"
+import { completionState, COMPLETION_COPY } from "../missions/completion.js"
 import { todayInBenin, isPastDeadline } from "../vitrine/dates.js"
 
 /**
@@ -104,9 +105,16 @@ export function sortApplications(applications, order = "recent") {
  */
 export function missionView(detail, today = todayInBenin()) {
   const { mission, applications, ledger, review } = detail
-  const status = missionStatusView(mission, today)
+  const available = detail.completion?.available === true
+  const declaredAt = available ? (detail.completion.declaredAt ?? null) : null
+  const state = available ? completionState({ status: mission.status, completionDeclaredAt: declaredAt }) : "none"
+  const base = missionStatusView(mission, today)
+  // Fin déclarée : l'action est due au client, le badge passe en « À confirmer » (ton alerte). Le statut
+  // partagé (mission-status.js) ne change pas, la surcharge est locale au détail client.
+  const status = state === "declared" ? { ...base, label: COMPLETION_COPY.toConfirmBadge, tone: "alerte" } : base
   return {
     status,
+    completion: { state, declaredAt, available },
     overdue: status.key === "overdue",
     deadlinePassed: isPastDeadline(mission.deadline, today),
     counts: applicationCounts(applications),

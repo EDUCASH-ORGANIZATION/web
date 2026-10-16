@@ -67,7 +67,11 @@ export function buildTimeline(detail, view, studentName) {
 
   items.push({ state: "done", icon: "i-user-check", title: `Candidature de ${studentName} acceptée` })
 
+  const declaredAt = view.completion?.declaredAt ?? null
+  const declaredStep = { state: "done", icon: "i-check", title: `Fin déclarée par ${studentName}`, meta: formatMoment(declaredAt) }
+
   if (mission.status === "done") {
+    if (declaredAt) items.push(declaredStep)
     items.push({ state: "done", icon: "i-check-circle", title: "Fin de mission confirmée par vous" })
     items.push({
       state: "done",
@@ -79,8 +83,14 @@ export function buildTimeline(detail, view, studentName) {
     return items
   }
 
-  items.push({ state: "current", icon: "i-clock", title: "Mission en cours" })
-  items.push({ state: "todo", icon: "i-check-circle", title: "Votre validation de la fin" })
+  if (view.completion?.state === "declared") {
+    items.push({ state: "done", icon: "i-clock", title: "Mission en cours" })
+    items.push(declaredStep)
+    items.push({ state: "current", icon: "i-check-circle", title: "Votre validation de la fin" })
+  } else {
+    items.push({ state: "current", icon: "i-clock", title: "Mission en cours" })
+    items.push({ state: "todo", icon: "i-check-circle", title: "Votre validation de la fin" })
+  }
   items.push({ state: "todo", icon: "i-coins", title: `Fonds versés à ${studentName}` })
   return items
 }

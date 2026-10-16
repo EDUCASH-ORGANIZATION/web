@@ -13,6 +13,7 @@ import { ConfirmEndDialog, ConfirmEndSuccess } from "./followup/confirm-end-dial
 import { Receipt } from "./followup/receipt"
 import { PurchasesCard } from "./followup/purchases-card"
 import { CancelledSummary } from "./followup/cancelled-summary"
+import { COMPLETION_COPY } from "@/lib/missions/completion"
 import { missionView } from "@/lib/client-space/mission-view"
 import { firstName } from "@/lib/vitrine/public-name"
 import { formatShortDate } from "@/lib/app/format"
@@ -49,35 +50,89 @@ function ReviewCard({ review, studentName }) {
   )
 }
 
+function DeclaredCard({ view, missionId, studentId, studentName, onConfirm }) {
+  const declaredOn = formatShortDate(view.completion.declaredAt)
+  return (
+    <section className="card2 fup2__status fup2__status--todo" aria-label="À confirmer">
+      <div className="status2">
+        <span className="flag2">
+          <Icon name="i-check-circle" />
+          {COMPLETION_COPY.toConfirmBadge}
+        </span>
+        <div className="status2__title">{studentName} a terminé la mission</div>
+        <div className="status2__text">
+          {declaredOn ? `${studentName} indique avoir terminé le ${declaredOn}.` : `${studentName} indique avoir terminé.`}{" "}
+          Vérifiez le travail, puis confirmez la fin pour verser le paiement à {studentName}.{" "}
+          <b>
+            {view.reservedAt
+              ? "Les fonds restent en séquestre jusqu'à votre validation : rien n'est versé automatiquement."
+              : "Le paiement n'est versé qu'après votre validation."}
+          </b>
+        </div>
+        <div className="actions2">
+          <button type="button" className="btn btn--dark fup2__desk" onClick={onConfirm}>
+            <Icon name="i-check-circle" />
+            Confirmer la fin
+          </button>
+          <Link className="link2" href={REPORT_HREF}>Signaler un problème</Link>
+        </div>
+        <p className="status2__text">
+          Un désaccord ?{" "}
+          <Link className="link2" href={clientConversationHref(missionId, studentId)}>
+            Écrivez à {studentName}
+          </Link>
+        </p>
+      </div>
+    </section>
+  )
+}
+
+function RunningCard({ view, studentName }) {
+  return (
+    <section className="card2 fup2__status" aria-label="Mission en cours">
+      <div className="status2">
+        <span className="flag2 flag2--neutre">
+          <Icon name="i-clock" />
+          En cours
+        </span>
+        <div className="status2__title">Mission en cours avec {studentName}</div>
+        <div className="status2__text">
+          Quand le travail est terminé, vous confirmez la fin pour verser le paiement à {studentName}.{" "}
+          <b>
+            {view.reservedAt
+              ? "Les fonds restent en séquestre jusqu'à votre validation."
+              : "Le paiement n'est versé qu'après votre validation."}
+          </b>
+        </div>
+        <p className="status2__text">
+          Une annulation en cours de mission passe par notre équipe, qui étudie la situation avec vous.{" "}
+          <Link className="link2" href={REPORT_HREF}>Signaler un problème</Link>
+        </p>
+      </div>
+    </section>
+  )
+}
+
 function InProgress({ detail, view, studentName, onConfirm }) {
   const { mission, selectedStudent } = detail
   const estimate = purchasesEstimateOf(mission.purchasesEstimate)
+  const declared = view.completion.state === "declared"
   const student = <SelectedStudent title="Étudiant retenu" student={selectedStudent} missionId={mission.id} />
   return (
     <>
       <div className="split2 fup2__split">
         <div className="col2">
-          <section className="card2 fup2__status" aria-label="Mission en cours">
-            <div className="status2">
-              <span className="flag2 flag2--neutre">
-                <Icon name="i-clock" />
-                En cours
-              </span>
-              <div className="status2__title">Mission en cours avec {studentName}</div>
-              <div className="status2__text">
-                Quand le travail est terminé, vous confirmez la fin pour verser le paiement à {studentName}.{" "}
-                <b>
-                  {view.reservedAt
-                    ? "Les fonds restent en séquestre jusqu'à votre validation."
-                    : "Le paiement n'est versé qu'après votre validation."}
-                </b>
-              </div>
-              <p className="status2__text">
-                Une annulation en cours de mission passe par notre équipe, qui étudie la situation avec vous.{" "}
-                <Link className="link2" href={REPORT_HREF}>Signaler un problème</Link>
-              </p>
-            </div>
-          </section>
+          {declared ? (
+            <DeclaredCard
+              view={view}
+              missionId={mission.id}
+              studentId={selectedStudent?.id}
+              studentName={studentName}
+              onConfirm={onConfirm}
+            />
+          ) : (
+            <RunningCard view={view} studentName={studentName} />
+          )}
           {estimate === null ? student : <PurchasesCard estimate={estimate} escrowed={Boolean(view.reservedAt)} />}
           <section className="card2 fup2__timeline" aria-label="Chronologie">
             <div className="sec2">
@@ -91,7 +146,7 @@ function InProgress({ detail, view, studentName, onConfirm }) {
           <EscrowCard
             split={view.split}
             studentName={studentName}
-            onConfirm={onConfirm}
+            onConfirm={declared ? undefined : onConfirm}
             withPurchases={estimate !== null}
             since={view.reservedAt ? formatDay(view.reservedAt) : ""}
           />
