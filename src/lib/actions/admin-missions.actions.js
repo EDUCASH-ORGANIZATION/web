@@ -43,6 +43,17 @@ function countQuery(service, params, statut) {
   return withFilters(withTab(base, statut), params)
 }
 
+// Vrai si la colonne existe, faux si elle manque ; toute autre erreur est levée.
+async function probeDeclarationColumn(service) {
+  const { error } = await service.from("missions").select("completion_declared_at").limit(1)
+  if (isMissingCompletionColumn(error)) {
+    console.error("[admin-missions] colonne completion_declared_at absente", error.code)
+    return false
+  }
+  if (error) throw new Error("Lecture impossible.")
+  return true
+}
+
 async function readStudentNames(service, ids) {
   const names = new Map()
   for (const chunk of inChunks([...new Set(ids.filter(Boolean))])) {
@@ -65,26 +76,28 @@ export async function listAdminMissions(rawParams = {}) {
 
   const params = parseMissionsParams(rawParams)
   try {
+    // Sonde GET (renvoie un corps, donc le code d'erreur) : une requête HEAD en erreur n'a pas de corps et ne
+    // permettrait pas de reconnaître la colonne absente. Lancée en parallèle des compteurs qui n'en dépendent pas.
+    const probe = probeDeclarationColumn(service)
+    const independent = MISSION_TABS.filter((tab) => tab !== "a-confirmer")
+    const independentCounts = Promise.all(independent.map((tab) => countQuery(service, params, tab)))
+    const available = await probe
+
+    // Colonne absente (script 90 non appliqué) : « à confirmer » compte 0 et reste vide, sans requête sur la colonne.
+    const toConfirmResult = available ? await countQuery(service, params, "a-confirmer") : { count: 0, error: null }
+    const results = await independentCounts
     const counts = {}
-    const results = await Promise.all(MISSION_TABS.map((tab) => countQuery(service, params, tab)))
-    // Colonne de déclaration absente (script 90 non appliqué) : l'onglet « à confirmer » compte 0 et reste vide.
-    let toConfirmUnavailable = false
-    MISSION_TABS.forEach((tab, index) => {
-      const { error, count } = results[index]
-      if (tab === "a-confirmer" && isMissingCompletionColumn(error)) {
-        toConfirmUnavailable = true
-        counts[tab] = 0
-        return
-      }
-      if (error) throw new Error("Comptage impossible.")
-      counts[tab] = count ?? 0
-    })
+    for (const tab of MISSION_TABS) {
+      const result = tab === "a-confirmer" ? toConfirmResult : results[independent.indexOf(tab)]
+      if (result.error) throw new Error("Comptage impossible.")
+      counts[tab] = result.count ?? 0
+    }
 
     const total = counts[params.statut]
     const { page, pageCount } = clampPage(params.page, total)
     const from = (page - 1) * MISSIONS_ADMIN_PAGE_SIZE
     let missions = []
-    if (!(params.statut === "a-confirmer" && toConfirmUnavailable)) {
+    if (!(params.statut === "a-confirmer" && !available)) {
       const { data, error } = await listQuery(service, params, params.statut)
         .order("created_at", { ascending: false })
         .order("id", { ascending: true })
@@ -92,7 +105,7 @@ export async function listAdminMissions(rawParams = {}) {
       if (error) throw new Error("Lecture impossible.")
       missions = data ?? []
     }
-    const declared = (await readCompletionDeclared(service, missions.map((m) => m.id))).byId
+    const declared = available ? (await readCompletionDeclared(service, missions.map((m) => m.id))).byId : new Map()
     const students = await readStudentNames(service, missions.map((m) => m.selected_student_id))
     const rows = missions.map((m) => ({
       id: m.id,

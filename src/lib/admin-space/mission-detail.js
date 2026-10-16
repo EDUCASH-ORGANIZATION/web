@@ -41,8 +41,9 @@ export function moneySummary({ budget, clientId, ledger }) {
 }
 
 /**
- * Étapes de la frise, fondées sur les seules dates connues (`completion` = `{ declaredAt, finishedAt }`) : aucune date de sélection n'est stockée, l'étape
+ * Étapes de la frise, fondées sur les seules dates connues : aucune date de sélection n'est stockée, l'étape
  * « Étudiant retenu » n'en porte donc pas. Les états sont `done`, `current` ou `todo`.
+ * `completion` = `{ declaredAt, finishedAt }` (déclaration de l'étudiant, fin enregistrée).
  * @returns {Array<{ state: "done"|"current"|"todo", icon: string, title: string, at: string|null }>}
  */
 export function buildMissionTimeline({ mission, studentName, completion, ledger, clientId }) {

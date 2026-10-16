@@ -71,7 +71,8 @@ export async function getAdminMissionDetail(id) {
         .in("type", LEDGER_TYPES)
         .order("created_at", { ascending: true })
         .limit(LEDGER_LIMIT),
-      // Lecture tolérante : colonne absente -> aucune déclaration, la page se rend.
+      // Lecture séparée de `missions` (par clé primaire, en parallèle) : colonne absente -> aucune déclaration, sans
+      // faire échouer la lecture principale.
       readCompletionDeclared(service, [mission.id]),
     ])
     for (const result of [applications, completion, reviews, ledger]) check(result)

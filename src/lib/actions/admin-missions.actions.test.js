@@ -60,11 +60,17 @@ const mission = (over = {}) => ({
   ...over,
 })
 
+// Formes réelles : une requête HEAD en erreur n'a pas de corps (message vide, SANS code) ; un GET porte le code.
 function resolver({ rows = [mission()], count = 1, declared = "2026-10-12T08:00:00Z", columnMissing = false } = {}) {
-  const missing = { data: null, count: null, error: { code: "42703" } }
   const usesColumn = (q) => q.calls.some((c) => c[0] === "not" && c[1] === "completion_declared_at")
+  const probeOf = (q) => q.table === "missions" && q.select === "completion_declared_at"
   return (q) => {
-    if (columnMissing && (q.select === "id, completion_declared_at" || usesColumn(q))) return missing
+    if (columnMissing && (probeOf(q) || q.select === "id, completion_declared_at" || usesColumn(q))) {
+      return q.options?.head
+        ? { data: null, count: null, error: { message: "" } }
+        : { data: null, count: null, error: { code: "42703", message: "column does not exist" } }
+    }
+    if (probeOf(q)) return { data: [], error: null }
     if (q.select === "id, completion_declared_at") {
       return { data: rows.map((r) => ({ id: r.id, completion_declared_at: declared })), error: null }
     }
@@ -73,6 +79,9 @@ function resolver({ rows = [mission()], count = 1, declared = "2026-10-12T08:00:
     return { data: rows, error: null, count }
   }
 }
+
+const isListQuery = (q) =>
+  q.table === "missions" && !q.options?.head && q.select !== "id, completion_declared_at" && q.select !== "completion_declared_at"
 
 beforeEach(() => {
   requireRole.mockReset()
@@ -138,7 +147,7 @@ describe("listAdminMissions : lecture", () => {
     const result = await listAdminMissions({ page: "3" })
     expect(result.page).toBe(3)
     expect(result.pageCount).toBe(5)
-    const list = service.queries.find((q) => q.table === "missions" && !q.options?.head)
+    const list = service.queries.find((q) => isListQuery(q))
     expect(list.calls.find((c) => c[0] === "range").slice(1)).toEqual([50, 74])
   })
 
@@ -147,7 +156,7 @@ describe("listAdminMissions : lecture", () => {
     createServiceClient.mockReturnValue(service)
     const result = await listAdminMissions({ page: "999999" })
     expect(result.page).toBe(2)
-    const list = service.queries.find((q) => q.table === "missions" && !q.options?.head)
+    const list = service.queries.find((q) => isListQuery(q))
     expect(list.calls.find((c) => c[0] === "range").slice(1)).toEqual([25, 49])
   })
 
@@ -164,7 +173,7 @@ describe("listAdminMissions : filtres", () => {
     const service = makeService(resolver())
     createServiceClient.mockReturnValue(service)
     await listAdminMissions({ statut: "open", ville: "Cotonou", type: "Livraison" })
-    const list = service.queries.find((q) => q.table === "missions" && !q.options?.head)
+    const list = service.queries.find((q) => isListQuery(q))
     expect(list.calls).toEqual(expect.arrayContaining([["eq", "status", "open"], ["eq", "city", "Cotonou"], ["eq", "type", "Livraison"]]))
   })
 
@@ -172,7 +181,7 @@ describe("listAdminMissions : filtres", () => {
     const service = makeService(resolver())
     createServiceClient.mockReturnValue(service)
     await listAdminMissions({ statut: "a-confirmer" })
-    const list = service.queries.find((q) => q.table === "missions" && !q.options?.head && q.select !== "id, completion_declared_at")
+    const list = service.queries.find((q) => isListQuery(q))
     expect(list.calls).toContainEqual(["eq", "status", "in_progress"])
     expect(list.calls).toContainEqual(["not", "completion_declared_at", "is", null])
     const counts = service.queries.filter((q) => q.options?.head && q.calls.some((c) => c[0] === "not"))
@@ -192,6 +201,46 @@ describe("listAdminMissions : filtres", () => {
     spy.mockRestore()
   })
 
+  it("colonne absente : page entière sans erreur, aucune requête sur la colonne ni lecture de déclaration", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const service = makeService(resolver({ columnMissing: true, count: 4 }))
+    createServiceClient.mockReturnValue(service)
+    const result = await listAdminMissions({})
+    expect(result.error).toBeUndefined()
+    expect(result.counts).toEqual({ toutes: 4, open: 4, in_progress: 4, "a-confirmer": 0, done: 4, cancelled: 4 })
+    expect(result.rows[0].awaitingConfirm).toBe(false)
+    expect(service.queries.some((q) => q.calls.some((c) => c[0] === "not"))).toBe(false)
+    expect(service.queries.some((q) => q.select === "id, completion_declared_at")).toBe(false)
+    expect(spy).toHaveBeenCalledTimes(1)
+    spy.mockRestore()
+  })
+
+  it("la HEAD seule ne reconnaîtrait pas la colonne absente : la sonde GET est indispensable", async () => {
+    const service = makeService(resolver({ columnMissing: true }))
+    const { error } = await service.from("missions").select("id", { count: "exact", head: true }).not("completion_declared_at", "is", null)
+    expect(error.code).toBeUndefined()
+  })
+
+  it("sonde en erreur autre que colonne absente : erreur neutre", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const inner = resolver()
+    createServiceClient.mockReturnValue(
+      makeService((q) => (q.select === "completion_declared_at" ? { data: null, error: { code: "XX000" } } : inner(q))),
+    )
+    expect((await listAdminMissions({})).error).toBeTruthy()
+    spy.mockRestore()
+  })
+
+  it("colonne présente : le compteur « à confirmer » est lancé après la sonde", async () => {
+    const service = makeService(resolver())
+    createServiceClient.mockReturnValue(service)
+    await listAdminMissions({})
+    const probeIndex = service.queries.findIndex((q) => q.select === "completion_declared_at")
+    const confirmIndex = service.queries.findIndex((q) => q.calls.some((c) => c[0] === "not"))
+    expect(probeIndex).toBeGreaterThan(-1)
+    expect(confirmIndex).toBeGreaterThan(probeIndex)
+  })
+
   it("colonne absente : les autres onglets se rendent, sans fin à confirmer", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
     createServiceClient.mockReturnValue(makeService(resolver({ columnMissing: true, count: 4 })))
@@ -207,7 +256,7 @@ describe("listAdminMissions : filtres", () => {
     createServiceClient.mockReturnValue(service)
     const result = await listAdminMissions({ statut: "done or 1=1", ville: "Paris", type: "'; drop table missions;--" })
     expect(result).toMatchObject({ statut: "toutes", ville: "", type: "" })
-    const list = service.queries.find((q) => q.table === "missions" && !q.options?.head)
+    const list = service.queries.find((q) => isListQuery(q))
     expect(list.calls.filter((c) => c[0] === "eq")).toEqual([])
   })
 
@@ -218,7 +267,7 @@ describe("listAdminMissions : filtres", () => {
     const result = await listAdminMissions({ q: hostile })
     expect(result.error).toBeUndefined()
     expect(result.q.length).toBeLessThanOrEqual(80)
-    for (const q of service.queries.filter((x) => x.table === "missions" && x.select !== "id, completion_declared_at")) {
+    for (const q of service.queries.filter((x) => x.table === "missions" && x.select !== "id, completion_declared_at" && x.select !== "completion_declared_at")) {
       expect(q.calls.find((c) => c[0] === "or")).toBeUndefined()
       const like = q.calls.find((c) => c[0] === "ilike")
       expect(like[1]).toBe("title")
