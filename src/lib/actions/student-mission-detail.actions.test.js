@@ -39,7 +39,13 @@ function makeSupabase() {
         or: (v) => { state.filters.push(["or", v]); return b },
         order: () => b,
         limit: () => b,
-        maybeSingle: () => Promise.resolve(resolve()),
+        // Comme PostgrestBuilder : paresseux, chaque `.then()` exécute (et compte) une requête.
+        maybeSingle: () => ({
+          then: (ok, ko) => {
+            state.runs = (state.runs ?? 0) + 1
+            return Promise.resolve(resolve()).then(ok, ko)
+          },
+        }),
         then: (ok, ko) => Promise.resolve(resolve()).then(ok, ko),
       }
       return b
@@ -376,14 +382,22 @@ describe("getStudentMissionDetail : date de rétention (RD-ACCEPT-01, accepted_a
     const detail = await load()
     expect(detail.application.acceptedAt).toBe("2026-10-08T08:00:00Z")
     expect(acceptedCalls()).toHaveLength(1)
-    expect(acceptedCalls()[0].filters).toEqual([["in", "id", [APP]]])
+    expect(acceptedCalls()[0].filters).toEqual([["in", "id", [APP]], ["eq", "student_id", ME]])
+  })
+
+  it("la candidature n'est lue qu'une seule fois (builder paresseux exécuté une fois)", async () => {
+    responses.acceptedAt = { data: [{ id: APP, accepted_at: "2026-10-08T08:00:00Z" }], error: null }
+    await load()
+    const reads = callsOn("applications").filter((c) => c.columns === "id, status, message, created_at, updated_at")
+    expect(reads).toHaveLength(1)
+    expect(reads[0].runs).toBe(1)
   })
 
   it("updated_at n'alimente jamais la date, même avec une valeur différente", async () => {
     responses.acceptedAt = { data: [{ id: APP, accepted_at: "2026-10-08T08:00:00Z" }], error: null }
     const detail = await load()
-    expect(detail.application.updatedAt).toBe("2026-10-09T00:00:00Z")
-    expect(detail.application.acceptedAt).not.toBe(detail.application.updatedAt)
+    expect(detail.application).not.toHaveProperty("updatedAt")
+    expect(JSON.stringify(detail.application)).not.toContain("2026-10-09")
     responses.acceptedAt = { data: [{ id: APP, accepted_at: null }], error: null }
     expect((await load()).application.acceptedAt).toBeNull()
   })
