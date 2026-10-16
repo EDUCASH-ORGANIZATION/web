@@ -60,7 +60,37 @@ describe("message-media : aucune adresse brute affichée", () => {
     const source = read("src/lib/actions/message.actions.js")
     const calls = [...source.matchAll(/toMessage\(([^)]*)\)/g)].map((m) => m[1])
     expect(calls).toEqual(["row, userId, signed"])
-    expect(source).not.toMatch(/createServiceClient/)
+    // Le service role sert UNIQUEMENT à l'insertion (RD-MSG-01) : jamais à signer ni à lire un média.
+    expect([...source.matchAll(/createServiceClient\(\)/g)]).toHaveLength(1)
+    const insertion = source.slice(source.indexOf("async function deliverMessage"))
+    expect(insertion).toMatch(/service = createServiceClient\(\)/)
+    const signing = source.slice(source.indexOf("async function signMediaPaths"), source.indexOf("/** Messages (toMessage)"))
+    expect(signing).not.toMatch(/createServiceClient|service\b/)
+    expect(signing).toMatch(/supabase\.storage/)
+    // Chaque signature se fait avec le client de SESSION : premier argument `supabase`, jamais `service` ni un alias.
+    const signCalls = [...source.matchAll(/(?:toSignedMessages|signMediaPaths)\(\s*(\w+)/g)]
+      .filter((m) => !source.slice(Math.max(0, m.index - 16), m.index).includes("function "))
+      .map((m) => m[1])
+    expect(signCalls.length).toBeGreaterThanOrEqual(5)
+    expect(new Set(signCalls)).toEqual(new Set(["supabase"]))
+    // L'identifiant `service` (hors commentaires) n'apparaît que dans deliverMessage, aux lignes attendues.
+    const start = source.indexOf("async function deliverMessage")
+    const lines = source.split("\n")
+    let offset = 0
+    const uses = []
+    for (const line of lines) {
+      const code = line.trim()
+      if (!/^(\/\/|\/\*|\*|import )/.test(code) && /\bservice\b/.test(code)) uses.push({ code, inside: offset >= start })
+      offset += line.length + 1
+    }
+    expect(uses.every((u) => u.inside)).toBe(true)
+    expect(uses.map((u) => u.code)).toEqual([
+      "let service",
+      "service = createServiceClient()",
+      "const { data: row, error } = await service",
+      "client: service,",
+      "await maybeOpenAutoReport({ senderId: user.id, missionId, messageId: row.id, client: service })",
+    ])
     expect(source).toMatch(/createSignedUrls\(unique, MEDIA_SIGNED_URL_TTL\)/)
   })
 

@@ -21,6 +21,11 @@ vi.mock("@/lib/supabase/server", async () => {
   const { makeFakeSupabase: make } = await import("./fixtures/fake-supabase.js")
   return { createClient: async () => make(ctx) }
 })
+// Le client service role (insertion des messages) lit et écrit les mêmes tables en mémoire que la session.
+vi.mock("@/lib/supabase/service", async () => {
+  const { makeFakeSupabase: make } = await import("./fixtures/fake-supabase.js")
+  return { createServiceClient: () => make(ctx) }
+})
 
 const { getClientConversations, getClientConversation, sendClientMessage, markClientConversationRead } = await import(
   "@/lib/actions/message.actions"
@@ -527,5 +532,47 @@ describe("lecture : colonnes et limites", () => {
       expect(out.error).toBeTruthy()
       expect(out.error).not.toMatch(/relation|exist/)
     }
+  })
+})
+
+describe("masquage serveur des coordonnées (RD-MSG-01)", () => {
+  it("un numéro, un e-mail et un lien envoyés par le client sont masqués avant stockage, l'envoi réussit", async () => {
+    const out = await send({ content: "Appelez le 01 97 00 00 00, écrivez à awa.k@gmail.com ou voir https://monsite.test/x" })
+    expect(out.success).toBe(true)
+    expect(out.contactMasked.kinds.sort()).toEqual(["email", "link", "phone"])
+    const [row] = inserted()
+    expect(row.content).not.toMatch(/01 97|awa\.k|monsite/)
+    expect(row.content).toContain("[coordonnées masquées]")
+    expect(out.message.content).toBe(row.content)
+  })
+  it("le journal ne contient que des types et des nombres, jamais la valeur", async () => {
+    await send({ content: "Appelez le 01 97 00 00 00" })
+    const events = ctx.db.message_contact_events ?? []
+    expect(events).toHaveLength(1)
+    expect(JSON.stringify(events)).not.toMatch(/01 97|0197|229/)
+    expect(events[0]).toMatchObject({ sender_id: CLIENT, mission_id: M1, action: "masked", kinds: ["phone"] })
+  })
+  it("numéro dicté en lettres ou espacé par des séparateurs : masqué aussi", async () => {
+    const out = await send({ content: "zéro un neuf sept zéro zéro zéro zéro zéro zéro" })
+    expect(out.success).toBe(true)
+    expect(inserted()[0].content).not.toMatch(/neuf|sept/)
+  })
+  it("une photo, un vocal ou une position ne passent jamais par le filtre ni par le journal", async () => {
+    await send({ type: "location", lat: 6.37, lng: 2.39, content: "01 97 00 00 00" })
+    await send({ type: "image", mediaPath: `${CLIENT}/photo.png`, content: "01 97 00 00 00" })
+    expect(inserted().map((m) => m.content)).toEqual(["Position partagée", expect.any(String)])
+    expect(ctx.db.message_contact_events ?? []).toHaveLength(0)
+  })
+  it("aucun message n'est jamais inséré par le client de session", async () => {
+    await send({ content: "01 97 00 00 00" })
+    await send({ content: "Bonjour" })
+    expect(log().filter((q) => q.table === "messages" && q.op === "insert")).toHaveLength(2)
+    expect(inserted()).toHaveLength(2)
+  })
+  it("expéditeur suspendu : aucun message, aucun journal", async () => {
+    seed("client", true)
+    expect((await send({ content: "Bonjour" })).error).toBeTruthy()
+    expect(inserted()).toEqual([])
+    expect(ctx.db.message_contact_events ?? []).toHaveLength(0)
   })
 })
