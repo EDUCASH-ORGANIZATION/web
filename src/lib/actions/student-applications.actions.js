@@ -37,7 +37,6 @@ const DAY_MS = 24 * 60 * 60 * 1000
  * @property {"open"|"in_progress"|"done"|"cancelled"|null} missionStatus
  * @property {"pending"|"accepted"|"rejected"} status
  * @property {string} appliedAt
- * @property {string} updatedAt Date du dernier changement de la candidature (tri seulement, jamais une date de rétention)
  * @property {string|null} acceptedAt Date de rétention posée par la base (applications.accepted_at) ; null hors onglet
  *   En cours, colonne absente, ligne ancienne sans date ou date invalide
  * @property {string} clientName Prénom et initiale du client ("" si inconnu)
@@ -66,17 +65,19 @@ const DAY_MS = 24 * 60 * 60 * 1000
 async function readRetentionDates(supabase, userId, applications) {
   const dates = new Map()
   if (applications.length === 0) return dates
-  // Client restreint : la lecture partagée est filtrée sur l'étudiant de la session en plus de la RLS.
-  const ownApplications = { from: (table) => ({ select: (columns) => supabase.from(table).select(columns).eq("student_id", userId) }) }
   try {
-    const { available, byId } = await readAcceptedAt(ownApplications, applications.map((a) => a.id))
+    const { available, byId } = await readAcceptedAt(
+      supabase,
+      applications.map((a) => a.id),
+      { studentId: userId },
+    )
     if (!available) return dates
     for (const a of applications) {
       const at = byId.has(a.id) ? validAcceptedAt(byId.get(a.id)) : null
       if (at) dates.set(a.id, at)
     }
   } catch (err) {
-    console.error("[getStudentApplicationsView] date de retenue", err?.code ?? "inconnu")
+    console.error("[getStudentApplicationsView] date de retenue", err?.code ?? err?.name ?? "inconnu")
   }
   return dates
 }
@@ -151,17 +152,21 @@ export async function getStudentApplicationsView({ onglet } = {}) {
       count: inProgress.length,
     }
 
-    // Date de rétention : accepted_at seulement. Retenue récente = la première dont la date a 0 à 7 jours ; à
-    // défaut, la première dont la date n'est pas disponible (la carte s'affiche alors sans jour ni heure).
-    // Une retenue datée de plus de 7 jours n'a pas de carte.
+    // Date de rétention : accepted_at seulement. Retenue récente = la première dont la date a 0 à 7 jours. Une
+    // retenue sans date fiable (colonne absente, NULL, invalide) n'a de carte que si la candidature a été créée il y a
+    // 0 à 7 jours : la retenue lui est forcément postérieure, donc elle date d'au plus 7 jours. Une retenue datée de
+    // plus de 7 jours, ou sans date sur une candidature plus ancienne, n'a jamais de carte.
     const retainedAt = await readRetentionDates(supabase, user.id, groups["en-cours"])
     const now = Date.now()
+    const withinRecent = (time) => {
+      const age = now - time
+      return age >= 0 && age <= RECENT_DAYS * DAY_MS
+    }
     const recent =
       inProgress.find((a) => {
         const at = retainedAt.get(a.id)
-        const age = at ? now - new Date(at).getTime() : -1
-        return age >= 0 && age <= RECENT_DAYS * DAY_MS
-      }) ?? inProgress.find((a) => !retainedAt.has(a.id))
+        return at ? withinRecent(new Date(at).getTime()) : false
+      }) ?? inProgress.find((a) => !retainedAt.has(a.id) && withinRecent(new Date(a.created_at).getTime()))
 
     const shown = groups[tab]
     const clientIds = [...new Set([...shown, ...(recent ? [recent] : [])].map((a) => a.missions?.client_id).filter(Boolean))]
@@ -208,7 +213,6 @@ export async function getStudentApplicationsView({ onglet } = {}) {
         missionStatus: m?.status ?? null,
         status: a.status,
         appliedAt: a.created_at,
-        updatedAt: a.updated_at,
         acceptedAt: retainedAt.get(a.id) ?? null,
         ...nameOf(m?.client_id),
         review: reviews.get(a.mission_id) ?? null,
