@@ -12,10 +12,7 @@
 -- Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.
 -- Script 91 de RD-ACCEPT-01 appliqué en production le 2026-10-16.
 -- Script 92 de RD-MSG-01 appliqué en production le 2026-10-16.
--- Script 93 de RD-MSG-01 (retrait du droit INSERT sur public.messages à authenticated)
--- NON appliqué en production : à retirer de cet en-tête après application. Il ne se
--- lance qu'après le déploiement du nouveau code en production ET en staging (base
--- partagée).
+-- Script 93 de RD-MSG-01 appliqué en production le 2026-10-16.
 -- Script 94 de RD-ACHATS-01 NON appliqué en production (table purchase_requests,
 -- extension de messages, de reports et de notifications, compartiment purchase-proofs) :
 -- à retirer de cet en-tête après application. Il se lance strictement après le script 93.
@@ -224,7 +221,7 @@ create table public.notifications (
   created_at timestamp with time zone default now() not null
 );
 
--- Script 92 de RD-MSG-01 (NON appliqué en production au 2026-10-16) : journal des détections de
+-- Script 92 de RD-MSG-01 (appliqué en production le 2026-10-16) : journal des détections de
 -- coordonnées (le TYPE seulement, jamais la valeur) et signalements (utilisateurs et alertes automatiques).
 create table public.message_contact_events (
   id uuid default gen_random_uuid() not null,
@@ -2128,9 +2125,8 @@ revoke all on table public.applications from anon, authenticated, service_role;
 grant SELECT on table public.applications to anon;
 grant INSERT, SELECT, UPDATE on table public.applications to authenticated;
 grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.applications to service_role;
--- messages : le droit INSERT de authenticated est retiré par le script 93 de RD-MSG-01 (NON appliqué en
--- production au 2026-10-16) ; avant ce script, la production garde "grant INSERT, SELECT ... to authenticated".
--- La politique messages_insert reste décrite plus haut, sans effet faute de droit.
+-- messages : le droit INSERT de authenticated est retiré par le script 93 de RD-MSG-01 (appliqué en
+-- production le 2026-10-16). La politique messages_insert reste décrite plus haut, sans effet faute de droit.
 revoke all on table public.messages from anon, authenticated, service_role;
 grant SELECT on table public.messages to anon;
 grant SELECT on table public.messages to authenticated;
@@ -2191,7 +2187,7 @@ grant SELECT on table public.notifications to authenticated;
 grant UPDATE (read_at) on table public.notifications to authenticated;
 grant DELETE, INSERT, SELECT, UPDATE on table public.notifications to service_role;
 
--- Scripts 92 et 93 de RD-MSG-01 (NON appliqués en production au 2026-10-16). Les deux tables du script 92
+-- Script 92 de RD-MSG-01 (appliqué en production le 2026-10-16). Les deux tables du script 92
 -- n'ont aucune politique et aucun droit pour anon ni authenticated : seul le serveur (service_role) y accède.
 revoke all on table public.message_contact_events from public, anon, authenticated, service_role;
 grant DELETE, INSERT, SELECT, UPDATE on table public.message_contact_events to service_role;
