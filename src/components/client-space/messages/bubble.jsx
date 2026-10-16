@@ -1,12 +1,8 @@
 import { Icon } from "@/components/design/icon"
+import { PlaceLinks } from "@/components/messaging/place-links"
 import { coordsValid, formatClock } from "@/lib/client-space/conversations"
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
-
-// Lien vers une carte : construit à partir de nombres validés, jamais d'un texte reçu.
-function placeHref(lat, lng) {
-  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`
-}
 
 function Body({ message, onMediaError }) {
   if (message.type === "image") {
@@ -28,10 +24,7 @@ function Body({ message, onMediaError }) {
   }
   if (message.type === "location") {
     return coordsValid(message.lat, message.lng) ? (
-      <a className="bubble__place2" href={placeHref(message.lat, message.lng)} target="_blank" rel="noopener noreferrer">
-        <Icon name="i-map-pin" />
-        Position partagée, ouvrir la carte
-      </a>
+      <PlaceLinks lat={message.lat} lng={message.lng} linkClassName="bubble__place2" />
     ) : (
       <span className="bubble__text2">Position indisponible</span>
     )
@@ -58,9 +51,11 @@ function Meta({ message, status, error }) {
 
 /**
  * Bulle de message. `status` : "sent" (défaut), "sending" ou "failed" (message de l'utilisateur pas encore
- * livré : `error` en méta, « Réessayer » et « Supprimer » sous la bulle).
+ * livré : `error` en méta, « Réessayer » et « Supprimer » sous la bulle). `onReport(message)` (facultatif) ajoute
+ * « Signaler » sur un message reçu et livré ; `maskedNote` est la note de masquage sous la bulle de l'expéditeur.
  */
-export function Bubble({ message, senderName, status = "sent", error, onRetry, onDismiss, onMediaError }) {
+export function Bubble({ message, senderName, status = "sent", error, onRetry, onDismiss, onMediaError, onReport, maskedNote }) {
+  const reportable = Boolean(onReport) && !message.mine && status === "sent"
   return (
     <div
       className={cx(
@@ -82,6 +77,19 @@ export function Bubble({ message, senderName, status = "sent", error, onRetry, o
           </button>
           <button type="button" className="link2 link2--muted" onClick={onDismiss}>
             Supprimer
+          </button>
+        </div>
+      ) : null}
+      {maskedNote && message.mine ? (
+        <p className="bubble__note2" role="status">
+          {maskedNote}
+        </p>
+      ) : null}
+      {reportable ? (
+        <div className="bubble__actions2">
+          <button type="button" className="link2 link2--muted" aria-label={`Signaler ce message de ${senderName}`} onClick={() => onReport(message)}>
+            <Icon name="i-flag" />
+            Signaler
           </button>
         </div>
       ) : null}
