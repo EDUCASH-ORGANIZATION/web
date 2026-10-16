@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
+vi.mock("server-only", () => ({}))
 const requireRole = vi.fn()
 const createServiceClient = vi.fn()
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: (...a) => requireRole(...a) }))
@@ -56,12 +57,17 @@ const mission = (over = {}) => ({
   client_id: "00000000-0000-4000-8000-000000000001",
   selected_student_id: STUDENT_ID,
   profiles: { full_name: "Koffi Client" },
-  mission_completions: { mission_id: "10000000-0000-4000-8000-000000000001" },
   ...over,
 })
 
-function resolver({ rows = [mission()], count = 1 } = {}) {
+function resolver({ rows = [mission()], count = 1, declared = "2026-10-12T08:00:00Z", columnMissing = false } = {}) {
+  const missing = { data: null, count: null, error: { code: "42703" } }
+  const usesColumn = (q) => q.calls.some((c) => c[0] === "not" && c[1] === "completion_declared_at")
   return (q) => {
+    if (columnMissing && (q.select === "id, completion_declared_at" || usesColumn(q))) return missing
+    if (q.select === "id, completion_declared_at") {
+      return { data: rows.map((r) => ({ id: r.id, completion_declared_at: declared })), error: null }
+    }
     if (q.table === "profiles") return { data: [{ user_id: STUDENT_ID, full_name: "Esther Etudiante" }], error: null }
     if (q.options?.head) return { count, error: null }
     return { data: rows, error: null, count }
@@ -110,8 +116,8 @@ describe("listAdminMissions : lecture", () => {
     expect(result.today).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
-  it("une mission sans fin enregistrée n'est pas à confirmer", async () => {
-    createServiceClient.mockReturnValue(makeService(resolver({ rows: [mission({ mission_completions: null })] })))
+  it("une mission en cours sans déclaration n'est pas à confirmer", async () => {
+    createServiceClient.mockReturnValue(makeService(resolver({ declared: null })))
     const result = await listAdminMissions({})
     expect(result.rows[0].awaitingConfirm).toBe(false)
   })
@@ -162,13 +168,38 @@ describe("listAdminMissions : filtres", () => {
     expect(list.calls).toEqual(expect.arrayContaining([["eq", "status", "open"], ["eq", "city", "Cotonou"], ["eq", "type", "Livraison"]]))
   })
 
-  it("« à confirmer » exige une jointure interne sur la fin enregistrée", async () => {
+  it("« à confirmer » filtre sur la date de déclaration, sans jointure sur mission_completions", async () => {
     const service = makeService(resolver())
     createServiceClient.mockReturnValue(service)
     await listAdminMissions({ statut: "a-confirmer" })
-    const list = service.queries.find((q) => q.table === "missions" && !q.options?.head)
-    expect(list.select).toContain("mission_completions!inner(mission_id)")
+    const list = service.queries.find((q) => q.table === "missions" && !q.options?.head && q.select !== "id, completion_declared_at")
     expect(list.calls).toContainEqual(["eq", "status", "in_progress"])
+    expect(list.calls).toContainEqual(["not", "completion_declared_at", "is", null])
+    const counts = service.queries.filter((q) => q.options?.head && q.calls.some((c) => c[0] === "not"))
+    expect(counts).toHaveLength(1)
+    for (const q of service.queries) expect(q.select ?? "").not.toContain("mission_completions")
+  })
+
+  it("colonne de déclaration absente : compteur 0, onglet vide, aucune erreur", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    createServiceClient.mockReturnValue(makeService(resolver({ columnMissing: true, count: 4 })))
+    const result = await listAdminMissions({ statut: "a-confirmer" })
+    expect(result.error).toBeUndefined()
+    expect(result.counts["a-confirmer"]).toBe(0)
+    expect(result.counts.toutes).toBe(4)
+    expect(result.total).toBe(0)
+    expect(result.rows).toEqual([])
+    spy.mockRestore()
+  })
+
+  it("colonne absente : les autres onglets se rendent, sans fin à confirmer", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    createServiceClient.mockReturnValue(makeService(resolver({ columnMissing: true, count: 4 })))
+    const result = await listAdminMissions({ statut: "in_progress" })
+    expect(result.error).toBeUndefined()
+    expect(result.rows).toHaveLength(1)
+    expect(result.rows[0].awaitingConfirm).toBe(false)
+    spy.mockRestore()
   })
 
   it("ignore les valeurs hors liste (statut, ville, type)", async () => {
@@ -187,7 +218,7 @@ describe("listAdminMissions : filtres", () => {
     const result = await listAdminMissions({ q: hostile })
     expect(result.error).toBeUndefined()
     expect(result.q.length).toBeLessThanOrEqual(80)
-    for (const q of service.queries.filter((x) => x.table === "missions")) {
+    for (const q of service.queries.filter((x) => x.table === "missions" && x.select !== "id, completion_declared_at")) {
       expect(q.calls.find((c) => c[0] === "or")).toBeUndefined()
       const like = q.calls.find((c) => c[0] === "ilike")
       expect(like[1]).toBe("title")

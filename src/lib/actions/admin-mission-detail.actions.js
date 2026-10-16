@@ -3,6 +3,7 @@
 import { todayInBenin } from "@/lib/vitrine/dates"
 import { isUuid } from "@/lib/vitrine/ids"
 import { inChunks, requireAdminService } from "./admin-context"
+import { readCompletionDeclared } from "./mission-completion-core"
 
 const ERR_LOAD = "Cette mission n'a pas pu être chargée. Réessayez dans un instant."
 
@@ -33,7 +34,7 @@ function check(result) {
 
 /**
  * Détail d'une mission pour l'admin (AD07), lecture seule : mission, parties (noms publics), candidatures, fin
- * enregistrée, avis et mouvements du grand livre de la mission. Aucune action d'argent, aucun message.
+ * déclarée et fin enregistrée, avis et mouvements du grand livre de la mission. Aucune action d'argent, aucun message.
  * Un identifiant mal formé ou inconnu donne `{ notFound: true }` (la page répond 404).
  * @param {string} id
  */
@@ -49,7 +50,7 @@ export async function getAdminMissionDetail(id) {
     if (error) throw new Error("Lecture impossible.")
     if (!mission) return { notFound: true }
 
-    const [applications, completion, reviews, ledger] = await Promise.all([
+    const [applications, completion, reviews, ledger, declared] = await Promise.all([
       service
         .from("applications")
         .select(APPLICATION_COLUMNS, { count: "exact" })
@@ -70,8 +71,11 @@ export async function getAdminMissionDetail(id) {
         .in("type", LEDGER_TYPES)
         .order("created_at", { ascending: true })
         .limit(LEDGER_LIMIT),
+      // Lecture tolérante : colonne absente -> aucune déclaration, la page se rend.
+      readCompletionDeclared(service, [mission.id]),
     ])
     for (const result of [applications, completion, reviews, ledger]) check(result)
+    const declaredAt = declared.byId.get(mission.id) ?? null
 
     const applicationRows = applications.data ?? []
     const names = await readNames(service, [
@@ -115,7 +119,7 @@ export async function getAdminMissionDetail(id) {
           selected: a.student_id === mission.selected_student_id,
         })),
       },
-      completion: completion.data ? { createdAt: completion.data.created_at } : null,
+      completion: { declaredAt, finishedAt: completion.data?.created_at ?? null },
       reviews: (reviews.data ?? []).map((r) => ({
         id: r.id,
         rating: Number(r.rating) || 0,

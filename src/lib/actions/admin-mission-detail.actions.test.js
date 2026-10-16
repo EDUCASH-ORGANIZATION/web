@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
+vi.mock("server-only", () => ({}))
 const requireRole = vi.fn()
 const createServiceClient = vi.fn()
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: (...a) => requireRole(...a) }))
@@ -68,6 +69,7 @@ function resolver(over = {}) {
       { id: "a2", student_id: OTHER, status: "rejected", created_at: "2026-10-11T09:00:00Z" },
     ],
     mission_completions: { created_at: "2026-10-13T08:00:00Z" },
+    declared: [{ id: MISSION_ID, completion_declared_at: "2026-10-12T08:00:00Z" }],
     reviews: [{ id: "r1", reviewer_id: CLIENT, rating: 5, comment: "Parfait", created_at: "2026-10-14T08:00:00Z" }],
     wallet_transactions: [
       { id: "w1", user_id: CLIENT, type: "reserve", amount: 10000, created_at: "2026-10-10T08:01:00Z" },
@@ -80,6 +82,11 @@ function resolver(over = {}) {
     ...over,
   }
   return (q) => {
+    if (q.table === "missions" && q.select === "id, completion_declared_at") {
+      const value = data.declared
+      if (value && typeof value === "object" && "error" in value) return { data: null, error: value.error }
+      return { data: value, error: null }
+    }
     const value = data[q.table]
     if (value && typeof value === "object" && "error" in value) return { data: null, error: value.error }
     return { data: value, error: null, count: Array.isArray(value) ? value.length : undefined }
@@ -134,19 +141,44 @@ describe("getAdminMissionDetail : lecture", () => {
     expect(result.applications.total).toBe(2)
     expect(result.applications.items[0]).toMatchObject({ name: "Esther Etudiante", status: "accepted", selected: true })
     expect(result.applications.items[1]).toMatchObject({ name: "Yao Autre", selected: false })
-    expect(result.completion).toEqual({ createdAt: "2026-10-13T08:00:00Z" })
+    expect(result.completion).toEqual({ declaredAt: "2026-10-12T08:00:00Z", finishedAt: "2026-10-13T08:00:00Z" })
     expect(result.reviews[0]).toMatchObject({ rating: 5, byRole: "client" })
     expect(result.ledger[0]).toMatchObject({ type: "reserve", party: "client", amount: 10000 })
   })
 
   it("mission sans étudiant ni fin : champs vides explicites", async () => {
     createServiceClient.mockReturnValue(
-      makeService(resolver({ missions: { ...MISSION, status: "open", selected_student_id: null }, mission_completions: null, applications: [], reviews: [], wallet_transactions: [] })),
+      makeService(resolver({ missions: { ...MISSION, status: "open", selected_student_id: null }, mission_completions: null, declared: [{ id: MISSION_ID, completion_declared_at: null }], applications: [], reviews: [], wallet_transactions: [] })),
     )
     const result = await getAdminMissionDetail(MISSION_ID)
     expect(result.student).toBeNull()
-    expect(result.completion).toBeNull()
+    expect(result.completion).toEqual({ declaredAt: null, finishedAt: null })
     expect(result.applications).toEqual({ total: 0, items: [] })
+  })
+
+  it("colonne de déclaration absente : la page se rend, sans déclaration", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    createServiceClient.mockReturnValue(makeService(resolver({ declared: { error: { code: "42703" } } })))
+    const result = await getAdminMissionDetail(MISSION_ID)
+    expect(result.error).toBeUndefined()
+    expect(result.completion).toEqual({ declaredAt: null, finishedAt: "2026-10-13T08:00:00Z" })
+    spy.mockRestore()
+  })
+
+  it("autre erreur sur la lecture de la déclaration : message neutre", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    createServiceClient.mockReturnValue(makeService(resolver({ declared: { error: { code: "XX000" } } })))
+    expect((await getAdminMissionDetail(MISSION_ID)).error).toBeTruthy()
+    spy.mockRestore()
+  })
+
+  it("n'écrit jamais la colonne de déclaration", async () => {
+    const service = makeService(resolver())
+    createServiceClient.mockReturnValue(service)
+    await getAdminMissionDetail(MISSION_ID)
+    for (const q of service.queries) {
+      expect(q.calls.find((c) => ["update", "insert", "upsert", "delete"].includes(c[0]))).toBeUndefined()
+    }
   })
 
   it("ne lit jamais les messages, jamais select(*), aucune donnée privée de profil", async () => {
@@ -154,7 +186,7 @@ describe("getAdminMissionDetail : lecture", () => {
     createServiceClient.mockReturnValue(service)
     await getAdminMissionDetail(MISSION_ID)
     expect(service.queries.map((q) => q.table).sort()).toEqual(
-      ["applications", "mission_completions", "missions", "profiles", "reviews", "wallet_transactions"].sort(),
+      ["applications", "mission_completions", "missions", "missions", "profiles", "reviews", "wallet_transactions"].sort(),
     )
     for (const q of service.queries) {
       expect(q.select).not.toBe("*")
