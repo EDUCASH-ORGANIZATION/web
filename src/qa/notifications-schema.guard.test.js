@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 
 // RD-NOTIF-01 : le schéma de référence (supabase/schema.sql) décrit la table notifications telle
-// que le script 80 la crée. Ce garde vérifie les éléments qui portent la sécurité : liste des types,
+// que le script 80 la crée, avec le CHECK de types APRÈS le script 94 de RD-ACHATS-01 (21 types, NON
+// appliqué en production). Ce garde vérifie les éléments qui portent la sécurité : liste des types,
 // unicité de l'idempotence, RLS, absence de droit anon, seule colonne modifiable (read_at), garde
 // SECURITY INVOKER à search_path vide, et absence du temps réel.
 const SCHEMA = readFileSync(path.join(process.cwd(), "supabase/schema.sql"), "utf8")
@@ -23,6 +24,13 @@ const EXPECTED_TYPES = [
   "card_submitted",
   "message_received",
   "completion_declared",
+  "purchase_requested",
+  "purchase_updated",
+  "purchase_cancelled",
+  "purchase_paid",
+  "purchase_received",
+  "purchase_reported",
+  "purchase_report_closed",
 ]
 
 const lines = SCHEMA.split("\n")
@@ -37,11 +45,13 @@ function functionBody() {
 }
 
 describe("schéma de référence : table notifications", () => {
-  it("la liste du CHECK sur type est exactement la liste attendue", () => {
-    const line = lines.find((l) => l.includes("notifications_type_check"))
-    expect(line).toBeDefined()
-    const found = [...line.matchAll(/'([a-z_]+)'::text/g)].map((m) => m[1])
+  it("la liste du CHECK sur type est exactement la liste attendue (21 types)", () => {
+    const checks = lines.filter((l) => l.includes("notifications_type_check"))
+    expect(checks, "une seule définition du CHECK").toHaveLength(1)
+    const found = [...checks[0].matchAll(/'([a-z_]+)'::text/g)].map((m) => m[1])
     expect(found).toEqual(EXPECTED_TYPES)
+    expect(found).toHaveLength(21)
+    expect(new Set(found).size).toBe(21)
   })
 
   it("la liste du CHECK reste alignée sur le catalogue du code", async () => {
