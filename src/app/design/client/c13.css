@@ -16,7 +16,7 @@
 /* Conversation : une carte à hauteur de fenêtre, journal des messages défilant, saisie en bas */
 .c2 .conv2 { display: flex; flex-direction: column; height: calc(100dvh - 180px); min-height: 420px; max-height: 820px; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); overflow: hidden; }
 /* En-tête .c-inbox__head (composants) : avatar 40, nom, sous-titre relationnel, « Voir le profil » ; le retour n'existe que sous 1024 */
-.conv2__head { flex: none; background: var(--c-blanc); }
+.c2 .conv2__head { flex: none; background: var(--c-blanc); }
 .conv2__who { flex: 1; min-width: 0; }
 .c2 .conv2__name { margin: 0; font-family: var(--f-text); font-size: var(--t-body-s); font-weight: var(--fw-xbold); text-transform: none; letter-spacing: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c2 .conv2__sub { display: inline-block; max-width: 100%; vertical-align: top; font-size: var(--t-micro); color: var(--c-ardoise); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -29,6 +29,7 @@
 .c2 .chat-status__text--short { display: none; }
 .c2 .chat-status b { color: var(--c-encre); font-weight: var(--fw-bold); }
 .c2 .chat-status .btn { flex: none; }
+.c2 .conv2__amount { white-space: nowrap; }
 .c2 .conv2 .chat { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
 .c2 .conv2 .chat > :first-child { margin-top: auto; }
 .c2 .conv2 .btn-icon { width: 44px; height: 44px; }
@@ -73,13 +74,15 @@
   .c2:has(.conv2__head) .mtop2 { display: none; }
   .c2 .shell--v2:has(.conv2) .shell__main { padding-bottom: var(--s-2); }
   .c2:has(.conv2) .page2 { padding-bottom: 0; }
-  .c2 .c-inbox .c-inbox__thread > .conv2 { flex: none; height: calc(100dvh - var(--s-2)); min-height: 320px; max-height: none; margin-inline: calc(-1 * var(--s-4)); border-width: 0; border-radius: 0; }
-  .conv2__head { height: 60px; padding: 0 var(--s-4) 0 var(--s-2); gap: var(--s-2); border-bottom-color: var(--c-ligne-2); }
+  /* La marge négative du volet dépasse du fil : le fil ne rogne plus (le volet garde son overflow, le défilement reste contenu) */
+  .c2 .inbox2[data-view="conversation"] > .c-inbox__thread { overflow: visible; }
+  .c2:has(.conv2__head) .c-inbox .c-inbox__thread > .conv2 { flex: none; height: calc(100dvh - var(--s-2)); min-height: 320px; max-height: none; margin-inline: calc(-1 * var(--s-4)); border-width: 0; border-radius: 0; }
+  .c2 .conv2__head { height: 60px; padding: 0 var(--s-4) 0 var(--s-2); gap: var(--s-2); border-bottom-color: var(--c-ligne-2); }
   .c2 .c-inbox__head .av2 { width: 32px; height: 32px; font-size: var(--t-micro); }
   .c2 .conv2__back { display: inline-grid; }
   /* « Voir le profil » : icône seule de 44 px, libellé lisible par les lecteurs d'écran */
   .c2 .conv2__profile { width: 44px; height: 44px; justify-content: center; align-items: center; }
-  .conv2__profile-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .c2 .conv2__profile-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   /* Bandeau avec montants sur une rangée : badge d'état, montant court, action. Le montant passe sur deux lignes
      plutôt que d'être coupé : deux lignes de texte tiennent dans les 44 px du bouton, la hauteur ne change pas. */
   .c2 .conv2 .chat-status--amounts { flex-wrap: nowrap; }

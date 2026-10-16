@@ -42,7 +42,7 @@ function actionOf(state, missionId, studentId, studentName) {
 function amountsOf({ state, budget, purchasesEstimate, paymentsEnabled }) {
   if (state !== "in_progress" && state !== "candidate") return null
   if (!(Number.isFinite(budget) && budget > 0)) return null
-  const service = <b>{formatFcfa(budget)}</b>
+  const service = <b className="conv2__amount">{formatFcfa(budget)}</b>
   if (state === "candidate") {
     return {
       long: paymentsEnabled ? <>Candidature en attente · {service} en séquestre</> : <>Candidature en attente · budget : {service}</>,
@@ -50,7 +50,9 @@ function amountsOf({ state, budget, purchasesEstimate, paymentsEnabled }) {
     }
   }
   const estimate =
-    Number.isFinite(purchasesEstimate) && purchasesEstimate > 0 ? <> · achats estimés : environ {formatFcfa(purchasesEstimate)}</> : null
+    Number.isFinite(purchasesEstimate) && purchasesEstimate > 0 ? (
+      <> · achats estimés : environ <b className="conv2__amount">{formatFcfa(purchasesEstimate)}</b></>
+    ) : null
   return {
     long: paymentsEnabled ? (
       <>

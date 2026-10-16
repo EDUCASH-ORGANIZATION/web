@@ -233,6 +233,18 @@ describe("ST-07 feuille de style C13", () => {
     expect(mobile).toMatch(/\.chat-status--amounts \.chat-status__text--short \{ display: inline; \}/)
   })
 
+  it("le fil ne rogne pas le volet à marge négative en mobile", () => {
+    expect(mobile).toMatch(/\[data-view="conversation"\] > \.c-inbox__thread \{ overflow: visible; \}/)
+    expect(mobile).toMatch(/margin-inline: calc\(-1 \* var\(--s-4\)\)/)
+  })
+
+  it("chaque montant du bandeau est insécable (jamais « 7 450 | FCFA » coupé)", () => {
+    expect(css).toMatch(/\.c2 \.conv2__amount \{ white-space: nowrap; \}/)
+    const html = banner({ budget: 5000, purchasesEstimate: 7450 })
+    expect(html).toMatch(/<b class="conv2__amount">5\s000\sFCFA<\/b>/)
+    expect(html).toMatch(/<b class="conv2__amount">7\s450\sFCFA<\/b>/)
+  })
+
   it("aucune hauteur minimale réservée pour un futur bouton", () => {
     expect(css).not.toMatch(/\.chat-status[^{]*\{[^}]*min-height: (?!44px)/)
   })

@@ -6,6 +6,7 @@ import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
 import { useMessageMediaUpload, useRealtimeMessages } from "@/hooks/use-realtime-messages"
 import { getClientMessageMedia, markClientConversationRead, sendClientMessage } from "@/lib/actions/message.actions"
+import { publicTalentHref } from "@/lib/app/student-routes"
 import { MEDIA_CONTENT, dayOf, formatDayLabel } from "@/lib/client-space/conversations"
 import { Bubble } from "./bubble"
 import { Composer, LockedComposer } from "./composer"
@@ -160,7 +161,7 @@ export function ConversationView({ conversation, now, paymentsEnabled = false })
           <h2 className="conv2__name">{student.name}</h2>
           <span className="convo__mission conv2__sub">{subtitleOf({ state, relation }, mission.title)}</span>
         </div>
-        <Link className="link2 conv2__profile" href={`/talents/${encodeURIComponent(student.id)}`}>
+        <Link className="link2 conv2__profile" href={publicTalentHref(student.id)}>
           <Icon name="i-user" />
           <span className="conv2__profile-label">Voir le profil</span>
         </Link>
