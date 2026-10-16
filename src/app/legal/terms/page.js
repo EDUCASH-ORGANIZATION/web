@@ -116,12 +116,16 @@ export default function TermsPage() {
           Pour faire respecter cette règle, les messages échangés sur la plateforme font l’objet
           d’une analyse automatique qui détecte les coordonnées et les masque. Le masquage ne
           refuse jamais l’envoi d’un message. Seul le type de coordonnée détecté est journalisé,
-          jamais sa valeur. Vous pouvez aussi signaler manuellement un message depuis la
-          messagerie. Les modalités sont détaillées dans la{" "}
-          <a className="link" href="/legal/privacy">politique de confidentialité</a>.
+          jamais sa valeur. Les mentions qui invitent à échanger ou à payer hors de la plateforme
+          sont journalisées sans être masquées. Vous pouvez aussi signaler manuellement un
+          message depuis la messagerie : l’équipe d’administration peut alors consulter le
+          message signalé, et votre identité n’est jamais communiquée à la personne signalée.
+          Les modalités sont détaillées dans la{" "}
+          <a className="link" href="/legal/privacy#analyse-des-messages">politique de confidentialité</a>.
         </p>
         <p>
-          En cas de manquement, les mesures sont graduées : un avertissement, puis, si les
+          En cas de manquement, les mesures sont graduées : le bandeau d’avertissement affiché dans la messagerie et la
+          note de masquage, puis, si les
           manquements se répètent, un examen de la situation par l’équipe EduCash pouvant
           conduire à une suspension du compte. Cette suspension est toujours décidée par une
           personne de l’équipe, jamais automatiquement. Vous pouvez contester une mesure via la

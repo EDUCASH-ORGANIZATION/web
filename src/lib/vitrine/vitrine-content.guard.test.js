@@ -96,7 +96,12 @@ describe("garde-fous de contenu vitrine", () => {
     expect(privacy).toMatch(/12 mois/)
     expect(terms).toMatch(/analyse\s+automatique/)
     expect(terms).toMatch(/jamais\s+automatiquement/)
-    expect(terms).toContain('href="/legal/privacy"')
+    expect(terms).toContain('href="/legal/privacy#analyse-des-messages"')
+    expect(privacy).toMatch(/paiement direct/)
+    expect(privacy).toMatch(/pseudos de réseaux sociaux/)
+    expect(privacy).toMatch(/votre identité/)
+    expect(privacy).toMatch(/message vocal ou position/)
+    expect(terms).toMatch(/bandeau\s+d’avertissement/)
     // La clause achats reste inchangee (RD-ACHATS-01).
     expect(terms).toMatch(/id="achats">Missions avec achats/)
   })

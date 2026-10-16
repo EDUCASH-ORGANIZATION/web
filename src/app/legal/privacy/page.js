@@ -93,7 +93,10 @@ export default function PrivacyPage() {
         <p>
           Les messages échangés entre clients et étudiants sur la plateforme font l’objet d’une
           analyse automatique qui détecte et masque les coordonnées (numéros de téléphone,
-          adresses e-mail, liens).
+          adresses e-mail, liens, pseudos de réseaux sociaux). Elle repère aussi les mentions qui
+          invitent à échanger ou à payer en dehors de la plateforme (par exemple « réseaux
+          sociaux » ou « paiement direct ») : ces mentions ne sont pas masquées, elles sont
+          seulement journalisées.
         </p>
         <ul>
           <li>
@@ -110,15 +113,19 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Données journalisées :</strong> le type de coordonnée détecté, le nombre de
-            détections, la date, le message concerné, l’expéditeur et la mission. La valeur de la
-            coordonnée (le numéro, l’adresse ou le lien) n’est jamais journalisée.
+            détections (coordonnée masquée, ou mention d’échange ou de paiement hors plateforme), la
+            date, le message concerné, l’expéditeur et la mission. La valeur de la coordonnée (le
+            numéro, l’adresse, le lien ou le pseudo) n’est jamais journalisée.
           </li>
           <li>
             <strong>Signalements :</strong> vous pouvez signaler manuellement un message. Le
-            signalement enregistre le motif, le message concerné et son auteur.
+            signalement enregistre le motif, votre commentaire facultatif (dont les coordonnées sont
+            masquées), le message concerné, son expéditeur et votre identité en tant que personne
+            qui signale. Votre identité n’est jamais communiquée à la personne signalée.
           </li>
           <li>
-            <strong>Accès :</strong> réservé à l’équipe d’administration d’EduCash. Des alertes
+            <strong>Accès :</strong> réservé à l’équipe d’administration d’EduCash, qui peut consulter
+            le contenu d’un message signalé (texte, image, message vocal ou position). Des alertes
             répétées peuvent conduire à un examen de la situation par cette équipe.
           </li>
           <li>
