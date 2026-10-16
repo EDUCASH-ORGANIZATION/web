@@ -528,3 +528,50 @@ describe("feuilles C08 et C11 (planches mobiles)", () => {
     expect(declarationsOf(c08, ".fup2 .card2", { media: "max-width: 480px" }).padding).toBe("var(--s-5)")
   })
 })
+
+describe("carte étudiant compacte sous 1024 px et ordre mobile de C11", () => {
+  const c08 = readFileSync(new URL("../../../../app/design/client/c08.css", import.meta.url), "utf8")
+  const c11 = readFileSync(new URL("../../../../app/design/client/c11.css", import.meta.url), "utf8")
+  const mobile = "max-width: 1023.98px"
+  const doneWith = (estimate, extra = {}) => {
+    const base = detailOf("done", { ledger: DONE_LEDGER, ...extra })
+    return { ...base, mission: { ...base.mission, purchasesEstimate: estimate } }
+  }
+
+  it("la version compacte garde le profil et la discussion, avec des libellés nommés", () => {
+    const out = render(detailOf("in_progress"))
+    const mini = out.slice(out.indexOf('class="fup2__mini"'), out.indexOf("</section>", out.indexOf('class="fup2__mini"')))
+    expect(mini).toContain('aria-label="Voir le profil de Sèna"')
+    expect(mini).toContain('href="/talents/s1"')
+    expect(mini).toContain('aria-label="Discuter avec Sèna"')
+    expect(mini).toContain('href="/client/messages/m1?studentId=s1"')
+    expect(mini).toMatch(/4,9 \/ 5 · 23 missions/)
+  })
+
+  it("le détail est masqué et la version compacte affichée sous 1024 px seulement", () => {
+    expect(declarationsOf(c08, ".fup2 .fup2__full").display).toBe("contents")
+    expect(declarationsOf(c08, ".fup2 .fup2__mini").display).toBe("none")
+    expect(declarationsOf(c08, ".fup2 .fup2__full", { media: mobile }).display).toBe("none")
+    expect(declarationsOf(c08, ".fup2 .fup2__mini", { media: mobile }).display).toBe("flex")
+    expect(declarationsOf(c08, ".fup2 .fup2__mini .iconbtn2", { media: mobile }).width).toBe("44px")
+  })
+
+  it("C11 avec achats sur mobile : reçu, achats, étudiant, chronologie, et la carte À faire masquée (Noter est dans la barre)", () => {
+    const o = (sel) => declarationsOf(c11, sel, { media: mobile })
+    expect([o(".fup2 .fup2__split--done .fup2__money").order, o(".fup2 .fup2__split--done .fup2__purchases").order,
+      o(".fup2 .fup2__split--purchases .fup2__student").order, o(".fup2 .fup2__split--purchases .fup2__timeline").order]).toEqual(["3", "4", "5", "6"])
+    expect(o(".fup2 .fup2__split--purchases .fup2__status--todo").display).toBe("none")
+  })
+
+  it("la carte À faire masquable n'existe que si Noter est dans la barre ; elle est absente de la classe sans estimation", () => {
+    const withEst = render(doneWith(15000))
+    expect(withEst).toContain("fup2__split--purchases")
+    expect(withEst).toContain("fup2__status--todo")
+    expect(withEst).toMatch(/mbar2[\s\S]*Noter Sèna/)
+    const noEst = render(doneWith(null))
+    expect(noEst).not.toContain("fup2__split--purchases")
+    const rated = render(doneWith(15000, { review: { rating: 5, comment: null, createdAt: "2026-10-09T00:00:00Z" } }))
+    expect(rated).not.toContain("fup2__status--todo")
+  })
+})
+

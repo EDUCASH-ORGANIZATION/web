@@ -9,7 +9,11 @@
 .fup2__quote { margin: 0; padding: 12px 14px; border-radius: var(--r-m); background: var(--c-givre); font-size: var(--t-body-s); line-height: 1.5; color: var(--c-encre); overflow-wrap: anywhere; }
 
 @media (max-width: 1023.98px) {
-  /* Terminée avec achats (planche mobile) : le reçu précède les achats */
+  /* Terminée avec achats (planche mobile) : le reçu précède les achats, l'étudiant les suit, la chronologie ferme
+     la page ; la carte « À faire » est masquée car la barre du bas porte déjà « Noter » */
   .fup2 .fup2__split--done .fup2__money { order: 3; }
   .fup2 .fup2__split--done .fup2__purchases { order: 4; }
+  .fup2 .fup2__split--purchases .fup2__student { order: 5; }
+  .fup2 .fup2__split--purchases .fup2__timeline { order: 6; }
+  .fup2 .fup2__split--purchases .fup2__status--todo { display: none; }
 }

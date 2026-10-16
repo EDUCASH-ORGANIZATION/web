@@ -115,10 +115,10 @@ function Done({ detail, view, studentName }) {
   const rateHref = clientReviewHref(mission.id)
   return (
     <>
-      <div className="split2 fup2__split fup2__split--done">
+      <div className={`split2 fup2__split fup2__split--done${estimate === null ? "" : " fup2__split--purchases"}`}>
         <div className="col2">
           {view.actions.rate ? (
-            <section className="card2 fup2__status" aria-label="Votre avis">
+            <section className="card2 fup2__status fup2__status--todo" aria-label="Votre avis">
               <div className="status2">
                 <span className="flag2">
                   <Icon name="i-star" />

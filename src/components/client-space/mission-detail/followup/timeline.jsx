@@ -17,7 +17,9 @@ export function formatMoment(iso) {
 
 /** Jour au Bénin, ex. "8 oct.". Chaîne vide si la date est absente ou invalide. */
 export function formatDay(iso) {
-  return formatMoment(iso).split(" · ")[0]
+  const date = new Date(iso ?? "")
+  if (!iso || Number.isNaN(date.getTime())) return ""
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", timeZone: MOMENT_TZ }).format(date)
 }
 
 /** Date du dernier mouvement du grand livre d'un type, ou null. */
