@@ -1,6 +1,7 @@
 "use server"
 
 import { requireRole } from "@/lib/auth/require-role"
+import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
 import { isUuid } from "@/lib/vitrine/ids"
 import { firstName } from "@/lib/vitrine/public-name"
@@ -77,6 +78,10 @@ const CANDIDATE_REVIEWS_LIMIT = 20
  * @property {number} reviewsTotal Nombre total d'avis reçus
  * @property {Array<{ id: string, rating: number, comment: string|null, createdAt: string, authorFirstName: string }>} reviews
  *   Avis reçus (20 au plus, récents d'abord), l'auteur réduit à son prénom
+ * @property {{ available: boolean, declaredAt: string|null }} completion
+ *   Fin déclarée par l'étudiant (RD-DONE-01), lue pour les missions in_progress et done seulement.
+ *   `available: false` quand la colonne n'existe pas encore en base ou pour les autres statuts ;
+ *   `declaredAt` : date ISO (conservée une fois la mission terminée) ou null
  */
 
 function toStudent(userId, profile, studentProfile) {
@@ -179,6 +184,17 @@ export async function getClientMissionDetail(id) {
     throw new Error(ERR_LOAD)
   }
 
+  let completion = { available: false, declaredAt: null }
+  if (mission.status === "in_progress" || mission.status === "done") {
+    try {
+      const { available, byId } = await readCompletionDeclared(supabase, [mission.id])
+      completion = { available, declaredAt: available ? (byId.get(mission.id) ?? null) : null }
+    } catch (completionError) {
+      console.error("[getClientMissionDetail] fin déclarée", completionError?.code ?? completionError?.message)
+      throw new Error(ERR_LOAD)
+    }
+  }
+
   const rawApplications = applicationsRes.data ?? []
   const students = await loadStudents(
     supabase,
@@ -210,6 +226,7 @@ export async function getClientMissionDetail(id) {
       createdAt: a.created_at,
       student: students.get(a.student_id),
     })),
+    completion,
     selectedStudent: mission.selected_student_id ? (students.get(mission.selected_student_id) ?? null) : null,
     ledger: (ledgerRes.data ?? []).map((m) => ({
       type: m.type,
