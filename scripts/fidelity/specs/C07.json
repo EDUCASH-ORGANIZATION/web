@@ -1,0 +1,164 @@
+{
+  "id": "C07",
+  "title": "Annuler une mission (étape 1)",
+  "planche": "client/C07-annuler-une-mission.v2.html",
+  "screen": "c07",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "CA-07",
+          "label": "modale",
+          "board": ".modal",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg",
+            "shadow"
+          ],
+          "assume": {
+            "y": "A8:144",
+            "h": "A8:289"
+          },
+          "note": "A8 : la planche ajoute le motif de l'annulation (4 boutons radio, aucune donnée ne le conserve), la ligne « Disponible après annulation » (solde du portefeuille, non lu par cette vue) et la note sur les paliers de séquestre ; la modale est 289 px plus courte et, centrée, 144 px plus haut"
+        },
+        {
+          "id": "CA-07",
+          "label": "en-tête",
+          "board": ".modal__head",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "assume": {
+            "y": "A8:144"
+          },
+          "note": "A8 : décalage vertical de la modale centrée, voir la modale"
+        },
+        {
+          "id": "CA-07",
+          "label": "icône",
+          "board": ".modal__icon",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "y": "A8:144"
+          },
+          "note": "A8 : décalage vertical de la modale centrée, voir la modale"
+        },
+        {
+          "id": "CA-07",
+          "label": "titre",
+          "board": ".modal__title",
+          "props": [
+            "x",
+            "y",
+            "tw",
+            "h",
+            "fontSize",
+            "fontWeight"
+          ],
+          "assume": {
+            "y": "A8:144"
+          },
+          "note": "A8 : décalage vertical de la modale centrée, voir la modale"
+        },
+        {
+          "id": "CA-07",
+          "label": "sous-titre",
+          "board": ".modal__sub",
+          "props": [
+            "x",
+            "y",
+            "tw",
+            "h",
+            "fontSize"
+          ],
+          "assume": {
+            "y": "A8:144"
+          },
+          "note": "A8 : décalage vertical de la modale centrée. fontSize et h : le sous-titre est en 16 px (--t-para, RD-FIX-03) au lieu de 14 px dans la planche, écart du système non couvert par A1 à A7, visible en ÉCHEC"
+        },
+        {
+          "id": "CA-07",
+          "label": "corps",
+          "board": ".modal__body",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "assume": {
+            "y": "A8:144",
+            "h": "A8:289"
+          },
+          "note": "A8 : décalage vertical de la modale centrée et sections omises, voir la modale"
+        },
+        {
+          "id": "CA-07",
+          "label": "pied",
+          "board": ".modal__foot",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "assume": {
+            "y": "A8:144"
+          },
+          "note": "A8 : décalage vertical de la modale centrée, voir la modale"
+        },
+        {
+          "id": "CA-07",
+          "label": "bouton Continuer",
+          "board": ".modal__foot .btn--dark",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "assume": {
+            "y": "A8:144"
+          },
+          "note": "A8 : décalage vertical de la modale centrée, voir la modale"
+        }
+      ]
+    }
+  ]
+}
