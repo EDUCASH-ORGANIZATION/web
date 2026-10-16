@@ -19,6 +19,7 @@ vi.mock("@/lib/actions/message.actions", () => ({
   getClientMessageMedia: vi.fn(async () => ({ media: {} })),
   getClientConversation: vi.fn(),
 }))
+vi.mock("@/lib/actions/message-report.actions", () => ({ reportClientMessage: vi.fn() }))
 vi.mock("@/hooks/use-realtime-messages", () => ({
   useRealtimeMessages: ({ initialMessages }) => ({ messages: initialMessages, append: vi.fn(), refreshMedia: vi.fn() }),
   useMessageMediaUpload: () => vi.fn(),
@@ -89,6 +90,29 @@ describe("QA ST-07 confidentialité : jamais le net côté client", () => {
     const html = banner({ budget: 5000, net: 4400, studentNet: 4400, purchasesEstimate: 7450 }, { state })
     expect(html.toLowerCase()).not.toContain("touchez")
     expect(html.replace(nbsp, "")).not.toContain("4400")
+  })
+
+  it("fin déclarée (RD-DONE-01), paiements ouverts ou fermés : ni « touchez » ni net, aucun délai ni versement automatique", () => {
+    for (const paymentsEnabled of [true, false]) {
+      const html = renderToStaticMarkup(
+        <StatusBanner
+          state="in_progress"
+          missionId={M1}
+          studentId={S1}
+          studentName="Ulrich Z."
+          mission={{ budget: 5000, net: 4400, studentNet: 4400 }}
+          paymentsEnabled={paymentsEnabled}
+          completionAvailable
+          completionDeclaredAt="2026-10-12T09:30:00+01:00"
+        />,
+      )
+      const low = html.toLowerCase()
+      expect(low).not.toContain("touchez")
+      expect(low).not.toContain("automatique")
+      expect(low).not.toContain("72 h")
+      expect(html.replace(nbsp, "")).not.toContain("4400")
+      clean(html)
+    }
   })
 })
 

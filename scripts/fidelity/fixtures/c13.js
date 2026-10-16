@@ -2,6 +2,9 @@
 // en séquestre, achats estimés 7 450 FCFA. Vouvoiement, noms « Prénom N. » (A7).
 // Contrat de ST-02 : conversation.relation ("selected" : étudiant retenu) et mission.{budget,
 // purchasesEstimate}. Le client ne reçoit jamais le gain de l'étudiant (net).
+// RD-DONE-01 : completionAvailable / completionDeclaredAt (fin déclarée par l'étudiant). L'écran « c13 » n'est pas
+// déclaré (rendu de la planche) ; l'écran « c13-declared » l'est (bandeau « À confirmer »). La planche C13 v2 n'a
+// aucun cadre « fin à confirmer » : cet écran est rendu par le banc mais n'est pas mesuré (aucune spec).
 import { CONVERSATIONS, NOW } from "./c12.js"
 
 const msg = (i, mine, content, extra = {}) => ({
@@ -31,6 +34,8 @@ export const conversation = {
   relation: "selected",
   state: "in_progress",
   canWrite: true,
+  completionAvailable: true,
+  completionDeclaredAt: null,
   messages: [
     msg(0, false, "Bonjour Madame, je suis à Dantokpa. Je commence par les légumes chez Maman Bénédicte."),
     msg(1, true, "Très bien, merci Ulrich. Tenez-moi au courant."),
@@ -52,6 +57,23 @@ export const screens = [
       view: "@/components/client-space/messages/conversation-view",
       component: "ConversationView",
       props: { conversation, now: NOW, paymentsEnabled: true },
+    },
+  },
+  {
+    name: "c13-declared",
+    space: "c2",
+    path: "/client/messages/11111111-1111-4111-8111-111111111111",
+    view: "@/components/client-space/messages/inbox-view",
+    component: "ClientInboxView",
+    props: { result: { conversations: CONVERSATIONS }, now: NOW },
+    child: {
+      view: "@/components/client-space/messages/conversation-view",
+      component: "ConversationView",
+      props: {
+        conversation: { ...conversation, completionDeclaredAt: "2026-10-12T09:30:00+01:00" },
+        now: NOW,
+        paymentsEnabled: true,
+      },
     },
   },
 ]

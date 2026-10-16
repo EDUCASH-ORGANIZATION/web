@@ -5,10 +5,14 @@ import Link from "next/link"
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
+import { MessagingNotice } from "@/components/messaging/messaging-notice"
+import { REPORT_FALLBACK_ERROR, ReportDialog } from "@/components/messaging/report-dialog"
 import { useMessageMediaUpload, useRealtimeMessages } from "@/hooks/use-realtime-messages"
 import { getStudentMessageMedia, markStudentConversationRead, sendStudentMessage } from "@/lib/actions/message.actions"
+import { reportStudentMessage } from "@/lib/actions/message-report.actions"
 import { studentMessagesHref, studentMissionHref } from "@/lib/app/student-routes"
 import { MEDIA_CONTENT, dayOf, formatDayLabel } from "@/lib/client-space/conversations"
+import { MASKED_SENDER_NOTE } from "@/lib/messaging/contact-copy"
 import { Bubble } from "./bubble"
 import { Composer, LockedComposer } from "./composer"
 import { StatusBanner } from "./status-banner"
@@ -44,7 +48,9 @@ export async function deliverMessage(item, { upload, send }) {
     if (!result || result.error || !result.message) {
       return { ok: false, error: result?.error ? `Non envoyé. ${result.error}` : ERR_SEND, mediaPath }
     }
-    return { ok: true, message: result.message }
+    // Seuls les types masqués sont transmis, jamais la valeur masquée.
+    const masked = result.contactMasked?.kinds?.length ? { contactMasked: { kinds: result.contactMasked.kinds } } : {}
+    return { ok: true, message: result.message, ...masked }
   } catch {
     return { ok: false, error: ERR_SEND, mediaPath }
   }
@@ -73,7 +79,8 @@ function pendingMessage(item) {
  *   getStudentConversation ; `paymentsEnabled` : lu côté serveur par la page (formulation du bandeau)
  */
 export function StudentConversationView({ conversation, now, paymentsEnabled = false }) {
-  const { userId, missionId, clientId, client, mission, state, canWrite } = conversation
+  const { userId, missionId, clientId, client, mission, state, canWrite, completionDeclaredAt, completionAvailable } =
+    conversation
   const nowDate = useMemo(() => (now ? new Date(now) : new Date()), [now])
   const markRead = useCallback(() => {
     markStudentConversationRead({ missionId }).catch(() => {})
@@ -92,6 +99,8 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
   })
   const upload = useMessageMediaUpload(userId)
   const [pending, setPending] = useState([])
+  const [reporting, setReporting] = useState(null)
+  const [maskedNote, setMaskedNote] = useState(false)
   const counter = useRef(0)
   const inFlight = useRef(new Set())
   const chatRef = useRef(null)
@@ -117,6 +126,7 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
       })
       inFlight.current.delete(item.localId)
       if (outcome.ok) {
+        setMaskedNote(Boolean(outcome.contactMasked))
         append(outcome.message)
         setPending((list) => list.filter((p) => p.localId !== item.localId))
       } else {
@@ -143,6 +153,14 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
   }
   const dismiss = (localId) => setPending((list) => list.filter((p) => p.localId !== localId))
 
+  // Adaptateur du contrat de ReportDialog ({ reason, details } -> { reference } | { error }).
+  const submitReport = async ({ reason, details }) => {
+    const result = await reportStudentMessage({ messageId: reporting.id, reason, details })
+    if (result?.error) return { error: result.error }
+    if (!result?.reference) return { error: REPORT_FALLBACK_ERROR }
+    return { reference: result.reference }
+  }
+
   const empty = messages.length === 0 && pending.length === 0
 
   return (
@@ -164,7 +182,14 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
         </Link>
       </header>
 
-      <StatusBanner state={state} missionId={missionId} mission={mission} paymentsEnabled={paymentsEnabled} />
+      <StatusBanner
+        state={state}
+        missionId={missionId}
+        mission={mission}
+        paymentsEnabled={paymentsEnabled}
+        completionDeclaredAt={completionDeclaredAt}
+        completionAvailable={completionAvailable}
+      />
 
       <div
         ref={chatRef}
@@ -174,6 +199,7 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
         aria-label="Messages de la conversation"
         aria-relevant="additions"
       >
+        <MessagingNotice />
         {empty ? (
           <div className="msg-system">
             <Icon name="i-message" />
@@ -187,7 +213,7 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
             {index === 0 || dayOf(message.createdAt) !== dayOf(messages[index - 1].createdAt) ? (
               <span className="chat__day">{formatDayLabel(message.createdAt, nowDate)}</span>
             ) : null}
-            <Bubble message={message} onMediaError={refreshMedia} senderName={client.name} />
+            <Bubble message={message} onMediaError={refreshMedia} senderName={client.name} onReport={setReporting} />
           </Fragment>
         ))}
         {pending.map((item) => (
@@ -203,7 +229,15 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
         ))}
       </div>
 
+      {maskedNote ? (
+        <div className="banner banner--info" role="status">
+          <Icon name="i-info" />
+          <div className="banner__body">{MASKED_SENDER_NOTE}</div>
+        </div>
+      ) : null}
+
       {canWrite ? <Composer onSend={onSend} /> : <LockedComposer text={LOCKED_TEXT[state] ?? LOCKED_TEXT.closed} />}
+      {reporting ? <ReportDialog senderName={client.name} onSubmit={submitReport} onClose={() => setReporting(null)} /> : null}
     </section>
   )
 }

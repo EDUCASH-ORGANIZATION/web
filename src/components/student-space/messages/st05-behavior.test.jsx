@@ -20,6 +20,8 @@ vi.mock("@/hooks/use-realtime-messages", () => ({
   useMessageMediaUpload: () => vi.fn(),
 }))
 
+vi.mock("@/lib/actions/message-report.actions", () => ({ reportStudentMessage: vi.fn() }))
+
 const { StudentConversationView } = await import("./conversation-view")
 const { StatusBanner } = await import("./status-banner")
 const { Composer, SendOrMic, hasSendableText } = await import("./composer")
@@ -173,5 +175,84 @@ describe("ST-05 vue côté client : montants jamais montrés à l'autre partie",
     }
     walk(root)
     expect(hits.filter((p) => /client-space/.test(p))).toEqual([])
+  })
+})
+
+describe("RD-DONE-01 bandeau : J'ai terminé / À confirmer", () => {
+  const mission = { budget: 8000, net: 7040, purchasesEstimate: 7450 }
+  const DECLARED = "2026-10-08T10:30:00+01:00"
+  const open = (extra = {}, state = "in_progress", paymentsEnabled = true) =>
+    renderToStaticMarkup(
+      <StatusBanner state={state} missionId={M1} mission={mission} paymentsEnabled={paymentsEnabled} {...extra} />,
+    )
+  const text = (html) => html.replace(/<[^>]+>/g, "").replace(/[  ]/g, " ")
+
+  it("non déclarée, colonne disponible : lien exact vers E05 ?terminer=1 et montants conservés", () => {
+    const html = open({ completionAvailable: true, completionDeclaredAt: null })
+    expect(html).toContain(`href="/student/missions/${M1}?terminer=1"`)
+    expect(html).toContain("J&#x27;ai terminé")
+    expect(html.match(/btn--dark/g)).toHaveLength(1)
+    expect(html).toContain("En cours")
+    expect(text(html)).toContain("vous touchez 7 040 FCFA")
+    expect(html).not.toContain("<button")
+  })
+
+  it("non déclarée, sans montants : le texte d'état reste affiché avec le lien", () => {
+    const html = renderToStaticMarkup(<StatusBanner state="in_progress" missionId={M1} completionAvailable />)
+    expect(html).toContain(fallbackText)
+    expect(html).toContain("?terminer=1")
+  })
+
+  it("déclarée : badge À confirmer, date courte, aucun bouton ni montant", () => {
+    const html = open({ completionAvailable: true, completionDeclaredAt: DECLARED })
+    expect(html).toContain("À confirmer")
+    expect(text(html)).toContain("Vous avez indiqué avoir terminé le jeu. 8 oct. Le client doit confirmer la fin.")
+    expect(text(html)).not.toContain("oct..")
+    expect(html).toContain("Terminé, à confirmer")
+    expect(html).not.toContain("<a ")
+    expect(html).not.toContain("btn--dark")
+    expect(html).not.toContain("FCFA")
+    expect(html).not.toContain("Avec achats")
+    expect(html).not.toContain("En cours")
+    clean(html)
+  })
+
+  it("déclarée avec une date illisible : phrase sans date, jamais NaN", () => {
+    const html = open({ completionAvailable: true, completionDeclaredAt: "n'importe quoi" })
+    expect(text(html)).toContain("Vous avez indiqué avoir terminé. Le client doit confirmer la fin.")
+    clean(html)
+  })
+
+  it("colonne absente : bandeau actuel exact, même avec une date de déclaration", () => {
+    for (const extra of [{}, { completionAvailable: false }, { completionAvailable: false, completionDeclaredAt: DECLARED }]) {
+      const html = open(extra)
+      expect(html).not.toContain("?terminer=1")
+      expect(html).not.toContain("À confirmer")
+      expect(html).toContain("En cours")
+      expect(text(html)).toContain("vous touchez 7 040 FCFA")
+    }
+    expect(banner({})).toContain(fallbackText)
+  })
+
+  it.each(["candidate", "rejected", "closed", "cancelled"])("état %s : ni bouton ni état de fin", (state) => {
+    const html = open({ completionAvailable: true, completionDeclaredAt: DECLARED }, state)
+    expect(html).not.toContain("?terminer=1")
+    expect(html).not.toContain("À confirmer")
+  })
+
+  it("terminée : « Noter le client » inchangé, pas de bouton J'ai terminé", () => {
+    const html = open({ completionAvailable: true, completionDeclaredAt: DECLARED }, "done")
+    expect(html).toContain("Noter le client")
+    expect(html).not.toContain("J&#x27;ai terminé")
+    expect(html).not.toContain("À confirmer")
+    expect(html.match(/btn--dark/g)).toHaveLength(1)
+  })
+
+  it("la vue passe les champs de fin de la conversation au bandeau", () => {
+    const html = view({ completionAvailable: true, completionDeclaredAt: null })
+    expect(html).toContain("?terminer=1")
+    const declared = view({ completionAvailable: true, completionDeclaredAt: DECLARED })
+    expect(declared).toContain("Terminé, à confirmer")
+    expect(declared).not.toContain("?terminer=1")
   })
 })

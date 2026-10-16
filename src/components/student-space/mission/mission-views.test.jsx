@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { existsSync, readFileSync } from "node:fs"
 
 vi.mock("@/lib/actions/application.actions", () => ({ apply: vi.fn() }))
+vi.mock("@/lib/actions/mission-completion.actions", () => ({ declareMissionCompletion: vi.fn() }))
 
 const { MissionApplyView } = await import("./apply-view")
 const { MissionFollowupView } = await import("./followup-view")
@@ -64,7 +65,7 @@ describe("MissionApplyView (états d'ensemble)", () => {
 })
 
 describe("MissionFollowupView (états d'ensemble)", () => {
-  it("en cours : ta part par escrowSplit, écrire au client, signaler, aucun bouton J'ai terminé", () => {
+  it("en cours, colonne de fin absente : votre part par escrowSplit, écrire au client, signaler, aucun bouton J'ai terminé", () => {
     const html = renderToStaticMarkup(<MissionFollowupView detail={followed("in_progress")} flags={flags} />)
     expect(h1Count(html)).toBe(1)
     expect(html).toContain("Écrire au client")

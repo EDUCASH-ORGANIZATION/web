@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }) {
         <AppShell
           nav={ADMIN_NAV}
           user={{ id: shell.userId, fullName: shell.fullName }}
-          counts={{ verifications: shell.pendingCount }}
+          counts={{ verifications: shell.pendingCount, reports: shell.reportsOpenCount }}
           notifications={{
             count: shell.notificationCount,
             actions: {

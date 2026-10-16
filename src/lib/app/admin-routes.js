@@ -99,3 +99,20 @@ export function adminWithdrawalsHref() {
 export function adminNotificationsHref({ filtre } = {}) {
   return withQuery("/admin/notifications", [["filtre", filtre === "non-lues" ? filtre : undefined]])
 }
+
+const DEFAULT_REPORT_TAB = "a-traiter"
+const DEFAULT_REPORT_SORT = "anciens"
+
+/** File des signalements. Onglet « à traiter » et tri « anciens » par défaut : omis de l'URL. */
+export function adminReportsHref({ statut, tri, page } = {}) {
+  return withQuery("/admin/reports", [
+    ["statut", statut === DEFAULT_REPORT_TAB ? undefined : statut],
+    ["tri", tri === DEFAULT_REPORT_SORT ? undefined : tri],
+    ["page", pageParam(page)],
+  ])
+}
+
+export function adminReportHref(id) {
+  if (!hasId(id)) return "/admin/reports"
+  return `/admin/reports/${encodeURIComponent(id)}`
+}

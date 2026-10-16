@@ -24,7 +24,7 @@ export default function TermsPage() {
     <LegalLayout
       current="terms"
       title="Conditions d’utilisation"
-      updatedAt="8 octobre 2026"
+      updatedAt="16 octobre 2026"
       sections={Object.values(SECTIONS)}
     >
       <LegalSection {...SECTIONS.objet}>
@@ -107,7 +107,30 @@ export default function TermsPage() {
           <li>Harceler, discriminer ou menacer d’autres utilisateurs</li>
           <li>Créer de faux profils ou fournir des informations mensongères</li>
           <li>Utiliser la plateforme à des fins commerciales non autorisées</li>
+          <li>
+            Partager des coordonnées (numéro de téléphone, adresse e-mail, lien) ou proposer un
+            paiement en dehors d’EduCash pour contourner la plateforme
+          </li>
         </ul>
+        <p>
+          Pour faire respecter cette règle, les messages échangés sur la plateforme font l’objet
+          d’une analyse automatique qui détecte les coordonnées et les masque. Le masquage ne
+          refuse jamais l’envoi d’un message. Seul le type de coordonnée détecté est journalisé,
+          jamais sa valeur. Les mentions qui invitent à échanger ou à payer hors de la plateforme
+          sont journalisées sans être masquées. Vous pouvez aussi signaler manuellement un
+          message depuis la messagerie : l’équipe d’administration peut alors consulter le
+          message signalé, et votre identité n’est jamais communiquée à la personne signalée.
+          Les modalités sont détaillées dans la{" "}
+          <a className="link" href="/legal/privacy#analyse-des-messages">politique de confidentialité</a>.
+        </p>
+        <p>
+          En cas de manquement, les mesures sont graduées : le bandeau d’avertissement affiché dans la messagerie et la
+          note de masquage, puis, si les
+          manquements se répètent, un examen de la situation par l’équipe EduCash pouvant
+          conduire à une suspension du compte. Cette suspension est toujours décidée par une
+          personne de l’équipe, jamais automatiquement. Vous pouvez contester une mesure via la
+          page <a className="link" href="/contact">Contact</a>.
+        </p>
       </LegalSection>
 
       <LegalSection {...SECTIONS.responsabilite}>
@@ -122,6 +145,12 @@ export default function TermsPage() {
         <p>
           EduCash se réserve le droit de suspendre ou résilier tout compte en cas de
           violation des présentes CGU, sans préavis ni indemnité.
+        </p>
+        <p>
+          Toute suspension liée à la détection de coordonnées ou à un signalement est décidée par
+          une personne de l’équipe EduCash après examen. L’analyse automatique des messages ne
+          suspend jamais un compte à elle seule. Vous pouvez contester la décision via la page{" "}
+          <a className="link" href="/contact">Contact</a>.
         </p>
       </LegalSection>
 

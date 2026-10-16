@@ -108,6 +108,40 @@
             "h": "A8:297"
           },
           "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : les demandes de paiement d'achats de la planche sont omises par la décision 24, bloc réduit « Achats de la mission » (D3)"
+        },
+        {
+          "id": "MI-25",
+          "label": "barre J'ai terminé",
+          "board": ".e2-mbar",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "y": "BANC:59",
+            "h": "BANC:22"
+          },
+          "note": "y : BANC : la planche réserve sous l'écran mesuré la barre de geste du téléphone (37 px) et simule la zone sûre par un padding bas de 34 px ; le code est une barre fixe au bas de la fenêtre, avec env(safe-area-inset-bottom) à 0 dans Chromium headless ; h : BANC : padding bas de 34 px de la planche contre 12 px dans le code (zone sûre à 0 en headless), BANC ne se cumule pas"
+        },
+        {
+          "id": "MI-25",
+          "label": "bouton J'ai terminé",
+          "board": ".e2-mbar .btn",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "x": "X1:4",
+            "y": "BANC:59"
+          },
+          "note": "x : padding horizontal de la barre réduit à 12 px sous 400 px (student/base.css, coquille hors lot) contre 16 px dans la planche, comme E03 ; y : BANC : la planche réserve sous l'écran mesuré la barre de geste du téléphone (37 px) et simule la zone sûre par un padding bas de 34 px ; le code est une barre fixe au bas de la fenêtre, avec env(safe-area-inset-bottom) à 0 dans Chromium headless"
         }
       ]
     }

@@ -17,7 +17,7 @@
 .e2-07-status { flex: none; flex-wrap: wrap; display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne); font-size: var(--t-caption); color: var(--c-ardoise); }
 .e2-07-status b { color: var(--c-encre); font-weight: var(--fw-bold); }
 .e2-07-status__text { flex: 1 1 0; min-width: 0; line-height: 1.35; }
-.e2-07-status .btn { margin-left: auto; flex: none; }
+.e2-07-status .btn { margin-left: auto; flex: none; white-space: nowrap; }
 .e2-07-status__text--short { display: none; }
 /* Fil de messages calme : client blanc filet 1 px, toi en encre, système en ardoise */
 .e2-07-chat .bubble--them { border: 1px solid var(--c-ligne); }
@@ -41,6 +41,7 @@
 .e2-07-place .ic { width: 18px; height: 18px; flex: none; }
 .e2-07-place:focus-visible { outline: none; box-shadow: var(--sh-focus); }
 .e2-07-dismiss { color: var(--c-ardoise); }
+.e2-07-report { align-self: flex-start; margin-top: -2px; }
 .e2-07-fail { align-self: flex-end; display: flex; align-items: center; gap: 10px; margin-top: -2px; }
 .e2-07-bar { flex: none; background: var(--c-blanc); }
 .e2-07-composer { border-top: 1px solid var(--c-ligne); align-items: center; }
@@ -87,7 +88,7 @@
   .e2-07-status__achats, .e2-07-status__text--long { display: none; }
   .e2-07-status__text--short { display: inline; }
   .e2-07-status--amounts .e2-07-status__text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .e2-07-status .btn, .e2-07-fail .btn { min-height: 44px; }
+  .e2-07-status .btn, .e2-07-fail .btn, .e2-07-report .btn { min-height: 44px; }
   .e2-07-composer .iconbtn2, .e2-07-composer .composer__send { width: 44px; height: 44px; }
   .e2-07-composer:not(.is-locked) { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   .e2-07-place { min-height: 44px; }

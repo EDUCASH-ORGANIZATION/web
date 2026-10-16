@@ -689,3 +689,35 @@ describe("chemins de fichiers hostiles : carte étudiante et photo de profil", (
     expect(ctx.writes.length).toBe(before)
   })
 })
+
+describe("masquage serveur des coordonnées (RD-MSG-01) : envoi étudiant", () => {
+  const messagesWritten = () => ctx.writes.filter((w) => w.table === "messages" && w.op === "insert")
+  const send = (content) => sendStudentMessage({ missionId: M_PROG1, type: "text", content })
+
+  it("un numéro et une adresse e-mail sont masqués avant stockage, l'envoi réussit", async () => {
+    const r = await send("Appelez le 01 97 00 00 00 ou écrivez à boris@gmail.com")
+    expect(r.success).toBe(true)
+    expect(r.contactMasked.kinds.sort()).toEqual(["email", "phone"])
+    expect(messagesWritten()).toHaveLength(1)
+    expect(messagesWritten()[0].payload.content).not.toMatch(/01 97|boris/)
+    expect(messagesWritten()[0].payload.content).toContain("[coordonnées masquées]")
+  })
+  it("le texte légitime est inséré tel quel", async () => {
+    const r = await send("Je serai là à 14h, 5000 FCFA c'est parfait")
+    expect(r.success).toBe(true)
+    expect(r.contactMasked).toBeNull()
+    expect(messagesWritten()[0].payload.content).toBe("Je serai là à 14h, 5000 FCFA c'est parfait")
+  })
+  it("un numéro coupé en deux messages rapprochés est masqué dans le second", async () => {
+    ctx.db.messages.push({ id: "prev", mission_id: M_PROG1, sender_id: S1, receiver_id: CL, type: "text", content: "Mon numéro 01 97", created_at: iso(1), read: false })
+    const r = await send("00 00 00 merci")
+    expect(r.success).toBe(true)
+    expect(messagesWritten()[0].payload.content).toBe("[coordonnées masquées] merci")
+  })
+  it("un expéditeur suspendu ne peut rien envoyer", async () => {
+    ctx.db.profiles.find((p) => p.user_id === S1).is_suspended = true
+    expect((await send("Bonjour")).error).toBeTruthy()
+    expect(messagesWritten()).toHaveLength(0)
+  })
+})
+

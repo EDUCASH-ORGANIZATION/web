@@ -15,6 +15,7 @@ vi.mock("@/lib/actions/message.actions", () => ({
   markClientConversationRead: vi.fn(),
   getClientMessageMedia: vi.fn(async () => ({ media: {} })),
 }))
+vi.mock("@/lib/actions/message-report.actions", () => ({ reportClientMessage: vi.fn() }))
 vi.mock("@/hooks/use-realtime-messages", () => ({
   useRealtimeMessages: ({ initialMessages }) => ({ messages: initialMessages, append: vi.fn(), refreshMedia: vi.fn() }),
   useMessageMediaUpload: () => vi.fn(),
@@ -44,9 +45,17 @@ const conversation = (over = {}) => ({
 })
 const view = (over, paymentsEnabled = true) =>
   renderToStaticMarkup(<ConversationView conversation={conversation(over)} now={NOW} paymentsEnabled={paymentsEnabled} />)
-const banner = (mission, { paymentsEnabled = true, state = "in_progress", studentName = "Ulrich Z." } = {}) =>
+const banner = (mission, { paymentsEnabled = true, state = "in_progress", studentName = "Ulrich Z.", ...completion } = {}) =>
   renderToStaticMarkup(
-    <StatusBanner state={state} missionId={M1} studentId={S1} studentName={studentName} mission={mission} paymentsEnabled={paymentsEnabled} />,
+    <StatusBanner
+      state={state}
+      missionId={M1}
+      studentId={S1}
+      studentName={studentName}
+      mission={mission}
+      paymentsEnabled={paymentsEnabled}
+      {...completion}
+    />,
   )
 const clean = (html) => {
   expect(html).not.toContain("NaN")
@@ -140,6 +149,73 @@ describe("ST-07 bandeau en cours", () => {
     expect(html).toContain("Mission en cours")
     expect(html).not.toContain("séquestre")
     expect(html).not.toContain("chat-status--amounts")
+  })
+})
+
+const DECLARED = { completionAvailable: true, completionDeclaredAt: "2026-10-12T09:30:00+01:00" }
+
+describe("RD-DONE-01 bandeau : fin déclarée à confirmer", () => {
+  const mission = { budget: 5000, purchasesEstimate: 7450 }
+
+  it("badge « À confirmer » (alerte), texte daté vouvoyé, Confirmer la fin vers ?confirmer=1, sans montants", () => {
+    const html = banner(mission, DECLARED)
+    expect(html).toContain("À confirmer")
+    expect(html).toContain("badge--alerte")
+    expect(html).not.toContain("En cours")
+    expect(html).toContain("Ulrich indique avoir terminé le lun. 12 oct. Validez la fin pour verser le paiement.")
+    expect(html).toContain("Terminé le lun. 12 oct.")
+    expect(html).toContain("Confirmer la fin")
+    expect(html).toContain(`href="/client/missions/${M1}?confirmer=1"`)
+    expect(html).toContain("chat-status--amounts")
+    expect(html.replace(nbsp, "")).not.toContain("5000")
+    expect(html.replace(nbsp, "")).not.toContain("7450")
+    expect((html.match(/btn--dark/g) ?? []).length).toBe(1)
+    clean(html)
+  })
+
+  it("paiements ouverts : fonds en séquestre jusqu'à la validation ; fermés : aucune mention de séquestre", () => {
+    expect(banner(mission, DECLARED)).toContain("Les fonds restent en séquestre jusqu&#x27;à votre validation.")
+    const closed = banner(mission, { ...DECLARED, paymentsEnabled: false })
+    expect(closed.toLowerCase()).not.toContain("séquestre")
+    expect(closed).toContain("Validez la fin pour verser le paiement.")
+  })
+
+  it("jamais « vous touchez » ni le net, prénom de repli « L'étudiant »", () => {
+    const html = banner({ budget: 5000, net: 4400 }, { ...DECLARED, studentName: "" })
+    expect(html.toLowerCase()).not.toContain("touch")
+    expect(html.replace(nbsp, "")).not.toContain("4400")
+    expect(html).toContain("L&#x27;étudiant indique avoir terminé le")
+  })
+
+  it("date illisible : texte sans date, sans NaN", () => {
+    const html = banner(mission, { completionAvailable: true, completionDeclaredAt: "pas une date" })
+    expect(html).toContain("indique avoir terminé la mission.")
+    clean(html)
+  })
+
+  it.each([
+    ["colonne absente", { completionAvailable: false, completionDeclaredAt: DECLARED.completionDeclaredAt }],
+    ["non déclarée", { completionAvailable: true, completionDeclaredAt: null }],
+    ["props absentes", {}],
+  ])("%s : rendu actuel (En cours, montants)", (_n, completion) => {
+    const html = banner(mission, completion)
+    expect(html).toContain("En cours")
+    expect(html).not.toContain("À confirmer")
+    expect(plain(html)).toContain("5000FCFAenséquestrepourleservice")
+    expect(html).toContain("Confirmer la fin")
+  })
+
+  it.each(["candidate", "done", "cancelled"])("état %s : déclaration ignorée", (state) => {
+    const html = banner(mission, { ...DECLARED, state })
+    expect(html).not.toContain("À confirmer")
+    expect(html).not.toContain("indique avoir terminé")
+  })
+
+  it("ConversationView transmet les deux champs au bandeau", () => {
+    const html = view(DECLARED)
+    expect(html).toContain("indique avoir terminé le lun. 12 oct.")
+    expect(html).toContain("Retenu sur « Courses au marché Dantokpa »")
+    expect(view()).not.toContain("À confirmer")
   })
 })
 

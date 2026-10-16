@@ -1685,7 +1685,7 @@ const ADMIN_FILE_CSS = ADMIN_FILES.map((f) => stripComments(read(`admin/${f}`)))
 const ADMIN = ADMIN_FILE_CSS.join("\n")
 const ADMIN_BASE = stripComments(read("admin/base.css"))
 const ADMIN_IMPORTS = [...read("admin.css").matchAll(/@import "\.\/(admin\/[\w-]+\.css)";/g)].map((m) => m[1])
-const ADMIN_SCREENS = ["ad01", "ad02", "ad03", "ad04", "ad06", "ad07", "ad11", "ad12", "ad13"]
+const ADMIN_SCREENS = ["ad01", "ad02", "ad03", "ad04", "ad06", "ad07", "ad09", "ad10", "ad11", "ad12", "ad13"]
 
 // Classes des selecteurs de v2-admin.css (la planche), au renommage ds- pres, moins REMOVED_A2 et RENAMED_A2.
 const ADMIN_SOURCE_CLASSES = `
@@ -2123,5 +2123,17 @@ describe("notifications.css : feuille du centre de notifications", () => {
     const tablet = NOTIFICATIONS.slice(NOTIFICATIONS.indexOf("@media (max-width: 1023.98px)"))
     expect(tablet).toMatch(/\.ntf-bell-link\.iconbtn2 \{ width: 44px; height: 44px; \}/)
     expect(tablet).toMatch(/\.ntf-item \.link, \.ntf-item \.btn \{ min-height: 44px;/)
+  })
+})
+
+describe("E05 : modale « J'ai terminé » au-dessus de la barre du haut", () => {
+  const e05 = read("student/e05.css")
+  it("l'aside sticky ouvert sur une modale passe au niveau --z-modal (contexte d'empilement)", () => {
+    expect(e05).toMatch(/\.e2-05-aside:has\(\.scrim\)\s*\{\s*z-index:\s*var\(--z-modal\);\s*\}/)
+    expect(read("tokens.css")).toMatch(/--z-modal:\s*50/)
+  })
+  it("la largeur 560 px de la modale reste portée par `.e2-05-end .modal` (et `.e2-05-modal`, classe de la planche)", () => {
+    expect(e05).toContain(".e2-05-end .modal { width: 560px; }")
+    expect(e05).toContain(".e2-05-modal { width: 560px; }")
   })
 })
