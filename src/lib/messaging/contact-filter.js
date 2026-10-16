@@ -164,6 +164,8 @@ function fixLookalikes(t) {
     const c = s[i]
     if (c !== "o" && c !== "l" && c !== "i") continue
     if (isLetter(s[i - 1]) || isLetter(s[i + 1]) || s[i + 1] === "'" || s[i - 1] === "'") continue
+    // « 20 L, 25 L » : un l précédé de « chiffre + espace » et suivi d'un séparateur est une unité (litre), pas un 1.
+    if (c === "l" && s[i - 1] === " " && isDigit(s[i - 2]) && (i + 1 === s.length || SEP_CHARS.has(s[i + 1]))) continue
     if (digitNear(s, i, -1) || digitNear(s, i, 1)) edits.push({ from: i, to: i + 1, rep: c === "o" ? "0" : "1" })
   }
   return rewrite(t, edits)
@@ -196,8 +198,11 @@ const PROTECT_PATTERNS = [
   { re: new RegExp(`${NOT_AFTER_DIGIT}(${GROUPED}|\\d{1,7})(?:[.,]\\d{1,2})?\\s?${CUR}`, "g"), group: 1 },
   // fourchette de prix : 2500-3500 F, 2500 a 3500 FCFA
   { re: new RegExp(`${NOT_AFTER_DIGIT}\\d{1,7}\\s?(?:-|/|a)\\s?\\d{1,7}\\s?${CUR}`, "g"), group: 0 },
-  // fourchette avec milliers sans devise : 2 500 / 3 500, 2.500 - 4.500, 2 500 3 500 (milliers finissant par 00 ou 50)
-  { re: new RegExp(`${NOT_AFTER_DIGIT}\\d{1,3}[ .,]\\d(?:00|50)\\s?(?:-|/|a)?\\s?\\d{1,3}[ .,]\\d(?:00|50)(?!\\d)(?![ .,]\\d)`, "g"), group: 0 },
+  // liste ou fourchette de montants à milliers sans devise : 2 500 / 3 500, 2.500, 3.500, 1 500, 2 500 ou 3 500, 2 500 3 500
+  // (milliers finissant par 00 ou 50, deux montants ou plus ; séparateurs - / , ; a ou et ; gabarit sans ambiguïté pour rester linéaire)
+  { re: new RegExp(`${NOT_AFTER_DIGIT}\\d{1,3}[ .,]\\d(?:00|50)(?:(?:\\s{0,2}(?:[-/,;]|a|ou|et)\\s{0,2}|\\s{1,2})\\d{1,3}[ .,]\\d(?:00|50))+(?!\\d)(?![ .,]\\d)`, "g"), group: 0 },
+  // années scolaires ou saisons : 2025 2026, 2025 - 2026, 2024/2025 (la seconde année suit la première)
+  { re: /(?<!\d)((?:19|20)\d{2})\s{0,2}[-/]?\s{0,2}((?:19|20)\d{2})(?!\d)/g, group: 0, test: (m) => Number(m[2]) === Number(m[1]) + 1 },
   // FCFA 2500-3500
   { re: /(?:fcfa|cfa|xof)\s?\d{1,7}\s?(?:-|\/|a)\s?\d{1,7}(?!\d)/g, group: 0 },
   // FCFA 15000
@@ -208,8 +213,9 @@ const PROTECT_PATTERNS = [
 
 /** Marque dans `t.fl` les dates, heures et montants. */
 function protect(t) {
-  for (const { re, group } of PROTECT_PATTERNS) {
+  for (const { re, group, test } of PROTECT_PATTERNS) {
     for (const m of t.s.matchAll(re)) {
+      if (test && !test(m)) continue
       const from = group === 0 ? m.index : m.index + m[0].indexOf(m[group])
       const to = from + m[group].length
       for (let k = from; k < to; k++) t.fl[k] = 1
@@ -362,40 +368,104 @@ function digitChains(t) {
   return chains
 }
 
-// Un bloc de 8 chiffres précédé de ces mots est une référence, pas un numéro (ticket 45879632, facture 50012345).
-const REFERENCE_BEFORE = /(?<![a-z])(?:ticket|ref|reference|facture|commande|code|n[o°])\s{0,2}[:.]?\s{0,2}$/
+// Un bloc de 8 chiffres collés précédé d'un mot de référence est une référence, pas un numéro (ticket 45879632,
+// commande n° 97123456). « n° » seul veut dire « numéro » (mon n° 96457823) : il ne protège jamais.
+const REFERENCE_BEFORE = /(?<![a-z])(?:ticket|ref|reference|facture|commande|code|recu)(?:\s{0,2}n[o°])?\s{0,2}[:.#]?\s{0,2}$/
+const POSSESSIVE_BEFORE = /(?<![a-z])(?:mon|ma|mes|ton|ta|votre|son|sa)\s/
+// Mots qui annoncent un contact dans les 20 caractères qui précèdent : les règles anti-faux positifs sont alors levées.
+const CONTACT_CONTEXT = /tel|whats|watsap|wtsp|appel|num|contact|joindre|joign|mobile|portable|momo|call|ecri/
+
+const isRound = (g) => g.digits.length >= 3 && /(?:00|50)$/.test(g.digits)
+const isArithmetic = (groups) => {
+  const step = Number(groups[1].digits) - Number(groups[0].digits)
+  return step !== 0 && groups.every((g, k) => k === 0 || Number(g.digits) - Number(groups[k - 1].digits) === step)
+}
 
 /**
- * Filtre les faux numéros de 8 chiffres sans indicatif : prix ronds côte à côte (2000 2500, 1500, 2500) ou bloc collé
- * annoncé par un mot de référence (ticket, facture...). Les autres formes (10 chiffres en 01, indicatif +) passent.
+ * Filtre les faux numéros de 8 chiffres sans indicatif : prix ronds côte à côte (2000 2500), quatre nombres à 2 chiffres
+ * en suite arithmétique (20 30 40 50), bloc collé annoncé par un mot de référence. Un mot de contact juste avant
+ * (tel, whatsapp, appel, num...) lève les deux premières règles ; un contact_keyword dans le message lève la dernière.
+ * Les autres formes (10 chiffres en 01, indicatif +) passent toujours.
  */
-function plausibleGroups(chain, i, j, u) {
+function plausibleGroups(chain, i, j, u, noReference) {
   if (chain[i].plus) return true
   let total = 0
   for (let k = i; k <= j; k++) total += chain[k].digits.length
   if (total !== 8) return true
-  // Que des prix ronds (2000 2500, 9500 4500) : un vrai numéro mêle des groupes qui ne finissent pas par 00 ou 50.
-  if (j > i && chain.slice(i, j + 1).every((g) => g.digits.length >= 3 && /(?:00|50)$/.test(g.digits))) return false
-  // Une référence annoncée par un mot ne vaut que pour un bloc collé : « facture 97 12 34 56 » reste un numéro.
-  return j > i || !REFERENCE_BEFORE.test(u.slice(Math.max(0, chain[i].start - 20), chain[i].start))
+  const before = u.slice(Math.max(0, chain[i].start - 20), chain[i].start)
+  if (j > i && !CONTACT_CONTEXT.test(before)) {
+    const groups = chain.slice(i, j + 1)
+    if (groups.every(isRound)) return false
+    if (groups.length === 4 && groups.every((g) => g.digits.length === 2) && isArithmetic(groups)) return false
+  }
+  return j > i || noReference || POSSESSIVE_BEFORE.test(before) || !REFERENCE_BEFORE.test(before)
+}
+
+// Passe tolérante : groupes de 2 chiffres exactement, écarts blancs/ponctuation jusqu'à 6, symboles collés, ou * | ~
+// entourés d'espaces (97 * 12 * 34 * 56, 97 12🙂34 56, 97 12 ... 34 56). Les émojis et ; ' entourés d'espaces restent exclus.
+const LOOSE_GAP = /^[\s.\-_/,()]{1,6}$/
+const LOOSE_SPACED_SYMBOL = /^\s{0,2}[*|~]\s{0,2}$/
+
+function looseChains(u) {
+  const chains = []
+  let chain = []
+  let prevEnd = -1
+  for (const m of u.matchAll(/\d+/g)) {
+    const start = m.index
+    if (m[0].length !== 2) {
+      if (chain.length) chains.push(chain)
+      chain = []
+      continue
+    }
+    if (chain.length) {
+      const gap = u.slice(prevEnd, start)
+      if (!(LOOSE_GAP.test(gap) || SYMBOL_GAP.test(gap) || LOOSE_SPACED_SYMBOL.test(gap))) {
+        chains.push(chain)
+        chain = []
+      }
+    }
+    const plus = u[start - 1] === "+" || (u[start - 1] === " " && u[start - 2] === "+")
+    chain.push({ start, end: start + 2, digits: m[0], plus })
+    prevEnd = start + 2
+  }
+  if (chain.length) chains.push(chain)
+  return chains
+}
+
+/** Plus long numéro commençant au groupe `i` d'une chaîne : indice du dernier groupe, ou -1. */
+function bestFrom(chain, i, u, noReference) {
+  let digits = ""
+  let best = -1
+  for (let j = i; j < chain.length; j++) {
+    digits += chain[j].digits
+    if (digits.length > MAX_WINDOW_DIGITS) break
+    if (isPhoneDigits(digits, chain[i].plus) && plausibleGroups(chain, i, j, u, noReference)) best = j
+  }
+  return best
 }
 
 /** Numéros trouvés dans la copie normalisée : plages [start, end) de `t`. */
 function phoneRanges(t) {
   const ranges = []
   const u = digitView(t)
-  for (const chain of digitChains(t)) {
+  const noReference = t.s.search(CONTACT_KEYWORD_RE) >= 0
+  for (const chain of [...digitChains(t), ...looseChains(u)]) {
     let i = 0
     while (i < chain.length) {
-      let digits = ""
-      let best = -1
-      for (let j = i; j < chain.length; j++) {
-        digits += chain[j].digits
-        if (digits.length > MAX_WINDOW_DIGITS) break
-        if (isPhoneDigits(digits, chain[i].plus) && plausibleGroups(chain, i, j, u)) best = j
-      }
+      let start = i
+      let best = bestFrom(chain, i, u, noReference)
       if (best >= 0) {
-        ranges.push({ start: chain[i].start, end: chain[best].end })
+        // Un départ plus tard qui va plus loin gagne (« 2 500 97 12 34 56 » : le numéro, pas « 2 500 97 12 »).
+        // Seulement si le groupe de tête n'a pas la forme d'un groupe de numéro (2 chiffres), pour ne jamais voler un
+        // numéro déjà complet à son départ.
+        for (let k = i + 1; k <= best && chain[i].digits.length !== 2; k++) {
+          const later = bestFrom(chain, k, u, noReference)
+          if (later > best) {
+            start = k
+            best = later
+          }
+        }
+        ranges.push({ start: chain[start].start, end: chain[best].end })
         i = best + 1
       } else i++
     }
@@ -581,6 +651,7 @@ function buildMasked(src, groups) {
     let e = g.e
     const floor = ranges.length ? ranges[ranges.length - 1].e : 0
     let opened = false
+    if (src[s - 1] === " " && src[s - 2] === "+" && s - 2 >= floor) s -= 2
     for (let k = 0; k < 2 && s > floor && (src[s - 1] === "(" || src[s - 1] === "+"); k++) {
       opened = opened || src[s - 1] === "("
       s--

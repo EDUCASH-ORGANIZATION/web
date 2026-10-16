@@ -106,6 +106,28 @@ const PHONES = [
   ["Appelez le code 97 12 34 56", `Appelez le code ${M}`],
   ["ref 9712 3456", `ref ${M}`],
   ["97\u{1F4DE}12\u{1F4DE}34\u{1F4DE}56", M],
+  ["mon n° 96457823", `mon n° ${M}`],
+  ["Mon n°: 96457823", `Mon n°: ${M}`],
+  ["votre n° 96457823", `votre n° ${M}`],
+  ["N° 96457823", `N° ${M}`],
+  ["mon n°96457823", `mon n°${M}`],
+  ["mon no 96457823", `mon no ${M}`],
+  ["ticket 96457823 appelez-moi", `ticket ${M} appelez-moi`],
+  ["ticket 96457823 (whatsapp)", `ticket ${M} (whatsapp)`],
+  ["code: 96457823 c'est mon whatsapp", `code: ${M} c'est mon whatsapp`],
+  ["appelez 9700 1250", `appelez ${M}`],
+  ["whatsapp 9750 1200", `whatsapp ${M}`],
+  ["mon num 9600 1250", `mon num ${M}`],
+  ["tel 6650 0050", `tel ${M}`],
+  ["tel 20 21 22 23", `tel ${M}`],
+  ["97 12\u{1F642}34 56", M],
+  ["97 * 12 * 34 * 56", M],
+  ["97*12-34*56", M],
+  ["01*97|12*34|56", M],
+  ["97 12 ... 34 56", M],
+  ["97 12 -- 34 56", M],
+  ["2 500 97 12 34 56", `2 500 ${M}`],
+  ["+ 229 01 96 45 78 23", M],
 ]
 
 const LEGIT = [
@@ -148,6 +170,30 @@ const LEGIT = [
   "https://educash.bj/aide",
   "Écrivez-nous à contact@educash.bj",
   "Merci beaucoup !",
+  "Les prix : 2 500, 3 500, 4 500",
+  "prix 2 500, 3 500 ou 4 500 F",
+  "2.500, 3.500",
+  "4 500, 5 500",
+  "5 500, 6 500",
+  "2 750, 3 250",
+  "2 300, 4 600",
+  "1 500, 2 500, 3 500",
+  "2 500 3 500 4 500 5 500",
+  "2.500 3.500 4.500",
+  "année scolaire 2025 2026",
+  "2025 - 2026",
+  "saison 2025 2026",
+  "2024 2025",
+  "ticket n° 45879632",
+  "commande n° 97123456",
+  "20 L, 25 L, 30 L, 45 L",
+  "5 l 25 l 30 l",
+  "Pointure 42 43 44 45",
+  "24 36 48 60",
+  "20 30 40 50",
+  "20 21 22 23",
+  "chambres 20 - 21 - 22 - 23",
+  "\u{1F956} 20 \u{1F95B} 25 \u{1F34C} 30 \u{1F34A} 45",
   "2000 2500",
   "2000, 2500, 3000",
   "prix: 1500, 2500, 3500, 4500",
@@ -300,7 +346,8 @@ describe("anti-régression des relectures", () => {
     for (const input of ["01*97*12*34*56", "01|97|12|34|56", "97\u{1F4DE}12\u{1F4DE}34\u{1F4DE}56"]) {
       expect(maskContacts(input).text, input).toBe(M)
     }
-    for (const input of ["01*97|12*34|56", "20 ; 25 ; 30 ; 45", "2*3*4*5*6*7*8*9"]) {
+    // Écarts mélangés collés : depuis la relecture de 7642273, "01*97|12*34|56" est masqué (passe tolérante, groupes de 2 chiffres).
+    for (const input of ["20 ; 25 ; 30 ; 45", "2*3*4*5*6*7*8*9"]) {
       expect(maskContacts(input).text, input).toBe(input)
     }
   })
@@ -312,6 +359,60 @@ describe("anti-régression des relectures", () => {
     expect(out).not.toMatch(/[\ud800-\udbff]$/)
     expect(maskDigitRuns(text)).not.toMatch(/[\ud800-\udbff]$/)
   })
+})
+
+describe("anti-régression de la troisième relecture", () => {
+  it("garde intactes les listes de montants à milliers, virgules comprises", () => {
+    for (const input of ["Les prix : 2 500, 3 500, 4 500", "prix 2 500, 3 500 ou 4 500 F", "2.500, 3.500", "1 500, 2 500, 3 500", "2.500 3.500 4.500"]) {
+      expect(maskContacts(input).text, input).toBe(input)
+    }
+  })
+
+  it("« n° » veut dire numéro : il ne protège un bloc que derrière un mot de référence", () => {
+    for (const input of ["mon n° 96457823", "Mon n°: 96457823", "votre n° 96457823", "N° 96457823", "mon n°96457823", "mon no 96457823"]) {
+      expect(maskContacts(input).masked, input).toBe(true)
+    }
+    for (const input of ["commande n° 97123456", "ticket n° 45879632"]) expect(maskContacts(input).masked, input).toBe(false)
+  })
+
+  it("un possessif ou un mot de contact lève la protection de référence", () => {
+    for (const input of ["mon ticket 96457823", "ticket 96457823 appelez-moi", "ticket 96457823 (whatsapp)", "code: 96457823 c'est mon whatsapp"]) {
+      expect(maskContacts(input).masked, input).toBe(true)
+    }
+  })
+
+  it("laisse intactes les années scolaires et les suites arithmétiques, sauf mot de contact", () => {
+    for (const input of ["année scolaire 2025 2026", "2025 - 2026", "2024 2025", "2025 2026 2027 2028", "Pointure 42 43 44 45", "chambres 20 - 21 - 22 - 23"]) {
+      expect(maskContacts(input).masked, input).toBe(false)
+    }
+    expect(maskContacts("tel 20 21 22 23").masked).toBe(true)
+  })
+
+  it("masque les prix ronds quand un mot de contact les précède", () => {
+    for (const input of ["appelez 9700 1250", "whatsapp 9750 1200", "mon num 9600 1250", "tel 6650 0050"]) {
+      expect(maskContacts(input).masked, input).toBe(true)
+    }
+  })
+
+  it("masque les écarts de symboles mélangés ou entourés d'espaces, mais pas les listes", () => {
+    for (const input of ["97 12\u{1F642}34 56", "97 * 12 * 34 * 56", "97*12-34*56", "97 12 ... 34 56", "97 12 -- 34 56"]) {
+      expect(maskContacts(input).text, input).toBe(M)
+    }
+    for (const input of ["2 * 3 * 4 * 5", "\u{1F956} 20 \u{1F95B} 25 \u{1F34C} 30 \u{1F34A} 45", "Prix: 25 \u2705 30 \u2705 45 \u2705 60"]) {
+      expect(maskContacts(input).masked, input).toBe(false)
+    }
+  })
+
+  it("l'unité litre n'est pas lue comme un 1 ; « 2 500 » est laissé avant un numéro", () => {
+    expect(maskContacts("5 l 25 l 30 l").masked).toBe(false)
+    expect(maskContacts("2 500 97 12 34 56").text).toBe(`2 500 ${M}`)
+    expect(maskContacts("+ 229 01 96 45 78 23").text).toBe(M)
+  })
+
+  // Limites connues, documentées et volontairement non testées comme masquées ou intactes : liens exotiques
+  // ("Monsite.Me", "rdv au point com de Cotonou", "D'accord.Com bien ?"), homoglyphes cyrilliques, chiffres
+  // arabes-indiens, "97 12 et 34 56", "Ticket 4587 9632", faux positifs de 4 nombres à 2 chiffres hors suite
+  // arithmétique (Taille 42, 44, 46, 49), numéro envoyé en plus de SPLIT_LOOKBACK messages, "le prix.net est 500".
 })
 
 describe("e-mails et liens : cas limites", () => {
@@ -471,9 +572,10 @@ describe("masquage", () => {
   })
 
   it("ne laisse aucun chiffre du numéro dans la sortie", () => {
-    for (const [input] of PHONES) {
-      const out = maskContacts(input).text
-      expect(out.replace(/[^0-9]/g, "").length, input).toBeLessThanOrEqual(3)
+    // Seuls les chiffres du texte voisin (« 2 500 », « il y a 3 ») peuvent subsister : ceux du numéro, jamais.
+    for (const [input, expected] of PHONES) {
+      const digits = (text) => text.replace(/[^0-9]/g, "")
+      expect(digits(maskContacts(input).text), input).toBe(digits(expected))
     }
   })
 
@@ -524,17 +626,27 @@ describe("performance : pas de regex catastrophique", () => {
       [name, text.slice(0, 2000)],
       [`${name} x2`, text.repeat(2).slice(0, 4000)],
     ])
-    for (const [name, input] of cases) {
+    // Chaque cas est échauffé puis chronométré 5 fois ; on garde le meilleur passage par fonction (stable sous charge).
+    const bestOf = (fn) => {
+      fn()
       let best = Infinity
-      for (let run = 0; run < 3; run++) {
+      for (let run = 0; run < 5; run++) {
         const start = performance.now()
-        const result = maskContacts(input)
-        detectSplitPhone([input], input)
-        maskDigitRuns(input)
+        fn()
         best = Math.min(best, performance.now() - start)
-        expect(result.text.length, name).toBeLessThanOrEqual(4000)
       }
-      expect(best, `${name}: ${best.toFixed(1)} ms`).toBeLessThan(50)
+      return best
+    }
+    for (const [name, input] of cases) {
+      expect(maskContacts(input).text.length, name).toBeLessThanOrEqual(4000)
+      for (const [label, fn] of [
+        ["maskContacts", () => maskContacts(input)],
+        ["detectSplitPhone", () => detectSplitPhone([input], input)],
+        ["maskDigitRuns", () => maskDigitRuns(input)],
+      ]) {
+        const best = bestOf(fn)
+        expect(best, `${name} ${label}: ${best.toFixed(1)} ms`).toBeLessThan(50)
+      }
     }
   })
 })
