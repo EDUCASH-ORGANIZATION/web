@@ -1,10 +1,11 @@
 "use client"
 
 // @ds-screen RD-STUDENT-01
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
 import { Modal } from "@/components/app-ui/modal"
 import { coordsValid } from "@/lib/client-space/conversations"
+import { NOMINATIM_MAX_QUERY, NOMINATIM_MIN_QUERY, OSM_COPYRIGHT_HREF, nominatimSearchUrl, nominatimWaitMs, toPlace } from "@/lib/messaging/map-links"
 
 function sizeText(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return ""
@@ -38,18 +39,11 @@ export function ImageDialog({ file, previewUrl, onConfirm, onCancel }) {
   )
 }
 
-const SEARCH_DELAY_MS = 500
-const MIN_QUERY = 3
+const ERR_SHORT_QUERY = `Saisissez au moins ${NOMINATIM_MIN_QUERY} caractères.`
+const ERR_SEARCH = "La recherche est indisponible pour le moment. Veuillez réessayer."
 
-// Résultat de recherche de lieu réduit à un libellé et des coordonnées valides.
-function toPlace(raw) {
-  const lat = Number.parseFloat(raw?.lat)
-  const lng = Number.parseFloat(raw?.lon)
-  if (!coordsValid(lat, lng) || typeof raw?.display_name !== "string") return null
-  return { label: raw.display_name, lat, lng }
-}
-
-// Choix d'une position à partager : la position de l'appareil ou un lieu recherché.
+// Choix d'une position à partager : la position de l'appareil ou un lieu recherché. La recherche n'est lancée
+// qu'à la validation (bouton « Rechercher » ou Entrée), au plus une requête par seconde (politique de Nominatim).
 export function LocationDialog({ onConfirm, onClose }) {
   const [mode, setMode] = useState("current")
   const [locating, setLocating] = useState(false)
@@ -57,38 +51,65 @@ export function LocationDialog({ onConfirm, onClose }) {
   const [problem, setProblem] = useState("")
   const [query, setQuery] = useState("")
   const [searching, setSearching] = useState(false)
+  const [searched, setSearched] = useState(false)
+  const [searchProblem, setSearchProblem] = useState("")
   const [places, setPlaces] = useState([])
   const [picked, setPicked] = useState(null)
+  const lastRequestAt = useRef(null)
+  const busy = useRef(false)
+  const alive = useRef(true)
 
-  useEffect(() => {
-    if (mode !== "search") return undefined
-    const text = query.trim()
-    if (text.length < MIN_QUERY) {
-      setPlaces([])
-      setSearching(false)
-      return undefined
+  useEffect(
+    () => () => {
+      alive.current = false
+    },
+    [],
+  )
+
+  async function search() {
+    if (busy.current) return
+    const url = nominatimSearchUrl(query)
+    if (!url) {
+      setSearchProblem(ERR_SHORT_QUERY)
+      return
     }
-    let cancelled = false
+    busy.current = true
+    setSearchProblem("")
     setSearching(true)
     setPicked(null)
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=5&accept-language=fr`,
-        )
-        const data = await res.json()
-        if (!cancelled) setPlaces(Array.isArray(data) ? data.map(toPlace).filter(Boolean) : [])
-      } catch {
-        if (!cancelled) setPlaces([])
-      } finally {
-        if (!cancelled) setSearching(false)
+    try {
+      const wait = nominatimWaitMs(lastRequestAt.current, Date.now())
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait))
+      lastRequestAt.current = Date.now()
+      const res = await fetch(url)
+      const data = res.ok ? await res.json() : null
+      if (!alive.current) return
+      if (Array.isArray(data)) {
+        setPlaces(data.map(toPlace).filter(Boolean))
+      } else {
+        setPlaces([])
+        setSearchProblem(ERR_SEARCH)
       }
-    }, SEARCH_DELAY_MS)
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
+    } catch {
+      if (alive.current) {
+        setPlaces([])
+        setSearchProblem(ERR_SEARCH)
+      }
+    } finally {
+      busy.current = false
+      if (alive.current) {
+        setSearching(false)
+        setSearched(true)
+      }
     }
-  }, [mode, query])
+  }
+
+  function onSearchKeyDown(event) {
+    if (event.key === "Enter" && !event.nativeEvent?.isComposing) {
+      event.preventDefault()
+      search()
+    }
+  }
 
   function locate() {
     if (!navigator.geolocation) {
@@ -120,7 +141,7 @@ export function LocationDialog({ onConfirm, onClose }) {
       onClose={onClose}
       size="sm"
       title="Partager une position"
-      description="Le client pourra l'ouvrir dans une carte."
+      description="Le client pourra l'ouvrir dans Google Maps."
       footer={
         <>
           <button type="button" className="btn btn--soft" onClick={onClose}>
@@ -157,20 +178,27 @@ export function LocationDialog({ onConfirm, onClose }) {
         </div>
       ) : (
         <div>
-          <label className="search">
-            <Icon name="i-search" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Quartier, rue ou lieu"
-              aria-label="Rechercher un lieu"
-              maxLength={120}
-              autoComplete="off"
-            />
-          </label>
+          <div className="stack">
+            <label className="search">
+              <Icon name="i-search" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={onSearchKeyDown}
+                placeholder="Quartier, rue ou lieu"
+                aria-label="Rechercher un lieu"
+                maxLength={NOMINATIM_MAX_QUERY}
+                autoComplete="off"
+              />
+            </label>
+            <button type="button" className="btn btn--soft" onClick={search} disabled={searching}>
+              Rechercher
+            </button>
+          </div>
           {searching ? <p className="dialog-note2" role="status">Recherche en cours...</p> : null}
-          {!searching && query.trim().length >= MIN_QUERY && places.length === 0 ? (
+          {searchProblem ? <p className="dialog-note2" role="alert">{searchProblem}</p> : null}
+          {!searching && !searchProblem && searched && places.length === 0 ? (
             <p className="dialog-note2" role="status">Aucun lieu trouvé.</p>
           ) : null}
           {places.length > 0 ? (
@@ -184,6 +212,12 @@ export function LocationDialog({ onConfirm, onClose }) {
               ))}
             </ul>
           ) : null}
+          <p className="dialog-note2">
+            Résultats : ©{" "}
+            <a href={OSM_COPYRIGHT_HREF} target="_blank" rel="noopener noreferrer" className="link">
+              contributeurs OpenStreetMap
+            </a>
+          </p>
         </div>
       )}
     </Modal>

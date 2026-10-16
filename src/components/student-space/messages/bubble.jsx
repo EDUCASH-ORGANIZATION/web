@@ -1,13 +1,9 @@
 // @ds-screen RD-STUDENT-01
 import { Icon } from "@/components/design/icon"
-import { coordsValid, formatClock } from "@/lib/client-space/conversations"
+import { PlaceLinks } from "@/components/messaging/place-links"
+import { formatClock } from "@/lib/client-space/conversations"
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
-
-// Lien vers une carte : construit à partir de nombres validés, jamais d'un texte reçu.
-function placeHref(lat, lng) {
-  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`
-}
 
 function Body({ message, onMediaError }) {
   if (message.type === "image") {
@@ -28,14 +24,8 @@ function Body({ message, onMediaError }) {
     )
   }
   if (message.type === "location") {
-    return coordsValid(message.lat, message.lng) ? (
-      <a className="e2-07-place" href={placeHref(message.lat, message.lng)} target="_blank" rel="noopener noreferrer">
-        <Icon name="i-map-pin" />
-        Position partagée, ouvrir la carte
-      </a>
-    ) : (
-      <span className="e2-07-text">Position indisponible</span>
-    )
+    // Liens Google Maps construits par PlaceLinks à partir de nombres validés, jamais d'un texte reçu.
+    return <PlaceLinks lat={message.lat} lng={message.lng} linkClassName="e2-07-place" />
   }
   // Texte : affiché tel quel (échappé par React), sans lien ni mise en forme.
   return <span className="e2-07-text">{message.content}</span>
@@ -59,9 +49,10 @@ function Meta({ message, status, error }) {
 
 /**
  * Bulle de message. `status` : "sent" (défaut), "sending" ou "failed" (message de l'étudiant pas encore
- * livré : `error` en méta, « Réessayer » et « Supprimer » sous la bulle).
+ * livré : `error` en méta, « Réessayer » et « Supprimer » sous la bulle). `onReport(message)` facultative : le bouton
+ * « Signaler » n'apparaît que sur un message reçu et livré, jamais sur ceux de l'étudiant.
  */
-export function Bubble({ message, senderName, status = "sent", error, onRetry, onDismiss, onMediaError }) {
+export function Bubble({ message, senderName, status = "sent", error, onRetry, onDismiss, onMediaError, onReport }) {
   return (
     <>
       <div
@@ -77,6 +68,14 @@ export function Bubble({ message, senderName, status = "sent", error, onRetry, o
         <Body message={message} onMediaError={onMediaError} />
         <Meta message={message} status={status} error={error} />
       </div>
+      {onReport && !message.mine && status === "sent" ? (
+        <div className="e2-07-report">
+          <button type="button" className="btn btn--ghost btn--sm" aria-label={`Signaler ce message de ${senderName}`} onClick={() => onReport(message)}>
+            <Icon name="i-flag" />
+            Signaler
+          </button>
+        </div>
+      ) : null}
       {status === "failed" ? (
         <div className="e2-07-fail">
           <button type="button" className="btn btn--soft btn--sm" onClick={onRetry}>

@@ -23,6 +23,8 @@ vi.mock("@/hooks/use-realtime-messages", () => ({
   useMessageMediaUpload: () => vi.fn(),
 }))
 
+vi.mock("@/lib/actions/message-report.actions", () => ({ reportStudentMessage: vi.fn() }))
+
 const { StudentConversationView, deliverMessage } = await import("./conversation-view")
 const { Bubble } = await import("./bubble")
 const { getStudentMessageMedia } = await import("@/lib/actions/message.actions")
@@ -297,7 +299,9 @@ describe("Bubble", () => {
 
   it("rend une position comme un lien construit à partir de nombres", () => {
     const html = render(msg({ type: "location", lat: 6.37, lng: 2.39 }))
-    expect(html).toContain('href="https://www.openstreetmap.org/?mlat=6.37&amp;mlon=2.39#map=16/6.37/2.39"')
+    expect(html).toContain('href="https://www.google.com/maps/search/?api=1&amp;query=6.37,2.39"')
+    expect(html).toContain('href="https://www.google.com/maps/dir/?api=1&amp;destination=6.37,2.39"')
+    expect(html).not.toContain("openstreetmap.org")
     expect(html).toContain('rel="noopener noreferrer"')
   })
 
@@ -378,7 +382,7 @@ describe("Composer et dialogues", () => {
     const html = renderToStaticMarkup(<LocationDialog onConfirm={vi.fn()} onClose={vi.fn()} />)
     expect(html).toContain('role="dialog"')
     expect(html).toContain("Partager une position")
-    expect(html).toContain("Le client pourra l&#x27;ouvrir dans une carte.")
+    expect(html).toContain("Le client pourra l&#x27;ouvrir dans Google Maps.")
     expect(html).toContain("Utiliser ma position")
     expect(html).toMatch(/<button[^>]*disabled[^>]*>Partager cette position/)
   })
