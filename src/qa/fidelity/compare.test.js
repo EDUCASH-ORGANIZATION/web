@@ -61,6 +61,32 @@ describe("compareEntry", () => {
   })
 })
 
+describe("compareEntry : rognage par un ancêtre", () => {
+  it("une boîte identique mais rognée est en ÉCHEC avec l'ancêtre nommé, jamais OK", () => {
+    const result = compareEntry(box(), box({ clippedBy: "div.thread" }), { props: ["x", "y", "w", "h"] })
+    expect(result.status).toBe("ÉCHEC")
+    expect(result.note).toBe("rogné par div.thread")
+  })
+
+  it("un écart assumé n'efface pas le rognage", () => {
+    const result = compareEntry(box(), box({ y: 3, clippedBy: "main.shell" }), { props: ["y"], assume: { y: "A3:3" } })
+    expect(result.status).toBe("ÉCHEC")
+    expect(result.note).toBe("rogné par main.shell")
+  })
+
+  it("un écart non assumé garde son détail et ajoute le rognage", () => {
+    const result = compareEntry(box(), box({ w: 120, clippedBy: "div.thread" }), { props: ["w"] })
+    expect(result.status).toBe("ÉCHEC")
+    expect(result.note).toBe("rogné par div.thread")
+    expect(result.diffs[0].label).toBe("w+20")
+  })
+
+  it("sans rognage (null ou absent), le statut reste celui des écarts", () => {
+    expect(compareEntry(box(), box({ clippedBy: null }), { props: ["x"] }).status).toBe("OK")
+    expect(compareEntry(box(), box(), { props: ["x"] }).status).toBe("OK")
+  })
+})
+
 describe("parseAssume", () => {
   it("refuse un code hors liste blanche", () => {
     expect(() => parseAssume("A9:100", "y")).toThrow(/inconnue/)

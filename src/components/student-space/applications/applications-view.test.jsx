@@ -13,7 +13,10 @@ const row = (over) => ({
 })
 const data = (over) => ({ tab: "en-attente", counts: COUNTS, total: 0, rows: [], escrow: { total: 0, count: 0 }, highlight: null, ...over })
 // Espaces fines et insécables des montants ramenées à une espace simple pour comparer les textes.
-const render = (d) => renderToStaticMarkup(<StudentApplicationsView result={{ data: d }} />).replace(/[\u202f\u00a0]/g, " ")
+const NOW = new Date("2026-10-08T14:32:00+01:00")
+const render = (d, props = {}) =>
+  renderToStaticMarkup(<StudentApplicationsView result={{ data: d }} now={NOW} paymentsEnabled {...props} />).replace(/[\u202f\u00a0]/g, " ")
+const text = (html) => html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'")
 const h1s = (html) => html.match(/<h1\b/g) ?? []
 
 describe("StudentApplicationsView : onglets vides", () => {
@@ -28,7 +31,8 @@ describe("StudentApplicationsView : onglets vides", () => {
       const html = render(data({ tab }))
       expect(h1s(html)).toHaveLength(1)
       expect(html).toContain(title)
-      expect(html.match(/class="tab( is-active)?"/g)).toHaveLength(4)
+      expect(html.match(/class="e2-tab( is-active)?"/g)).toHaveLength(4)
+      expect(html).toContain('class="e2-tabs"')
       expect(html).toContain('aria-current="page"')
       // Registre unique (RD-VOUS-01) : le tutoiement est interdit.
       expect(html).not.toMatch(/(?<![\p{L}])(tu|toi|ton|ta|tes)(?![\p{L}])/iu)
@@ -38,6 +42,7 @@ describe("StudentApplicationsView : onglets vides", () => {
   it("aucune candidature : date de l'en-tête et lien Explorer les missions", () => {
     const html = render(data())
     expect(html).toContain("Aucune candidature pour l&#x27;instant")
+    expect(html).not.toContain("e2-04-total")
     expect(html).toContain('href="/student/missions"')
   })
 })
@@ -64,26 +69,48 @@ describe("StudentApplicationsView : en attente", () => {
 
   it("compteur discret dans l'onglet, lien avec ?onglet=", () => {
     expect(html).toContain('href="/applications?onglet=en-cours"')
-    expect(html).toContain('<span class="count">1</span>')
+    expect(html).toContain("<b>1</b>")
+    expect(html).not.toContain("<b>0</b>")
   })
 })
 
 describe("StudentApplicationsView : retenue récente", () => {
   const highlight = {
     missionId: "m1", title: "Livraison de colis", city: "Ganhi", deadline: "2026-10-09", net: 5280,
-    clientName: "Nadège K.", clientFirst: "Nadège", acceptedAt: "2026-10-07T17:40:00Z",
+    clientName: "Nadège K.", clientFirst: "Nadège", acceptedAt: "2026-10-07T17:40:00+01:00",
   }
   const attente = data({ counts: { ...COUNTS, "en-attente": 1, "en-cours": 1 }, total: 2, rows: [row()], highlight })
 
   it("carte blanche avec l'étiquette citron et un seul bouton encre", () => {
     const html = render(attente)
-    expect(html).toContain("Nadège a retenu votre candidature")
+    expect(text(html)).toContain("Retenue hier 17:40")
+    expect(html).toContain("Nadège K. a retenu votre candidature")
+    expect(html).toContain("pour « Livraison de colis »")
+    expect(text(html)).toContain("Demain à Ganhi. 5 280 FCFA sont bloqués pour vous en séquestre (votre part de 88 %).")
     expect(html.match(/class="flag2"/g)).toHaveLength(1)
     expect(html.match(/btn btn--dark/g)).toHaveLength(1)
     expect(html).toContain("Écrire à Nadège")
     expect(html).toContain('href="/messages/m1"')
     expect(html).toContain("5 280")
-    expect(html).toContain("commission de 12 %")
+    expect(html).not.toContain("commission de 12 %")
+  })
+
+  it("paiements en pause : jamais « séquestre », la part reste indicative", () => {
+    const html = render(attente, { paymentsEnabled: false })
+    expect(html).not.toMatch(/séquestre/i)
+    expect(html).toContain("Votre part sera de 5 280 FCFA (commission de 12 % déduite).")
+  })
+
+  it("montant invalide : aucune phrase de montant, jamais NaN ni undefined", () => {
+    for (const net of [Number.NaN, 0, -5, undefined]) {
+      const html = render({ ...attente, highlight: { ...highlight, net } })
+      expect(html).not.toMatch(/NaN|undefined|séquestre/)
+    }
+  })
+
+  it("date d'acceptation : aujourd'hui, ou la date avec l'heure", () => {
+    expect(render({ ...attente, highlight: { ...highlight, acceptedAt: "2026-10-08T09:05:00+01:00" } })).toContain("Retenue aujourd&#x27;hui <span")
+    expect(render({ ...attente, highlight: { ...highlight, acceptedAt: "2026-10-03T17:40:00+01:00" } })).toMatch(/Retenue le .+ <span class="e2-04-hl__at">17:40/)
   })
 
   it("pas de doublon dans l'onglet En cours", () => {
@@ -115,6 +142,15 @@ describe("StudentApplicationsView : actions par statut", () => {
     expect(html).toContain("en séquestre · budget")
     expect(html).toContain("22 000 FCFA")
     expect(html).toContain("sur 2 missions")
+    const paused = render(
+      data({
+        tab: "en-cours", counts: { ...COUNTS, "en-cours": 1 }, total: 1, escrow: { total: 22000, count: 1 },
+        rows: [row({ id: "a3", missionId: "m3", status: "accepted", missionStatus: "in_progress" })],
+      }),
+      { paymentsEnabled: false },
+    )
+    expect(paused).not.toMatch(/séquestre/i)
+    expect(paused).toContain("votre part · budget")
     expect(html).not.toContain("J&#x27;ai terminé")
   })
 
@@ -154,6 +190,89 @@ describe("StudentApplicationsView : actions par statut", () => {
   it("liens d'action nommés par la mission (aria-label)", () => {
     const html = render(data({ counts: { ...COUNTS, "en-attente": 1 }, total: 1, rows: [row()] }))
     expect(html).toContain('aria-label="Voir la mission : Cours de maths"')
+  })
+})
+
+describe("StudentApplicationsView : répondre au client", () => {
+  const attente = data({ counts: { ...COUNTS, "en-attente": 2 }, total: 2, rows: [row(), row({ id: "a2", missionId: "m2", clientFirst: "Koffi", clientName: "Koffi H." })] })
+  const unreadByMission = { m1: { at: "2026-10-08T09:12:00+01:00", state: "candidate" } }
+
+  it("avec des non lus : « Répondre à <prénom> », « Voir » et l'heure du message", () => {
+    const html = render(attente, { unreadByMission })
+    expect(html).toContain("Répondre à Rosine")
+    expect(html).toContain('href="/messages/m1"')
+    expect(html).toContain("Rosine vous a écrit à 9:12")
+    expect(html).toContain('aria-label="Voir : Cours de maths"')
+  })
+
+  it("sans non lus : aucune action « Répondre », « Voir la mission » seul", () => {
+    for (const props of [{}, { unreadByMission: {} }, { unreadByMission: { m9: { at: "2026-10-08T09:12:00+01:00", state: "candidate" } } }]) {
+      const html = render(attente, props)
+      expect(html).not.toContain("Répondre")
+      expect(html).not.toContain("vous a écrit")
+      expect(html).not.toContain('href="/messages/')
+    }
+  })
+
+  it("date invalide : repli « Message non lu de <prénom> » ; prénom absent : action omise", () => {
+    const bad = render(attente, { unreadByMission: { m1: { at: "n'importe quoi", state: "candidate" } } })
+    expect(bad).toContain("Message non lu de Rosine")
+    expect(bad).not.toMatch(/NaN|Invalid/)
+    const noName = data({ counts: { ...COUNTS, "en-attente": 1 }, total: 1, rows: [row({ clientFirst: "", clientName: "" })] })
+    expect(render(noName, { unreadByMission })).not.toContain("Répondre")
+  })
+
+  it("prénom trop long : libellé neutre", () => {
+    const long = data({ counts: { ...COUNTS, "en-attente": 1 }, total: 1, rows: [row({ clientFirst: "Anne-Marie-Joséphine" })] })
+    expect(render(long, { unreadByMission })).toContain("Répondre au client")
+  })
+
+  it("aucun « Retirer » (retrait de candidature non codé)", () => {
+    expect(render(attente, { unreadByMission })).not.toContain("Retirer")
+  })
+})
+
+describe("StudentApplicationsView : jour du dernier non lu, états et échéance", () => {
+  const rows = data({ counts: { ...COUNTS, "en-attente": 1 }, total: 1, rows: [row()] })
+  const note = (at) => text(render(rows, { unreadByMission: { m1: { at, state: "candidate" } } }))
+
+  it("non lu du jour, de la veille, d'avant-hier : le jour est écrit", () => {
+    expect(note("2026-10-08T09:12:00+01:00")).toContain("Rosine vous a écrit à 9:12")
+    expect(note("2026-10-08T09:12:00+01:00")).not.toContain("aujourd'hui")
+    expect(note("2026-10-07T17:40:00+01:00")).toContain("Rosine vous a écrit hier à 17:40")
+    expect(note("2026-10-06T09:12:00+01:00")).toMatch(/Rosine vous a écrit le .*6 oct\. à 9:12/)
+  })
+
+  it("changement de jour au Bénin : 23:30 UTC est 0:30 le lendemain", () => {
+    expect(note("2026-10-07T23:30:00Z")).toContain("vous a écrit à 0:30")
+    expect(note("2026-10-07T22:59:00Z")).toContain("vous a écrit hier à 23:59")
+  })
+
+  it("un non lu dans un état sans écriture (done, rejected, closed, cancelled) ne donne pas « Répondre »", () => {
+    for (const state of ["done", "rejected", "closed", "cancelled", undefined]) {
+      const html = render(rows, { unreadByMission: { m1: { at: "2026-10-08T09:12:00+01:00", state } } })
+      expect(html).not.toContain("Répondre")
+      expect(html).not.toContain("vous a écrit")
+    }
+  })
+
+  it("onglets Terminées et Non retenues : jamais « Répondre », « Noter le client » conservé", () => {
+    const unreadByMission = { m1: { at: "2026-10-08T09:12:00+01:00", state: "candidate" } }
+    const done = render(data({ tab: "terminees", counts: { ...COUNTS, terminees: 1 }, rows: [row({ status: "accepted", missionStatus: "done" })] }), { unreadByMission })
+    expect(done).not.toContain("Répondre")
+    expect(done).toContain("Noter le client")
+    const off = render(data({ tab: "non-retenues", counts: { ...COUNTS, "non-retenues": 1 }, rows: [row({ status: "rejected" })] }), { unreadByMission })
+    expect(off).not.toContain("Répondre")
+    expect(off).toContain("Voir la mission")
+  })
+
+  it("échéance de la carte : demain, aujourd'hui, ou la date courte sans jour de semaine", () => {
+    const hl = { missionId: "m1", title: "T", city: "Ganhi", net: 5280, clientName: "N K.", clientFirst: "N", acceptedAt: "2026-10-07T17:40:00+01:00" }
+    const html = (deadline) => text(render(data({ highlight: { ...hl, deadline } })))
+    expect(html("2026-10-09")).toContain("Demain à Ganhi.")
+    expect(html("2026-10-08")).toContain("Aujourd'hui à Ganhi.")
+    expect(html("2026-10-20")).toContain("Avant le 20 oct. à Ganhi.")
+    expect(html(null)).not.toMatch(/Avant|Demain|Aujourd/)
   })
 })
 

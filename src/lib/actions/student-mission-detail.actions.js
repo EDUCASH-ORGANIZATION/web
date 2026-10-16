@@ -2,6 +2,8 @@
 "use server"
 
 import { requireRole } from "@/lib/auth/require-role"
+import { ANONYMOUS_CLIENT_NAME } from "@/lib/constants/client-name"
+import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
 import { isUuid } from "@/lib/vitrine/ids"
@@ -59,6 +61,9 @@ const LEDGER_COLUMNS = "type, amount, created_at"
  *   Lignes du grand livre de CETTE mission sous le user_id de l'étudiant (release = son NET), vide hors "selected"
  * @property {{ id: string, rating: number, comment: string|null, createdAt: string }|null} review
  *   Avis déjà donné par l'étudiant pour cette mission (état "selected" seulement), sinon null
+ * @property {{ available: boolean, declaredAt: string|null }} completion
+ *   Fin déclarée par l'étudiant (RD-DONE-01), lue pour l'état "selected" seulement. `available: false` quand la
+ *   colonne n'existe pas encore en base, et toujours pour l'état "open" ; `declaredAt` : date ISO ou null
  * @property {Array<{ id: string, title: string, type: string, city: string|null, budget: number }>} similar
  *   Missions ouvertes non expirées du même type (4 au plus), hors mission courante
  */
@@ -72,6 +77,19 @@ const LEDGER_COLUMNS = "type, amount, created_at"
 /**
  * @typedef {StudentMissionDetailOpen | StudentMissionDetailClosed} StudentMissionDetail
  */
+
+// Lecture tolérante de la fin déclarée : colonne absente -> available:false ; autre erreur -> erreur neutre.
+async function readCompletion(supabase, missionId) {
+  try {
+    const { available, byId } = await readCompletionDeclared(supabase, [missionId])
+    // Réponse sans la ligne (filtrée par la RLS, mission réattribuée) : indisponible, jamais un faux « non déclaré ».
+    const known = available && byId.has(missionId)
+    return { available: known, declaredAt: known ? (byId.get(missionId) ?? null) : null }
+  } catch (error) {
+    console.error("[getStudentMissionDetail] fin déclarée", error?.code ?? error?.message)
+    throw new Error(ERR_LOAD)
+  }
+}
 
 async function readVerification() {
   const [profileRes, studentRes] = await Promise.all([getMyProfile(), getMyStudentProfile()])
@@ -88,7 +106,7 @@ async function readVerification() {
 function toClient(profile) {
   const hasName = typeof profile?.full_name === "string" && profile.full_name.trim() !== ""
   return {
-    name: hasName ? publicDisplayName(profile.full_name) : "Client EduCash",
+    name: hasName ? publicDisplayName(profile.full_name) : ANONYMOUS_CLIENT_NAME,
     avatarUrl: toProjectAvatarUrl(profile?.avatar_url),
     city: profile?.city ?? null,
     rating: Number(profile?.rating) || 0,
@@ -130,7 +148,7 @@ export async function getStudentMissionDetail(id) {
   if (!isOpen && !isSelected) return { state: "closed", mission: { id: mission.id } }
 
   const followed = !isOpen && isSelected
-  const [applicationRes, clientRes, similarRes, ledgerRes, reviewRes, verification] = await Promise.all([
+  const [applicationRes, clientRes, similarRes, ledgerRes, reviewRes, verification, completion] = await Promise.all([
     supabase
       .from("applications")
       .select(APPLICATION_COLUMNS)
@@ -167,6 +185,7 @@ export async function getStudentMissionDetail(id) {
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
     followed ? Promise.resolve(null) : readVerification(),
+    followed ? readCompletion(supabase, mission.id) : Promise.resolve({ available: false, declaredAt: null }),
   ])
   const failure = applicationRes.error ?? clientRes.error ?? similarRes.error ?? ledgerRes.error ?? reviewRes.error
   if (failure) {
@@ -203,6 +222,7 @@ export async function getStudentMissionDetail(id) {
       : null,
     isSelected,
     verification,
+    completion,
     ledger: (ledgerRes.data ?? []).map((m) => ({
       type: "release",
       amount: Math.abs(Number(m.amount) || 0),

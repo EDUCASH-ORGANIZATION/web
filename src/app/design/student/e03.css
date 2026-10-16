@@ -21,9 +21,7 @@
 .e2-03-recap .e2-kv__row > b { margin-left: auto; overflow-wrap: anywhere; }
 /* Barre fixe : le montant peut passer à la ligne au lieu de recouvrir le bouton */
 .e2-03-info .e2-amount { white-space: normal; overflow-wrap: anywhere; }
-.e2-03-ta .input { min-height: 140px; }
 .e2-03-ta .field__count, .e2-03-ta--s .field__count { white-space: nowrap; flex: none; }
-.e2-03-ta--s .input { min-height: 112px; }
 .e2-03-gain { font-size: var(--t-caption); color: var(--c-ardoise); }
 .e2-03-gain .e2-amount { display: block; font-size: var(--t-amount-s); color: var(--c-encre); }
 .e2-03-msg { background: var(--c-givre); border-radius: 16px; padding: 12px 14px; font-size: var(--t-body-s); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
@@ -35,6 +33,10 @@
 .sheet .e2-03-sfoot .btn--dark { flex: 1; }
 .e2-03-modal { width: 560px; }
 
+/* Carte client : le bureau garde l'en-tête, la ville, le badge des missions et le détail du séquestre ; le mobile de la
+   planche n'a que la note, les missions publiées et le badge de séquestre. */
+.e2-03-sub-mob { display: none; }
+
 @media (max-width: 1023.98px) {
   .e2-03-meta { font-size: var(--t-caption); gap: 4px 12px; padding: 0 4px; }
   .e2-03-meta .ic { width: 14px; height: 14px; }
@@ -42,4 +44,8 @@
   .e2-03-top .e2-back { display: none; }
   /* Le bloc de candidature du bureau disparaît : la barre fixe et la feuille sont rendues à plat dans la page */
   .e2-03-aside { display: contents; }
+  /* Titre « Le client » masqué à l'œil seulement : il reste annoncé par les lecteurs d'écran */
+  .e2-03-clientcard .e2-sec__head { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .e2-03-badge-desk, .e2-03-caption-desk, .e2-03-sub-desk { display: none; }
+  .e2-03-sub-mob { display: inline; }
 }

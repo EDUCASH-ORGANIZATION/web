@@ -9,18 +9,19 @@ import {
   parseMissionsParams,
 } from "@/lib/admin-space/missions"
 import { inChunks, requireAdminService } from "./admin-context"
+import { isMissingCompletionColumn, readCompletionDeclared } from "./mission-completion-core"
 
 const ERR_LOAD = "Les missions n'ont pas pu être chargées. Réessayez dans un instant."
 
-// Colonnes publiques seulement ; la fin enregistrée est lue par la relation 1-1 `mission_completions`.
+// Colonnes publiques seulement. La date de déclaration de fin (`completion_declared_at`) n'est jamais dans ce
+// select : elle est lue à part (lecture tolérante) pour que la liste se rende même colonne absente.
 const COLUMNS =
-  "id, title, type, city, budget, status, deadline, created_at, client_id, selected_student_id, " +
-  "profiles!client_id(full_name), mission_completions(mission_id)"
+  "id, title, type, city, budget, status, deadline, created_at, client_id, selected_student_id, profiles!client_id(full_name)"
 
-// Un onglet impose un statut ; « à confirmer » = en cours avec une fin enregistrée (jointure interne).
+// Un onglet impose un statut ; « à confirmer » = en cours avec une fin déclarée par l'étudiant.
 function withTab(query, statut) {
   if (statut === "toutes") return query
-  if (statut === "a-confirmer") return query.eq("status", "in_progress")
+  if (statut === "a-confirmer") return query.eq("status", "in_progress").not("completion_declared_at", "is", null)
   return query.eq("status", statut)
 }
 
@@ -34,17 +35,23 @@ function withFilters(query, { q, ville, type }) {
 }
 
 function listQuery(service, params, statut) {
-  const select =
-    statut === "a-confirmer"
-      ? COLUMNS.replace("mission_completions(mission_id)", "mission_completions!inner(mission_id)")
-      : COLUMNS
-  return withFilters(withTab(service.from("missions").select(select), statut), params)
+  return withFilters(withTab(service.from("missions").select(COLUMNS), statut), params)
 }
 
 function countQuery(service, params, statut) {
-  const select = statut === "a-confirmer" ? "id, mission_completions!inner(mission_id)" : "id"
-  const base = service.from("missions").select(select, { count: "exact", head: true })
+  const base = service.from("missions").select("id", { count: "exact", head: true })
   return withFilters(withTab(base, statut), params)
+}
+
+// Vrai si la colonne existe, faux si elle manque ; toute autre erreur est levée.
+async function probeDeclarationColumn(service) {
+  const { error } = await service.from("missions").select("completion_declared_at").limit(1)
+  if (isMissingCompletionColumn(error)) {
+    console.error("[admin-missions] colonne completion_declared_at absente", error.code)
+    return false
+  }
+  if (error) throw new Error("Lecture impossible.")
+  return true
 }
 
 async function readStudentNames(service, ids) {
@@ -55,11 +62,6 @@ async function readStudentNames(service, ids) {
     for (const row of data ?? []) names.set(row.user_id, row.full_name ?? "")
   }
   return names
-}
-
-function completionOf(row) {
-  const value = row.mission_completions
-  return Array.isArray(value) ? value.length > 0 : Boolean(value)
 }
 
 /**
@@ -74,23 +76,36 @@ export async function listAdminMissions(rawParams = {}) {
 
   const params = parseMissionsParams(rawParams)
   try {
+    // Sonde GET (renvoie un corps, donc le code d'erreur) : une requête HEAD en erreur n'a pas de corps et ne
+    // permettrait pas de reconnaître la colonne absente. Lancée en parallèle des compteurs qui n'en dépendent pas.
+    const probe = probeDeclarationColumn(service)
+    const independent = MISSION_TABS.filter((tab) => tab !== "a-confirmer")
+    const independentCounts = Promise.all(independent.map((tab) => countQuery(service, params, tab)))
+    const available = await probe
+
+    // Colonne absente (script 90 non appliqué) : « à confirmer » compte 0 et reste vide, sans requête sur la colonne.
+    const toConfirmResult = available ? await countQuery(service, params, "a-confirmer") : { count: 0, error: null }
+    const results = await independentCounts
     const counts = {}
-    const results = await Promise.all(MISSION_TABS.map((tab) => countQuery(service, params, tab)))
-    MISSION_TABS.forEach((tab, index) => {
-      if (results[index].error) throw new Error("Comptage impossible.")
-      counts[tab] = results[index].count ?? 0
-    })
+    for (const tab of MISSION_TABS) {
+      const result = tab === "a-confirmer" ? toConfirmResult : results[independent.indexOf(tab)]
+      if (result.error) throw new Error("Comptage impossible.")
+      counts[tab] = result.count ?? 0
+    }
 
     const total = counts[params.statut]
     const { page, pageCount } = clampPage(params.page, total)
     const from = (page - 1) * MISSIONS_ADMIN_PAGE_SIZE
-    const { data, error } = await listQuery(service, params, params.statut)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: true })
-      .range(from, from + MISSIONS_ADMIN_PAGE_SIZE - 1)
-    if (error) throw new Error("Lecture impossible.")
-
-    const missions = data ?? []
+    let missions = []
+    if (!(params.statut === "a-confirmer" && !available)) {
+      const { data, error } = await listQuery(service, params, params.statut)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, from + MISSIONS_ADMIN_PAGE_SIZE - 1)
+      if (error) throw new Error("Lecture impossible.")
+      missions = data ?? []
+    }
+    const declared = available ? (await readCompletionDeclared(service, missions.map((m) => m.id))).byId : new Map()
     const students = await readStudentNames(service, missions.map((m) => m.selected_student_id))
     const rows = missions.map((m) => ({
       id: m.id,
@@ -105,7 +120,7 @@ export async function listAdminMissions(rawParams = {}) {
       clientName: m.profiles?.full_name ?? "",
       studentId: m.selected_student_id ?? null,
       studentName: m.selected_student_id ? (students.get(m.selected_student_id) ?? "") : "",
-      awaitingConfirm: m.status === "in_progress" && completionOf(m),
+      awaitingConfirm: m.status === "in_progress" && Boolean(declared.get(m.id)),
     }))
 
     return {

@@ -52,8 +52,8 @@
   .c2 .inbox2 .c-inbox__list { border-right: 0; padding: 0; gap: var(--s-3); overflow: visible; }
   .c2 .inbox2 .c-inbox__list .search { margin-bottom: 0; }
   .c2 .inbox2 .c-inbox__list .segmented { margin-bottom: var(--s-1); }
-  /* Conversation seule : la hauteur mobile de c13.css (zone sûre comptée une seule fois) */
-  .c2 .c-inbox__thread > .conv2 { flex: none; height: calc(100dvh - 148px - env(safe-area-inset-bottom, 0px)); }
+  /* Conversation seule, repli sans :has : la hauteur mobile de c13.css (règle .conv2__head) la remplace sinon */
+  .c2 .c-inbox__thread > .conv2 { flex: none; height: calc(100dvh - var(--s-2)); }
   .c2 .convos2 { padding: 6px; overflow-y: visible; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); }
   .c2 .c-inbox__list .search:not(:focus-within) { background: var(--c-blanc); border-color: var(--c-ligne); }
   .c2 .segmented__item { height: 44px; }

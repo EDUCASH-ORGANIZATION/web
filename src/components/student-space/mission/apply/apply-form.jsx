@@ -13,7 +13,7 @@ import { TextareaField } from "@/components/app-ui/fields"
 import { splitAmount } from "@/components/app-ui/amount"
 import { apply } from "@/lib/actions/application.actions"
 import { applicationStatusView } from "@/lib/app/application-status"
-import { formatAmount, formatDateFr } from "@/lib/app/format"
+import { formatAmount, safeDateFr } from "@/lib/app/format"
 import { studentApplicationsHref, studentMissionsHref, studentVerifyHref } from "@/lib/app/student-routes"
 import { GainRecap, STUDENT_PERCENT } from "./gain-recap"
 
@@ -83,11 +83,12 @@ function ApplicationBadge({ status }) {
 }
 
 function sentOn(createdAt) {
-  return createdAt ? `Envoyée le ${formatDateFr(createdAt)}. ` : ""
+  const date = safeDateFr(createdAt)
+  return date ? `Envoyée le ${date}. ` : ""
 }
 
 function DeskBody({
-  mode, split, verification, application, sent, note, message, fieldError, serverError, pending, onMessage, onSubmit, textareaRef,
+  mode, split, purchases, verification, application, sent, note, message, fieldError, serverError, pending, onMessage, onSubmit, textareaRef,
 }) {
   if (mode === "applied") {
     return (
@@ -120,7 +121,7 @@ function DeskBody({
     return (
       <>
         {note}
-        <GainRecap split={split} />
+        {split ? <GainRecap split={split} purchases={purchases} /> : null}
         <Link className="btn btn--dark btn--block" href={verification?.action?.href ?? studentVerifyHref()}>
           <Icon name="i-id-card" />
           {verification?.action?.label ?? "Envoyer ma carte"}
@@ -136,13 +137,13 @@ function DeskBody({
         label="Votre motivation"
         required
         maxLength={MESSAGE_MAX}
-        help="Soyez concret : expérience, disponibilités."
+        help="Expérience, disponibilités."
         error={fieldError}
         value={message}
         onChange={onMessage}
         ref={textareaRef}
       />
-      <GainRecap split={split} />
+      {split ? <GainRecap split={split} purchases={purchases} /> : null}
       <ServerError error={serverError} />
       <button
         type="button"
@@ -182,7 +183,8 @@ function DeskBlock({ mode, verification, application, ...body }) {
   )
 }
 
-function BarInfo({ split }) {
+function BarInfo({ split, purchases }) {
+  if (!split) return <div className="e2-mbar__info" />
   const { text, unit } = splitAmount(split.student)
   return (
     <div className="e2-mbar__info e2-03-info">
@@ -190,16 +192,20 @@ function BarInfo({ split }) {
         {text}
         <small>{unit}</small>
       </span>
-      <small>{`Vous touchez (${STUDENT_PERCENT} %) · budget ${formatAmount(split.total)}`}</small>
+      <small>
+        {purchases
+          ? `Service · vous touchez ${STUDENT_PERCENT} % · achats hors EduCash`
+          : `Vous touchez (${STUDENT_PERCENT} %) · budget ${formatAmount(split.total)}`}
+      </small>
     </div>
   )
 }
 
-function MobileBar({ mode, split, verification, application, sent, onOpenSheet }) {
+function MobileBar({ mode, split, purchases, verification, application, sent, onOpenSheet }) {
   if (mode === "form") {
     return (
       <div className="e2-mbar">
-        <BarInfo split={split} />
+        <BarInfo split={split} purchases={purchases} />
         <button type="button" className="btn btn--dark" onClick={onOpenSheet}>
           Postuler
         </button>
@@ -209,7 +215,7 @@ function MobileBar({ mode, split, verification, application, sent, onOpenSheet }
   if (mode === "blocked") {
     return (
       <div className="e2-mbar e2-mbar--stack">
-        <BarInfo split={split} />
+        <BarInfo split={split} purchases={purchases} />
         <Link className="btn btn--dark btn--block" href={verification?.action?.href ?? studentVerifyHref()}>
           <Icon name="i-id-card" />
           {verification?.action?.label ?? "Envoyer ma carte"}
@@ -223,7 +229,13 @@ function MobileBar({ mode, split, verification, application, sent, onOpenSheet }
       <div className="e2-mbar">
         <div className="e2-mbar__info e2-03-info" role={sent ? "status" : undefined}>
           <StatusBadge label={status.label} tone={status.tone} />
-          <small>{`${sent ? "Candidature envoyée" : "Candidature en cours"} · vous toucheriez ${formatAmount(split.student)}`}</small>
+          <small>
+            {split
+              ? `${sent ? "Candidature envoyée" : "Candidature en cours"} · vous toucheriez ${formatAmount(split.student)}`
+              : sent
+                ? "Candidature envoyée"
+                : "Candidature en cours"}
+          </small>
         </div>
         <Link className="btn btn--soft" href={studentApplicationsHref()}>
           Suivre
@@ -241,7 +253,7 @@ function MobileBar({ mode, split, verification, application, sent, onOpenSheet }
  * "applied" (candidature envoyée, `application` renseignée). `note` est le bloc d'explication déjà rendu.
  */
 export function ApplyPanelView({
-  mode, mission, clientName, split, verification, application, sent, note, message, fieldError, serverError, pending,
+  mode, mission, clientName, split, purchases, verification, application, sent, note, message, fieldError, serverError, pending,
   sheetOpen, textareaRef, onMessage, onSubmit, onOpenSheet, onCloseSheet,
 }) {
   return (
@@ -249,6 +261,7 @@ export function ApplyPanelView({
       <DeskBlock
         mode={mode}
         split={split}
+        purchases={purchases}
         verification={verification}
         application={application}
         sent={sent}
@@ -264,6 +277,7 @@ export function ApplyPanelView({
       <MobileBar
         mode={mode}
         split={split}
+        purchases={purchases}
         verification={verification}
         application={application}
         sent={sent}
@@ -303,7 +317,7 @@ export function ApplyPanelView({
           onChange={onMessage}
           ref={textareaRef}
         />
-        <GainRecap split={split} />
+        {split ? <GainRecap split={split} purchases={purchases} /> : null}
         <ServerError error={serverError} />
         <p className="e2-03-caption">Votre message est transmis au client avec votre candidature.</p>
       </Modal>
@@ -319,14 +333,17 @@ export function ApplyPanelView({
  *   mode: "form" | "blocked" | "overdue" | "applied",
  *   mission: { id: string, title: string },
  *   clientName: string,
- *   split: { total: number, commission: number, student: number },
+ *   split: { total: number, commission: number, student: number } | null,
+ *   purchases?: number|null,
  *   verification: import("@/lib/student-space/verification-status").VerificationView | null,
  *   application: { status: string, createdAt: string|null, message: string } | null,
  *   note?: import("react").ReactNode,
  *   initialSheet?: boolean
  * }} props
  */
-export function ApplyPanel({ mode, mission, clientName, split, verification, application, note, initialSheet = false }) {
+export function ApplyPanel({
+  mode, mission, clientName, split, purchases = null, verification, application, note, initialSheet = false,
+}) {
   const [message, setMessage] = useState("")
   const [fieldError, setFieldError] = useState("")
   const [serverError, setServerError] = useState("")
@@ -372,6 +389,7 @@ export function ApplyPanel({ mode, mission, clientName, split, verification, app
       mission={mission}
       clientName={clientName}
       split={split}
+      purchases={purchases}
       verification={verification}
       application={effective.application}
       sent={sent}
