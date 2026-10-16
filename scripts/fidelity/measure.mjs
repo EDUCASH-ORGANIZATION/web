@@ -1,5 +1,8 @@
 // Mesure d'une liste de sélecteurs dans une page Playwright. Les coordonnées sont relatives à la racine
 // (cadre de la planche ou body du rendu du code). Une mesure vaut null si le sélecteur ne trouve rien.
+// `clippedBy` : description (balise.classes) du premier ancêtre `overflow: hidden|clip` qui coupe la boîte
+// de plus de 1 px, sinon null. Un ancêtre défilant (auto, scroll) ne rogne pas : le contenu reste atteignable,
+// et c'est alors sa propre boîte qui est confrontée aux ancêtres suivants.
 
 /**
  * @param page Page Playwright
@@ -12,6 +15,44 @@ export async function measureSelectors(page, rootSelector, selectors, dy = 0) {
     ({ rootSelector, selectors, dy }) => {
       const root = document.querySelector(rootSelector) || document.body
       const rootBox = root.getBoundingClientRect()
+      const describe = (node) => {
+        const classes = [...node.classList].slice(0, 2).map((name) => `.${name}`).join("")
+        return `${node.tagName.toLowerCase()}${node.id ? `#${node.id}` : ""}${classes}`
+      }
+      const findClipper = (element) => {
+        const own = element.getBoundingClientRect()
+        if (!own.width || !own.height) return null
+        const position = getComputedStyle(element).position
+        if (position === "fixed") return null
+        let box = { left: own.left, top: own.top, right: own.right, bottom: own.bottom }
+        let absolute = position === "absolute"
+        for (let node = element.parentElement; node && node !== document.documentElement; node = node.parentElement) {
+          const style = getComputedStyle(node)
+          if (absolute) {
+            if (style.position === "static") continue
+            absolute = style.position === "absolute"
+          }
+          const area = node.getBoundingClientRect()
+          const inner = {
+            left: area.left + node.clientLeft,
+            top: area.top + node.clientTop,
+            right: area.left + node.clientLeft + node.clientWidth,
+            bottom: area.top + node.clientTop + node.clientHeight,
+          }
+          const axes = [
+            ["x", style.overflowX, "left", "right"],
+            ["y", style.overflowY, "top", "bottom"],
+          ]
+          for (const [, overflow, start, end] of axes) {
+            if (overflow === "hidden" || overflow === "clip") {
+              if (box[start] < inner[start] - 1 || box[end] > inner[end] + 1) return describe(node)
+            } else if (overflow === "auto" || overflow === "scroll") {
+              box = { ...box, [start]: inner[start], [end]: inner[end] }
+            }
+          }
+        }
+        return null
+      }
       const result = {}
       for (const [key, selector] of Object.entries(selectors)) {
         const element = root.querySelector(selector)
@@ -26,6 +67,7 @@ export async function measureSelectors(page, rootSelector, selectors, dy = 0) {
         range.selectNodeContents(element)
         const textBox = range.getBoundingClientRect()
         result[key] = {
+          clippedBy: findClipper(element),
           x: Math.round(box.left - rootBox.left),
           y: Math.round(box.top - rootBox.top) + dy,
           w: Math.round(box.width),

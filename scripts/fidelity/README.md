@@ -35,6 +35,13 @@ par exemple `ASSUMÉ A2, A3`), `ASSUMÉ-POLICE` (police seule), `NON EXPLIQUÉ .
 à part chaque statut ; un statut mixte `ASSUMÉ A3, POLICE` est compté dans ASSUMÉ (rappelé par « dont avec POLICE »).
 Code de sortie 1 s'il reste un `ÉCHEC` (sauf `--report-only`), 2 en cas d'erreur du banc.
 
+Rognage : le banc mesure des boîtes entières, qu'un parent peut couper à l'affichage. Pour chaque sélecteur
+du code, `measure.mjs` remonte les ancêtres ; si l'un a `overflow: hidden` ou `clip` et coupe la boîte de plus
+de 1 px, la ligne passe en `ÉCHEC` avec l'écart « rogné par <balise.classe> » (jamais `OK`, aucune règle
+`assume` ne l'efface). Un ancêtre défilant (`overflow: auto` ou `scroll`) ne rogne pas, le contenu reste
+atteignable par défilement ; les éléments `position: fixed` et les éléments absolus (jusqu'à leur bloc
+conteneur) sont ignorés. Le test porte sur le code seulement, pas sur la planche.
+
 Sortie attendue pour `npm run fidelity -- E06` : toutes les lignes ME-04, ME-06, ME-07 en `ASSUMÉ` (écarts
 mesurés et déclarés), sauf la pastille « En cours » (ME-04, lot ST-04, filtre inexistant), la date de page
 bureau (contenu « Jeudi 8 octobre · » absent du code) et le titre mobile (30 px planche, 26 px code), qui
