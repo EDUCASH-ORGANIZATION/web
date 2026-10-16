@@ -96,7 +96,7 @@ export function receiptFromLedger(ledger) {
 }
 
 /**
- * Chronologie fondée sur les seules dates fiables : candidature, paiement (grand livre), avis. Une étape sans date connue garde `date: null`.
+ * Chronologie fondée sur les seules dates fiables : candidature, rétention (accepted_at), paiement (grand livre), avis. Une étape sans date connue garde `date: null`.
  * `state` : "done" | "now" | "todo". Mission annulée : seules la candidature et la sélection sont listées.
  * @param {import("@/lib/actions/student-mission-detail.actions").StudentMissionDetailOpen} detail
  * @returns {Array<{ key: "applied" | "selected" | "paid" | "reviewed", state: "done" | "now" | "todo", date: string|null }>}
@@ -105,8 +105,9 @@ export function buildTimeline(detail) {
   const { mission, application, ledger, review } = detail
   const receipt = receiptFromLedger(ledger)
   const applied = { key: "applied", state: "done", date: application?.createdAt ?? null }
-  // Pas de date : applications.updated_at change à toute mise à jour (le client peut la modifier), elle ne date pas la rétention.
-  const selected = { key: "selected", state: "done", date: null }
+  // Date de rétention = applications.accepted_at, posée par la base. Jamais updated_at (le client peut la faire varier).
+  // Sans accepted_at (colonne absente, NULL, invalide) : l'étape s'affiche sans date.
+  const selected = { key: "selected", state: "done", date: application?.acceptedAt ?? null }
   if (mission.status === "cancelled") return [applied, selected]
   if (mission.status === "in_progress") {
     return [

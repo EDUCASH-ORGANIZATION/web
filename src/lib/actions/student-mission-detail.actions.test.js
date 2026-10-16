@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+import { readFileSync } from "node:fs"
 
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
@@ -25,6 +26,8 @@ function makeSupabase() {
       const resolve = () => {
         // Lecture tolérante de la fin déclarée : requête séparée, réponse dédiée.
         if (table === "missions" && state.columns === "id, completion_declared_at") return responses.completion
+        // Lecture tolérante de la date de rétention : requête séparée sur applications, réponse dédiée.
+        if (table === "applications" && state.columns === "id, accepted_at") return responses.acceptedAt
         const r = responses[table]
         return typeof r === "function" ? r(state) : (r ?? { data: null, error: null })
       }
@@ -69,6 +72,7 @@ beforeEach(() => {
     wallet_transactions: { data: [], error: null },
     reviews: { data: null, error: null },
     completion: { data: [{ id: MISSION, completion_declared_at: null }], error: null },
+    acceptedAt: { data: [], error: null },
   }
   requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: ME }, role: "student", profile: {} })
   getMyProfile.mockResolvedValue({ profile: { is_verified: true, verified_until: null, rejection_reason: null } })
@@ -350,5 +354,105 @@ describe("getStudentMissionDetail : fin déclarée (RD-DONE-01)", () => {
     responses.missions = missionsFor(selected)
     responses.completion = { data: null, error: { code: "XX000", message: "relation boom" } }
     await expect(getStudentMissionDetail(MISSION)).rejects.toThrow("Impossible de charger la mission.")
+  })
+})
+
+describe("getStudentMissionDetail : date de rétention (RD-ACCEPT-01, accepted_at)", () => {
+  const APP = "22222222-2222-4222-8222-222222222222"
+  const selected = { ...baseMission, status: "in_progress", selected_student_id: ME }
+  // updated_at porte volontairement une valeur différente : il ne doit jamais alimenter la date de rétention.
+  const appRow = (status = "accepted") => ({
+    id: APP, status, message: "Bonjour", created_at: "2026-10-02T00:00:00Z", updated_at: "2026-10-09T00:00:00Z",
+  })
+  const acceptedCalls = () => callsOn("applications").filter((c) => c.columns === "id, accepted_at")
+  const load = async (over = {}) => {
+    responses.missions = missionsFor({ ...selected, ...over })
+    responses.applications = { data: appRow(), error: null }
+    return getStudentMissionDetail(MISSION)
+  }
+
+  it("date valide : acceptedAt vient d'accepted_at, lue sur cette candidature par la session", async () => {
+    responses.acceptedAt = { data: [{ id: APP, accepted_at: "2026-10-08T08:00:00Z" }], error: null }
+    const detail = await load()
+    expect(detail.application.acceptedAt).toBe("2026-10-08T08:00:00Z")
+    expect(acceptedCalls()).toHaveLength(1)
+    expect(acceptedCalls()[0].filters).toEqual([["in", "id", [APP]]])
+  })
+
+  it("updated_at n'alimente jamais la date, même avec une valeur différente", async () => {
+    responses.acceptedAt = { data: [{ id: APP, accepted_at: "2026-10-08T08:00:00Z" }], error: null }
+    const detail = await load()
+    expect(detail.application.updatedAt).toBe("2026-10-09T00:00:00Z")
+    expect(detail.application.acceptedAt).not.toBe(detail.application.updatedAt)
+    responses.acceptedAt = { data: [{ id: APP, accepted_at: null }], error: null }
+    expect((await load()).application.acceptedAt).toBeNull()
+  })
+
+  it("accepted_at NULL : acceptedAt null", async () => {
+    responses.acceptedAt = { data: [{ id: APP, accepted_at: null }], error: null }
+    expect((await load()).application.acceptedAt).toBeNull()
+  })
+
+  it.each(["42703", "PGRST204"])("colonne absente (%s) : page rendue, acceptedAt null, journal par code", async (code) => {
+    responses.acceptedAt = { data: null, error: { code, message: "column applications.accepted_at does not exist" } }
+    const detail = await load()
+    expect(detail.state).toBe("selected")
+    expect(detail.mission.id).toBe(MISSION)
+    expect(detail.application.acceptedAt).toBeNull()
+    expect(console.error).toHaveBeenCalledWith("[accepted] colonne accepted_at absente", code)
+  })
+
+  it("autre erreur : la page se rend sans date, journal par code seulement (jamais le message)", async () => {
+    responses.acceptedAt = { data: null, error: { code: "XX000", message: "relation boom" } }
+    const detail = await load()
+    expect(detail.state).toBe("selected")
+    expect(detail.application.acceptedAt).toBeNull()
+    expect(console.error).toHaveBeenCalledWith("[getStudentMissionDetail] date de rétention", "XX000")
+    expect(JSON.stringify(console.error.mock.calls)).not.toContain("relation boom")
+  })
+
+  it("ligne manquante (RLS, réattribution) : acceptedAt null", async () => {
+    responses.acceptedAt = { data: [], error: null }
+    expect((await load()).application.acceptedAt).toBeNull()
+  })
+
+  it.each(["pas une date", "2999-01-01T00:00:00Z", ""])("date invalide ou future (%s) : acceptedAt null", async (bad) => {
+    responses.acceptedAt = { data: [{ id: APP, accepted_at: bad }], error: null }
+    expect((await load()).application.acceptedAt).toBeNull()
+  })
+
+  it("candidature non acceptée (état selected) : aucune lecture, acceptedAt null", async () => {
+    responses.missions = missionsFor(selected)
+    responses.applications = { data: appRow("pending"), error: null }
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.application.acceptedAt).toBeNull()
+    expect(acceptedCalls()).toHaveLength(0)
+  })
+
+  it("mission ouverte : aucune lecture d'accepted_at", async () => {
+    responses.applications = { data: appRow(), error: null }
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.state).toBe("open")
+    expect(acceptedCalls()).toHaveLength(0)
+  })
+
+  it("étudiant non retenu (closed) : aucune lecture d'accepted_at", async () => {
+    responses.missions = missionsFor({ ...selected, selected_student_id: OTHER })
+    expect((await getStudentMissionDetail(MISSION)).state).toBe("closed")
+    expect(acceptedCalls()).toHaveLength(0)
+  })
+
+  it("aucune candidature : acceptedAt absent, aucune lecture", async () => {
+    responses.missions = missionsFor(selected)
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.application).toBeNull()
+    expect(acceptedCalls()).toHaveLength(0)
+  })
+
+  it("la source n'utilise jamais updated_at comme date de rétention ni le client service", () => {
+    const src = readFileSync("src/lib/actions/student-mission-detail.actions.js", "utf8")
+    expect(src).not.toMatch(/acceptedAt:\s*application\.updated_at/)
+    expect(src).not.toContain("createServiceClient")
+    expect(src).not.toContain("head: true")
   })
 })

@@ -3,6 +3,7 @@
 
 import { requireRole } from "@/lib/auth/require-role"
 import { ANONYMOUS_CLIENT_NAME } from "@/lib/constants/client-name"
+import { readAcceptedAt, validAcceptedAt } from "@/lib/actions/application-accepted-core"
 import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
@@ -52,8 +53,10 @@ const LEDGER_COLUMNS = "type, amount, created_at"
  * @property {"open"|"in_progress"|"done"|"cancelled"} mission.status
  * @property {string} mission.createdAt Date ISO de publication
  * @property {StudentMissionClient} client
- * @property {{ id: string, status: "pending"|"accepted"|"rejected", message: string, createdAt: string, updatedAt: string|null }|null} application
- *   Candidature de l'étudiant connecté à cette mission, sinon null
+ * @property {{ id: string, status: "pending"|"accepted"|"rejected", message: string, createdAt: string, updatedAt: string|null, acceptedAt: string|null }|null} application
+ *   Candidature de l'étudiant connecté à cette mission, sinon null. `acceptedAt` : date de rétention posée par la base
+ *   (applications.accepted_at), lue pour l'état "selected" seulement ; null si colonne absente, NULL, invalide ou erreur.
+ *   `updatedAt` n'est jamais une date de rétention (le client peut la faire varier).
  * @property {boolean} isSelected L'étudiant connecté est le retenu de la mission
  * @property {import("@/lib/student-space/verification-status").VerificationView|null} verification
  *   Statut de vérification calculé côté serveur (jamais de colonne brute) ; null pour une mission suivie ("selected")
@@ -88,6 +91,19 @@ async function readCompletion(supabase, missionId) {
   } catch (error) {
     console.error("[getStudentMissionDetail] fin déclarée", error?.code ?? error?.message)
     throw new Error(ERR_LOAD)
+  }
+}
+
+// Lecture facultative de la date de rétention (accepted_at, posée par la base) : requête séparée, session de l'étudiant
+// (RLS). Colonne absente, ligne absente, date invalide ou erreur : null, la page se rend sans date (journal par code seul).
+async function readRetainedAt(supabase, application) {
+  if (application?.status !== "accepted") return null
+  try {
+    const { available, byId } = await readAcceptedAt(supabase, [application.id])
+    return available && byId.has(application.id) ? validAcceptedAt(byId.get(application.id)) : null
+  } catch (error) {
+    console.error("[getStudentMissionDetail] date de rétention", error?.code ?? "inconnue")
+    return null
   }
 }
 
@@ -148,13 +164,14 @@ export async function getStudentMissionDetail(id) {
   if (!isOpen && !isSelected) return { state: "closed", mission: { id: mission.id } }
 
   const followed = !isOpen && isSelected
-  const [applicationRes, clientRes, similarRes, ledgerRes, reviewRes, verification, completion] = await Promise.all([
-    supabase
-      .from("applications")
-      .select(APPLICATION_COLUMNS)
-      .eq("mission_id", mission.id)
-      .eq("student_id", user.id)
-      .maybeSingle(),
+  const applicationQuery = supabase
+    .from("applications")
+    .select(APPLICATION_COLUMNS)
+    .eq("mission_id", mission.id)
+    .eq("student_id", user.id)
+    .maybeSingle()
+  const [applicationRes, clientRes, similarRes, ledgerRes, reviewRes, verification, completion, acceptedAt] = await Promise.all([
+    applicationQuery,
     supabase.from("profiles").select(CLIENT_COLUMNS).eq("user_id", mission.client_id).maybeSingle(),
     followed
       ? Promise.resolve({ data: [], error: null })
@@ -186,6 +203,8 @@ export async function getStudentMissionDetail(id) {
       : Promise.resolve({ data: null, error: null }),
     followed ? Promise.resolve(null) : readVerification(),
     followed ? readCompletion(supabase, mission.id) : Promise.resolve({ available: false, declaredAt: null }),
+    // Dépend de l'id de la candidature : enchaînée sur sa lecture, en parallèle des autres. Étudiant non retenu : aucune lecture.
+    followed ? applicationQuery.then((res) => (res.error ? null : readRetainedAt(supabase, res.data))) : Promise.resolve(null),
   ])
   const failure = applicationRes.error ?? clientRes.error ?? similarRes.error ?? ledgerRes.error ?? reviewRes.error
   if (failure) {
@@ -218,6 +237,7 @@ export async function getStudentMissionDetail(id) {
           message: application.message ?? "",
           createdAt: application.created_at,
           updatedAt: application.updated_at ?? null,
+          acceptedAt,
         }
       : null,
     isSelected,

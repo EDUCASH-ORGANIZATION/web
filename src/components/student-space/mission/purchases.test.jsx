@@ -160,7 +160,7 @@ describe("E05 suivi d'une mission avec achats", () => {
     expect(html).not.toContain("À confirmer")
   })
 
-  it("aucune date de rétention affichée (applications.updated_at n'est pas fiable) ni ligne provisoire d'achats", () => {
+  it("aucune date de rétention sans accepted_at (updatedAt ignoré) ni ligne provisoire d'achats", () => {
     expect(html).not.toContain("retenue le")
     expect(html).not.toContain("non bloqués")
   })
@@ -217,12 +217,18 @@ describe("dates invalides : jamais de plantage", () => {
   })
 })
 
-describe("étape Retenue sans date, constante du client anonyme, titre masqué", () => {
-  it("l'étape « retenue » n'a aucun sous-titre de date, les autres étapes gardent la leur", () => {
+describe("étape Retenue datée par accepted_at seulement, constante du client anonyme, titre masqué", () => {
+  it("sans accepted_at, l'étape « retenue » n'a aucun sous-titre de date (updatedAt ignoré), les autres étapes gardent la leur", () => {
     const html = follow(followed())
     expect(html).toContain("Votre candidature a été retenue")
     expect(html).not.toContain("8 octobre 2026")
     expect(html).toContain("7 octobre 2026")
+  })
+
+  it("avec accepted_at, l'étape « retenue » porte cette date, pas celle d'updatedAt", () => {
+    const html = follow(followed("in_progress", { application: { id: "a1", status: "accepted", message: "Bonjour", createdAt: "2026-10-07T09:00:00Z", updatedAt: "2026-10-09T08:00:00Z", acceptedAt: "2026-10-08T08:00:00Z" } }))
+    expect(html).toContain("8 octobre 2026")
+    expect(html).not.toContain("9 octobre 2026")
   })
 
   it("l'action et la vue utilisent la même constante du nom anonyme", () => {
