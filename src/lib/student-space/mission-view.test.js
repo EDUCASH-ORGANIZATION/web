@@ -89,7 +89,19 @@ describe("buildTimeline", () => {
     expect(keys(steps)).toEqual(["applied:done", "selected:done", "paid:done", "reviewed:now"])
     expect(steps[2].date).toBe("2026-10-20T10:00:00Z")
     expect(steps[0].date).toBe("2026-10-02T09:00:00Z")
-    expect(steps[1].date).toBe("2026-10-03T09:00:00Z")
+    expect(steps[1].date).toBeNull() // sans accepted_at, l'étape n'a pas de date (updatedAt ignoré)
+  })
+  it("retenue : la date est accepted_at, jamais updatedAt même fourni avec une autre valeur", () => {
+    const withDate = selected("in_progress", { application: app({ status: "accepted", acceptedAt: "2026-10-04T10:00:00Z", updatedAt: "2026-10-09T09:00:00Z" }) })
+    expect(buildTimeline(withDate)[1].date).toBe("2026-10-04T10:00:00Z")
+    const withoutDate = selected("in_progress", { application: app({ status: "accepted", acceptedAt: null, updatedAt: "2026-10-09T09:00:00Z" }) })
+    expect(buildTimeline(withoutDate)[1].date).toBeNull()
+    expect(buildTimeline(selected("in_progress", { application: null }))[1].date).toBeNull()
+  })
+  it("annulée : la date de retenue est gardée si connue", () => {
+    const steps = buildTimeline(selected("cancelled", { application: app({ status: "accepted", acceptedAt: "2026-10-04T10:00:00Z" }) }))
+    expect(steps.map((s) => s.key)).toEqual(["applied", "selected"])
+    expect(steps[1].date).toBe("2026-10-04T10:00:00Z")
   })
   it("terminée notée : avis fait, daté", () => {
     const steps = buildTimeline(selected("done", { review: { id: "r", rating: 5, comment: null, createdAt: "2026-10-21T00:00:00Z" } }))

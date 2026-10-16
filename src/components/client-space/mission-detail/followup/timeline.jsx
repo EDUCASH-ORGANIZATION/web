@@ -15,6 +15,13 @@ export function formatMoment(iso) {
   return `${day} · ${time}`
 }
 
+/** Jour au Bénin, ex. "8 oct.". Chaîne vide si la date est absente ou invalide. */
+export function formatDay(iso) {
+  const date = new Date(iso ?? "")
+  if (!iso || Number.isNaN(date.getTime())) return ""
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", timeZone: MOMENT_TZ }).format(date)
+}
+
 /** Date du dernier mouvement du grand livre d'un type, ou null. */
 export function movementDate(ledger, type) {
   const dates = (Array.isArray(ledger) ? ledger : []).filter((m) => m?.type === type).map((m) => String(m.createdAt))
@@ -31,16 +38,18 @@ export function movementDate(ledger, type) {
  */
 export function buildTimeline(detail, view, studentName) {
   const { mission, ledger } = detail
-  const items = [{ state: "done", icon: "i-check", title: "Mission publiée", meta: formatMoment(mission.createdAt) }]
+  const items = []
 
   if (view.reservedAt) {
     const amount = view.receipt.reserved || view.split.total
     items.push({
       state: "done",
-      icon: "i-lock",
-      title: `${formatAmount(amount)} placés en séquestre`,
-      meta: formatMoment(view.reservedAt),
+      icon: "i-check",
+      title: `Publiée, ${formatAmount(amount)} en séquestre`,
+      meta: formatMoment(mission.createdAt),
     })
+  } else {
+    items.push({ state: "done", icon: "i-check", title: "Mission publiée", meta: formatMoment(mission.createdAt) })
   }
 
   if (mission.status === "cancelled") {
@@ -66,6 +75,7 @@ export function buildTimeline(detail, view, studentName) {
       title: `Fonds libérés : ${formatAmount(view.split.student)} à ${studentName}`,
       meta: formatMoment(movementDate(ledger, "release")),
     })
+    if (!detail.review) items.push({ state: "current", icon: "i-star", title: "Avis à laisser" })
     return items
   }
 

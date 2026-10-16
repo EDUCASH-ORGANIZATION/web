@@ -5,6 +5,7 @@
 .c2 .drawer:not(.ds-drawer--full) { width: 520px; border-radius: 24px 0 0 24px; }
 .c2 .drawer.ds-drawer--full { border-left: 0; }
 .c2 .drawer__head { border-bottom: 1px solid var(--c-ligne); }
+.c2 .drawer__head .av2 { width: 56px; height: 56px; font-size: 18px; }
 .c2 .drawer__foot { border-top: 1px solid var(--c-ligne); align-items: center; }
 .c2 .drawer__foot .btn--dark { margin-left: auto; }
 .c2 .drawer__body { gap: var(--s-5); }

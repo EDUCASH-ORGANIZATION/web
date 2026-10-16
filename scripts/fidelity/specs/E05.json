@@ -1,0 +1,189 @@
+{
+  "id": "E05",
+  "title": "Mission retenue, suivi (avec achats)",
+  "planche": "etudiant/E05-mission-retenue-suivi.v2.html",
+  "screen": "e05",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale)",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 1,
+      "selectors": [
+        {
+          "id": "MI-24",
+          "label": "titre",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "h": "A2:3"
+          },
+          "note": "h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-24",
+          "label": "ligne date",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "tw"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "tw": "A8+X1:17"
+          },
+          "note": "tw : la référence EDC-M-xxxx est omise (aucune référence en base, A8) et la date vient de applications.accepted_at (posée par la base) : « retenue le 8 octobre 2026 » en toutes lettres (safeDateFr) contre « retenue le 2 oct. » / « retenue ce matin » dans la planche, et le type affiché est « Marché et achats » ou « Cours particuliers » ; les deux effets se compensent presque, écart net +17 mesuré ; A8 couvre la référence omise, X1 reste déclaré parce que le format de date long « 8 octobre 2026 » contre « 2 oct. » est un choix de format, pas une omission (fixture : accepted_at 2026-10-08, updated_at différent pour prouver qu'il n'est pas lu)"
+        },
+        {
+          "id": "MI-24",
+          "label": "méta",
+          "board": ".e2-05-meta",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-24",
+          "label": "badge Avec achats",
+          "board": ".e2-05-meta .badge",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "x": "X1:11",
+            "y": "A3:3",
+            "w": "A2:6"
+          },
+          "note": "x : Texte de date différent : planche « Aujourd'hui, avant 13:00 », code « Jusqu'au 10 octobre 2999 » (formatDateFr en toutes lettres dans mission-header.jsx) ; y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; w : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (badge 12 px porté à 13 px)"
+        },
+        {
+          "id": "MI-23",
+          "label": "grille",
+          "board": ".e2-cols",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "cols",
+            "gap"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A8:51"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : les demandes de paiement d'achats de la planche (3 lignes, total) sont omises par la décision 24 (achats = photos dans la conversation, aucune carte « Demande de paiement »), bloc réduit « Achats de la mission » (D3) ; la colonne droite devient la plus haute"
+        },
+        {
+          "id": "MI-23",
+          "label": "carte achats",
+          "board": ".e2-stack:not(.e2-05-aside) > :first-child",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A8:341"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : les demandes de paiement d'achats de la planche sont omises par la décision 24 (aucune carte « Demande de paiement »), bloc réduit « Achats de la mission » (D3)"
+        },
+        {
+          "id": "MI-25",
+          "label": "carte gain",
+          "board": ".e2-05-aside > section:nth-child(1)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A2:3"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-25",
+          "label": "carte fin",
+          "board": ".e2-05-aside > section:nth-child(2)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "y": "A2+A3:6"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page) ; Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
+        },
+        {
+          "id": "MI-25",
+          "label": "carte client",
+          "board": ".e2-05-aside > section:nth-child(3)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "h": "A2:1"
+          },
+          "note": "h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) ; Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
+        },
+        {
+          "id": "MI-25",
+          "label": "lien Écrire",
+          "board": ".e2-05-actions .e2-link",
+          "props": [
+            "x",
+            "y",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "note": "Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
+        }
+      ]
+    }
+  ]
+}

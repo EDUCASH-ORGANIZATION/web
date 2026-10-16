@@ -1,0 +1,80 @@
+{
+  "id": "E05-0m",
+  "title": "Mission retenue, suivi (sans achats, mobile)",
+  "planche": "etudiant/E05-mission-retenue-suivi.v2.html",
+  "screen": "e05-0m",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale)",
+  "views": [
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        1064
+      ],
+      "frame": "phone",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "MI-X",
+          "label": "en-tête",
+          "board": ".e2-mtop",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "x": "X1:8",
+            "w": "X1:24"
+          },
+          "note": "x : La planche étire l'en-tête sur 390 px (x0, w390) ; le code le décale de 8 px à gauche (marge négative de .e2-mtop dans student/base.css, coquille hors lot) ; w : La planche étire l'en-tête sur 390 px (x0, w390) ; le code le décale de 8 px à gauche (marge négative de .e2-mtop dans student/base.css, coquille hors lot)"
+        },
+        {
+          "id": "MI-24",
+          "label": "titre",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "X1:17",
+            "w": "X1:25",
+            "h": "X1:2",
+            "fontSize": "X1:4"
+          },
+          "note": "y : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; boîte du titre plus large dans la planche ; w : la boîte du titre prend la largeur de la ligne de date « Cours particuliers · retenue le 8 octobre 2026 » (accepted_at, date en toutes lettres, plus longue que celle de la planche mobile qui n'a pas de ligne retenue), donc plus large que celle de la planche, +25 mesuré ; h : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; boîte du titre plus large dans la planche ; fontSize : Titre mobile à 26 px dans la coquille (app-shell.css:449, hors lot) contre 30 px dans la planche ; boîte du titre plus large dans la planche"
+        },
+        {
+          "id": "MI-24",
+          "label": "méta",
+          "board": ".e2-05-meta",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "X1:10",
+            "h": "X1:28"
+          },
+          "note": "La planche mobile montre un badge « En cours » puis la date sur une ligne, sans ville ; le code garde la ville, la date longue (mission-header.jsx) et une 2e ligne : choix de design de la planche mobile non repris"
+        }
+      ]
+    }
+  ]
+}

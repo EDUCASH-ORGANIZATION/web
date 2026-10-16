@@ -7,11 +7,12 @@ export const commissionLabel = () => `Commission EduCash ${Math.round(COMMISSION
 
 /**
  * Carte « Séquestre » d'une mission en cours : budget bloqué, commission, part de l'étudiant et bouton
- * « Confirmer la fin » (encre). Les montants viennent de escrowSplit (`split`).
+ * « Confirmer la fin » (encre). Les montants viennent de escrowSplit (`split`). Avec achats, la note rappelle que
+ * seul le service est bloqué (`since` : date du blocage, déjà mise en forme, ou vide).
  */
-export function EscrowCard({ split, studentName, onConfirm }) {
+export function EscrowCard({ split, studentName, onConfirm, withPurchases = false, since = "" }) {
   return (
-    <section className="card2" aria-label="Séquestre">
+    <section className="card2 fup2__money" aria-label="Séquestre">
       <div className="sec2">
         <h2 className="sec2__title">Séquestre</h2>
         <StatusBadge label="En séquestre" icon="i-lock" />
@@ -29,7 +30,11 @@ export function EscrowCard({ split, studentName, onConfirm }) {
       </button>
       <p className="note2">
         <Icon name="i-lock" />
-        <span>Les fonds ne sont versés qu&apos;après votre validation de la fin de la mission.</span>
+        <span>
+          {withPurchases
+            ? `${since ? `Bloqué le ${since} pour` : "Bloqué pour"} le service seulement. Les achats ne passent pas par EduCash.`
+            : "Les fonds ne sont versés qu'après votre validation de la fin de la mission."}
+        </span>
       </p>
     </section>
   )

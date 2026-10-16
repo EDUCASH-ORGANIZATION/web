@@ -1,0 +1,333 @@
+{
+  "id": "C11",
+  "title": "Mission terminée avec achats, non notée (client)",
+  "planche": "client/C11-mission-terminee-ou-annulee.v2.html",
+  "screen": "c11",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : encre et givre de la charte. A2 : texte de 12 px des planches porté à 13 px (--t-micro), 13 px à 14 px (--t-caption) ; RD-FIX-03",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 1,
+      "selectors": [
+        {
+          "id": "MI-10",
+          "label": "date de page",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "tw"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-10",
+          "label": "titre",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "fontSize"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-10",
+          "label": "grille",
+          "board": ".split2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "gap",
+            "cols"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
+          "id": "MI-10",
+          "label": "colonne gauche",
+          "board": ".split2 > .col2:nth-child(1)",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-10",
+          "label": "colonne droite",
+          "board": ".split2 > .col2:nth-child(2)",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "ST-09"
+        },
+        {
+          "id": "MI-10",
+          "label": "carte À faire",
+          "board": "section.card2[aria-label=\"À faire\"]",
+          "code": "section.card2[aria-label=\"Votre avis\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
+          "id": "MI-10",
+          "label": "À faire : drapeau",
+          "board": "section.card2[aria-label=\"À faire\"] .flag2",
+          "code": "section.card2[aria-label=\"Votre avis\"] .flag2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3",
+            "w": "A2:4",
+            "bg": "A1"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A2 : texte du drapeau de 12 à 13 px, largeur +4 px. A1 sur bg : le citron de la charte (#C1EE3E, --c-citron) remplace le #C8F03C de la planche"
+        },
+        {
+          "id": "MI-10",
+          "label": "À faire : titre",
+          "board": "section.card2[aria-label=\"À faire\"] .status2__title",
+          "code": "section.card2[aria-label=\"Votre avis\"] .status2__title",
+          "props": [
+            "y",
+            "h",
+            "fontSize"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
+          "id": "MI-10",
+          "label": "À faire : bouton Noter",
+          "board": "section.card2[aria-label=\"À faire\"] .btn",
+          "code": "section.card2[aria-label=\"Votre avis\"] .btn",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
+          "id": "MI-10",
+          "label": "carte achats",
+          "board": "section.card2[aria-label=\"Achats payés en direct\"]",
+          "code": "section.card2[aria-label=\"Achats pour votre compte\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3",
+            "h": "A8:200"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : lignes « N° 1 » et « N° 2 » (vendeur, code marchand, statut « Reçu par le vendeur », montant payé) et lignes « Total payé par vous aux vendeurs » absentes de la carte achats (décision 24 révisée, aucune donnée de vendeur ni de montant payé : seule l'estimation est affichée) : -200 px. "
+        },
+        {
+          "id": "MI-10",
+          "label": "achats : badge « Hors EduCash »",
+          "board": "section.card2[aria-label=\"Achats payés en direct\"] .badge",
+          "code": "section.card2[aria-label=\"Achats pour votre compte\"] .badge",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "x": "A2:7",
+            "w": "A2:7"
+          },
+          "note": "A2 : texte du badge porté de 12 à 13 px, largeur +7 px, le badge reste calé à droite"
+        },
+        {
+          "id": "MI-10",
+          "label": "chronologie",
+          "board": "section.card2[aria-label=\"Chronologie\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3+A8:197",
+            "h": "A8:89"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : lignes « N° 1 » et « N° 2 » (vendeur, code marchand, statut « Reçu par le vendeur », montant payé) et lignes « Total payé par vous aux vendeurs » absentes de la carte achats (décision 24 révisée, aucune donnée de vendeur ni de montant payé : seule l'estimation est affichée) : -200 px. Chronologie : les étapes « 2 achats payés en direct : 13 650 FCFA » et « Livraison à Cadjèhoun » (heure de livraison) sont absentes (aucune donnée d'achat payé ni de livraison) et l'étape « retenu » n'a pas de date (non connue) : -89 px (A8)"
+        },
+        {
+          "id": "MI-10",
+          "label": "carte reçu",
+          "board": "section.card2[aria-label=\"Reçu du service\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3",
+            "h": "A8:71"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : ligne « Référence EDC-R-0436 » (référence non codée, D4) et lien « Télécharger le reçu (PDF) » (non codé, D4) absents : -42 px et -29 px. Écart décidé : la carte « Coût total » (service + achats payés en direct) est omise, la planche additionne des montants d'achats payés qui n'existent pas en base"
+        },
+        {
+          "id": "MI-10",
+          "label": "reçu : badge « Payé »",
+          "board": "section.card2[aria-label=\"Reçu du service\"] .badge",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "x": "A2:2",
+            "w": "A2:3"
+          },
+          "note": "A2 : texte du badge porté de 12 à 13 px, largeur +3 px"
+        },
+        {
+          "id": "MI-10",
+          "label": "reçu : lignes du service",
+          "board": "section.card2[aria-label=\"Reçu du service\"] .lines2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
+          "id": "MI-10",
+          "label": "reçu : lignes du paiement",
+          "board": "section.card2[aria-label=\"Reçu du service\"] .sec2 + .lines2 + .lines2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "A3:3",
+            "h": "A8:42"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : ligne « Référence EDC-R-0436 » absente (référence non codée, D4) : -42 px"
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        844
+      ],
+      "frame": "phone",
+      "frameIndex": 1,
+      "selectors": [
+        {
+          "id": "MI-10",
+          "label": "carte reçu",
+          "board": "section.card2[aria-label=\"Reçu du service\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:100"
+          },
+          "note": "X1 : en-tête mobile du code plus haut que celui de la planche (voir C08 mobile, lot ST-03)"
+        },
+        {
+          "id": "MI-10",
+          "label": "carte achats",
+          "board": "section.card2[aria-label=\"Achats payés en direct\"]",
+          "code": "section.card2[aria-label=\"Achats pour votre compte\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-09",
+          "assume": {
+            "y": "X1:231"
+          },
+          "note": "X1 : décalage de l'en-tête mobile et hauteur du reçu du code (reçu complet avec « Libéré le » et « Moyen » contre un reçu compact de 2 lignes dans la planche mobile). Lot : aucun, écart décidé : le reçu complet est conservé sur mobile (ni PDF ni référence codés, rien à compacter sans perdre « Libéré le »)"
+        }
+      ]
+    }
+  ]
+}

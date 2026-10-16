@@ -265,6 +265,8 @@
 
 /* Méta d'une mission sous le titre */
 .meta2 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: var(--t-body-s); color: var(--c-ardoise); font-weight: var(--fw-semibold); }
+/* Méta sous le titre des détails de mission (planches C04, C07, C08, C09, C11) : 10 px sous le titre, 8 px en mobile */
+.c2 .head2 + .meta2 { margin-top: 10px; }
 .meta2 span { display: inline-flex; align-items: center; gap: 6px; }
 .meta2 .ic { width: 16px; height: 16px; stroke-width: 1.75; }
 
@@ -284,6 +286,7 @@
 @media (max-width: 1023.98px) {
   .split2, .split2--wide { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
   .col2 { gap: var(--s-4); }
+  .c2 .head2 + .meta2 { margin-top: var(--s-2); }
   .c2 .tabs { gap: var(--s-5); }
   .card2--flush > .sec2 { padding: var(--s-4); }
   .item2--mission { grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--s-3); padding: var(--s-4); }

@@ -7,9 +7,9 @@ import { ApplyPanel } from "./apply/apply-form"
 import { ClientCard } from "./apply/client-card"
 import { GainRecap } from "./apply/gain-recap"
 import { SimilarMissions } from "./apply/similar-missions"
+import { PurchasesSteps } from "./apply/purchases-steps"
 import { missionDetailView } from "@/lib/student-space/mission-view"
-import { missionTypeLabel } from "@/lib/constants/missions"
-import { formatDateFr } from "@/lib/app/format"
+import { formatAmount } from "@/lib/app/format"
 import { studentMissionsHref, studentVerifyHref } from "@/lib/app/student-routes"
 
 const REPORT_HREF = "/contact?sujet=question"
@@ -81,29 +81,25 @@ function panelMode(view, application) {
   return "blocked"
 }
 
-function DetailsSection({ mission }) {
-  const rows = [
-    ["Type", missionTypeLabel(mission.type)],
-    mission.city ? ["Lieu", mission.city] : null,
-    mission.deadline ? ["Échéance", formatDateFr(mission.deadline)] : null,
-    mission.urgency === "high" ? ["Urgence", "Urgente"] : null,
-  ].filter(Boolean)
+/**
+ * Encadré givre de la description d'une mission avec achats : seul le service est en séquestre (si les paiements sont
+ * ouverts), les achats sont payés par le client en direct. Le montant du service n'est cité que s'il est valide.
+ */
+function PurchasesNote({ budget, purchases, paymentsEnabled, className }) {
+  const service = Number.isFinite(budget) && budget > 0 ? ` (${formatAmount(budget)})` : ""
+  const lead = paymentsEnabled
+    ? `Seul le service${service} est bloqué en séquestre.`
+    : `Seul le service${service} passera par EduCash ; montants indicatifs tant que les paiements ne sont pas ouverts.`
   return (
-    <section className="e2-sec" aria-label="Détails">
-      <div className="e2-sec__head">
-        <h2 className="e2-sec__title">Détails</h2>
-      </div>
-      <div className="e2-sec__body">
-        <div className="e2-kv">
-          {rows.map(([label, value]) => (
-            <div className="e2-kv__row" key={label}>
-              <span>{label}</span>
-              <b>{value}</b>
-            </div>
-          ))}
+    <div className={className}>
+      <Icon name="i-receipt" />
+      <div className="e2-note__body">
+        <div className="e2-note__title">Mission avec achats</div>
+        <div className="e2-note__text">
+          {`${lead} Les achats, estimés à environ ${formatAmount(purchases)}, sont payés par le client directement aux vendeurs par MoMo : l'argent ne passe ni par vous ni par EduCash.`}
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
@@ -141,6 +137,9 @@ export function MissionApplyView({ detail, flags }) {
   const mode = panelMode(view, application)
   const note = stateNote({ mode, verification })
   const back = { href: studentMissionsHref(), label: "Missions" }
+  const paymentsOn = flags?.paymentsEnabled === true
+  const split = view.gainValid ? view.split : null
+  const purchases = view.purchases
 
   return (
     <>
@@ -153,7 +152,7 @@ export function MissionApplyView({ detail, flags }) {
           <Icon name="i-flag" />
         </Link>
       </header>
-      <MissionHeader mission={mission} status={view.status} back={back} />
+      <MissionHeader mission={mission} back={back} withPurchasesLine={false} />
       {note ? <div className="ds-mob-only">{note}</div> : null}
       <div className="e2-cols">
         <div className="e2-stack">
@@ -163,18 +162,36 @@ export function MissionApplyView({ detail, flags }) {
             </div>
             <div className="e2-sec__body">
               <p className="e2-text e2-03-desc">{mission.description}</p>
+              {purchases ? (
+                <PurchasesNote
+                  className="e2-note ds-desk-only"
+                  budget={mission.budget}
+                  purchases={purchases}
+                  paymentsEnabled={paymentsOn}
+                />
+              ) : null}
             </div>
           </section>
-          <DetailsSection mission={mission} />
-          <section className="e2-sec ds-mob-only" aria-label="Ce que vous touchez">
-            <div className="e2-sec__head">
-              <h2 className="e2-sec__title">Ce que vous touchez</h2>
-            </div>
-            <div className="e2-sec__body">
-              <GainRecap split={view.split} />
-            </div>
-          </section>
-          <ClientCard client={client} budget={mission.budget} paymentsEnabled={flags?.paymentsEnabled === true} />
+          {purchases ? (
+            <PurchasesNote
+              className="e2-note ds-mob-only"
+              budget={mission.budget}
+              purchases={purchases}
+              paymentsEnabled={paymentsOn}
+            />
+          ) : null}
+          {split ? (
+            <section className="e2-sec ds-mob-only" aria-label="Ce que vous touchez">
+              <div className="e2-sec__head">
+                <h2 className="e2-sec__title">Ce que vous touchez</h2>
+              </div>
+              <div className="e2-sec__body">
+                <GainRecap split={split} purchases={purchases} />
+              </div>
+            </section>
+          ) : null}
+          {purchases ? <PurchasesSteps clientName={client.name} paymentsEnabled={paymentsOn} /> : null}
+          <ClientCard client={client} budget={mission.budget} paymentsEnabled={paymentsOn} withPurchases={Boolean(purchases)} />
           <SimilarMissions missions={similar} type={missionType} />
           <div>
             <Link className="e2-link e2-link--quiet" href={REPORT_HREF}>
@@ -188,7 +205,8 @@ export function MissionApplyView({ detail, flags }) {
             mode={mode}
             mission={{ id: mission.id, title: mission.title }}
             clientName={client.name}
-            split={view.split}
+            split={split}
+            purchases={purchases}
             verification={verification}
             application={
               application

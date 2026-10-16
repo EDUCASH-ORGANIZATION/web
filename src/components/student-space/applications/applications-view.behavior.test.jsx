@@ -11,7 +11,7 @@ const COUNTS = { "en-attente": 0, "en-cours": 0, terminees: 0, "non-retenues": 0
 const row = (over) => ({
   id: "a1", missionId: "m1", title: "Cours de maths", type: "Cours particuliers", city: "Cotonou", budget: 25000, net: 22000,
   deadline: "2026-10-30", missionStatus: "open", status: "pending", appliedAt: "2026-10-01T10:00:00Z",
-  updatedAt: "2026-10-01T10:00:00Z", clientName: "Rosine H.", clientFirst: "Rosine", review: null, ...over,
+  updatedAt: "2026-10-01T10:00:00Z", acceptedAt: null, clientName: "Rosine H.", clientFirst: "Rosine", review: null, ...over,
 })
 const highlight = (over) => ({
   missionId: "m9", title: "Livraison", city: "Ganhi", deadline: "2026-10-09", net: 5280,
@@ -103,6 +103,29 @@ describe("heures", () => {
     }
     expect(render(data({ highlight: highlight({ acceptedAt: undefined }) }))).not.toMatch(BAD)
     expect(render(data({ highlight: highlight({ acceptedAt: null }) }))).not.toMatch(BAD)
+  })
+
+  it("carte retenue sans date (null) : drapeau « Retenue » seul, titre et texte conservés, aucune date", () => {
+    const html = render(data({ highlight: highlight({ acceptedAt: null }) }))
+    const t = text(html)
+    expect(html).not.toMatch(BAD)
+    expect(t).toMatch(/Retenue(?! (hier|aujourd|le ))/)
+    expect(t).toContain("a retenu votre candidature")
+    expect(t).toContain("Livraison")
+    expect(html).not.toContain("e2-04-hl__at")
+    expect(t).not.toMatch(/1970|\d{1,2}:\d{2}/)
+  })
+
+  it("note de l'onglet En cours : date d'accepted_at, jamais d'updatedAt", () => {
+    const en = (over) => data({ tab: "en-cours", counts: { ...COUNTS, "en-cours": 1 }, rows: [row({ status: "accepted", missionStatus: "in_progress", updatedAt: "2026-10-08T10:00:00Z", ...over })] })
+    const dated = text(render(en({ acceptedAt: "2026-10-03T17:40:00+01:00" })))
+    expect(dated).toMatch(/Retenue le .*3 oct/)
+    for (const acceptedAt of [null, undefined, "", "pas une date"]) {
+      const html = render(en({ acceptedAt }))
+      expect(html).not.toMatch(BAD)
+      expect(text(html)).toContain("Retenue")
+      expect(text(html)).not.toMatch(/Retenue le|1970|8 oct/)
+    }
   })
 
   it("fuseau Bénin (UTC+1) : 23:30 UTC s'affiche à 00:30 le lendemain", () => {

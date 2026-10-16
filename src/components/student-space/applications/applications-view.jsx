@@ -113,7 +113,9 @@ function statusOf(row, tab, unread, now) {
   }
   if (tab === "en-cours") {
     const view = missionStatusView({ status: row.missionStatus })
-    return { view, icon: undefined, note: `Retenue le ${formatShortDate(row.updatedAt)}` }
+    // Date de rétention posée par la base (accepted_at) ; sans date valide, « Retenue » seul.
+    const note = row.acceptedAt && dayOf(row.acceptedAt) ? `Retenue le ${formatShortDate(row.acceptedAt)}` : "Retenue"
+    return { view, icon: undefined, note }
   }
   if (tab === "terminees") {
     const view = missionStatusView({ status: row.missionStatus })

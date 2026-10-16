@@ -81,7 +81,7 @@
           "assume": {
             "y": "A3:3"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; RD-ACCEPT-01 : la date de rétention vient de applications.accepted_at, le banc rend la fixture AVEC date (mesures inchangées) ; sans date le drapeau dit « Retenue » seul, cas hors mesure"
         },
         {
           "id": "CA-02",
@@ -98,9 +98,9 @@
           "assume": {
             "y": "A3:3",
             "w": "A2:10",
-            "bg": "X1"
+            "bg": "A1"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : étiquette 12 -> 13 px, largeur +10 mesuré ; X1 sur bg : vert de la charte #C1EE3E (--c-citron) au lieu de #C8F03C de la planche, absent de la table A1 du banc (compare.mjs hors périmètre de ST-11)"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : étiquette 12 -> 13 px, largeur +10 mesuré ; A1 sur bg : citron de la charte #C1EE3E (--c-citron) au lieu de #C8F03C de la planche"
         },
         {
           "id": "CA-02",
@@ -420,7 +420,7 @@
           "assume": {
             "y": "L3:12"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12)"
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; RD-ACCEPT-01 : la date de rétention vient de applications.accepted_at, le banc rend la fixture AVEC date (mesures inchangées) ; sans date le drapeau dit « Retenue » seul, cas hors mesure"
         },
         {
           "id": "CA-02",
@@ -438,9 +438,9 @@
           "assume": {
             "y": "L3:12",
             "w": "A2:9",
-            "bg": "X1"
+            "bg": "A1"
           },
-          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; A2 : étiquette 12 -> 13 px, largeur +9 mesuré ; X1 sur bg : vert de la charte #C1EE3E (--c-citron) au lieu de #C8F03C de la planche, absent de la table A1 du banc (compare.mjs hors périmètre de ST-11)"
+          "note": "L3 : décalage vertical de la coquille mobile (lot 3), mesuré, non masqué (+12) ; A2 : étiquette 12 -> 13 px, largeur +9 mesuré ; A1 sur bg : citron de la charte #C1EE3E (--c-citron) au lieu de #C8F03C de la planche"
         },
         {
           "id": "CA-02",

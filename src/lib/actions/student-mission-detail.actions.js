@@ -2,6 +2,8 @@
 "use server"
 
 import { requireRole } from "@/lib/auth/require-role"
+import { ANONYMOUS_CLIENT_NAME } from "@/lib/constants/client-name"
+import { readAcceptedAt, validAcceptedAt } from "@/lib/actions/application-accepted-core"
 import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
@@ -18,7 +20,7 @@ const SIMILAR_LIMIT = 4
 // l'affichage. Aucune colonne privée (téléphone, carte, motif de refus...).
 const MISSION_COLUMNS =
   "id, title, description, type, city, budget, urgency, deadline, status, created_at, client_id, selected_student_id, purchases_estimate"
-const APPLICATION_COLUMNS = "id, status, message, created_at, updated_at"
+const APPLICATION_COLUMNS = "id, status, message, created_at"
 const CLIENT_COLUMNS = "full_name, city, avatar_url, rating, missions_done, is_verified"
 const SIMILAR_COLUMNS = "id, title, type, city, budget, deadline"
 // Seule la ligne `release` du grand livre de l'étudiant (son NET, sous son user_id) est lue : jamais la ligne brute
@@ -51,8 +53,9 @@ const LEDGER_COLUMNS = "type, amount, created_at"
  * @property {"open"|"in_progress"|"done"|"cancelled"} mission.status
  * @property {string} mission.createdAt Date ISO de publication
  * @property {StudentMissionClient} client
- * @property {{ id: string, status: "pending"|"accepted"|"rejected", message: string, createdAt: string, updatedAt: string|null }|null} application
- *   Candidature de l'étudiant connecté à cette mission, sinon null
+ * @property {{ id: string, status: "pending"|"accepted"|"rejected", message: string, createdAt: string, acceptedAt: string|null }|null} application
+ *   Candidature de l'étudiant connecté à cette mission, sinon null. `acceptedAt` : date de rétention posée par la base
+ *   (applications.accepted_at), lue pour l'état "selected" seulement ; null si colonne absente, NULL, invalide ou erreur.
  * @property {boolean} isSelected L'étudiant connecté est le retenu de la mission
  * @property {import("@/lib/student-space/verification-status").VerificationView|null} verification
  *   Statut de vérification calculé côté serveur (jamais de colonne brute) ; null pour une mission suivie ("selected")
@@ -90,6 +93,19 @@ async function readCompletion(supabase, missionId) {
   }
 }
 
+// Lecture facultative de la date de rétention (accepted_at, posée par la base) : requête séparée, session de l'étudiant
+// (RLS). Colonne absente, ligne absente, date invalide ou erreur : null, la page se rend sans date (journal par code seul).
+async function readRetainedAt(supabase, application, studentId) {
+  if (application?.status !== "accepted") return null
+  try {
+    const { available, byId } = await readAcceptedAt(supabase, [application.id], { studentId })
+    return available && byId.has(application.id) ? validAcceptedAt(byId.get(application.id)) : null
+  } catch (error) {
+    console.error("[getStudentMissionDetail] date de rétention", error?.code ?? error?.name ?? "inconnue")
+    return null
+  }
+}
+
 async function readVerification() {
   const [profileRes, studentRes] = await Promise.all([getMyProfile(), getMyStudentProfile()])
   if (profileRes.error || studentRes.error || !profileRes.profile) {
@@ -105,7 +121,7 @@ async function readVerification() {
 function toClient(profile) {
   const hasName = typeof profile?.full_name === "string" && profile.full_name.trim() !== ""
   return {
-    name: hasName ? publicDisplayName(profile.full_name) : "Client EduCash",
+    name: hasName ? publicDisplayName(profile.full_name) : ANONYMOUS_CLIENT_NAME,
     avatarUrl: toProjectAvatarUrl(profile?.avatar_url),
     city: profile?.city ?? null,
     rating: Number(profile?.rating) || 0,
@@ -147,13 +163,18 @@ export async function getStudentMissionDetail(id) {
   if (!isOpen && !isSelected) return { state: "closed", mission: { id: mission.id } }
 
   const followed = !isOpen && isSelected
-  const [applicationRes, clientRes, similarRes, ledgerRes, reviewRes, verification, completion] = await Promise.all([
+  // Le builder PostgREST est paresseux : chaque `.then()` relance une requête HTTP. Promise.resolve l'exécute UNE fois,
+  // et la promesse est partagée entre le Promise.all et la lecture de la date de rétention.
+  const applicationPromise = Promise.resolve(
     supabase
       .from("applications")
       .select(APPLICATION_COLUMNS)
       .eq("mission_id", mission.id)
       .eq("student_id", user.id)
       .maybeSingle(),
+  )
+  const [applicationRes, clientRes, similarRes, ledgerRes, reviewRes, verification, completion, acceptedAt] = await Promise.all([
+    applicationPromise,
     supabase.from("profiles").select(CLIENT_COLUMNS).eq("user_id", mission.client_id).maybeSingle(),
     followed
       ? Promise.resolve({ data: [], error: null })
@@ -185,6 +206,8 @@ export async function getStudentMissionDetail(id) {
       : Promise.resolve({ data: null, error: null }),
     followed ? Promise.resolve(null) : readVerification(),
     followed ? readCompletion(supabase, mission.id) : Promise.resolve({ available: false, declaredAt: null }),
+    // Dépend de l'id de la candidature : enchaînée sur sa lecture, en parallèle des autres. Étudiant non retenu : aucune lecture.
+    followed ? applicationPromise.then((res) => (res.error ? null : readRetainedAt(supabase, res.data, user.id))) : Promise.resolve(null),
   ])
   const failure = applicationRes.error ?? clientRes.error ?? similarRes.error ?? ledgerRes.error ?? reviewRes.error
   if (failure) {
@@ -216,7 +239,7 @@ export async function getStudentMissionDetail(id) {
           status: application.status,
           message: application.message ?? "",
           createdAt: application.created_at,
-          updatedAt: application.updated_at ?? null,
+          acceptedAt,
         }
       : null,
     isSelected,

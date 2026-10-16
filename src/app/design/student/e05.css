@@ -38,6 +38,14 @@
 .e2-05-actions .e2-link { min-width: 0; }
 
 @media (max-width: 1023.98px) {
+  /* Le retour est porté par l'en-tête de sous-page (.e2-mtop) */
+  .e2-05-top .e2-back { display: none; }
+  /* Mission avec achats (planche) : « Ce que vous touchez » puis les achats, avant la chronologie */
+  .e2-cols:has(> .e2-05-aside) > .e2-stack, .e2-05-aside { display: contents; }
+  .e2-05-lines--p { order: -2; }
+  /* Seulement la légende « Seul le service est bloqué en séquestre » (paiements ouverts) : jamais la mention des paiements en pause ni celle de l'annulation */
+  .e2-05-caption--seq { display: none; }
+  .e2-05-purchases { order: -1; }
   .e2-05-meta { font-size: var(--t-caption); gap: 6px 12px; padding: 0 4px; }
   .e2-05-meta > span:not(.badge) .ic { width: 14px; height: 14px; }
   .e2-05-req__amount { font-size: var(--t-caption); }

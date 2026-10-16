@@ -17,7 +17,7 @@ const VIEW = {
     rows: [{
       id: "a1", missionId: "m1", title: "Cours", type: "Cours particuliers", city: "Cotonou", budget: 25000, net: 22000,
       deadline: "2026-10-30", missionStatus: "open", status: "pending", appliedAt: "2026-10-01T10:00:00Z",
-      updatedAt: "2026-10-01T10:00:00Z", clientName: "Rosine H.", clientFirst: "Rosine", review: null,
+      updatedAt: "2026-10-01T10:00:00Z", acceptedAt: null, clientName: "Rosine H.", clientFirst: "Rosine", review: null,
     }],
   },
 }

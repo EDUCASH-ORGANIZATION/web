@@ -9,7 +9,7 @@ const COUNTS = { "en-attente": 0, "en-cours": 0, terminees: 0, "non-retenues": 0
 const row = (over) => ({
   id: "a1", missionId: "m1", title: "Cours de maths", type: "Cours particuliers", city: "Cotonou", budget: 25000, net: 22000,
   deadline: "2026-10-30", missionStatus: "open", status: "pending", appliedAt: "2026-10-01T10:00:00Z",
-  updatedAt: "2026-10-01T10:00:00Z", clientName: "Rosine H.", clientFirst: "Rosine", review: null, ...over,
+  updatedAt: "2026-10-01T10:00:00Z", acceptedAt: null, clientName: "Rosine H.", clientFirst: "Rosine", review: null, ...over,
 })
 const data = (over) => ({ tab: "en-attente", counts: COUNTS, total: 0, rows: [], escrow: { total: 0, count: 0 }, highlight: null, ...over })
 // Espaces fines et insécables des montants ramenées à une espace simple pour comparer les textes.

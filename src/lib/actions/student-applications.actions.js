@@ -14,6 +14,7 @@ import { requireRole } from "@/lib/auth/require-role"
 import { escrowSplit } from "@/lib/app/money"
 import { publicDisplayName, firstName } from "@/lib/vitrine/public-name"
 import { APPLICATION_TABS, applicationTab, defaultApplicationTab } from "@/lib/student-space/applications-tabs"
+import { readAcceptedAt, validAcceptedAt, FUTURE_TOLERANCE_MS } from "@/lib/actions/application-accepted-core"
 
 const ERR_APPLICATIONS = "Impossible de charger vos candidatures."
 
@@ -36,7 +37,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
  * @property {"open"|"in_progress"|"done"|"cancelled"|null} missionStatus
  * @property {"pending"|"accepted"|"rejected"} status
  * @property {string} appliedAt
- * @property {string} updatedAt Date du dernier changement de la candidature
+ * @property {string|null} acceptedAt Date de rétention posée par la base (applications.accepted_at) ; null hors onglet
+ *   En cours, colonne absente, ligne ancienne sans date ou date invalide
  * @property {string} clientName Prénom et initiale du client ("" si inconnu)
  * @property {string} clientFirst Prénom du client ("" si inconnu)
  * @property {{ rating: number|null }|null} review Avis laissé par l'étudiant (onglet Terminées seulement)
@@ -50,8 +52,35 @@ const DAY_MS = 24 * 60 * 60 * 1000
  * @property {ApplicationRow[]} rows Lignes de l'onglet affiché, la plus récente d'abord
  * @property {{ total: number, count: number }} escrow Part nette bloquée en séquestre et nombre de missions retenues en cours
  * @property {null|{ missionId: string, title: string, city: string|null, deadline: string|null, net: number,
- *   clientName: string, clientFirst: string, acceptedAt: string }} highlight Retenue des 7 derniers jours
+ *   clientName: string, clientFirst: string, acceptedAt: string|null }} highlight Retenue des 7 derniers jours,
+ *   ou retenue dont la date n'est pas disponible (acceptedAt null : la carte s'affiche sans jour ni heure)
  */
+
+/**
+ * Dates de rétention des candidatures en cours, lues dans une requête séparée (colonne facultative tant que le
+ * script 91 n'est pas appliqué). Jamais bloquant : colonne absente ou toute autre erreur = aucune date, la page
+ * se rend (journal par code seulement). `updated_at` n'est jamais une source de date de rétention.
+ * @returns {Promise<Map<string, string>>} identifiant de candidature -> date valide (les autres sont absents)
+ */
+async function readRetentionDates(supabase, userId, applications) {
+  const dates = new Map()
+  if (applications.length === 0) return dates
+  try {
+    const { available, byId } = await readAcceptedAt(
+      supabase,
+      applications.map((a) => a.id),
+      { studentId: userId },
+    )
+    if (!available) return dates
+    for (const a of applications) {
+      const at = byId.has(a.id) ? validAcceptedAt(byId.get(a.id)) : null
+      if (at) dates.set(a.id, at)
+    }
+  } catch (err) {
+    console.error("[getStudentApplicationsView] date de retenue", err?.code ?? err?.name ?? "inconnu")
+  }
+  return dates
+}
 
 async function readApplications(supabase, userId) {
   const all = []
@@ -59,7 +88,7 @@ async function readApplications(supabase, userId) {
     const from = page * PAGE_SIZE
     const { data, error } = await supabase
       .from("applications")
-      .select("id, mission_id, status, created_at, updated_at, missions(title, type, city, budget, status, deadline, selected_student_id, client_id)")
+      .select("id, mission_id, status, created_at, missions(title, type, city, budget, status, deadline, selected_student_id, client_id)")
       .eq("student_id", userId)
       .order("updated_at", { ascending: false })
       .order("id", { ascending: true })
@@ -123,11 +152,23 @@ export async function getStudentApplicationsView({ onglet } = {}) {
       count: inProgress.length,
     }
 
+    // Date de rétention : accepted_at seulement. Retenue récente = la première dont la date a 0 à 7 jours. Une
+    // retenue sans date fiable (colonne absente, NULL, invalide) n'a de carte que si la candidature a été créée il y a
+    // 0 à 7 jours : la retenue lui est forcément postérieure, donc elle date d'au plus 7 jours. Une retenue datée de
+    // plus de 7 jours, ou sans date sur une candidature plus ancienne, n'a jamais de carte.
+    const retainedAt = await readRetentionDates(supabase, user.id, groups["en-cours"])
     const now = Date.now()
-    const recent = inProgress.find((a) => {
-      const age = now - new Date(a.updated_at).getTime()
-      return age >= 0 && age <= RECENT_DAYS * DAY_MS
-    })
+    // Une date jusqu'à 5 min dans le futur est acceptée par validAcceptedAt (décalage d'horloge) : même tolérance ici.
+    const withinRecent = (time, tolerance = 0) => {
+      const age = now - time
+      return age >= -tolerance && age <= RECENT_DAYS * DAY_MS
+    }
+    // Plusieurs retenues récentes datées : la plus récente par accepted_at l'emporte.
+    const datedRecent = inProgress
+      .filter((a) => retainedAt.has(a.id) && withinRecent(new Date(retainedAt.get(a.id)).getTime(), FUTURE_TOLERANCE_MS))
+      .sort((x, y) => new Date(retainedAt.get(y.id)).getTime() - new Date(retainedAt.get(x.id)).getTime())[0]
+    const recent =
+      datedRecent ?? inProgress.find((a) => !retainedAt.has(a.id) && withinRecent(new Date(a.created_at).getTime()))
 
     const shown = groups[tab]
     const clientIds = [...new Set([...shown, ...(recent ? [recent] : [])].map((a) => a.missions?.client_id).filter(Boolean))]
@@ -174,7 +215,7 @@ export async function getStudentApplicationsView({ onglet } = {}) {
         missionStatus: m?.status ?? null,
         status: a.status,
         appliedAt: a.created_at,
-        updatedAt: a.updated_at,
+        acceptedAt: retainedAt.get(a.id) ?? null,
         ...nameOf(m?.client_id),
         review: reviews.get(a.mission_id) ?? null,
       }
@@ -188,7 +229,7 @@ export async function getStudentApplicationsView({ onglet } = {}) {
           deadline: recent.missions.deadline ?? null,
           net: escrowSplit(recent.missions.budget).student,
           ...nameOf(recent.missions.client_id),
-          acceptedAt: recent.updated_at,
+          acceptedAt: retainedAt.get(recent.id) ?? null,
         }
       : null
 
