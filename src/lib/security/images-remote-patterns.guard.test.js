@@ -2,23 +2,33 @@ import { describe, it, expect } from "vitest"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
-const config = readFileSync(resolve(__dirname, "../../../next.config.mjs"), "utf8")
+const { default: config } = await import("../../../next.config.mjs")
+const patterns = config.images.remotePatterns
 
 describe("next.config.mjs : images.remotePatterns", () => {
   it("n'autorise aucun joker d'hôte", () => {
-    expect(config).not.toMatch(/hostname:\s*"\*/)
-    expect(config).not.toContain("*.supabase.co")
+    for (const p of patterns) expect(p.hostname).not.toContain("*")
   })
 
-  it("autorise uniquement l'hôte exact du projet Supabase, en stockage public et signé", () => {
-    const host = "ymdtwtlnenxpfnxdipek.supabase.co"
-    expect(config.match(new RegExp(`hostname: "${host.replace(/\./g, "\\.")}"`, "g"))).toHaveLength(2)
-    expect(config).toContain('pathname: "/storage/v1/object/public/**"')
-    expect(config).toContain('pathname: "/storage/v1/object/sign/**"')
+  it("autorise un seul motif : l'hôte exact du projet Supabase, stockage public", () => {
+    expect(patterns).toEqual([
+      {
+        protocol: "https",
+        hostname: "ymdtwtlnenxpfnxdipek.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ])
   })
 
-  it("ne lit aucune variable d'environnement dans remotePatterns", () => {
-    const block = config.slice(config.indexOf("remotePatterns"))
+  it("n'autorise jamais les URL signées (object/sign)", () => {
+    // Une URL signée donne accès à un fichier privé pour 60 s : l'optimiseur d'images en
+    // garderait une copie en cache bien au-delà. Ces images passent par <img>, pas next/image.
+    expect(JSON.stringify(patterns)).not.toContain("object/sign")
+  })
+
+  it("ne lit aucune variable d'environnement dans le bloc images", () => {
+    const source = readFileSync(resolve(__dirname, "../../../next.config.mjs"), "utf8")
+    const block = source.slice(source.indexOf("images:"))
     expect(block).not.toMatch(/process\.env/)
   })
 })

@@ -44,15 +44,11 @@ const nextConfig = {
     remotePatterns: [
       // Hôte exact du projet Supabase de production, jamais de joker d'hôte :
       // sinon le projet de n'importe qui passerait par l'optimiseur d'images.
+      // Public seulement : les URL signées (cartes, médias de messagerie) ne passent jamais par l'optimiseur.
       {
         protocol: "https",
         hostname: "ymdtwtlnenxpfnxdipek.supabase.co",
         pathname: "/storage/v1/object/public/**",
-      },
-      {
-        protocol: "https",
-        hostname: "ymdtwtlnenxpfnxdipek.supabase.co",
-        pathname: "/storage/v1/object/sign/**",
       },
     ],
   },
