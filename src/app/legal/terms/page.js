@@ -1,6 +1,7 @@
 import { LEGAL_ENTITY } from "@/components/vitrine/legal/legal-entity"
 import { LegalLayout } from "@/components/vitrine/legal/legal-layout"
 import { LegalSection } from "@/components/vitrine/legal/legal-section"
+import { PAYMENT_WARNING } from "@/lib/purchases/requests"
 
 export const metadata = {
   title: "Conditions d’utilisation",
@@ -24,7 +25,7 @@ export default function TermsPage() {
     <LegalLayout
       current="terms"
       title="Conditions d’utilisation"
-      updatedAt="16 octobre 2026"
+      updatedAt="17 octobre 2026"
       sections={Object.values(SECTIONS)}
     >
       <LegalSection {...SECTIONS.objet}>
@@ -85,13 +86,39 @@ export default function TermsPage() {
       
         <h3 className="ds-h4 ds-mt-4" id="achats">Missions avec achats</h3>
         <p>
-          Lorsqu’une mission comprend des achats (marché, achats), les paiements d’achats
-          effectués hors plateforme, directement du client au vendeur par Mobile Money, ne relèvent
-          pas d’EduCash. EduCash n’est ni partie, ni dépositaire, ni garant de ces paiements.
-          Seul le service passe par le séquestre et supporte la commission.
+          Lorsqu’une mission comprend des achats (marché, achats), le client règle ces achats
+          directement au vendeur par Mobile Money, hors EduCash. L’étudiant n’avance jamais
+          d’argent. EduCash n’est ni partie, ni dépositaire, ni garant de ces paiements et ne
+          rembourse pas un paiement effectué hors plateforme. Seul le service (la rémunération de
+          l’étudiant) passe par le séquestre et supporte la commission de 12&nbsp;%.
         </p>
         <p>
-          L’estimation des achats affichée sur la mission est indicative et sans commission.
+          Pour chaque achat à régler, l’étudiant retenu envoie dans la conversation, sur une
+          mission en cours, une carte « demande de paiement d’achats ». Elle indique le numéro à
+          payer, le nom du vendeur et le montant, avec la photo du numéro marchand ou du panneau du
+          vendeur et la photo du ticket. Le client paie ensuite le vendeur lui-même, puis joint la
+          capture du SMS de paiement à la carte. L’étudiant confirme la réception par le vendeur.
+          Ces statuts sont déclaratifs : ils reposent sur les déclarations des parties, qu’EduCash
+          ne vérifie pas auprès de l’opérateur.
+        </p>
+        <p>
+          Avant de payer, le client vérifie le nom du bénéficiaire affiché par Mobile Money.
+          L’avertissement présenté sur la carte est le suivant : « {PAYMENT_WARNING} »
+        </p>
+        <p>
+          Un risque subsiste : une personne peut indiquer un numéro qui n’est pas celui du
+          vendeur. Soyez prudent et comparez le nom affiché avec le panneau et le ticket. Il est
+          interdit de déclarer comme numéro du vendeur un numéro qui ne lui appartient pas, y
+          compris le sien.
+        </p>
+        <p>
+          Chaque partie peut signaler une demande depuis la carte. L’équipe d’administration
+          examine le signalement et peut le clore, sans remboursement ni compensation : EduCash
+          ne rembourse pas un paiement fait hors plateforme.
+        </p>
+        <p>
+          L’estimation des achats affichée sur la mission est indicative. Elle n’entre jamais
+          dans le séquestre ni dans la commission de 12&nbsp;%.
         </p>
       </LegalSection>
 
@@ -101,8 +128,8 @@ export default function TermsPage() {
           <li>Publier des missions illégales ou contraires aux bonnes mœurs</li>
           <li>
             Contourner la plateforme pour régler le service (la rémunération de l’étudiant) en dehors
-            d’EduCash. Cette interdiction ne vise pas le paiement direct des achats au vendeur, autorisé
-            dans les conditions de la clause <a className="link" href="#achats">Missions avec achats</a>
+            d’EduCash. Cette interdiction ne vise pas le paiement direct des achats au vendeur, effectué
+            hors EduCash dans les conditions de la clause <a className="link" href="#achats">Missions avec achats</a>
           </li>
           <li>Harceler, discriminer ou menacer d’autres utilisateurs</li>
           <li>Créer de faux profils ou fournir des informations mensongères</li>
