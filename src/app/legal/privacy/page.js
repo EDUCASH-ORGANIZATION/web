@@ -13,10 +13,11 @@ const SECTIONS = {
   base_legale: { id: "base-legale", title: "4. Base légale" },
   partage_des_donnees: { id: "partage-des-donnees", title: "5. Partage des données" },
   conservation_des_donnees: { id: "conservation-des-donnees", title: "6. Conservation des données" },
-  vos_droits: { id: "vos-droits", title: "7. Vos droits" },
-  cookies: { id: "cookies", title: "8. Cookies" },
-  securite: { id: "securite", title: "9. Sécurité" },
-  contact: { id: "contact", title: "10. Contact" },
+  analyse_des_messages: { id: "analyse-des-messages", title: "7. Analyse des messages" },
+  vos_droits: { id: "vos-droits", title: "8. Vos droits" },
+  cookies: { id: "cookies", title: "9. Cookies" },
+  securite: { id: "securite", title: "10. Sécurité" },
+  contact: { id: "contact", title: "11. Contact" },
 }
 
 export default function PrivacyPage() {
@@ -24,7 +25,7 @@ export default function PrivacyPage() {
     <LegalLayout
       current="privacy"
       title="Politique de confidentialité"
-      updatedAt="8 octobre 2026"
+      updatedAt="16 octobre 2026"
       sections={Object.values(SECTIONS)}
     >
       <LegalSection {...SECTIONS.responsable_du_traitement}>
@@ -85,6 +86,56 @@ export default function PrivacyPage() {
           Vos données sont conservées pendant toute la durée de votre inscription
           et supprimées dans un délai de <strong>30 jours</strong> suivant la clôture de votre compte,
           sauf obligations légales contraires (données comptables : 10 ans).
+        </p>
+      </LegalSection>
+
+      <LegalSection {...SECTIONS.analyse_des_messages}>
+        <p>
+          Les messages échangés entre clients et étudiants sur la plateforme font l’objet d’une
+          analyse automatique qui détecte et masque les coordonnées (numéros de téléphone,
+          adresses e-mail, liens).
+        </p>
+        <ul>
+          <li>
+            <strong>Finalités :</strong> la sécurité des utilisateurs, la lutte contre la fraude et
+            le respect des règles de la plateforme (CGU).
+          </li>
+          <li>
+            <strong>Base :</strong> l’exécution du contrat (CGU acceptées lors de l’inscription).
+          </li>
+          <li>
+            <strong>Fonctionnement :</strong> le masquage ne refuse jamais l’envoi d’un message.
+            Aucune décision automatique de suspension n’est prise : une suspension reste toujours
+            décidée par une personne de l’équipe, après examen.
+          </li>
+          <li>
+            <strong>Données journalisées :</strong> le type de coordonnée détecté, le nombre de
+            détections, la date, le message concerné, l’expéditeur et la mission. La valeur de la
+            coordonnée (le numéro, l’adresse ou le lien) n’est jamais journalisée.
+          </li>
+          <li>
+            <strong>Signalements :</strong> vous pouvez signaler manuellement un message. Le
+            signalement enregistre le motif, le message concerné et son auteur.
+          </li>
+          <li>
+            <strong>Accès :</strong> réservé à l’équipe d’administration d’EduCash. Des alertes
+            répétées peuvent conduire à un examen de la situation par cette équipe.
+          </li>
+          <li>
+            <strong>Durée de conservation :</strong> 180 jours pour le journal de détection et
+            12 mois après clôture pour les signalements.
+          </li>
+          <li>
+            <strong>Recherche de lieu :</strong> lorsque vous recherchez un lieu pour l’envoyer
+            dans une conversation, le texte recherché est transmis à la Fondation OpenStreetMap
+            (Royaume-Uni). Google Maps ne s’ouvre que lorsque vous cliquez sur « Ouvrir dans
+            Google Maps » ou « Itinéraire » ; aucune carte n’est chargée sans votre action.
+          </li>
+        </ul>
+        <p>
+          Vous disposez à l’égard de ces données des droits décrits à la section suivante
+          (accès, rectification, effacement, opposition). Pour les exercer ou pour contester une
+          mesure : contact@educash.bj
         </p>
       </LegalSection>
 
