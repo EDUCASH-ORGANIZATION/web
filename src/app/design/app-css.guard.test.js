@@ -1328,7 +1328,7 @@ describe("student : cascade statique (specificite et ordre de chargement)", () =
 
   it("E06 et E07 : la hauteur suit la fenetre au bureau, une colonne et hauteur libre sous 1024, bas de conversation sur la safe-area", () => {
     const e06 = stripComments(read("student/e06.css"))
-    expect(e06).toMatch(/\.e2-06-inbox \{[^}]*height: max\(480px, calc\(100dvh - 224px\)\)/)
+    expect(e06).toMatch(/\.e2-06-inbox \{[^}]*height: max\(480px, calc\(100dvh - 244px\)\)/)
     expect(e06).not.toMatch(/\d{3,4}px; min-height: 0;\s*\}/)
     expect(tabletOf(e06)).toContain(".e2-06-inbox, .e2-06-inbox--tall { grid-template-columns: minmax(0, 1fr); height: auto; }")
     const e07 = stripComments(read("student/e07.css"))

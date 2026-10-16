@@ -139,6 +139,8 @@ export function compareEntry(board, code, { props, assume = {}, tolerance = 1 })
   if (!board && !code) return { status: "ÉCHEC", note: "absent des deux côtés", diffs: [] }
   if (!board) return { status: "ÉCHEC", note: "absent de la planche", diffs: [] }
   if (!code) return { status: "ÉCHEC", note: "absent du code", diffs: [] }
+  // Rognage : la boîte est mesurée entière mais un ancêtre la coupe (jamais OK, quel que soit l'écart de boîte).
+  const clipped = code.clippedBy ? `rogné par ${code.clippedBy}` : ""
   const diffs = []
   const rules = new Set()
   let failed = false
@@ -160,7 +162,8 @@ export function compareEntry(board, code, { props, assume = {}, tolerance = 1 })
     else failed = true
     diffs.push({ prop, label: diff.label, rule: accepted ? rule.names.join("+") : null })
   }
-  if (failed) return { status: "ÉCHEC", note: "", diffs }
+  if (failed) return { status: "ÉCHEC", note: clipped, diffs }
+  if (clipped) return { status: "ÉCHEC", note: clipped, diffs }
   if (rules.size) {
     const names = [...rules].sort()
     // POLICE : écart de largeur dû à la police de repli (Google Fonts non chargées), statut distinct.
@@ -312,7 +315,7 @@ async function runView({ browser, base, spec, view, outDir }) {
 function reportMarkdown(spec, rows) {
   const lines = [`# ${spec.id} - ${spec.title}`, "", `Planche : \`${spec.planche}\``, "", "| Vue | Réf. | Élément | Planche | Code | Écart | Statut | Lot |", "|---|---|---|---|---|---|---|---|"]
   for (const row of rows) {
-    const diffs = row.note || row.diffs.map((d) => (d.rule ? `${d.label} (${d.rule})` : d.label)).join(", ") || "-"
+    const diffs = [row.note, row.diffs.map((d) => (d.rule ? `${d.label} (${d.rule})` : d.label)).join(", ")].filter(Boolean).join(" ; ") || "-"
     const gap = row.specNote ? `${diffs} - ${row.specNote}` : diffs
     lines.push(`| ${row.view} | ${row.id} | ${row.label} | ${cell(row.board)} | ${cell(row.code)} | ${gap} | ${row.status} | ${row.lot || "-"} |`)
   }
