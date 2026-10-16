@@ -40,23 +40,36 @@ describe("buildMissionTimeline", () => {
     expect(titles({ mission: { ...base, status: "open" } })).toEqual(["Mission publiée", "En attente d'un étudiant"])
   })
 
-  it("en cours avec fin enregistrée : à confirmer par le client", () => {
+  it("en cours avec fin déclarée : à confirmer par le client, datée", () => {
+    const items = buildMissionTimeline({
+      clientId: CLIENT,
+      studentName: "Esther",
+      mission: { ...base, status: "in_progress", selectedStudentId: STUDENT },
+      completion: { declaredAt: "2026-10-13T08:00:00Z", finishedAt: null },
+      ledger: [],
+    })
+    const step = items.find((i) => i.title.startsWith("Fin déclarée"))
+    expect(step).toMatchObject({ state: "current", title: "Fin déclarée par l'étudiant, à confirmer par le client", at: "2026-10-13T08:00:00Z" })
+  })
+
+  it("en cours avec fin déclarée : étapes dans l'ordre", () => {
     const out = titles({
       mission: { ...base, status: "in_progress", selectedStudentId: STUDENT },
-      completion: { createdAt: "2026-10-13T08:00:00Z" },
+      completion: { declaredAt: "2026-10-13T08:00:00Z", finishedAt: null },
       ledger: [move("reserve", 5000, CLIENT)],
     })
     expect(out).toEqual([
       "Mission publiée",
       "Étudiant retenu : Esther",
       "5 000 FCFA placés en séquestre",
-      "Fin enregistrée, à confirmer par le client",
+      "Fin déclarée par l'étudiant, à confirmer par le client",
       "Libération du séquestre",
     ])
   })
 
-  it("en cours sans fin enregistrée", () => {
+  it("en cours sans déclaration : mission en cours", () => {
     expect(titles({ mission: { ...base, status: "in_progress", selectedStudentId: STUDENT } })).toContain("Mission en cours")
+    expect(titles({ mission: { ...base, status: "in_progress", selectedStudentId: STUDENT }, completion: { declaredAt: null, finishedAt: null } })).toContain("Mission en cours")
   })
 
   it("terminée : fin et libération datées", () => {
@@ -64,11 +77,24 @@ describe("buildMissionTimeline", () => {
       clientId: CLIENT,
       studentName: "Esther",
       mission: { ...base, status: "done", selectedStudentId: STUDENT },
-      completion: { createdAt: "2026-10-13T08:00:00Z" },
+      completion: { declaredAt: "2026-10-12T08:00:00Z", finishedAt: "2026-10-13T08:00:00Z" },
       ledger: [move("reserve", 5000, CLIENT), move("release", 5000, CLIENT, "2026-10-13T08:01:00Z")],
     })
-    expect(items.map((i) => i.title)).toContain("Mission terminée")
+    const titlesOut = items.map((i) => i.title)
+    expect(titlesOut.indexOf("Fin déclarée par l'étudiant")).toBeGreaterThan(-1)
+    expect(titlesOut.indexOf("Fin déclarée par l'étudiant")).toBeLessThan(titlesOut.indexOf("Mission terminée"))
+    expect(items.find((i) => i.title === "Fin déclarée par l'étudiant").at).toBe("2026-10-12T08:00:00Z")
+    expect(items.find((i) => i.title === "Mission terminée").at).toBe("2026-10-13T08:00:00Z")
     expect(items.at(-1).at).toBe("2026-10-13T08:01:00Z")
+  })
+
+  it("terminée sans déclaration connue : pas d'étape de déclaration", () => {
+    const out = titles({
+      mission: { ...base, status: "done", selectedStudentId: STUDENT },
+      completion: { declaredAt: null, finishedAt: "2026-10-13T08:00:00Z" },
+    })
+    expect(out).not.toContain("Fin déclarée par l'étudiant")
+    expect(out).toContain("Mission terminée")
   })
 
   it("annulée : date d'annulation et remboursement", () => {
