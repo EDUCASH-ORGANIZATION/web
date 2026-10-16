@@ -19,6 +19,15 @@ describe("HomeAchats", () => {
     expect(html).toContain("Dantokpa")
   })
 
+  it("décrit le flux : carte de l'étudiant, paiement hors EduCash, capture du SMS, aucune avance", () => {
+    const flat = text.replace(/\s+/g, " ")
+    expect(flat).toContain("carte de paiement d’achats")
+    expect(flat).toContain("photo du ticket")
+    expect(flat).toContain("capture du SMS")
+    expect(flat).toContain("Personne n’avance d’argent pour l’autre")
+    expect(flat).toMatch(/hors EduCash, qui n’est ni partie, ni dépositaire, ni garant/)
+  })
+
   it("reprend l'avertissement de paiement à l'identique", () => {
     const warning = PAYMENT_WARNING.replace(/'/g, "&#x27;")
     expect(html).toContain(`<div class="banner__body">${warning}</div>`)

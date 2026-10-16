@@ -14,7 +14,7 @@ const STEPS = [
   },
   {
     title: "Vous payez le vendeur par MoMo",
-    text: "L'étudiant vous envoie le numéro marchand, le montant et la photo du ticket.",
+    text: "L'étudiant vous envoie une carte avec le numéro à payer, le montant et la photo du ticket. Une fois payé, vous joignez la capture du SMS.",
   },
   {
     title: "Vous recevez tout, vous validez",
@@ -37,9 +37,13 @@ export function HomeAchats() {
           <p className="body-l">
             Vous envoyez la liste, un étudiant fait le marché à Dantokpa, Ganhi ou Saint-Michel et vous rapporte tout.
             Sur EduCash, vous ne payez que son service&nbsp;; les achats, vous les réglez directement au vendeur, par
-            MoMo, sur photo du ticket.
+            MoMo, à partir de la carte de paiement d&rsquo;achats que l&rsquo;étudiant vous envoie dans la conversation,
+            avec la photo du ticket.
           </p>
-          <p className="muted">Personne n&rsquo;avance d&rsquo;argent pour l&rsquo;autre. EduCash ne prend rien sur les achats.</p>
+          <p className="muted">
+            Personne n&rsquo;avance d&rsquo;argent pour l&rsquo;autre. Le paiement des achats a lieu hors EduCash, qui
+            n&rsquo;est ni partie, ni dépositaire, ni garant, et ne prend rien dessus.
+          </p>
         </div>
 
         <div className="v-achats">
