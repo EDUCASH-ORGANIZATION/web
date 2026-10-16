@@ -1,6 +1,11 @@
 // Règles de modération de la messagerie (RD-MSG-01). Module pur : constantes et fonctions sans accès aux données,
 // importable côté client comme côté serveur.
 
+/** Types de détection du filtre de coordonnées (colonne kinds du journal). */
+export const CONTACT_KINDS = ["phone", "email", "link", "social", "phone_split", "contact_keyword", "payment_keyword"]
+/** Types masqués dans le texte ; les mots-clés ne sont jamais masqués. */
+export const MASKABLE_KINDS = ["phone", "email", "link", "social", "phone_split"]
+
 /** Nombre de messages masqués, sur la fenêtre ci-dessous, qui déclenche l'alerte admin. */
 export const CONTACT_ALERT_THRESHOLD = 3
 /** Fenêtre glissante, en jours, du compteur de messages masqués. */

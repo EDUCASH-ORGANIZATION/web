@@ -9,13 +9,11 @@
 // Toutes les expressions régulières sont à quantificateurs bornés ou sans imbrication ambiguë (pas de retour arrière
 // catastrophique) et la recherche des numéros est linéaire.
 
-import { COUNTRY_CODES } from "@/lib/utils/phone"
 import { CONTACT_KEYWORDS, PAYMENT_KEYWORDS } from "@/lib/messaging/contact-keywords"
-import { SPLIT_LOOKBACK } from "@/lib/messaging/moderation-rules"
+import { SPLIT_LOOKBACK, CONTACT_KINDS, MASKABLE_KINDS } from "@/lib/messaging/moderation-rules"
 
+export { CONTACT_KINDS, MASKABLE_KINDS }
 export const MASK_TOKEN = "[coordonnées masquées]"
-export const CONTACT_KINDS = ["phone", "email", "link", "social", "phone_split", "contact_keyword", "payment_keyword"]
-export const MASKABLE_KINDS = ["phone", "email", "link", "social", "phone_split"]
 
 /** Longueur maximale analysée et renvoyée (le serveur limite déjà un message à 2000 caractères). */
 const MAX_TEXT = 4000
@@ -37,8 +35,11 @@ const BENIN_PREFIXES = new Set([
   ...["90", "91", "92", "93", "94", "95", "96", "97", "98", "99"],
 ])
 
-/** Indicatifs pays connus (chiffres seuls, sans "+" ni "other"), repris de COUNTRY_CODES. */
-const COUNTRY_DIGITS = COUNTRY_CODES.filter((c) => /^\+\d+$/.test(c.code)).map((c) => c.code.slice(1))
+/**
+ * Indicatifs pays connus (chiffres seuls). Copie de COUNTRY_CODES (src/lib/utils/phone.js) écrite en dur pour ne pas
+ * tirer zod dans le bundle client ; un test vérifie la parité.
+ */
+export const COUNTRY_DIGITS = ["229", "225", "233", "234", "221", "226", "227", "242", "241", "237", "33", "1", "44", "49", "91", "86"]
 
 /** Domaines EduCash : jamais masqués (D10). */
 const ALLOWED_HOST = /(?:^|\.)educash\.bj$/
@@ -164,14 +165,19 @@ function fixLookalikes(t) {
 
 // Ni précédé d'un chiffre ni d'un chiffre suivi d'un séparateur : on ne coupe jamais un nombre en son milieu.
 const NOT_AFTER_DIGIT = "(?<!\\d)(?<!\\d[ .,\\-/])"
+// Pour une date : on exclut seulement un chiffre ou un séparateur de date collé devant (une date peut suivre une autre).
+const DATE_START = "(?<![\\d/.\\-])"
+const DATE_FR = "(?:0?[1-9]|[12]\\d|3[01])[/.](?:0?[1-9]|1[0-2])[/.]\\d{4}"
 const CUR = "(?:fcfa|f\\s?cfa|cfa|xof|francs?|frs?|f)(?![a-z0-9])"
 const GROUPED = "\\d{1,3}(?:[ .,]\\d{3})+"
 
 const PROTECT_PATTERNS = [
   // jj/mm/aaaa, jj-mm-aa, jj.mm.aaaa (même séparateur), sans suite « -34 » qui ferait un numéro.
-  { re: new RegExp(`${NOT_AFTER_DIGIT}(?:0?[1-9]|[12]\\d|3[01])([/.\\-])(?:0?[1-9]|1[0-2])\\1(?:\\d{4}|\\d{2})(?!\\d)(?![/.\\-]\\d)`, "g"), group: 0 },
+  { re: new RegExp(`${DATE_START}(?:0?[1-9]|[12]\\d|3[01])([/.\\-])(?:0?[1-9]|1[0-2])\\1(?:\\d{4}|\\d{2})(?!\\d)(?![/.\\-]\\d)`, "g"), group: 0 },
+  // plage de dates : 16/10/2026-17/10/2026, 16/10/2026 au 20/10/2026
+  { re: new RegExp(`${DATE_START}${DATE_FR}\\s?(?:-|a|au)\\s?${DATE_FR}(?!\\d)(?![/.\\-]\\d)`, "g"), group: 0 },
   // aaaa-mm-jj
-  { re: new RegExp(`${NOT_AFTER_DIGIT}(?:19|20)\\d{2}([/.\\-])(?:0?[1-9]|1[0-2])\\1(?:0?[1-9]|[12]\\d|3[01])(?!\\d)(?![/.\\-]\\d)`, "g"), group: 0 },
+  { re: new RegExp(`${DATE_START}(?:19|20)\\d{2}([/.\\-])(?:0?[1-9]|1[0-2])\\1(?:0?[1-9]|[12]\\d|3[01])(?!\\d)(?![/.\\-]\\d)`, "g"), group: 0 },
   // aaaammjj collé (référence datée : 20261016)
   { re: new RegExp(`${NOT_AFTER_DIGIT}(?:19|20)\\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])(?!\\d)`, "g"), group: 0 },
   // référence « année-numéro » (2026-0042, 2026/0042), sinon lue comme un ancien numéro fixe commençant par 20
@@ -180,6 +186,10 @@ const PROTECT_PATTERNS = [
   { re: /(?<![\d:])(?:[01]?\d|2[0-3])(?:[h:][0-5]\d(?!\d)|h(?![a-z\d]))/g, group: 0 },
   // 15 000 FCFA, 150000 F, 25.000 XOF, 1 500 000 francs (7 chiffres isolés au plus : 8 chiffres collés restent un numéro)
   { re: new RegExp(`${NOT_AFTER_DIGIT}(${GROUPED}|\\d{1,7})(?:[.,]\\d{1,2})?\\s?${CUR}`, "g"), group: 1 },
+  // fourchette de prix : 2500-3500 F, 2500 a 3500 FCFA
+  { re: new RegExp(`${NOT_AFTER_DIGIT}\\d{1,7}\\s?(?:-|/|a)\\s?\\d{1,7}\\s?${CUR}`, "g"), group: 0 },
+  // FCFA 2500-3500
+  { re: /(?:fcfa|cfa|xof)\s?\d{1,7}\s?(?:-|\/|a)\s?\d{1,7}(?!\d)/g, group: 0 },
   // FCFA 15000
   { re: new RegExp(`(?:fcfa|cfa|xof)\\s?(${GROUPED}|\\d{1,7})(?!\\d)`, "g"), group: 1 },
   // 45 000 000, 25.000 : milliers finissant par 000
@@ -240,7 +250,9 @@ function parseNumberWord(tk, text, i) {
   return null
 }
 
-const CHAIN_GAP = /^[\s.\-_/,()]{0,3}$/
+// Écart toléré entre deux groupes de chiffres : espaces, retours à la ligne, ponctuation courante, émojis (6 au plus).
+// Le deux-points est exclu : 12:34 est une heure.
+const CHAIN_GAP = /^(?:[\s.\-_/,()*|;~']|\p{Extended_Pictographic}){0,6}$/u
 
 /** Chiffres sous forme de texte où les caractères protégés ne sont plus des chiffres. */
 function digitView(t) {
@@ -325,9 +337,26 @@ function digitChains(t) {
   return chains
 }
 
+// Un bloc de 8 chiffres précédé de ces mots est une référence, pas un numéro (ticket 45879632, facture 50012345).
+const REFERENCE_BEFORE = /(?:ticket|ref|reference|facture|commande|code|n°|nº)\s{0,2}[:.]?\s{0,2}$/
+
+/**
+ * Filtre les faux numéros de 8 chiffres sans indicatif : deux prix de 4 chiffres côte à côte (2000 2500, 1500, 2500) ou
+ * une référence annoncée par un mot (ticket, facture...). Les autres formes (10 chiffres en 01, indicatif +) passent.
+ */
+function plausibleGroups(chain, i, j, u) {
+  if (chain[i].plus) return true
+  let total = 0
+  for (let k = i; k <= j; k++) total += chain[k].digits.length
+  if (total !== 8) return true
+  if (j > i && chain.slice(i, j + 1).some((g) => g.digits.length >= 4 && /(?:00|50)$/.test(g.digits))) return false
+  return !REFERENCE_BEFORE.test(u.slice(Math.max(0, chain[i].start - 20), chain[i].start))
+}
+
 /** Numéros trouvés dans la copie normalisée : plages [start, end) de `t`. */
 function phoneRanges(t) {
   const ranges = []
+  const u = digitView(t)
   for (const chain of digitChains(t)) {
     let i = 0
     while (i < chain.length) {
@@ -336,7 +365,7 @@ function phoneRanges(t) {
       for (let j = i; j < chain.length; j++) {
         digits += chain[j].digits
         if (digits.length > MAX_WINDOW_DIGITS) break
-        if (isPhoneDigits(digits, chain[i].plus)) best = j
+        if (isPhoneDigits(digits, chain[i].plus) && plausibleGroups(chain, i, j, u)) best = j
       }
       if (best >= 0) {
         ranges.push({ start: chain[i].start, end: chain[best].end })
@@ -350,19 +379,26 @@ function phoneRanges(t) {
 // ─── E-mails, liens, réseaux ───────────────────────────────────────────────────────────────
 
 const AT_WORDS = /\s{0,3}[([{]\s{0,3}(?:at|arobase|arrobase)\s{0,3}[)\]}]\s{0,3}|\s{1,3}(?:arobase|arrobase|at)\s{1,3}|\s{0,3}@\s{0,3}/g
-const DOT_WORDS = /\s{0,3}[([{]\s{0,3}(?:dot|point)\s{0,3}[)\]}]\s{0,3}|\s{1,3}(?:dot|point)\s{1,3}/g
+const TLDS = "com|net|org|bj|fr|io|me|co|info|biz|app|tv|xyz|link|site|online|shop|store|africa|ci|ly|gl"
+// « point » et « dot » écrits en lettres, et un point isolé entre espaces seulement s'il est suivi d'un domaine connu.
+const DOT_WORDS = new RegExp(
+  `\\s{0,3}[([{]\\s{0,3}(?:dot|point)\\s{0,3}[)\\]}]\\s{0,3}|\\s{1,3}(?:dot|point)\\s{1,3}|\\s{1,3}\\.\\s{1,3}(?=(?:${TLDS})(?![a-z0-9]))`,
+  "g",
+)
 
 const EMAIL_RE = /(?<![a-z0-9._%+-])[a-z0-9][a-z0-9._%+-]{0,63}@[a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63})*\.[a-z]{2,24}(?![a-z0-9])/g
 const URL_RE = /(?:https?:\/\/|www\.)[^\s<>"']{1,200}/g
 const SOCIAL_HOSTS =
-  "wa\\.me|chat\\.whatsapp\\.com|api\\.whatsapp\\.com|whatsapp\\.com|t\\.me|telegram\\.me|telegram\\.org|m\\.me|fb\\.me|fb\\.com|facebook\\.com|instagram\\.com|tiktok\\.com|snapchat\\.com|snap\\.com|twitter\\.com|linkedin\\.com"
+  "wa\\.me|chat\\.whatsapp\\.com|api\\.whatsapp\\.com|whatsapp\\.com|t\\.me|telegram\\.me|telegram\\.org|m\\.me|fb\\.me|fb\\.com|facebook\\.com|instagram\\.com|tiktok\\.com|snapchat\\.com|snap\\.com|twitter\\.com|linkedin\\.com|youtu\\.be|discord\\.gg"
 const SOCIAL_RE = new RegExp(
   `(?<![a-z0-9@.\\-])(?:[a-z0-9-]{1,30}\\.)?(?:${SOCIAL_HOSTS})(?![a-z0-9])(?:[/?#][^\\s]{0,200})?`,
   "g",
 )
 const SOCIAL_HOST_RE = new RegExp(`(?:^|\\.)(?:${SOCIAL_HOSTS})$`)
-const DOMAIN_RE =
-  /(?<![a-z0-9@.-])(?:[a-z0-9][a-z0-9-]{0,62}\.){1,5}(?:com|net|org|bj|fr|io|me|co|info|biz|app|tv|xyz|link|site|online|shop|store|africa|ci|ly|gl)(?![a-z0-9])(?:[/?#][^\s]{0,200})?/g
+const DOMAIN_RE = new RegExp(
+  `(?<![a-z0-9@.-])(?:[a-z0-9][a-z0-9-]{0,62}\\.){1,5}(?:${TLDS})(?![a-z0-9])(?:[/?#][^\\s]{0,200})?`,
+  "g",
+)
 
 /** Nom d'hôte d'un lien ou d'un domaine nu (sans schéma, identifiants, port ni chemin). */
 function hostOf(raw) {
@@ -372,8 +408,20 @@ function hostOf(raw) {
   return h
 }
 
-/** E-mails, liens et réseaux : spans [start, end) de la copie `t` avec leur type. */
-function linkRanges(t0) {
+/**
+ * Un domaine nu (sans schéma, www. ni chemin) dont le suffixe commence par une majuscule suivie d'une minuscule est une
+ * phrase sans espace après le point (« Je pars.Info », « arrivé.Me voici »), pas une adresse (EXEMPLE.COM reste masqué).
+ */
+function isSentenceJoin(src, t0, raw, index) {
+  if (/^(?:https?:\/\/|www\.)/.test(raw) || /[/?#]/.test(raw)) return false
+  const at = index + raw.lastIndexOf(".") + 1
+  const first = src[t0.st[at]]
+  const second = src[t0.st[at + 1]]
+  return first !== undefined && first !== first.toLowerCase() && second !== undefined && second === second.toLowerCase() && second !== second.toUpperCase()
+}
+
+/** E-mails, liens et réseaux : spans [start, end) du texte d'origine `src` avec leur type. */
+function linkRanges(t0, src) {
   const atEdits = []
   for (const m of t0.s.matchAll(AT_WORDS)) atEdits.push({ from: m.index, to: m.index + m[0].length, rep: "@" })
   const t1 = rewrite(t0, atEdits)
@@ -381,21 +429,28 @@ function linkRanges(t0) {
   for (const m of t1.s.matchAll(DOT_WORDS)) dotEdits.push({ from: m.index, to: m.index + m[0].length, rep: "." })
   const t = rewrite(t1, dotEdits)
 
-  /** @type {{ start: number, end: number, kind: string }[]} */
+  /** @type {{ s: number, e: number, kind: string }[]} */
   const found = []
+  // Sur la copie où « arobase » et « point » sont réécrits : e-mails et réseaux déguisés.
   for (const m of t.s.matchAll(EMAIL_RE)) {
     if (ALLOWED_HOST.test(m[0].slice(m[0].lastIndexOf("@") + 1))) continue
-    found.push({ start: m.index, end: m.index + m[0].length, kind: "email" })
+    found.push({ s: t.st[m.index], e: t.en[m.index + m[0].length - 1], kind: "email" })
   }
-  for (const re of [URL_RE, SOCIAL_RE, DOMAIN_RE]) {
-    for (const m of t.s.matchAll(re)) {
+  for (const m of t.s.matchAll(SOCIAL_RE)) {
+    const raw = m[0].replace(/[.,;:!?)\]}]+$/, "")
+    if (!raw || ALLOWED_HOST.test(hostOf(raw))) continue
+    found.push({ s: t.st[m.index], e: t.en[m.index + raw.length - 1], kind: "social" })
+  }
+  // Sur la copie non réécrite : « au point info » ne devient pas un domaine.
+  for (const re of [URL_RE, DOMAIN_RE]) {
+    for (const m of t0.s.matchAll(re)) {
       const raw = m[0].replace(/[.,;:!?)\]}]+$/, "")
       const host = hostOf(raw)
-      if (!raw || ALLOWED_HOST.test(host)) continue
-      found.push({ start: m.index, end: m.index + raw.length, kind: SOCIAL_HOST_RE.test(host) ? "social" : "link" })
+      if (!raw || ALLOWED_HOST.test(host) || (re === DOMAIN_RE && isSentenceJoin(src, t0, raw, m.index))) continue
+      found.push({ s: t0.st[m.index], e: t0.en[m.index + raw.length - 1], kind: SOCIAL_HOST_RE.test(host) ? "social" : "link" })
     }
   }
-  return found.map((f) => ({ s: t.st[f.start], e: t.en[f.end - 1], kind: f.kind }))
+  return found
 }
 
 // ─── Mots-clés (avertissement et journal, jamais de masquage) ──────────────────────────────
@@ -445,7 +500,7 @@ function analyze(text) {
   const src = typeof text === "string" ? text.slice(0, MAX_TEXT) : ""
   const t0 = normalize(src)
   const t2 = digitsCopy(t0)
-  const spans = linkRanges(t0)
+  const spans = linkRanges(t0, src)
   for (const r of phoneRanges(t2)) spans.push({ s: t2.st[r.start], e: t2.en[r.end - 1], kind: "phone" })
   const keywordKinds = new Set()
   let keywordCount = 0
@@ -467,6 +522,16 @@ function summarize({ groups, keywordKinds, keywordCount }) {
 }
 
 const FUSE_GAP = /^[\s,;.\-/|]{0,3}$/
+
+/** Coupe à 4000 caractères en gardant la place d'un masque final, sans couper un point de code ni un masque en deux. */
+function truncateWithMask(out) {
+  let body = out.slice(0, MAX_TEXT - MASK_TOKEN.length)
+  const last = body.charCodeAt(body.length - 1)
+  if (last >= 0xd800 && last <= 0xdbff) body = body.slice(0, -1)
+  const open = body.lastIndexOf("[")
+  if (open >= 0 && MASK_TOKEN.startsWith(body.slice(open))) body = body.slice(0, open)
+  return body + MASK_TOKEN
+}
 
 /** Remplace les plages d'origine par MASK_TOKEN : parenthèse ou « + » collés inclus, masques voisins fusionnés. */
 function buildMasked(src, groups) {
@@ -493,7 +558,7 @@ function buildMasked(src, groups) {
   }
   out += src.slice(pos)
   // Garantie de taille : un texte de 2000 caractères bourré de petites adresses peut grossir au masquage.
-  return out.length > MAX_TEXT ? out.slice(0, MAX_TEXT - MASK_TOKEN.length) + MASK_TOKEN : out
+  return out.length > MAX_TEXT ? truncateWithMask(out) : out
 }
 
 // ─── API publique ──────────────────────────────────────────────────────────────────────────

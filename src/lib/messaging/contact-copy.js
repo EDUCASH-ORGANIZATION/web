@@ -1,7 +1,7 @@
 // Textes visibles de la protection des coordonnées dans la messagerie (RD-MSG-01). Module pur, au vouvoiement.
 // Les vues (composeur, bulles, politique de confidentialité) importent ces constantes : aucun texte en dur ailleurs.
 
-import { MASKABLE_KINDS } from "@/lib/messaging/contact-filter"
+import { MASKABLE_KINDS } from "@/lib/messaging/moderation-rules"
 
 /** Ancre de la section « analyse des messages » de la politique de confidentialité. */
 export const PRIVACY_MESSAGES_HREF = "/legal/privacy#analyse-des-messages"

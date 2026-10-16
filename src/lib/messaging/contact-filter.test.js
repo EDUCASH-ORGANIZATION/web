@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest"
+import { COUNTRY_CODES } from "@/lib/utils/phone"
 import {
   MASK_TOKEN,
+  COUNTRY_DIGITS,
   CONTACT_KINDS,
   MASKABLE_KINDS,
   detectContacts,
@@ -14,6 +16,11 @@ const keycap = (digits) => [...digits].map((d) => `${d}️⃣`).join("")
 const fullwidth = (digits) => [...digits].map((d) => String.fromCharCode(d.charCodeAt(0) + 0xfee0)).join("")
 
 describe("contrat du module", () => {
+  it("garde COUNTRY_DIGITS en parité avec COUNTRY_CODES de phone.js", () => {
+    const expected = COUNTRY_CODES.filter((c) => /^\+\d+$/.test(c.code)).map((c) => c.code.slice(1))
+    expect(COUNTRY_DIGITS).toEqual(expected)
+  })
+
   it("expose les constantes du contrat", () => {
     expect(MASK_TOKEN).toBe("[coordonnées masquées]")
     expect(CONTACT_KINDS).toEqual(["phone", "email", "link", "social", "phone_split", "contact_keyword", "payment_keyword"])
@@ -77,6 +84,16 @@ const PHONES = [
   ["Tel (+229 97 12 34 56) merci", `Tel ${M} merci`],
   ["01 97 12 34 56 et 01 98 76 54 32", `${M} et ${M}`],
   ["01 97 12 34 56, 01 98 76 54 32", M],
+  ["01*97*12*34*56", M],
+  ["01|97|12|34|56", M],
+  ["01;97;12;34;56", M],
+  ["01~97~12~34~56", M],
+  ["01'97'12'34'56", M],
+  ["01\u201997\u201912\u201934\u201956", M],
+  ["01\u{1F60A}97\u{1F60A}12\u{1F60A}34\u{1F60A}56", M],
+  ["01    97    12    34    56", M],
+  ["01 97 12 \n\n 34 56", M],
+  ["appelez 01 97 12 34 56 ou 97 12 34 56", `appelez ${M} ou ${M}`],
 ]
 
 const LEGIT = [
@@ -119,6 +136,33 @@ const LEGIT = [
   "https://educash.bj/aide",
   "Écrivez-nous à contact@educash.bj",
   "Merci beaucoup !",
+  "2000 2500",
+  "2000, 2500, 3000",
+  "prix: 1500, 2500, 3500, 4500",
+  "Prix : 2500 / 3500 selon taille",
+  "2500-3500 F",
+  "4500 5500 F",
+  "5000 6000",
+  "9500 4500",
+  "2500 3500",
+  "FCFA 2500-3500",
+  "16/10/2026-17/10/2026",
+  "du 16/10/2026 au 20/10/2026",
+  "16/10/2026 20/10/2026",
+  "ticket 45879632",
+  "facture 50012345",
+  "réf. 55123456",
+  "commande n° 61234567",
+  "12:34",
+  "Rendez-vous au point info de l'université",
+  "On se voit au point co",
+  "faire le point tv",
+  "Je suis au Point Store",
+  "Je suis arrivé.Me voici",
+  "Je pars.Info: le marché ferme",
+  "Il fait chaud.Tv allumée",
+  "merci beaucoup.App bien",
+  "Rdv au Bénin.Bj",
   "Bonjour, êtes-vous disponible samedi ?",
 ]
 
@@ -190,6 +234,20 @@ describe("messages légitimes", () => {
   })
 })
 
+describe("e-mails et liens : cas limites", () => {
+  it("lit les domaines en capitales ou sans majuscule initiale comme des adresses", () => {
+    for (const input of ["EXEMPLE.COM", "ecrire a exemple.fr svp", "jean@gmail . com", "youtu.be/abc", "discord.gg/xyz"]) {
+      expect(maskContacts(input).masked, input).toBe(true)
+    }
+  })
+
+  it("ne réécrit point et dot que pour les e-mails et les réseaux", () => {
+    expect(maskContacts("jean point dupont arobase gmail point com").text).toBe(M)
+    expect(maskContacts("wa point me/22901971234").text).toBe(M)
+    expect(maskContacts("au point info").masked).toBe(false)
+  })
+})
+
 describe("e-mails et liens", () => {
   it("jeu de référence d'au moins 10 e-mails et liens", () => {
     expect(ADDRESSES.length).toBeGreaterThanOrEqual(10)
@@ -247,7 +305,7 @@ describe("mots-clés", () => {
   })
 
   it("reconnaît les variantes sans accent ni trait d'union", () => {
-    for (const text of ["ecrivez moi sur whats app", "Appelle moi", "mon e-mail", "par mobile money", "Paie-moi en cash"]) {
+    for (const text of ["ecrivez moi sur whats app", "Appelle moi", "mon e-mail", "par mobile money", "Paie-moi en cash", "sur wtsp", "mon insta", "ajoute-moi sur fb", "watsapp stp"]) {
       expect(detectContacts(text).kinds.length, text).toBeGreaterThan(0)
     }
   })
@@ -323,6 +381,15 @@ describe("masquage", () => {
     expect(maskDigitRuns("1 a ".repeat(500)).length).toBeLessThanOrEqual(4000)
   })
 
+  it("ne coupe pas une paire de substitution ni un masque en tronquant", () => {
+    const text = "t.me,x \u{1F600} ".repeat(200)
+    const out = maskContacts(text).text
+    expect(out.length).toBeLessThanOrEqual(4000)
+    expect(out.endsWith(M)).toBe(true)
+    expect(out).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/)
+    expect(out.replaceAll(M, "")).not.toMatch(/\[coordonn/)
+  })
+
   it("ne laisse aucun chiffre du numéro dans la sortie", () => {
     for (const [input] of PHONES) {
       const out = maskContacts(input).text
@@ -371,10 +438,13 @@ describe("performance : pas de regex catastrophique", () => {
     melange: "a1 b2@c.d 3 4 5 wa.me 01 97 (at) dot ".repeat(54),
   }
 
-  it("traite chaque texte piège de 2000 caractères en moins de 50 ms", () => {
+  it("traite chaque texte piège de 2000 et de 4000 caractères en moins de 50 ms", () => {
     maskContacts("Échauffement 01 97 12 34 56 jean@gmail.com https://t.me/x") // compile les expressions
-    for (const [name, text] of Object.entries(TRAPS)) {
-      const input = text.slice(0, 2000)
+    const cases = Object.entries(TRAPS).flatMap(([name, text]) => [
+      [name, text.slice(0, 2000)],
+      [`${name} x2`, text.repeat(2).slice(0, 4000)],
+    ])
+    for (const [name, input] of cases) {
       let best = Infinity
       for (let run = 0; run < 3; run++) {
         const start = performance.now()
