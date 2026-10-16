@@ -77,9 +77,9 @@
             "gap"
           ],
           "assume": {
-            "y": "A3+X1:4"
+            "y": "A3:4"
           },
-          "note": "A3 (+3) et 1 px non expliqué (X1), +4 mesuré"
+          "note": "A3 : 3,42 px réels (interligne 39,90 px planche contre 43,32 px code, --lh-display 1.14), +3 ou +4 après arrondi"
         },
         {
           "id": "ME-04",
@@ -94,9 +94,9 @@
             "bg"
           ],
           "assume": {
-            "y": "A3+X1:4"
+            "y": "A3:4"
           },
-          "note": "A3 (+3) et 1 px non expliqué (X1), +4 mesuré"
+          "note": "A3 : 3,42 px réels (interligne 39,90 px planche contre 43,32 px code, --lh-display 1.14), +3 ou +4 après arrondi"
         },
         {
           "id": "ME-04",
@@ -140,9 +140,9 @@
             "bg"
           ],
           "assume": {
-            "y": "A3+X1:4"
+            "y": "A3:4"
           },
-          "note": "A3 (+3) et 1 px non expliqué (X1), +4 mesuré"
+          "note": "A3 : 3,42 px réels (interligne 39,90 px planche contre 43,32 px code, --lh-display 1.14), +3 ou +4 après arrondi"
         },
         {
           "id": "ME-06",
@@ -159,9 +159,9 @@
           ],
           "assume": {
             "h": "A2:3",
-            "y": "A3+X1:4"
+            "y": "A3:4"
           },
-          "note": "A3 (+3) et 1 px non expliqué (X1) en y (+4 mesuré) ; hauteur A2 : texte 13 px -> 14 px (+3)"
+          "note": "A3 : 3,42 px réels (39,90 px planche contre 43,32 px code, --lh-display 1.14), +3 ou +4 après arrondi en y ; hauteur A2 : texte 13 px -> 14 px (+3)"
         },
         {
           "id": "ME-06",
@@ -175,9 +175,9 @@
             "radius"
           ],
           "assume": {
-            "y": "A2+A3+X1:5"
+            "y": "A2+A3:5"
           },
-          "note": "cumul : A3 (+3), 1 px non expliqué (X1, +4 des pastilles) et A2 (ligne +3 de haut, avatar centré : +1) = +5 mesuré"
+          "note": "cumul : A3 (3,42 px réels, +3 ou +4 après arrondi) et A2 (ligne +3 de haut, avatar centré : +1) = +5 mesuré"
         },
         {
           "id": "ME-06",
