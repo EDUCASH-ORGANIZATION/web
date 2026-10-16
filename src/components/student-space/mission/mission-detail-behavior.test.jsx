@@ -8,6 +8,7 @@ import { join } from "node:path"
 
 const applyMock = vi.fn()
 vi.mock("@/lib/actions/application.actions", () => ({ apply: (...args) => applyMock(...args) }))
+vi.mock("@/lib/actions/mission-completion.actions", () => ({ declareMissionCompletion: vi.fn() }))
 const detailMock = vi.fn()
 vi.mock("@/lib/actions/student-mission-detail.actions", () => ({ getStudentMissionDetail: (...a) => detailMock(...a) }))
 const paymentsMock = vi.fn(() => true)
@@ -283,7 +284,7 @@ describe("(6) ?postuler=1 ouvre seulement la modale", () => {
   it("la page convertit ?postuler=1 en drapeau et n'exécute aucune action", async () => {
     detailMock.mockResolvedValue(open())
     const el = await page({ params: Promise.resolve({ id: "m1" }), searchParams: Promise.resolve({ postuler: "1" }) })
-    expect(el.props.flags).toEqual({ postuler: true, paymentsEnabled: true })
+    expect(el.props.flags).toEqual({ postuler: true, terminer: false, paymentsEnabled: true })
     renderToStaticMarkup(el)
     expect(applyMock).not.toHaveBeenCalled()
   })
@@ -348,5 +349,30 @@ describe("(8) ligne provisoire « Achats estimés » de mission-header.jsx", () 
     const html = renderToStaticMarkup(<MissionHeader mission={mission({ purchasesEstimate: 0 })} {...props} />)
     expect(html).not.toContain("body-s")
     expect(html).not.toContain("Achats estimés")
+  })
+})
+
+describe("(7) ?terminer=1 ouvre seulement la modale", () => {
+  const inProgress = (declaredAt = null) =>
+    followed("in_progress", { completion: { available: true, declaredAt } })
+  it("la page convertit ?terminer=1 en drapeau et n'appelle jamais l'action", async () => {
+    detailMock.mockResolvedValue(inProgress())
+    const el = await page({ params: Promise.resolve({ id: "m1" }), searchParams: Promise.resolve({ terminer: "1" }) })
+    expect(el.props.flags).toEqual({ postuler: false, terminer: true, paymentsEnabled: true })
+  })
+  it.each([[undefined], ["0"], ["true"], ["2"], [["1", "1"]]])("valeur %j : drapeau faux", async (value) => {
+    detailMock.mockResolvedValue(inProgress())
+    const el = await page({ params: Promise.resolve({ id: "m1" }), searchParams: Promise.resolve({ terminer: value }) })
+    expect(el.props.flags.terminer).toBe(false)
+  })
+  it("le drapeau n'ouvre rien quand la fin est déjà déclarée ou la colonne absente (aucune modale)", () => {
+    const declared = renderToStaticMarkup(
+      <MissionFollowupView detail={inProgress("2026-10-12T09:00:00Z")} flags={{ ...on, terminer: true }} />,
+    )
+    const absent = renderToStaticMarkup(<MissionFollowupView detail={followed()} flags={{ ...on, terminer: true }} />)
+    for (const html of [declared, absent]) {
+      expect(html).not.toContain('role="dialog"')
+      expect(html).not.toContain("<button")
+    }
   })
 })

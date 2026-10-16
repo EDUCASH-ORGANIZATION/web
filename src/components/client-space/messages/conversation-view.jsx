@@ -82,7 +82,8 @@ function subtitleOf({ state, relation }, title) {
  *   getClientConversation ; `paymentsEnabled` : lu côté serveur par la page (formulation du bandeau)
  */
 export function ConversationView({ conversation, now, paymentsEnabled = false }) {
-  const { userId, missionId, studentId, student, mission, state, relation, canWrite } = conversation
+  const { userId, missionId, studentId, student, mission, state, relation, canWrite, completionDeclaredAt, completionAvailable } =
+    conversation
   const nowDate = useMemo(() => (now ? new Date(now) : new Date()), [now])
   const markRead = useCallback(() => {
     markClientConversationRead({ missionId, studentId }).catch(() => {})
@@ -174,6 +175,8 @@ export function ConversationView({ conversation, now, paymentsEnabled = false })
         studentName={student.name}
         mission={mission}
         paymentsEnabled={paymentsEnabled}
+        completionDeclaredAt={completionDeclaredAt}
+        completionAvailable={completionAvailable}
       />
 
       <div ref={chatRef} className="chat" role="log" aria-label="Messages de la conversation" aria-relevant="additions">

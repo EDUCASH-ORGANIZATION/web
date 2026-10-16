@@ -141,3 +141,37 @@ describe("missionView", () => {
     expect(v.counts).toEqual({ total: 2, pending: 1, accepted: 0, rejected: 1 })
   })
 })
+
+describe("missionView : fin déclarée par l'étudiant (RD-DONE-01)", () => {
+  const inProgress = { ...detail().mission, status: "in_progress" }
+  const withCompletion = (completion, status = "in_progress") =>
+    detail({ mission: { ...inProgress, status }, completion })
+
+  it("déclarée : badge « À confirmer » en ton alerte, clé du statut inchangée", () => {
+    const v = missionView(withCompletion({ available: true, declaredAt: "2026-10-07T09:00:00Z" }), TODAY)
+    expect(v.status).toMatchObject({ key: "in_progress", label: "À confirmer", tone: "alerte" })
+    expect(v.completion).toEqual({ state: "declared", declaredAt: "2026-10-07T09:00:00Z", available: true })
+  })
+  it("non déclarée : « En cours » inchangé", () => {
+    const v = missionView(withCompletion({ available: true, declaredAt: null }), TODAY)
+    expect(v.status).toMatchObject({ label: "En cours", tone: "bleu" })
+    expect(v.completion).toEqual({ state: "none", declaredAt: null, available: true })
+  })
+  it("colonne absente ou lecture absente : rendu actuel, aucun état, même avec une date parasite", () => {
+    for (const completion of [undefined, { available: false, declaredAt: "2026-10-07T09:00:00Z" }]) {
+      const v = missionView(withCompletion(completion), TODAY)
+      expect(v.status.label).toBe("En cours")
+      expect(v.completion).toEqual({ state: "none", declaredAt: null, available: false })
+    }
+  })
+  it("terminée : statut « Terminée » inchangé, date de déclaration conservée", () => {
+    const v = missionView(withCompletion({ available: true, declaredAt: "2026-10-07T09:00:00Z" }, "done"), TODAY)
+    expect(v.status).toMatchObject({ key: "done", label: "Terminée", tone: "succes" })
+    expect(v.completion).toMatchObject({ state: "confirmed", declaredAt: "2026-10-07T09:00:00Z" })
+  })
+  it("Confirmer la fin reste disponible avec et sans déclaration, et sans colonne", () => {
+    for (const completion of [{ available: true, declaredAt: "2026-10-07T09:00:00Z" }, { available: true, declaredAt: null }, undefined]) {
+      expect(missionView(withCompletion(completion), TODAY).actions.confirmEnd).toBe(true)
+    }
+  })
+})

@@ -9,13 +9,13 @@
     "bg": "A1",
     "fontSize": "A2:1"
   },
-  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale)",
+  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale). Fenêtre de 1156 px de haut : hauteur du cadre mobile long de la planche (mesure du cadre entier), pas un réglage pour masquer un écart",
   "views": [
     {
       "name": "mobile",
       "viewport": [
         390,
-        1064
+        1156
       ],
       "frame": "phone",
       "frameIndex": 0,
@@ -73,6 +73,40 @@
             "h": "X1:28"
           },
           "note": "La planche mobile montre un badge « En cours » puis la date sur une ligne, sans ville ; le code garde la ville, la date longue (mission-header.jsx) et une 2e ligne : choix de design de la planche mobile non repris"
+        },
+        {
+          "id": "MI-25",
+          "label": "barre J'ai terminé",
+          "board": ".e2-mbar",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "y": "BANC:59",
+            "h": "BANC:22"
+          },
+          "note": "y : BANC : la planche réserve sous l'écran mesuré la barre de geste du téléphone (37 px) et simule la zone sûre par un padding bas de 34 px ; le code est une barre fixe au bas de la fenêtre, avec env(safe-area-inset-bottom) à 0 dans Chromium headless ; h : BANC : padding bas de 34 px de la planche contre 12 px dans le code (zone sûre à 0 en headless), BANC ne se cumule pas"
+        },
+        {
+          "id": "MI-25",
+          "label": "bouton J'ai terminé",
+          "board": ".e2-mbar .btn",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "x": "X1:4",
+            "y": "BANC:59"
+          },
+          "note": "x : padding horizontal de la barre réduit à 12 px sous 400 px (student/base.css, coquille hors lot) contre 16 px dans la planche, comme E03 ; y : BANC : la planche réserve sous l'écran mesuré la barre de geste du téléphone (37 px) et simule la zone sûre par un padding bas de 34 px ; le code est une barre fixe au bas de la fenêtre, avec env(safe-area-inset-bottom) à 0 dans Chromium headless"
         }
       ]
     }

@@ -22,6 +22,8 @@ const detail = {
   ledger: [],
   review: null,
   similar: [],
+  // Colonne de déclaration disponible, fin non déclarée (RD-DONE-01 : carte « Vous avez fini ? », barre mobile).
+  completion: { available: true, declaredAt: null },
 }
 
 // Titre de la planche mobile (cadre 1) : plus court que celui du bureau.
@@ -44,14 +46,17 @@ const plain = {
 }
 const plainMobile = { ...plain, mission: { ...plain.mission, title: "Cours de maths niveau 3e" } }
 
-const flags = { postuler: false, paymentsEnabled: true }
-const screen = (name, d) => ({
+// Cadre « Après » de la planche : fin déclarée (le 14 octobre), état « À confirmer » sans bouton.
+const declared = { ...plainMobile, completion: { available: true, declaredAt: "2026-10-14T14:32:00Z" } }
+
+const flags = { postuler: false, terminer: false, paymentsEnabled: true }
+const screen = (name, d, f = flags) => ({
   name,
   space: "e2",
   path: "/student/missions/m2",
   view: "@/components/student-space/mission/followup-view",
   component: "MissionFollowupView",
-  props: { detail: d, flags },
+  props: { detail: d, flags: f },
 })
 
 export const screens = [
@@ -59,4 +64,8 @@ export const screens = [
   screen("e05-m", mobile),
   screen("e05-0", plain),
   screen("e05-0m", plainMobile),
+  // Bureau, modale « J'ai terminé » ouverte par ?terminer=1 (cadre 2 de la planche).
+  screen("e05-t", plain, { ...flags, terminer: true }),
+  // Mobile, après la déclaration : « À confirmer » (cadre 2 de la planche).
+  screen("e05-c", declared),
 ]

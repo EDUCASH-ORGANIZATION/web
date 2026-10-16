@@ -2125,3 +2125,15 @@ describe("notifications.css : feuille du centre de notifications", () => {
     expect(tablet).toMatch(/\.ntf-item \.link, \.ntf-item \.btn \{ min-height: 44px;/)
   })
 })
+
+describe("E05 : modale « J'ai terminé » au-dessus de la barre du haut", () => {
+  const e05 = read("student/e05.css")
+  it("l'aside sticky ouvert sur une modale passe au niveau --z-modal (contexte d'empilement)", () => {
+    expect(e05).toMatch(/\.e2-05-aside:has\(\.scrim\)\s*\{\s*z-index:\s*var\(--z-modal\);\s*\}/)
+    expect(read("tokens.css")).toMatch(/--z-modal:\s*50/)
+  })
+  it("la largeur 560 px de la modale reste portée par `.e2-05-end .modal` (et `.e2-05-modal`, classe de la planche)", () => {
+    expect(e05).toContain(".e2-05-end .modal { width: 560px; }")
+    expect(e05).toContain(".e2-05-modal { width: 560px; }")
+  })
+})

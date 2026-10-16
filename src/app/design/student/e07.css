@@ -17,7 +17,7 @@
 .e2-07-status { flex: none; flex-wrap: wrap; display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne); font-size: var(--t-caption); color: var(--c-ardoise); }
 .e2-07-status b { color: var(--c-encre); font-weight: var(--fw-bold); }
 .e2-07-status__text { flex: 1 1 0; min-width: 0; line-height: 1.35; }
-.e2-07-status .btn { margin-left: auto; flex: none; }
+.e2-07-status .btn { margin-left: auto; flex: none; white-space: nowrap; }
 .e2-07-status__text--short { display: none; }
 /* Fil de messages calme : client blanc filet 1 px, toi en encre, système en ardoise */
 .e2-07-chat .bubble--them { border: 1px solid var(--c-ligne); }

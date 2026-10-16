@@ -151,9 +151,10 @@
           ],
           "lot": "RD-DONE-01 ST-09",
           "assume": {
-            "y": "A2+A3:6"
+            "y": "A2+A3:6",
+            "h": "A2+A6:26"
           },
-          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page) ; Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page) ; h : A6 : la phrase vouvoyée « Déclarez la mission terminée. <Prénom> confirme ensuite la fin : votre part reste en séquestre jusqu'à sa confirmation, rien n'est versé automatiquement. » est plus longue que celle de la planche tutoyée (4 lignes au lieu de 3, environ 21 px de plus) et A2 ajoute le reste ; le bouton « J'ai terminé » est codé (carte « Vous avez fini ? »)"
         },
         {
           "id": "MI-25",
@@ -167,9 +168,10 @@
           ],
           "lot": "RD-DONE-01 ST-09",
           "assume": {
+            "y": "A2+A3+A6:32",
             "h": "A2:1"
           },
-          "note": "h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) ; Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
+          "note": "y : cascade de la carte « Vous avez fini ? » située au-dessus : la phrase vouvoyée occupe une ligne de plus que celle de la planche tutoyée (A6), en plus de A3 et A2 en amont ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-25",
@@ -181,7 +183,10 @@
             "h"
           ],
           "lot": "RD-DONE-01 ST-09",
-          "note": "Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
+          "note": "y : cascade de la carte « Vous avez fini ? » située au-dessus : la phrase vouvoyée occupe une ligne de plus que celle de la planche tutoyée (A6), en plus de A3 et A2 en amont",
+          "assume": {
+            "y": "A2+A3+A6:34"
+          }
         }
       ]
     }

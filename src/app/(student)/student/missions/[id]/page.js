@@ -29,7 +29,7 @@ export default async function StudentMissionDetailPage({ params, searchParams })
   const detail = await loadDetail(id)
   if (!detail) notFound()
 
-  const flags = { postuler: query.postuler === "1", paymentsEnabled: paymentsEnabled() }
+  const flags = { postuler: query.postuler === "1", terminer: query.terminer === "1", paymentsEnabled: paymentsEnabled() }
 
   if (pickMissionView(detail) === "followup") return <MissionFollowupView detail={detail} flags={flags} />
   return <MissionApplyView detail={detail} flags={flags} />

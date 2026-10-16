@@ -2,7 +2,8 @@ import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { StatusBadge } from "@/components/app-ui/status-badge"
 import { clientMissionHref } from "@/lib/app/client-routes"
-import { formatFcfa } from "@/lib/app/format"
+import { formatFcfa, formatShortDate } from "@/lib/app/format"
+import { COMPLETION_COPY } from "@/lib/missions/completion"
 
 const BANNERS = {
   candidate: {
@@ -67,16 +68,46 @@ function amountsOf({ state, budget, purchasesEstimate, paymentsEnabled }) {
   }
 }
 
+// Fin déclarée par l'étudiant (RD-DONE-01) : seulement en cours, colonne disponible et date renseignée. Le badge
+// « À confirmer » est daté, les montants cèdent la place à l'état ; l'action reste « Confirmer la fin » (le bandeau
+// n'exécute rien, il ouvre la fenêtre de confirmation de la mission). Jamais le gain de l'étudiant.
+function declaredOf({ state, studentName, completionDeclaredAt, completionAvailable, paymentsEnabled }) {
+  if (state !== "in_progress" || completionAvailable !== true || !completionDeclaredAt) return null
+  const who = firstNameOf(studentName) || "L'étudiant"
+  const date = formatShortDate(completionDeclaredAt)
+  const done = date ? `terminé le ${date}` : "terminé la mission"
+  return {
+    badge: { label: COMPLETION_COPY.toConfirmBadge, tone: "alerte", icon: "i-check-circle" },
+    long: `${who} indique avoir ${done}${done.endsWith(".") ? "" : "."} Validez la fin pour verser le paiement.${paymentsEnabled ? " Les fonds restent en séquestre jusqu'à votre validation." : ""}`,
+    short: date ? `Terminé le ${date}` : "Terminé",
+  }
+}
+
 /**
  * Bandeau de statut de la conversation, toujours visible sous l'en-tête. `mission` : { budget, purchasesEstimate }
- * de getClientConversation ; `paymentsEnabled` est lu côté serveur par la page.
- * @param {{ state: string, missionId: string, studentId: string, studentName?: string, mission?: object, paymentsEnabled?: boolean }} props
+ * de getClientConversation ; `paymentsEnabled` est lu côté serveur par la page. `completionDeclaredAt` et
+ * `completionAvailable` : fin déclarée par l'étudiant (conversation.completionDeclaredAt / completionAvailable).
+ * @param {{ state: string, missionId: string, studentId: string, studentName?: string, mission?: object, paymentsEnabled?: boolean, completionDeclaredAt?: string|null, completionAvailable?: boolean }} props
  */
-export function StatusBanner({ state, missionId, studentId, studentName, mission, paymentsEnabled = false }) {
-  const banner = BANNERS[state]
-  if (!banner) return null
+export function StatusBanner({
+  state,
+  missionId,
+  studentId,
+  studentName,
+  mission,
+  paymentsEnabled = false,
+  completionDeclaredAt = null,
+  completionAvailable = false,
+}) {
+  const base = BANNERS[state]
+  if (!base) return null
+  const declared = declaredOf({ state, studentName, completionDeclaredAt, completionAvailable, paymentsEnabled })
+  const banner = declared ? { ...base, badge: declared.badge } : base
   const action = actionOf(state, missionId, studentId, studentName)
-  const amounts = amountsOf({ state, budget: mission?.budget, purchasesEstimate: mission?.purchasesEstimate, paymentsEnabled })
+  // Le même gabarit « long / court » sert aux montants et à l'état déclaré (classe chat-status--amounts).
+  const amounts =
+    declared ??
+    amountsOf({ state, budget: mission?.budget, purchasesEstimate: mission?.purchasesEstimate, paymentsEnabled })
   return (
     <div className={amounts ? "chat-status chat-status--amounts" : "chat-status"}>
       <StatusBadge {...banner.badge} />

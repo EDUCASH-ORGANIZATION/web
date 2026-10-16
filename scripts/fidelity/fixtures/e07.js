@@ -29,6 +29,8 @@ export const conversation = {
     net: 7040,
   },
   state: "in_progress",
+  completionAvailable: true,
+  completionDeclaredAt: null,
   canWrite: true,
   messages: [
     msg(0, true, "Je suis chez Tantie Awa, c'est réglé pour le riz. Je passe à la boutique pour l'huile."),
