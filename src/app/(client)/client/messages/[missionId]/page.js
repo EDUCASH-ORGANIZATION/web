@@ -20,7 +20,14 @@ export default async function ClientConversationPage({ params, searchParams }) {
   const result = await getClientConversation({ missionId, studentId: paramText(query.studentId) })
   if (result.notFound) notFound()
   if (result.error || !result.conversation) {
-    return <ErrorState titleAs="h1" title="Conversation indisponible" text={result.error ?? "Le chargement a échoué. Veuillez réessayer."} />
+    return (
+      <ErrorState
+        titleAs="h2"
+        title="Conversation indisponible"
+        text={result.error ?? "Le chargement a échoué. Veuillez réessayer."}
+        action={{ href: "/client/messages", label: "Retour aux messages" }}
+      />
+    )
   }
   return <ConversationView conversation={result.conversation} now={new Date().toISOString()} />
 }
