@@ -1,0 +1,519 @@
+{
+  "id": "E03",
+  "title": "Détail de mission étudiant (avec achats)",
+  "planche": "etudiant/E03-detail-mission-candidature.v2.html",
+  "screen": "e03",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale)",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 1,
+      "selectors": [
+        {
+          "id": "MI-18",
+          "label": "titre",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "h": "A3:3"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-18",
+          "label": "méta",
+          "board": ".e2-03-meta",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-18",
+          "label": "badge Avec achats",
+          "board": ".e2-03-meta .badge",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "fontSize"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "x": "X1:45",
+            "y": "A3:3",
+            "w": "A2:6"
+          },
+          "note": "x : Le texte de la date diffère (planche « Sam. 10 oct., 8:00 », code « Avant le 10 octobre 2999 » : la mission n'a pas d'heure, formatDateFr en toutes lettres, mission-header.jsx de ST-03) : la position x du badge suit la largeur de ce texte ; w : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (badge 12 px porté à 13 px) ; y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-22",
+          "label": "grille",
+          "board": ".e2-cols",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "cols",
+            "gap"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A2:13"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (somme des écarts de hauteur de la colonne gauche : déroulé +8, client +4, arrondis)"
+        },
+        {
+          "id": "MI-19",
+          "label": "carte description",
+          "board": ".e2-stack > .e2-sec:nth-child(1)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-19",
+          "label": "encadré achats",
+          "board": ".e2-note",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "pad",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-19",
+          "label": "titre encadré",
+          "board": ".e2-note__title",
+          "props": [
+            "y",
+            "h",
+            "fontSize",
+            "fontWeight"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-20",
+          "label": "carte déroulé",
+          "board": ".e2-stack > .e2-sec:nth-child(2)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "code": ".e2-stack > [aria-label=\"Comment se passent les achats\"]",
+          "assume": {
+            "y": "A3:4",
+            "h": "A2:8"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (sous-titres des 3 étapes à 14 px au lieu de 13 px)"
+        },
+        {
+          "id": "MI-20",
+          "label": "pastille 1",
+          "board": ".e2-stack > .e2-sec:nth-child(2) .e2-step__dot",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "code": "[aria-label=\"Comment se passent les achats\"] .e2-step__dot",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-19",
+          "label": "carte client",
+          "board": ".e2-stack > .e2-sec:nth-child(3)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "code": ".e2-stack > [aria-label=\"Le client\"]",
+          "assume": {
+            "y": "A2+A3:12",
+            "h": "A2:4"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) : déroulé +8 puis légende du séquestre à 14 px"
+        },
+        {
+          "id": "MI-21",
+          "label": "carte Postuler",
+          "board": ".e2-03-aside .e2-sec",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A2:9"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (aide +1, note des achats +4 et arrondis)"
+        },
+        {
+          "id": "MI-21",
+          "label": "libellé motivation",
+          "board": ".e2-03-aside .field__label",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-21",
+          "label": "champ motivation",
+          "board": ".e2-03-aside textarea",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:4"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-21",
+          "label": "aide motivation",
+          "board": ".e2-03-aside .field__help",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:4",
+            "h": "A2:1"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-21",
+          "label": "lignes gain",
+          "board": ".e2-03-aside .e2-kv",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A2+A3:5"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (aide +1)"
+        },
+        {
+          "id": "MI-21",
+          "label": "achats estimés",
+          "board": ".e2-03-aside .e2-kv + .e2-kv",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A2+A3:5"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (aide +1)"
+        },
+        {
+          "id": "MI-21",
+          "label": "note achats",
+          "board": ".e2-03-aside .e2-sec__body > .e2-03-caption",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A2+A3:5",
+            "h": "A2:4"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) : légende de 3 lignes à 14 px au lieu de 13 px"
+        },
+        {
+          "id": "MI-21",
+          "label": "bouton envoyer",
+          "board": ".e2-03-aside .btn--block",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A2+A3:9"
+          },
+          "note": "A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (aide +1, note +4)"
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        1684
+      ],
+      "frame": "phone",
+      "frameIndex": 1,
+      "selectors": [
+        {
+          "id": "MI-X",
+          "label": "en-tête",
+          "board": ".e2-mtop",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "x": "X1:8",
+            "w": "X1:24"
+          },
+          "note": "La planche étire l'en-tête sur 390 px (x0, w390) ; le code le décale de 8 px à gauche et de 24 px en largeur (marge négative et padding de .e2-mtop dans student/base.css, hors lot ST-10)"
+        },
+        {
+          "id": "MI-18",
+          "label": "titre",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "fontSize"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "X1:17",
+            "h": "X1:36",
+            "fontSize": "X1:4"
+          },
+          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10"
+        },
+        {
+          "id": "MI-18",
+          "label": "méta",
+          "board": ".e2-03-meta",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "X1:24",
+            "h": "X1:26"
+          },
+          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10"
+        },
+        {
+          "id": "MI-19",
+          "label": "carte description",
+          "board": ".mpage2 > section:nth-of-type(1)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "code": ".e2-stack > section:nth-of-type(1)",
+          "assume": {
+            "y": "X1:2"
+          },
+          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10"
+        },
+        {
+          "id": "MI-19",
+          "label": "encadré achats",
+          "board": ".e2-note--m",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "X1:3"
+          },
+          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10"
+        },
+        {
+          "id": "MI-21",
+          "label": "carte gain",
+          "board": ".mpage2 > section:nth-of-type(2)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "code": ".e2-stack > section:nth-of-type(2)",
+          "assume": {
+            "y": "X1:3",
+            "h": "A2:5"
+          },
+          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10 ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-20",
+          "label": "carte déroulé",
+          "board": ".mpage2 > section:nth-of-type(3)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "code": ".e2-stack > section:nth-of-type(3)",
+          "assume": {
+            "y": "X1:8",
+            "h": "A2:13"
+          },
+          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10 ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (sous-titres des étapes à 14 px, une ligne de plus par étape)"
+        },
+        {
+          "id": "MI-19",
+          "label": "carte client",
+          "board": ".mpage2 > section:nth-of-type(4)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "code": ".e2-stack > section:nth-of-type(4)",
+          "assume": {
+            "y": "X1:20",
+            "h": "A2:2"
+          },
+          "note": "La planche mobile affiche le titre à 30 px sur 3 lignes (95 px) et une date courte ; le code a le titre à 26 px sur 2 lignes (app-shell.css, hors lot) et la date longue « Avant le 10 octobre » qui fait passer le badge sur une 3e ligne (mission-header.jsx, ST-03) : le décalage vertical en cascade de tout ce qui suit vient de là, non corrigeable dans ST-10 ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-21",
+          "label": "barre fixe",
+          "board": ".e2-mbar",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "BANC:19",
+            "h": "BANC:19"
+          },
+          "note": "BANC : la planche simule la zone sûre du téléphone par 34 px de padding bas, le code compte env(safe-area-inset-bottom) une seule fois (0 dans Chromium headless) : -22 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) : texte de la barre à 13 px au lieu de 12 px, +3 px"
+        },
+        {
+          "id": "MI-21",
+          "label": "bouton Postuler",
+          "board": ".e2-mbar .btn",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "x": "X1:4",
+            "y": "BANC:20"
+          },
+          "note": "x : le code réduit le padding horizontal de la barre à 12 px sous 400 px (student/base.css, hors lot) contre 16 px dans la planche, le bouton se décale de 4 px ; y : BANC (zone sûre simulée de 34 px) et A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        }
+      ]
+    }
+  ]
+}
