@@ -541,7 +541,8 @@ describe("carte étudiant compacte sous 1024 px et ordre mobile de C11", () => {
   it("la version compacte garde le profil et la discussion, avec des libellés nommés", () => {
     const out = render(detailOf("in_progress"))
     const mini = out.slice(out.indexOf('class="fup2__mini"'), out.indexOf("</section>", out.indexOf('class="fup2__mini"')))
-    expect(mini).toContain('aria-label="Voir le profil de Sèna"')
+    expect(mini).not.toContain('aria-label="Voir le profil')
+    expect(mini).toMatch(/<span class="sr-only">Voir le profil de <!-- -->Sèna<\/span>|<span class="sr-only">Voir le profil de Sèna<\/span>/)
     expect(mini).toContain('href="/talents/s1"')
     expect(mini).toContain('aria-label="Discuter avec Sèna"')
     expect(mini).toContain('href="/client/messages/m1?studentId=s1"')
@@ -572,6 +573,46 @@ describe("carte étudiant compacte sous 1024 px et ordre mobile de C11", () => {
     expect(noEst).not.toContain("fup2__split--purchases")
     const rated = render(doneWith(15000, { review: { rating: 5, comment: null, createdAt: "2026-10-09T00:00:00Z" } }))
     expect(rated).not.toContain("fup2__status--todo")
+  })
+})
+
+describe("accessibilité de la carte compacte et texte d'état sans réserve", () => {
+  const c08 = readFileSync(new URL("../../../../app/design/client/c08.css", import.meta.url), "utf8")
+  const withStudent = (over) => {
+    const base = detailOf("in_progress")
+    return { ...base, selectedStudent: { ...base.selectedStudent, ...over } }
+  }
+  const section = (out, label) => {
+    const from = out.slice(out.indexOf(`aria-label="${label}"`))
+    return from.slice(0, from.indexOf("</section>"))
+  }
+  const mini = (out) => out.slice(out.indexOf('class="fup2__mini"'), out.indexOf("</section>", out.indexOf('class="fup2__mini"')))
+
+  it("le nom visible est dans le nom accessible : préfixe masqué avant le nom, aucun aria-label sur le lien", () => {
+    const m = mini(render(detailOf("in_progress")))
+    expect(m).not.toMatch(/<a[^>]*fup2__mini-who[^>]*aria-label/)
+    expect(m.indexOf("Voir le profil de")).toBeLessThan(m.indexOf("Sèna Agossou"))
+    expect(m).toContain("4,9 / 5 · 23 missions")
+  })
+
+  it("nom hostile échappé, nom vide et id vide", () => {
+    expect(mini(render(withStudent({ fullName: "<img src=x onerror=alert(1)>" })))).not.toContain("<img")
+    expect(mini(render(withStudent({ fullName: "" })))).toContain("Voir le profil de l&#x27;étudiant".replace("&#x27;", "'"))
+    const noId = render(withStudent({ id: "" }))
+    expect(mini(noId)).toContain('href="/talents"')
+    expect(noId).not.toContain('href="/talents/"')
+  })
+
+  it("texte d'état : le mot séquestre seulement avec une réserve", () => {
+    const withReserve = section(render(detailOf("in_progress", { ledger: [{ type: "reserve", amount: 25000, createdAt: "2026-10-02T10:14:00Z" }] })), "Mission en cours")
+    expect(withReserve).toContain("restent en séquestre")
+    const none = section(render(detailOf("in_progress", { ledger: [] })), "Mission en cours")
+    expect(none).not.toMatch(/séquestre/i)
+    expect(none).toContain("Le paiement n'est versé qu'après votre validation")
+  })
+
+  it("à 320 px, la barre d'action passe sur deux lignes", () => {
+    expect(declarationsOf(c08, ".fup2 .mbar2__row", { media: "max-width: 480px" })["flex-wrap"]).toBe("wrap")
   })
 })
 

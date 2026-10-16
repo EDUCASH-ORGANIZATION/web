@@ -77,13 +77,14 @@ export function SelectedStudent({ title, student, missionId }) {
             <Icon name="i-message" />
             Discuter avec {first}
           </Link>
-          <Link className="link2" href={`/talents/${encodeURIComponent(student.id)}`}>
+          <Link className="link2" href={publicTalentHref(student.id)}>
             Voir le profil
           </Link>
         </div>
       </div>
       <div className="fup2__mini">
-        <Link className="person2 fup2__mini-who" href={publicTalentHref(student.id)} aria-label={`Voir le profil de ${first}`}>
+        <Link className="person2 fup2__mini-who" href={publicTalentHref(student.id)}>
+          <span className="sr-only">Voir le profil de {first}</span>
           <Avatar name={name} src={student.avatarUrl} verified={verified} />
           <span className="fup2__who">
             <span className="person2__name">{name}</span>

@@ -100,6 +100,7 @@ describe("ST-09 paiements fermés ou ouverts", () => {
 
   it("la note du Séquestre parle du service seul", () => {
     const note = plain(section(render(detailOf("in_progress"), CLOSED), "Séquestre").match(/<p class="note2">[\s\S]*?<\/p>/)[0])
+    expect(note).not.toMatch(/séquestre/i)
     expect(note).toContain("pour le service seulement")
   })
 

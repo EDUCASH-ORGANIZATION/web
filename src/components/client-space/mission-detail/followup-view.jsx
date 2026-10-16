@@ -66,7 +66,11 @@ function InProgress({ detail, view, studentName, onConfirm }) {
               <div className="status2__title">Mission en cours avec {studentName}</div>
               <div className="status2__text">
                 Quand le travail est terminé, vous confirmez la fin pour verser le paiement à {studentName}.{" "}
-                <b>Les fonds restent en séquestre jusqu&apos;à votre validation.</b>
+                <b>
+                  {view.reservedAt
+                    ? "Les fonds restent en séquestre jusqu'à votre validation."
+                    : "Le paiement n'est versé qu'après votre validation."}
+                </b>
               </div>
               <p className="status2__text">
                 Une annulation en cours de mission passe par notre équipe, qui étudie la situation avec vous.{" "}
@@ -218,7 +222,7 @@ function Cancelled({ detail, view, studentName }) {
  * `flags.confirmer` ouvre la modale à l'arrivée ; le paiement n'est JAMAIS exécuté sans clic sur
  * « Libérer le paiement ». Aucune annulation n'est proposée au client pour une mission en cours.
  * @param {{ detail: import("@/lib/actions/client-mission-detail.actions").ClientMissionDetail,
- *   flags: { confirmer?: boolean, publiee?: boolean, paymentsEnabled?: boolean } }} props
+ *   flags: { confirmer?: boolean, publiee?: boolean } }} props
  */
 export function MissionFollowupView({ detail, flags }) {
   const view = missionView(detail)
