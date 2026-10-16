@@ -53,6 +53,12 @@ describe("C08 fin déclarée : carte « À confirmer »", () => {
     expect(plain(card)).not.toContain("..")
     expect(plain(card)).toContain("Vérifiez le travail, puis confirmez la fin pour verser le paiement à Sèna.")
   })
+  it("prénom absent : repli « L'étudiant » avec majuscule en tête de phrase", () => {
+    const anon = section(render(detailOf("in_progress", { completion: DECLARED, selectedStudent: { ...student, fullName: "" } })), "À confirmer")
+    expect(plain(anon)).toContain("L'étudiant a terminé la mission")
+    expect(plain(anon)).toContain("L'étudiant indique avoir terminé le mer. 7 oct. Vérifiez")
+    expect(plain(anon)).toContain("verser le paiement à l'étudiant.")
+  })
   it("séquestre : texte selon la réserve, aucun versement ni délai automatique promis", () => {
     expect(plain(card)).toContain("Les fonds restent en séquestre jusqu'à votre validation : rien n'est versé automatiquement.")
     const noReserve = section(render(detailOf("in_progress", { completion: DECLARED, ledger: [] })), "À confirmer")

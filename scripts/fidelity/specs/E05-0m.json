@@ -9,7 +9,7 @@
     "bg": "A1",
     "fontSize": "A2:1"
   },
-  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale)",
+  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale). Fenêtre de 1156 px de haut : hauteur du cadre mobile long de la planche (mesure du cadre entier), pas un réglage pour masquer un écart",
   "views": [
     {
       "name": "mobile",

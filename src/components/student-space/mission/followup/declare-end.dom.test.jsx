@@ -161,6 +161,16 @@ describe("DeclareEnd (interactions)", () => {
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 
+  it("not_in_progress : « Actualiser » remplace l'envoi qui échouerait à chaque clic", async () => {
+    declareMock.mockResolvedValue({ error: "Cette mission n'est plus en cours.", code: "not_in_progress" })
+    setup()
+    openByButton()
+    await act(async () => fireEvent.click(submit()))
+    expect(screen.queryByRole("button", { name: "Oui, j'ai terminé" })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Actualiser" }))
+    expect(refreshMock).toHaveBeenCalledTimes(1)
+  })
+
   it("unavailable : le message s'affiche et il n'y a plus de bouton d'envoi", async () => {
     declareMock.mockResolvedValue({ error: "Cette fonction n'est pas encore disponible.", code: "unavailable" })
     setup()

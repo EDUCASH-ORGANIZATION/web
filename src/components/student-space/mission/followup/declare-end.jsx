@@ -89,7 +89,7 @@ export function DeclareEndBar({ net, paymentsEnabled, onOpen }) {
 
 /**
  * Vue pure de la modale. « Annuler » reçoit le focus initial. En cas d'échec, une bannière montre le message de
- * l'action ; `already_done` remplace l'envoi par « Actualiser », `unavailable` retire le bouton d'envoi.
+ * l'action ; `already_done` et `not_in_progress` remplacent l'envoi par « Actualiser », `unavailable` retire le bouton d'envoi.
  */
 export function DeclareEndDialogView({
   title,
@@ -105,7 +105,7 @@ export function DeclareEndDialogView({
   cancelRef,
 }) {
   const who = clientWho(clientName)
-  const alreadyDone = Boolean(error) && errorCode === "already_done"
+  const alreadyDone = Boolean(error) && (errorCode === "already_done" || errorCode === "not_in_progress")
   const unavailable = Boolean(error) && errorCode === "unavailable"
   return (
     <Modal

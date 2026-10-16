@@ -7,6 +7,9 @@
 .e2-05-meta > span:not(.badge) .ic { width: 16px; height: 16px; stroke-width: 1.75; }
 .e2-05-min { min-width: 0; }
 /* Collée sous la barre du haut collée de la coquille (--shell-sticky-top, app-shell.css) ; hauteur bornée à la fenêtre : défilement vertical seulement, et uniquement quand le contenu dépasse (jamais horizontal) */
+/* .e2-05-modal : classe de la planche, exigée par le garde-fou app-css ; la règle qui s'applique est `.e2-05-end .modal` plus bas (modale dans la carte) */
+.e2-05-modal { width: 560px; }
+.e2-05-aside:has(.scrim) { z-index: var(--z-modal); } /* sticky = contexte d'empilement : la modale ouverte passe au-dessus de la barre du haut (z-index 10) */
 .e2-05-aside { position: sticky; top: var(--shell-sticky-top); max-height: calc(100vh - var(--shell-sticky-top) - var(--s-4)); max-height: calc(100dvh - var(--shell-sticky-top) - var(--s-4)); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
 .e2-05-caption { font-size: var(--t-caption); color: var(--c-ardoise); line-height: 1.5; }
 .e2-05-actions { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
@@ -24,7 +27,6 @@
 .e2-05-req__amount { font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; font-size: var(--t-body-s); }
 .e2-05-foot { border-top: 1px solid var(--c-ligne); padding: var(--s-3) var(--s-6) var(--s-5); display: flex; flex-direction: column; gap: 8px; }
 .e2-05-quote { background: var(--c-givre); border-radius: 16px; padding: 12px 14px; font-size: var(--t-body-s); line-height: 1.5; }
-.e2-05-modal { width: 560px; }
 .e2-05-ta { min-height: 88px; }
 .e2-05-ta--s { min-height: 80px; }
 .e2-05-fieldset { border: 0; padding: 0; margin: 0; }

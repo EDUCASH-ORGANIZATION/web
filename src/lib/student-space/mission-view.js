@@ -164,7 +164,7 @@ export function missionDetailView(detail, today = todayInBenin()) {
     gainValid: gainIsValid(split),
     purchases: purchasesEstimateOf(mission.purchasesEstimate),
     actions: missionActions(detail),
-    completion: { ...completion, state: completionState({ status: mission.status, completionDeclaredAt: completion.declaredAt }) },
+    completion: { ...completion, state: available ? completionState({ status: mission.status, completionDeclaredAt: completion.declaredAt }) : "none" },
     timeline: detail.state === "selected" ? buildTimeline(detail) : [],
     receipt: receiptFromLedger(detail.ledger),
   }

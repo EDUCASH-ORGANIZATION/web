@@ -192,7 +192,8 @@ describe("missionDetailView", () => {
     const none = selected("in_progress", { completion: { available: true, declaredAt: null } })
     expect(missionDetailView(none).completion).toEqual({ state: "none", declaredAt: null, available: true })
     expect(missionDetailView(selected("in_progress")).completion).toEqual({ state: "none", declaredAt: null, available: false })
-    expect(missionDetailView(selected("done")).completion.state).toBe("confirmed")
+    expect(missionDetailView(selected("done", { completion: { available: true, declaredAt: null } })).completion.state).toBe("confirmed")
+    expect(missionDetailView(selected("done")).completion.state).toBe("none")
   })
   it("mission suivie : chronologie et reçu", () => {
     const view = missionDetailView(selected("done", { ledger: [{ type: "release", amount: 17600, createdAt: "2026-10-20T10:00:00Z" }] }))

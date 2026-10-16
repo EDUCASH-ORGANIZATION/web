@@ -52,6 +52,7 @@ function ReviewCard({ review, studentName }) {
 
 function DeclaredCard({ view, missionId, studentId, studentName, onConfirm }) {
   const declaredOn = formatShortDate(view.completion.declaredAt)
+  const lead = studentName.charAt(0).toUpperCase() + studentName.slice(1)
   return (
     <section className="card2 fup2__status fup2__status--todo" aria-label="À confirmer">
       <div className="status2">
@@ -59,11 +60,11 @@ function DeclaredCard({ view, missionId, studentId, studentName, onConfirm }) {
           <Icon name="i-check-circle" />
           {COMPLETION_COPY.toConfirmBadge}
         </span>
-        <div className="status2__title">{studentName} a terminé la mission</div>
+        <div className="status2__title">{lead} a terminé la mission</div>
         <div className="status2__text">
           {declaredOn
-            ? `${studentName} indique avoir terminé le ${declaredOn}${declaredOn.endsWith(".") ? "" : "."}`
-            : `${studentName} indique avoir terminé.`}{" "}
+            ? `${lead} indique avoir terminé le ${declaredOn}${declaredOn.endsWith(".") ? "" : "."}`
+            : `${lead} indique avoir terminé.`}{" "}
           Vérifiez le travail, puis confirmez la fin pour verser le paiement à {studentName}.{" "}
           <b>
             {view.reservedAt
