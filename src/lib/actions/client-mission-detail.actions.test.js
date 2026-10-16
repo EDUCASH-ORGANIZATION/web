@@ -298,6 +298,18 @@ describe("getClientMissionDetail : fin déclarée (RD-DONE-01)", () => {
     expect((await getClientMissionDetail(MISSION)).completion).toEqual({ available: true, declaredAt: "2026-10-12T10:00:00Z" })
   })
 
+  it("ligne non renvoyée (RLS, réattribution) : indisponible, jamais un faux non déclaré", async () => {
+    responses.completion = { data: [], error: null }
+    expect((await getClientMissionDetail(MISSION)).completion).toEqual({ available: false, declaredAt: null })
+  })
+
+  it("la lecture part en parallèle des autres lectures, après le contrôle de propriété", async () => {
+    await getClientMissionDetail(MISSION)
+    const order = calls.map((c) => `${c.table}:${c.columns}`)
+    expect(order[0]).toMatch(/^missions:/)
+    expect(order.slice(1, 5)).toContain("missions:id, completion_declared_at")
+  })
+
   it.each(["open", "cancelled"])("mission %s : aucune lecture de la colonne", async (status) => {
     responses.missions = { data: { ...mission, status, selected_student_id: null }, error: null }
     const detail = await getClientMissionDetail(MISSION)

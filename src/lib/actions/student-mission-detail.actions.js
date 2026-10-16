@@ -81,7 +81,9 @@ const LEDGER_COLUMNS = "type, amount, created_at"
 async function readCompletion(supabase, missionId) {
   try {
     const { available, byId } = await readCompletionDeclared(supabase, [missionId])
-    return { available, declaredAt: available ? (byId.get(missionId) ?? null) : null }
+    // Réponse sans la ligne (filtrée par la RLS, mission réattribuée) : indisponible, jamais un faux « non déclaré ».
+    const known = available && byId.has(missionId)
+    return { available: known, declaredAt: known ? (byId.get(missionId) ?? null) : null }
   } catch (error) {
     console.error("[getStudentMissionDetail] fin déclarée", error?.code ?? error?.message)
     throw new Error(ERR_LOAD)

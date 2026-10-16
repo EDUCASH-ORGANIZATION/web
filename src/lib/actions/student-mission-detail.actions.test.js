@@ -310,6 +310,20 @@ describe("getStudentMissionDetail : fin déclarée (RD-DONE-01)", () => {
     expect(detail.completion).toEqual({ available: true, declaredAt: "2026-10-12T10:00:00Z" })
   })
 
+  it.each(["done", "cancelled"])("mission %s pour l'étudiant retenu : date conservée", async (status) => {
+    responses.missions = missionsFor({ ...selected, status })
+    responses.completion = { data: [{ id: MISSION, completion_declared_at: "2026-10-12T10:00:00Z" }], error: null }
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.state).toBe("selected")
+    expect(detail.completion).toEqual({ available: true, declaredAt: "2026-10-12T10:00:00Z" })
+  })
+
+  it("ligne non renvoyée (RLS, réattribution) : indisponible, jamais un faux non déclaré", async () => {
+    responses.missions = missionsFor(selected)
+    responses.completion = { data: [], error: null }
+    expect((await getStudentMissionDetail(MISSION)).completion).toEqual({ available: false, declaredAt: null })
+  })
+
   it("mission ouverte : aucune lecture de la colonne, completion neutre", async () => {
     const detail = await getStudentMissionDetail(MISSION)
     expect(detail.state).toBe("open")

@@ -154,7 +154,7 @@ export async function getClientMissionDetail(id) {
   if (!mission) return null
 
   // Tout ce qui suit est filtré par l'identifiant d'une mission dont la propriété est établie.
-  const [applicationsRes, ledgerRes, reviewRes] = await Promise.all([
+  const [applicationsRes, ledgerRes, reviewRes, completionRes] = await Promise.all([
     supabase
       .from("applications")
       .select(APPLICATION_COLUMNS)
@@ -175,6 +175,9 @@ export async function getClientMissionDetail(id) {
       .eq("reviewer_id", user.id)
       .limit(1)
       .maybeSingle(),
+    mission.status === "in_progress" || mission.status === "done"
+      ? readCompletionDeclared(supabase, [mission.id]).catch((failure) => ({ failure }))
+      : Promise.resolve({ available: false, byId: new Map() }),
   ])
   if (applicationsRes.error || ledgerRes.error || reviewRes.error) {
     console.error(
@@ -184,16 +187,13 @@ export async function getClientMissionDetail(id) {
     throw new Error(ERR_LOAD)
   }
 
-  let completion = { available: false, declaredAt: null }
-  if (mission.status === "in_progress" || mission.status === "done") {
-    try {
-      const { available, byId } = await readCompletionDeclared(supabase, [mission.id])
-      completion = { available, declaredAt: available ? (byId.get(mission.id) ?? null) : null }
-    } catch (completionError) {
-      console.error("[getClientMissionDetail] fin déclarée", completionError?.code ?? completionError?.message)
-      throw new Error(ERR_LOAD)
-    }
+  if (completionRes.failure) {
+    console.error("[getClientMissionDetail] fin déclarée", completionRes.failure?.code ?? completionRes.failure?.message)
+    throw new Error(ERR_LOAD)
   }
+  // Réponse sans la ligne (filtrée par la RLS, mission réattribuée) : indisponible, jamais un faux « non déclaré ».
+  const known = completionRes.available && completionRes.byId.has(mission.id)
+  const completion = { available: known, declaredAt: known ? (completionRes.byId.get(mission.id) ?? null) : null }
 
   const rawApplications = applicationsRes.data ?? []
   const students = await loadStudents(
