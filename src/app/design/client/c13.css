@@ -15,11 +15,20 @@
 
 /* Conversation : une carte à hauteur de fenêtre, journal des messages défilant, saisie en bas */
 .c2 .conv2 { display: flex; flex-direction: column; height: calc(100dvh - 180px); min-height: 420px; max-height: 820px; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); overflow: hidden; }
-.conv2__head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--c-ligne); background: var(--c-blanc); flex: none; }
-.conv2__who { flex: 1; min-width: 0; line-height: 1.25; }
+/* En-tête .c-inbox__head (composants) : avatar 40, nom, sous-titre relationnel, « Voir le profil » ; le retour n'existe que sous 1024 */
+.conv2__head { flex: none; background: var(--c-blanc); }
+.conv2__who { flex: 1; min-width: 0; }
 .c2 .conv2__name { margin: 0; font-family: var(--f-text); font-size: var(--t-body-s); font-weight: var(--fw-xbold); text-transform: none; letter-spacing: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.c2 .conv2__sub { display: block; font-size: var(--t-micro); color: var(--c-ardoise); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.c2 .conv2 .chat-status { flex: none; flex-wrap: wrap; }
+.c2 .conv2__sub { display: inline-block; max-width: 100%; vertical-align: top; font-size: var(--t-micro); color: var(--c-ardoise); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c2 .conv2__back { display: none; }
+.c2 .conv2__profile { flex: none; }
+/* Bandeau de mission sur une ligne : le texte prend la place restante et passe à la ligne dans sa colonne */
+.c2 .conv2 .chat-status { flex: none; }
+.c2 .conv2 .chat-status .badge { flex: none; }
+.c2 .chat-status__text { flex: 1 1 0; min-width: 0; line-height: 1.35; }
+.c2 .chat-status__text--short { display: none; }
+.c2 .chat-status b { color: var(--c-encre); font-weight: var(--fw-bold); }
+.c2 .chat-status .btn { flex: none; }
 .c2 .conv2 .chat { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
 .c2 .conv2 .chat > :first-child { margin-top: auto; }
 .c2 .conv2 .btn-icon { width: 44px; height: 44px; }
@@ -57,11 +66,30 @@
 @media (max-width: 1023.98px) {
   .inbox2--tall { height: auto; }
   .c2 main:has(> .mchat2) { flex: 1; min-height: 0; overflow: hidden; padding: 0 !important; gap: 0; }
-  .c2 .shell--v2:has(.conv2) .shell__main { padding-bottom: 0; }
-  .c2 .conv2 { height: calc(100dvh - 148px - env(safe-area-inset-bottom, 0px)); min-height: 320px; max-height: none; border-radius: var(--r-m); }
-  .c2 .conv2 .mbar2--chat { position: fixed; left: 0; right: 0; bottom: 0; background: var(--c-blanc); z-index: var(--z-nav); }
-  .c2 .conv2 .composer { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  /* Conversation seule en mobile : son en-tête remplace la barre de coquille .mtop2 (masquée sans toucher la
+     coquille), le volet occupe toute la largeur (sans rayon ni filet latéral, marges de la page reprises en négatif)
+     et toute la hauteur (bas de page : marge seulement, la barre du bas est masquée par .mbar2), la saisie reste
+     visible dans le volet. La zone sûre du bas n'est comptée qu'une fois : dans la saisie (.composer), pas dans la coquille. */
+  .c2:has(.conv2__head) .mtop2 { display: none; }
+  .c2 .shell--v2:has(.conv2) .shell__main { padding-bottom: var(--s-2); }
+  .c2:has(.conv2) .page2 { padding-bottom: 0; }
+  .c2 .c-inbox .c-inbox__thread > .conv2 { flex: none; height: calc(100dvh - var(--s-2)); min-height: 320px; max-height: none; margin-inline: calc(-1 * var(--s-4)); border-width: 0; border-radius: 0; }
+  .conv2__head { height: 60px; padding: 0 var(--s-4) 0 var(--s-2); gap: var(--s-2); border-bottom-color: var(--c-ligne-2); }
+  .c2 .c-inbox__head .av2 { width: 32px; height: 32px; font-size: var(--t-micro); }
+  .c2 .conv2__back { display: inline-grid; }
+  /* « Voir le profil » : icône seule de 44 px, libellé lisible par les lecteurs d'écran */
+  .c2 .conv2__profile { width: 44px; height: 44px; justify-content: center; align-items: center; }
+  .conv2__profile-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* Bandeau avec montants sur une rangée : badge d'état, montant court, action. Le montant passe sur deux lignes
+     plutôt que d'être coupé : deux lignes de texte tiennent dans les 44 px du bouton, la hauteur ne change pas. */
+  .c2 .conv2 .chat-status--amounts { flex-wrap: nowrap; }
+  .c2 .chat-status--amounts .chat-status__text--long { display: none; }
+  .c2 .chat-status--amounts .chat-status__text--short { display: inline; }
+  .c2 .chat-status--amounts .chat-status__text { overflow-wrap: anywhere; }
   .c2 .conv2 .chat-status .btn { min-height: 44px; }
+  .c2 .conv2 .chat-status--amounts .btn .ic { display: none; }
+  .c2 .conv2 .composer:not(.is-locked) { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .c2 .conv2 .composer.is-locked { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
   .c2 .bubble__actions2 .link2 { min-height: 44px; }
   /* Lien de position OpenStreetMap : zone tactile de 44 px, ligne centrée. */
   .c2 .bubble__place2 { min-height: 44px; }

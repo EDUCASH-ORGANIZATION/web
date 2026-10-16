@@ -70,22 +70,23 @@ const view = (over) => renderToStaticMarkup(<ConversationView conversation={conv
 describe("ConversationView : premier message à un candidat", () => {
   const html = view()
 
-  it("affiche l'en-tête, le bandeau « Voir la candidature » et l'invitation à écrire", () => {
-    expect(html).toContain('<h1 class="conv2__name">Awa K.</h1>')
+  it("affiche l'en-tête, le bandeau « Accepter <prénom> » et l'invitation à écrire", () => {
+    expect(html).toContain('<h2 class="conv2__name">Awa K.</h2>')
     expect(html).toContain("Traduire un flyer en anglais")
     expect(html).toContain("Candidature en attente de votre réponse")
     expect(html).toContain(`href="/client/missions/${M1}?candidat=${S1}"`)
-    expect(html).toContain("Voir la candidature")
+    expect(html).toContain("Accepter Awa")
     expect(html).toContain("Aucun message pour l&#x27;instant. Écrivez à Awa K. pour démarrer la discussion.")
-    expect(h1Count(html)).toBe(1)
+    expect(h1Count(html)).toBe(0)
   })
 
-  it("propose la saisie vouvoyée avec image, message vocal et position", () => {
-    expect(html).toContain("Écrivez un message...")
+  it("propose la saisie vouvoyée avec image et position, le micro à droite du champ (l'envoi seulement avec du texte)", () => {
+    expect(html).toContain("Écrivez un message…")
     expect(html).toContain('aria-label="Joindre une image"')
-    expect(html).toContain('aria-label="Enregistrer un message vocal"')
     expect(html).toContain('aria-label="Partager une position"')
-    expect(html).toContain('aria-label="Envoyer"')
+    expect(html.indexOf("Partager une position")).toBeLessThan(html.indexOf("Votre message"))
+    expect(html.indexOf("Votre message")).toBeLessThan(html.indexOf("Enregistrer un message vocal"))
+    expect(html).not.toContain('aria-label="Envoyer"')
     expect(html).toMatch(/maxLength="2000"/i)
   })
 
@@ -246,6 +247,7 @@ describe("StatusBanner", () => {
 
   it("décline chaque état avec son action", () => {
     expect(render("candidate")).toContain("En attente")
+    expect(render("candidate")).toContain("Voir la candidature")
     expect(render("in_progress")).toContain("Confirmer la fin")
     expect(render("done")).toContain("Terminée")
     expect(render("done")).toContain(`href="/client/missions/${M1}"`)
@@ -260,9 +262,9 @@ describe("StatusBanner", () => {
 })
 
 describe("Composer et dialogues", () => {
-  it("désactive l'envoi tant que le champ est vide et borne la longueur", () => {
+  it("n'affiche pas l'envoi tant que le champ est vide et borne la longueur", () => {
     const html = renderToStaticMarkup(<Composer onSend={vi.fn()} />)
-    expect(html).toMatch(/<button type="submit" class="composer__send" aria-label="Envoyer" disabled/)
+    expect(html).not.toContain('aria-label="Envoyer"')
     expect(html).toMatch(/maxLength="2000"|maxlength="2000"/i)
     expect(html).toContain('accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"')
   })
