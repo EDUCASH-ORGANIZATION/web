@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { requireRole } from "@/lib/auth/require-role"
+import { ANONYMOUS_CLIENT_NAME } from "@/lib/constants/client-name"
 import { isUuid } from "@/lib/vitrine/ids"
 import { publicDisplayName } from "@/lib/vitrine/public-name"
 import { toProjectAvatarUrl } from "@/lib/storage/owned-paths"
@@ -385,7 +386,7 @@ export async function getStudentReviewPage(missionId) {
       status: mission.status,
     },
     client: {
-      name: fullName ? publicDisplayName(fullName) : "Client EduCash",
+      name: fullName ? publicDisplayName(fullName) : ANONYMOUS_CLIENT_NAME,
       avatarUrl: toProjectAvatarUrl(clientRes.data?.avatar_url),
       city: clientRes.data?.city ?? null,
     },

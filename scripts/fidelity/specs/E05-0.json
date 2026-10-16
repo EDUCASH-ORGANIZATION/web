@@ -1,0 +1,170 @@
+{
+  "id": "E05-0",
+  "title": "Mission retenue, suivi (sans achats)",
+  "planche": "etudiant/E05-mission-retenue-suivi.v2.html",
+  "screen": "e05-0",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "assumeNote": "A1 : encre et givre de la charte ; A2 : texte 12 px de la planche porté à 13 px (taille minimale)",
+  "views": [
+    {
+      "name": "bureau",
+      "viewport": [
+        1440,
+        900
+      ],
+      "frame": "desk",
+      "frameIndex": 0,
+      "selectors": [
+        {
+          "id": "MI-24",
+          "label": "titre",
+          "board": ".head2__title",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "h": "A2:3"
+          },
+          "note": "h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-24",
+          "label": "ligne date",
+          "board": ".head2__date",
+          "props": [
+            "x",
+            "y",
+            "tw"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "tw": "A8:160"
+          },
+          "note": "tw : référence EDC-M-xxxx et « retenue <quand> » omises : aucune référence en base, aucune date de rétention fiable (applications.updated_at change à toute mise à jour) ; ticket accepted_at"
+        },
+        {
+          "id": "MI-24",
+          "label": "méta",
+          "board": ".e2-05-meta",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px"
+        },
+        {
+          "id": "MI-23",
+          "label": "grille",
+          "board": ".e2-cols",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "cols",
+            "gap"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A8:49"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : séance, barre de progression et drapeau « Ce soir » omis : aucune séance en base : la colonne droite devient la plus haute"
+        },
+        {
+          "id": "MI-25",
+          "label": "carte gain",
+          "board": ".e2-05-aside > section:nth-child(1)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A2:4"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+        },
+        {
+          "id": "MI-23",
+          "label": "carte chronologie",
+          "board": ".e2-stack:not(.e2-05-aside) > :first-child",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "y": "A3:3",
+            "h": "A8:186"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; h : séance, barre de progression et drapeau « Ce soir » omis : aucune séance en base"
+        },
+        {
+          "id": "MI-25",
+          "label": "carte fin",
+          "board": ".e2-05-aside > section:nth-child(2)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "y": "A2+A3:8"
+          },
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page) ; Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
+        },
+        {
+          "id": "MI-25",
+          "label": "carte client",
+          "board": ".e2-05-aside > section:nth-child(3)",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "assume": {
+            "h": "A2:1"
+          },
+          "note": "h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) ; Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
+        },
+        {
+          "id": "MI-25",
+          "label": "lien Écrire",
+          "board": ".e2-05-actions .e2-link",
+          "props": [
+            "x",
+            "y",
+            "h"
+          ],
+          "lot": "RD-DONE-01 ST-09",
+          "note": "Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
+        }
+      ]
+    }
+  ]
+}
