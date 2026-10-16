@@ -2,6 +2,7 @@
 "use server"
 
 import { requireRole } from "@/lib/auth/require-role"
+import { ANONYMOUS_CLIENT_NAME } from "@/lib/constants/client-name"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
 import { isUuid } from "@/lib/vitrine/ids"
@@ -88,7 +89,7 @@ async function readVerification() {
 function toClient(profile) {
   const hasName = typeof profile?.full_name === "string" && profile.full_name.trim() !== ""
   return {
-    name: hasName ? publicDisplayName(profile.full_name) : "Client EduCash",
+    name: hasName ? publicDisplayName(profile.full_name) : ANONYMOUS_CLIENT_NAME,
     avatarUrl: toProjectAvatarUrl(profile?.avatar_url),
     city: profile?.city ?? null,
     rating: Number(profile?.rating) || 0,

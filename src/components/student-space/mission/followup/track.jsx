@@ -1,6 +1,6 @@
 // @ds-screen RD-STUDENT-01
 import { Icon } from "@/components/design/icon"
-import { safeDateFr } from "@/lib/student-space/mission-view"
+import { safeDateFr } from "@/lib/app/format"
 
 const ICONS = { applied: "i-check", selected: "i-check", paid: "i-coins", reviewed: "i-star", cancelled: "i-x" }
 

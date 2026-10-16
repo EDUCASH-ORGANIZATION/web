@@ -4,7 +4,7 @@ import { Icon } from "@/components/design/icon"
 import { PageHead } from "@/components/app-ui/page-head"
 import { StatusBadge } from "@/components/app-ui/status-badge"
 import { missionTypeLabel } from "@/lib/constants/missions"
-import { safeDateFr } from "@/lib/student-space/mission-view"
+import { safeDateFr } from "@/lib/app/format"
 import { purchasesEstimateOf, purchasesLine } from "@/lib/app/purchases"
 
 /**

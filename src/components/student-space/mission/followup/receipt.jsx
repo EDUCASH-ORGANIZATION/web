@@ -1,7 +1,6 @@
 // @ds-screen RD-STUDENT-01
 import { Icon } from "@/components/design/icon"
-import { formatFcfa } from "@/lib/app/format"
-import { safeDateFr } from "@/lib/student-space/mission-view"
+import { formatFcfa, safeDateFr } from "@/lib/app/format"
 import { commissionLabel } from "./earning-lines"
 
 /**

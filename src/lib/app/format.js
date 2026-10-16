@@ -4,6 +4,21 @@ import { todayInBenin, isPastDeadline } from "../vitrine/dates.js"
 
 export { formatFcfa, formatDateFr, todayInBenin, isPastDeadline }
 
+/**
+ * Date en toutes lettres, ou "" si la valeur est absente (null, undefined, "", 0) ou invalide : une date illisible ne
+ * fait jamais planter la page (formatDateFr lève RangeError sur une date invalide), et 0 n'affiche pas 1970.
+ * @param {string|Date|null|undefined} value
+ * @returns {string}
+ */
+export function safeDateFr(value) {
+  if (!value) return ""
+  try {
+    return formatDateFr(value)
+  } catch {
+    return ""
+  }
+}
+
 const BENIN_TZ = "Africa/Porto-Novo"
 const NARROW_NBSP = " "
 const NBSP = " "

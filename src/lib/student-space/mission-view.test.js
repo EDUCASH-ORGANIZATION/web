@@ -89,7 +89,7 @@ describe("buildTimeline", () => {
     expect(keys(steps)).toEqual(["applied:done", "selected:done", "paid:done", "reviewed:now"])
     expect(steps[2].date).toBe("2026-10-20T10:00:00Z")
     expect(steps[0].date).toBe("2026-10-02T09:00:00Z")
-    expect(steps[1].date).toBe("2026-10-03T09:00:00Z")
+    expect(steps[1].date).toBeNull() // updated_at n'est pas une date de rétention fiable
   })
   it("terminée notée : avis fait, daté", () => {
     const steps = buildTimeline(selected("done", { review: { id: "r", rating: 5, comment: null, createdAt: "2026-10-21T00:00:00Z" } }))

@@ -9,8 +9,10 @@ const { MissionApplyView } = await import("./apply-view")
 const { MissionFollowupView } = await import("./followup-view")
 const { netAmount } = await import("@/lib/constants/missions")
 const { formatAmount, formatFcfa } = await import("@/lib/app/format")
+const { ANONYMOUS_CLIENT_NAME } = await import("@/lib/constants/client-name")
 const { rulesOf } = await import("@/qa/fidelity/css-rules")
-const { clientFirstName, gainIsValid, safeDateFr } = await import("@/lib/student-space/mission-view")
+const { clientFirstName, gainIsValid } = await import("@/lib/student-space/mission-view")
+const { safeDateFr } = await import("@/lib/app/format")
 
 const on = { postuler: false, paymentsEnabled: true }
 const off = { postuler: false, paymentsEnabled: false }
@@ -209,8 +211,37 @@ describe("dates invalides : jamais de plantage", () => {
   it("safeDateFr : vide pour absent ou invalide, date lisible sinon", () => {
     expect(safeDateFr(null)).toBe("")
     expect(safeDateFr("")).toBe("")
+    expect(safeDateFr(0)).toBe("")
     expect(safeDateFr("pas une date")).toBe("")
     expect(safeDateFr("2026-10-08")).toBe("8 octobre 2026")
+  })
+})
+
+describe("étape Retenue sans date, constante du client anonyme, titre masqué", () => {
+  it("l'étape « retenue » n'a aucun sous-titre de date, les autres étapes gardent la leur", () => {
+    const html = follow(followed())
+    expect(html).toContain("Votre candidature a été retenue")
+    expect(html).not.toContain("8 octobre 2026")
+    expect(html).toContain("7 octobre 2026")
+  })
+
+  it("l'action et la vue utilisent la même constante du nom anonyme", () => {
+    const read = (f) => readFileSync(f, "utf8")
+    for (const f of ["src/lib/actions/student-mission-detail.actions.js", "src/lib/actions/review.actions.js"]) {
+      expect(read(f)).toContain('import { ANONYMOUS_CLIENT_NAME } from "@/lib/constants/client-name"')
+      expect(read(f)).not.toContain('"Client EduCash"')
+    }
+    expect(read("src/lib/student-space/mission-view.js")).toContain("ANONYMOUS_CLIENT_NAME")
+    expect(ANONYMOUS_CLIENT_NAME).toBe("Client EduCash")
+    expect(clientFirstName(ANONYMOUS_CLIENT_NAME)).toBeNull()
+  })
+
+  it("h2 « Le client » masqué à l'œil seulement sur mobile (clip, jamais display: none)", () => {
+    const css = readFileSync("src/app/design/student/e03.css", "utf8")
+    const rules = rulesOf(css, ".e2-03-clientcard .e2-sec__head", { media: "max-width" })
+    expect(rules).toHaveLength(1)
+    expect(rules[0].declarations["clip-path"]).toBe("inset(50%)")
+    expect(rules[0].declarations.display).toBeUndefined()
   })
 })
 

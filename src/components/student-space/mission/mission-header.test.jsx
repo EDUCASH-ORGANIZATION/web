@@ -79,7 +79,10 @@ describe("MissionHeader étudiant", () => {
   ])("badge Urgent : urgence %s, statut %s -> %s", (urgency, status, shown) => {
     const html = render(mission({ urgency, status }))
     expect(html.includes("Urgent")).toBe(shown)
-    if (shown) expect(html).toContain("badge badge--neutre badge--sm")
+    if (shown) {
+      expect(html).toContain("badge badge--neutre badge--sm")
+      expect(html).toContain("#i-zap")
+    }
   })
 
   it("ligne d'achats coupée par withPurchasesLine={false}, badge conservé", () => {

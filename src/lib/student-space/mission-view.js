@@ -5,7 +5,6 @@ import { missionStatusView } from "../app/mission-status.js"
 import { escrowSplit } from "../app/money.js"
 import { ANONYMOUS_CLIENT_NAME } from "../constants/client-name.js"
 import { purchasesEstimateOf } from "../app/purchases.js"
-import { formatDateFr } from "../app/format.js"
 import { todayInBenin, isPastDeadline } from "../vitrine/dates.js"
 
 
@@ -97,8 +96,7 @@ export function receiptFromLedger(ledger) {
 }
 
 /**
- * Chronologie fondée sur les seules dates connues : candidature, acceptation (mise à jour de la candidature
- * acceptée), paiement (grand livre), avis. Une étape sans date connue garde `date: null`.
+ * Chronologie fondée sur les seules dates fiables : candidature, paiement (grand livre), avis. Une étape sans date connue garde `date: null`.
  * `state` : "done" | "now" | "todo". Mission annulée : seules la candidature et la sélection sont listées.
  * @param {import("@/lib/actions/student-mission-detail.actions").StudentMissionDetailOpen} detail
  * @returns {Array<{ key: "applied" | "selected" | "paid" | "reviewed", state: "done" | "now" | "todo", date: string|null }>}
@@ -107,7 +105,8 @@ export function buildTimeline(detail) {
   const { mission, application, ledger, review } = detail
   const receipt = receiptFromLedger(ledger)
   const applied = { key: "applied", state: "done", date: application?.createdAt ?? null }
-  const selected = { key: "selected", state: "done", date: application?.updatedAt ?? null }
+  // Pas de date : applications.updated_at change à toute mise à jour (le client peut la modifier), elle ne date pas la rétention.
+  const selected = { key: "selected", state: "done", date: null }
   if (mission.status === "cancelled") return [applied, selected]
   if (mission.status === "in_progress") {
     return [
@@ -145,20 +144,5 @@ export function missionDetailView(detail, today = todayInBenin()) {
     actions: missionActions(detail),
     timeline: detail.state === "selected" ? buildTimeline(detail) : [],
     receipt: receiptFromLedger(detail.ledger),
-  }
-}
-
-/**
- * Date en toutes lettres, ou "" si la valeur est absente ou invalide : une date illisible ne fait jamais planter la page
- * (formatDateFr lève RangeError sur une date invalide).
- * @param {string|Date|null|undefined} value
- * @returns {string}
- */
-export function safeDateFr(value) {
-  if (value === null || value === undefined || value === "") return ""
-  try {
-    return formatDateFr(value)
-  } catch {
-    return ""
   }
 }
