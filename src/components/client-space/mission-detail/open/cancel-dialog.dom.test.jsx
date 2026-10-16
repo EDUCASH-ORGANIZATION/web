@@ -33,11 +33,12 @@ describe("CancelDialog (interactions réelles)", () => {
     expect(screen.getByRole("heading", { name: "Confirmer l'annulation" })).toBeTruthy()
   })
 
-  it("à l'étape 2 le focus revient sur le choix sûr", () => {
+  it("à l'étape 2 le focus revient sur le choix sûr « Retour », pas sur le bouton rouge", () => {
     setup()
     screen.getByRole("button", { name: "Continuer" }).focus()
     fireEvent.click(screen.getByRole("button", { name: "Continuer" }))
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Garder la mission" }))
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Retour" }))
+    expect(document.activeElement).not.toBe(screen.getByRole("button", { name: /Oui, annuler et rembourser/ }))
   })
 
   it("un double clic sur « Continuer » ne confirme pas l'annulation", () => {
