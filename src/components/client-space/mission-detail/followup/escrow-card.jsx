@@ -24,10 +24,12 @@ export function EscrowCard({ split, studentName, onConfirm, withPurchases = fals
         ]}
         total={{ label: `Versé à ${studentName}`, value: split.student }}
       />
-      <button type="button" className="btn btn--dark btn--block fup2__desk" onClick={onConfirm}>
-        <Icon name="i-check-circle" />
-        Confirmer la fin
-      </button>
+      {onConfirm ? (
+        <button type="button" className="btn btn--dark btn--block fup2__desk" onClick={onConfirm}>
+          <Icon name="i-check-circle" />
+          Confirmer la fin
+        </button>
+      ) : null}
       <p className="note2">
         <Icon name="i-lock" />
         <span>
