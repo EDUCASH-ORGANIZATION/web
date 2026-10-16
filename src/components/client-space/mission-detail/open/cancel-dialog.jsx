@@ -5,13 +5,7 @@ import { Icon } from "@/components/design/icon"
 import { Modal } from "@/components/app-ui/modal"
 import { confirmOnce, isWithinSettle } from "@/components/app-ui/confirm-dialog"
 import { formatAmount } from "@/lib/app/format"
-
-// « Afiavi, Ulrich et Codjo » : prénoms séparés par des virgules, le dernier introduit par « et ».
-export function joinNames(names) {
-  const list = names.filter(Boolean)
-  if (list.length <= 1) return list.join("")
-  return `${list.slice(0, -1).join(", ")} et ${list[list.length - 1]}`
-}
+import { joinNames, notifiedVerb } from "./names"
 
 /**
  * Contenu des deux étapes de l'annulation (C07). `refundAmount` : montant réservé au grand livre (0 si inconnu ou
@@ -28,7 +22,7 @@ export function cancelSteps({ title, refundAmount, pendingNames = [] }) {
       consequences: [
         "La mission sort tout de suite des recherches",
         notified.length > 0
-          ? `${joinNames(notified)} ${notified.length > 1 ? "sont prévenus" : "est prévenu"} que la mission est annulée`
+          ? `${joinNames(notified)} ${notifiedVerb(notified)} que la mission est annulée`
           : null,
         known ? `Les ${formatAmount(refundAmount)} reviennent sur votre portefeuille, en entier` : null,
       ].filter(Boolean),

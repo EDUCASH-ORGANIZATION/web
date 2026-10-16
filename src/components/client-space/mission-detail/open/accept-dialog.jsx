@@ -6,7 +6,7 @@ import { Avatar } from "@/components/app-ui/avatar"
 import { Lines } from "@/components/app-ui/lines"
 import { Modal } from "@/components/app-ui/modal"
 import { formatAmount } from "@/lib/app/format"
-import { joinNames } from "./cancel-dialog"
+import { joinNames, notifiedVerb } from "./names"
 import { ratingText, studentFirstName, studentName, studentSubtitle, VerificationBadge } from "./candidate-row"
 
 const FALLBACK_ERROR = "Une erreur est survenue. Veuillez réessayer."
@@ -69,13 +69,19 @@ export function AcceptDialogView({ applicant, mission, split, othersNames = [], 
       <ul className="checklist">
         <li className="is-ok">{`La mission passe « En cours » et une conversation s'ouvre avec ${first || "le candidat"}`}</li>
         {others.length > 0 ? (
-          <li className="is-ok">{`${joinNames(others)} ${others.length > 1 ? "sont prévenus" : "est prévenu"} que la mission est pourvue`}</li>
+          <li className="is-ok">{`${joinNames(others)} ${notifiedVerb(others)} que ${others.length > 1 ? "leur candidature n'est" : "sa candidature n'est"} pas retenue`}</li>
         ) : null}
         {paymentsEnabled ? (
           <li className="is-ok">{`Les ${formatAmount(mission.budget)} restent en séquestre : rien de plus à payer`}</li>
         ) : null}
       </ul>
       <Lines total={{ label: `Versé à ${first || "l'étudiant"} après votre validation`, value: split.student }} />
+      {paymentsEnabled ? null : (
+        <p className="note2">
+          <Icon name="i-info" />
+          <span>Montants indicatifs : les paiements ne sont pas encore actifs.</span>
+        </p>
+      )}
       {error ? (
         <div className="field__error" role="alert">
           <Icon name="i-alert-circle" />

@@ -27,7 +27,8 @@ const { CandidateRow } = await import("./candidate-row")
 const { CandidateDrawer } = await import("./candidate-drawer")
 const { AcceptDialog, AcceptDialogView, submitOnce } = await import("./accept-dialog")
 const { RejectDialog } = await import("./reject-dialog")
-const { CancelDialog, CancelDialogView, cancelSteps, joinNames } = await import("./cancel-dialog")
+const { CancelDialog, CancelDialogView, cancelSteps } = await import("./cancel-dialog")
+const { joinNames } = await import("./names")
 const { orderApplications } = await import("./candidate-list")
 const { escrowSplit } = await import("@/lib/app/money")
 const { formatAmount } = await import("@/lib/app/format")
@@ -325,6 +326,16 @@ describe("paiements en pause : jamais de séquestre", () => {
     expect(off).not.toMatch(/Publiée, /)
   })
 
+  it("l'échéance dépassée ne parle pas de séquestre, ouverte elle le fait", () => {
+    const overdue = (flags) => render({ detail: detailOf({ applications: TWO, deadline: "2020-01-01" }), flags })
+    const closed = overdue({ ...FLAGS, paymentsEnabled: false })
+    expect(closed).toContain("Rien ne se passe automatiquement")
+    expect(closed).toContain("examinez les candidatures ou annulez la mission.")
+    expect(closed.toLowerCase()).not.toContain("séquestre")
+    expect(overdue({ confirmer: false, publiee: false }).toLowerCase()).not.toContain("séquestre")
+    expect(overdue(FLAGS)).toContain("annulez la mission pour récupérer le séquestre.")
+  })
+
   it("avec le drapeau absent, même comportement (jamais vrai par défaut)", () => {
     const missing = render({ detail: detailOf({ applications: TWO }), flags: { confirmer: false, publiee: false } })
     expect(missing.toLowerCase()).not.toContain("séquestre")
@@ -511,11 +522,13 @@ describe("modale d'acceptation", () => {
 
   it("prévient les autres candidats en attente et promet le séquestre seulement quand les paiements sont ouverts", () => {
     const on = renderToStaticMarkup(<AcceptDialog {...props} open othersNames={["Ulrich", "Codjo"]} paymentsEnabled />)
-    expect(on).toContain("Ulrich et Codjo sont prévenus que la mission est pourvue")
+    expect(on).toContain("Ulrich et Codjo sont prévenus que leur candidature n&#x27;est pas retenue")
     expect(on).toContain(`Les ${formatAmount(mission.budget)} restent en séquestre : rien de plus à payer`)
     const off = renderToStaticMarkup(<AcceptDialog {...props} open othersNames={["Ulrich"]} />)
-    expect(off).toContain("Ulrich est prévenu que la mission est pourvue")
+    expect(off).toContain("Ulrich est prévenu que sa candidature n&#x27;est pas retenue")
     expect(off).not.toMatch(/séquestre/i)
+    expect(off).toContain("Montants indicatifs : les paiements ne sont pas encore actifs.")
+    expect(on).not.toContain("Montants indicatifs")
     expect(renderToStaticMarkup(<AcceptDialog {...props} open />)).not.toContain("prévenu")
   })
 
@@ -662,6 +675,10 @@ describe("C07 annulation en deux étapes", () => {
     )
     expect(joinNames(["A", "B"])).toBe("A et B")
     expect(joinNames([])).toBe("")
+    expect(joinNames(["A", "B", "C"])).toBe("A, B et C")
+    expect(joinNames(["A", "B", "C", "D"])).toBe("A, B, C et 1 autre")
+    expect(joinNames(Array.from({ length: 15 }, (_, i) => `N${i}`))).toBe("N0, N1, N2 et 12 autres")
+    expect(joinNames(["Awa", "Awa"])).toBe("Awa et Awa")
   })
 
   it("ne rend rien fermée", () => {
@@ -674,14 +691,36 @@ describe("feuilles C04 et C05 (planches mobile et tiroir)", () => {
   const MOBILE = "max-width: 1023.98px"
 
   it("sous 1024 px : plus d'en-tête de liste, le badge se pose sous le nom", () => {
-    expect(declarationsOf(c04, ".c2 .cand2__list .list2__head", { media: MOBILE }).display).toBe("none")
+    // le tri reste disponible (pas de display: none) et le titre n'est masqué que visuellement
+    const head = declarationsOf(c04, ".c2 .cand2__list .list2__head", { media: MOBILE })
+    expect(head.display).toBeUndefined()
+    expect(head["justify-content"]).toBe("flex-end")
+    const title = declarationsOf(c04, ".c2 .cand2__list .list2__title", { media: MOBILE })
+    expect(title.display).toBeUndefined()
+    expect(title["clip-path"]).toBe("inset(50%)")
     expect(declarationsOf(c04, ".cand2__top", { media: MOBILE }).display).toBe("contents")
     expect(declarationsOf(c04, ".cand2__top > .badge", { media: MOBILE })["align-self"]).toBe("flex-start")
   })
 
-  it("sous 1024 px : ordre Discuter, Profil, Refuser, Accepter", () => {
-    const order = (n) => declarationsOf(c04, `.cand2__acts > :nth-child(${n})`, { media: MOBILE }).order
-    expect([order(1), order(2), order(3), order(4)]).toEqual(["2", "1", "3", "4"])
+  it("le DOM suit l'ordre mobile ; le bureau seul réordonne Voir le profil avant Discuter", () => {
+    const order = (n, media) => declarationsOf(c04, `.cand2__acts > :nth-child(${n})`, { media }).order
+    expect([1, 2, 3, 4].map((n) => order(n))).toEqual(["2", "1", "3", "4"])
+    expect(declarationsOf(c04, ".cand2__acts > :nth-child(n)", { media: MOBILE }).order).toBe("0")
+    const row = renderToStaticMarkup(<CandidateRow {...{ profileHref: "/p", chatHref: "/c", onAccept: noop, onReject: noop }} application={applicationOf("s1")} />)
+    const at = (needle) => row.indexOf(needle)
+    expect(at("Discuter avec")).toBeLessThan(at("Voir le profil de"))
+    expect(at("Voir le profil de")).toBeLessThan(at("Refuser la candidature de"))
+    expect(at("Refuser la candidature de")).toBeLessThan(at("Accepter la candidature de"))
+  })
+
+  it("le bouton Accepter garde un nom accessible complet quand le prénom est masqué (mobile)", () => {
+    const row = renderToStaticMarkup(<CandidateRow {...{ profileHref: "/p", chatHref: "/c", onAccept: noop, onReject: noop }} application={applicationOf("s1")} />)
+    expect(row).toContain('aria-label="Accepter la candidature de Awa Kouassi"')
+  })
+
+  it("la méta des détails de mission est posée par base.css (un seul propriétaire)", () => {
+    expect(declarationsOf(css("base.css"), ".c2 .head2 + .meta2")["margin-top"]).toBe("10px")
+    expect(rulesOf(c04, ".c2 .head2 + .meta2", { media: "*" })).toEqual([])
   })
 
   it("le bouton Accepter garde sa largeur à 480 px (une seule ligne d'actions)", () => {

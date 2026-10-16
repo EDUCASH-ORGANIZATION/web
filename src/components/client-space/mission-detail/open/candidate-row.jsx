@@ -182,6 +182,12 @@ export function CandidateRow({ application, profileHref, chatHref, onProfileOpen
         </>
       ) : null}
       <div className="cand2__acts">
+        {pending ? (
+          <Link className="link2 cand2__link" href={chatHref} aria-label={`Discuter avec ${name}`}>
+            <Icon name="i-message" />
+            Discuter
+          </Link>
+        ) : null}
         <Link
           className="link2 cand2__link"
           href={profileHref}
@@ -197,10 +203,6 @@ export function CandidateRow({ application, profileHref, chatHref, onProfileOpen
         </Link>
         {pending ? (
           <>
-            <Link className="link2 cand2__link" href={chatHref} aria-label={`Discuter avec ${name}`}>
-              <Icon name="i-message" />
-              Discuter
-            </Link>
             <button
               type="button"
               className="link2 cand2__link cand2__link--muted"
@@ -209,7 +211,12 @@ export function CandidateRow({ application, profileHref, chatHref, onProfileOpen
             >
               Refuser
             </button>
-            <button type="button" className="btn btn--soft btn--sm" onClick={(e) => onAccept(application, e.currentTarget)}>
+            <button
+              type="button"
+              className="btn btn--soft btn--sm"
+              aria-label={`Accepter la candidature de ${name}`}
+              onClick={(e) => onAccept(application, e.currentTarget)}
+            >
               <Icon name="i-check" className="ic ds-desk-only" />
               <span>
                 Accepter

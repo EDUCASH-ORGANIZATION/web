@@ -286,7 +286,9 @@ export function MissionOpenView({ detail, candidate, flags }) {
           <span>
             {"L'échéance est dépassée. "}
             <b>Rien ne se passe automatiquement</b>
-            {" : examinez les candidatures ou annulez la mission pour récupérer le séquestre."}
+            {paymentsEnabled
+              ? " : examinez les candidatures ou annulez la mission pour récupérer le séquestre."
+              : " : examinez les candidatures ou annulez la mission."}
           </span>
         </p>
       ) : null}
