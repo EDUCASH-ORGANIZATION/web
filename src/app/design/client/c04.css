@@ -20,7 +20,9 @@
 .cand2__link--muted { color: var(--c-ardoise); }
 /* .list2__title span (0,1,1) colorait le drapeau en ardoise : on rétablit l'encre du .flag2 (0,2,0) */
 .list2__title .flag2 { color: var(--c-encre); font-weight: var(--fw-xbold); }
-.open2__desc { white-space: pre-line; margin-top: 4px; }
+.open2__desc { white-space: pre-line; }
+/* Méta sous le titre des détails de mission (planches C04, C07, C08, C09, C11) : 10 px sous le titre, 8 px en mobile */
+.c2 .head2 + .meta2 { margin-top: 10px; }
 /* 1024 px et plus avec sidebar : la pastille « à examiner » reste sur une ligne, le bloc titre et tri passe à
    la ligne plutôt que de déborder, et le badge de la candidature passe sous le nom plutôt que de le couper */
 .c2 .cand2__list .flag2 { white-space: nowrap; }
@@ -30,11 +32,18 @@
 @media (max-width: 1023.98px) {
   .cand2 { padding: var(--s-4); }
   .cand2__acts { gap: var(--s-4); }
+  .c2 .head2 + .meta2 { margin-top: var(--s-2); }
   /* Onglets Candidatures / Détails : un seul panneau à la fois sous 1024 px, cibles de 44 px */
   .open2__panel--off { display: none; }
   .cand2__link, .list2__head .ds-select .chip { min-height: 44px; }
-}
-@media (max-width: 480px) {
-  .cand2__top { flex-direction: column; gap: var(--s-2); }
-  .cand2__acts .btn { margin-left: 0; width: 100%; }
+  /* Planche mobile C04 : pas d'en-tête de liste (le compteur est dans l'onglet), le badge de vérification passe
+     sous le nom (le bloc nom + badge se dissout dans la colonne de la carte), une seule ligne d'actions */
+  .c2 .cand2__list .list2__head { display: none; }
+  .cand2__top { display: contents; }
+  .cand2__top > .badge { align-self: flex-start; }
+  /* Ordre mobile de la planche : Discuter, Profil, Refuser, Accepter (bureau : Voir le profil, Discuter...) */
+  .cand2__acts > :nth-child(1) { order: 2; }
+  .cand2__acts > :nth-child(2) { order: 1; }
+  .cand2__acts > :nth-child(3) { order: 3; }
+  .cand2__acts > :nth-child(4) { order: 4; }
 }

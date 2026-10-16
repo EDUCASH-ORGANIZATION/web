@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useId, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
 import { StatusBadge } from "@/components/app-ui/status-badge"
@@ -10,8 +10,10 @@ import { firstName } from "@/lib/vitrine/public-name"
 
 const BENIN_TZ = "Africa/Porto-Novo"
 const FALLBACK_NAME = "Étudiant EduCash"
-// Au-delà, le message est replié sur 2 lignes et dépliable (le rendu serveur ne peut pas mesurer le texte).
-export const MESSAGE_CLAMP_CHARS = 140
+// Le message est toujours replié sur 2 lignes ; « Lire la suite » n'apparaît que s'il est réellement rogné. Le rendu
+// serveur ne peut pas mesurer le texte : au-delà de ce nombre de caractères il suppose le message rogné, la mesure
+// faite après l'affichage (useIsClamped) corrige ensuite.
+export const MESSAGE_CLAMP_CHARS = 190
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
 
@@ -77,11 +79,17 @@ export function VerificationBadge({ student }) {
   )
 }
 
-/** Faits sobres en ligne : note, missions, ville. */
+/** Sous-titre mobile de la planche : « 4,8 / 5 · 14 missions » (la note seulement s'il y a des avis). */
+export function studentMobileSubtitle(student) {
+  const rating = Number(student?.rating) || 0
+  return [rating > 0 ? `${ratingText(rating)} / 5` : "", missionsText(student?.missionsDone)].filter(Boolean).join(" · ")
+}
+
+/** Faits sobres en ligne : note, missions, ville (bureau seulement : le mobile les résume sous le nom). */
 export function StudentFacts({ student }) {
   const rating = Number(student.rating) || 0
   return (
-    <div className="facts2">
+    <div className="facts2 ds-desk-only">
       <span>
         <Icon name="i-star" />
         {rating > 0 ? (
@@ -107,6 +115,22 @@ export function StudentFacts({ student }) {
   )
 }
 
+/** Vrai si le texte du paragraphe est rogné par le repli sur 2 lignes ; `guess` sert avant la première mesure. */
+function useIsClamped(ref, enabled, guess) {
+  const [clamped, setClamped] = useState(guess)
+  useEffect(() => {
+    const element = ref.current
+    if (!enabled || !element) return undefined
+    const measure = () => setClamped(element.scrollHeight > element.clientHeight + 1)
+    measure()
+    if (typeof ResizeObserver === "undefined") return undefined
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [ref, enabled])
+  return clamped
+}
+
 /**
  * Rangée de candidature (C04). `application` : élément de `detail.applications`.
  * Seule une candidature en attente propose Refuser et Accepter ; les autres sont en retrait.
@@ -119,8 +143,9 @@ export function CandidateRow({ application, profileHref, chatHref, onProfileOpen
   const first = studentFirstName(student)
   const pending = application.status === "pending"
   const message = typeof application.message === "string" ? application.message.trim() : ""
-  const long = message.length > MESSAGE_CLAMP_CHARS
   const [expanded, setExpanded] = useState(defaultExpanded)
+  const messageRef = useRef(null)
+  const clamped = useIsClamped(messageRef, Boolean(message) && !expanded, message.length > MESSAGE_CLAMP_CHARS)
   const messageId = useId()
   const status = applicationStatusView(application.status)
 
@@ -131,7 +156,8 @@ export function CandidateRow({ application, profileHref, chatHref, onProfileOpen
           <Avatar name={name} src={student.avatarUrl} />
           <div className="cand2__who">
             <div className="person2__name">{name}</div>
-            {studentSubtitle(student) ? <div className="person2__sub">{studentSubtitle(student)}</div> : null}
+            {studentSubtitle(student) ? <div className="person2__sub ds-desk-only">{studentSubtitle(student)}</div> : null}
+            <div className="person2__sub ds-mob-only">{studentMobileSubtitle(student)}</div>
           </div>
         </div>
         {pending ? <VerificationBadge student={student} /> : <StatusBadge label={status.label} tone={status.tone} />}
@@ -139,13 +165,13 @@ export function CandidateRow({ application, profileHref, chatHref, onProfileOpen
       <StudentFacts student={student} />
       {message ? (
         <>
-          <p id={messageId} className={cx("cand2__msg", long && !expanded && "cand2__msg--clamp")}>
+          <p ref={messageRef} id={messageId} className={cx("cand2__msg", !expanded && "cand2__msg--clamp")}>
             {message}
           </p>
-          {long ? (
+          {expanded || clamped ? (
             <button
               type="button"
-              className="link2 cand2__link"
+              className="link2 cand2__link ds-desk-only"
               aria-expanded={expanded}
               aria-controls={messageId}
               onClick={() => setExpanded((value) => !value)}
@@ -163,8 +189,11 @@ export function CandidateRow({ application, profileHref, chatHref, onProfileOpen
           aria-label={`Voir le profil de ${name}`}
           onClick={(e) => onProfileOpen?.(e.currentTarget)}
         >
-          <Icon name="i-user" />
-          Voir le profil
+          <Icon name="i-user" className="ic ds-desk-only" />
+          <span>
+            <span className="ds-desk-only">Voir le profil</span>
+            <span className="ds-mob-only">Profil</span>
+          </span>
         </Link>
         {pending ? (
           <>
@@ -180,9 +209,12 @@ export function CandidateRow({ application, profileHref, chatHref, onProfileOpen
             >
               Refuser
             </button>
-            <button type="button" className="btn btn--secondary btn--sm" onClick={(e) => onAccept(application, e.currentTarget)}>
-              <Icon name="i-check" />
-              {first ? `Accepter ${first}` : "Accepter"}
+            <button type="button" className="btn btn--soft btn--sm" onClick={(e) => onAccept(application, e.currentTarget)}>
+              <Icon name="i-check" className="ic ds-desk-only" />
+              <span>
+                Accepter
+                {first ? <span className="ds-desk-only">{` ${first}`}</span> : null}
+              </span>
             </button>
           </>
         ) : null}

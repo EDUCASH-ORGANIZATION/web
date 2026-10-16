@@ -1,13 +1,15 @@
 "use client"
 
 import Link from "next/link"
+import { useId } from "react"
 import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
-import { Drawer } from "@/components/app-ui/drawer"
+import { CloseButton, useDialogBehavior, useIsCompact, useScrimClose } from "@/components/app-ui/modal"
 import { StatusBadge } from "@/components/app-ui/status-badge"
 import { Stat } from "@/components/app-ui/stats"
 import { missionTypeLabel } from "@/lib/constants/missions"
 import { clientConversationHref } from "@/lib/app/client-routes"
+import { publicTalentHref } from "@/lib/app/student-routes"
 import { applicationStatusView } from "@/lib/app/application-status"
 import {
   formatWhen,
@@ -24,7 +26,9 @@ const LONG_MONTH_YEAR = new Intl.DateTimeFormat("fr-FR", { month: "long", year: 
 
 function monthYear(iso) {
   const date = new Date(iso)
-  return Number.isNaN(date.getTime()) ? "" : MONTH_YEAR.format(date)
+  if (Number.isNaN(date.getTime())) return ""
+  const text = MONTH_YEAR.format(date)
+  return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
 function verifiedLine(student) {
@@ -65,32 +69,31 @@ function ProfileBody({ candidate }) {
   const message = typeof candidate.message === "string" ? candidate.message.trim() : ""
   const sent = formatWhen(candidate.appliedAt, "à")
   const status = applicationStatusView(candidate.applicationStatus)
+  const reviewsTotal = Number(candidate.reviewsTotal) || 0
   return (
     <>
-      <div className="person2">
-        <Avatar name={name} src={student.avatarUrl} />
-        <div className="cand2__who">
-          {studentSubtitle(student) ? <div className="person2__sub">{studentSubtitle(student)}</div> : null}
-        </div>
-      </div>
       <div className="actions2">
         {verified ? <StatusBadge label={verified} tone="succes" icon="i-shield" /> : <VerificationBadge student={student} />}
         {candidate.applicationStatus !== "pending" ? <StatusBadge label={status.label} tone={status.tone} /> : null}
+        {rating > 0 ? (
+          <span className="facts2">
+            <span>
+              <Icon name="i-star" />
+              <b>{reviewsTotal > 0 ? `${ratingText(rating)} / 5 · ${reviewsTotal} avis` : `${ratingText(rating)} / 5`}</b>
+            </span>
+          </span>
+        ) : null}
       </div>
       <section className="stats2 stats2--3s" aria-label="Indicateurs du candidat">
         <Stat label="Missions" value={Number(student.missionsDone) || 0} />
-        <Stat
-          label="Note"
-          value={rating > 0 ? `${ratingText(rating)} / 5` : "Aucune"}
-          sub={candidate.reviewsTotal > 0 ? `${candidate.reviewsTotal} avis` : "Aucun avis"}
-        />
+        <Stat label="Avis" value={reviewsTotal > 0 ? reviewsTotal : "Aucun"} />
         <Stat label="Ville" value={student.city || "Non indiquée"} />
       </section>
       {message ? (
         <section>
           <h3 className="prof2__h">Motivation pour cette mission</h3>
           <p className="prof2__p prof2__p--encre">{message}</p>
-          {sent ? <p className="prof2__p">Envoyée le {sent}</p> : null}
+          {sent ? <span className="caption muted">Envoyée le {sent}</span> : null}
         </section>
       ) : null}
       {student.skills.length > 0 ? (
@@ -106,9 +109,9 @@ function ProfileBody({ candidate }) {
       <section>
         <h3 className="prof2__h">
           Avis des clients
-          {candidate.reviewsTotal > candidate.reviews.length ? (
-            <Link className="link2" href={`/talents/${encodeURIComponent(student.id)}`} target="_blank" rel="noopener noreferrer">
-              {`Voir les ${candidate.reviewsTotal} avis`}
+          {reviewsTotal > candidate.reviews.length ? (
+            <Link className="link2" href={publicTalentHref(student.id)} target="_blank" rel="noopener noreferrer">
+              {`Voir les ${reviewsTotal} avis`}
             </Link>
           ) : null}
         </h3>
@@ -124,22 +127,56 @@ function ProfileBody({ candidate }) {
                 <Stars rating={review.rating} />
               </div>
               {review.comment ? <p className="prof2__p">{review.comment}</p> : null}
-              {monthYear(review.createdAt) ? <p className="prof2__p">{monthYear(review.createdAt)}</p> : null}
+              {monthYear(review.createdAt) ? <span className="caption muted">{monthYear(review.createdAt)}</span> : null}
             </div>
           ))
         )}
       </section>
       <Link
         className="link2"
-        href={`/talents/${encodeURIComponent(student.id)}`}
+        href={publicTalentHref(student.id)}
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Ouvrir le profil public de ${name} (nouvel onglet)`}
       >
+        <Icon name="i-external" />
         Ouvrir le profil public
-        <Icon name="i-arrow-up-right" />
       </Link>
     </>
+  )
+}
+
+// Tiroir de la planche C05 : l'en-tête porte l'avatar (56 px), le nom et le sous-titre, ce que le tiroir partagé
+// (titre seul) ne permet pas. Mêmes garanties que lui : piège de focus, Échap, fermeture par le voile, plein écran
+// sous 1024 px. Le titre accessible est le nom du candidat.
+function ProfileDrawer({ onClose, name, avatarUrl, subtitle, footer, children }) {
+  const titleId = `${useId()}-title`
+  const compact = useIsCompact()
+  const containerRef = useDialogBehavior({ onClose })
+  const scrim = useScrimClose(onClose)
+  return (
+    <div className="scrim scrim--right ds-scrim-fixed" onPointerDown={scrim.onPointerDown} onClick={scrim.onClick}>
+      <aside
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className={compact ? "drawer ds-drawer--full" : "drawer"}
+      >
+        <div className="drawer__head">
+          <Avatar name={name} src={avatarUrl} />
+          <div>
+            <h2 id={titleId} className="ds-h3">
+              {name}
+            </h2>
+            {subtitle ? <div className="caption muted">{subtitle}</div> : null}
+          </div>
+          <CloseButton onClose={onClose} />
+        </div>
+        <div className="drawer__body">{children}</div>
+        {footer ? <div className="drawer__foot">{footer}</div> : null}
+      </aside>
+    </div>
   )
 }
 
@@ -159,7 +196,7 @@ export function CandidateDrawer({ open, candidate, error = false, missionId, onC
   const footer = profile ? (
     <>
       <Link
-        className="btn btn--secondary"
+        className="btn btn--soft"
         href={clientConversationHref(missionId, candidate.studentId)}
         aria-label={`Discuter avec ${studentName(candidate.student)}`}
       >
@@ -186,7 +223,13 @@ export function CandidateDrawer({ open, candidate, error = false, missionId, onC
   ) : null
 
   return (
-    <Drawer open onClose={onClose} title={profile ? studentName(candidate.student) : "Profil du candidat"} footer={footer}>
+    <ProfileDrawer
+      onClose={onClose}
+      name={profile ? studentName(candidate.student) : "Profil du candidat"}
+      avatarUrl={profile ? candidate.student.avatarUrl : null}
+      subtitle={profile ? studentSubtitle(candidate.student) : ""}
+      footer={footer}
+    >
       {profile ? (
         <ProfileBody candidate={candidate} />
       ) : error ? (
@@ -203,7 +246,7 @@ export function CandidateDrawer({ open, candidate, error = false, missionId, onC
           text="Cette candidature n'existe plus ou a été retirée. Retournez à la liste pour voir les candidatures en cours."
         />
       )}
-    </Drawer>
+    </ProfileDrawer>
   )
 }
 
