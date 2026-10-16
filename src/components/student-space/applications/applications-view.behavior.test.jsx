@@ -113,7 +113,7 @@ describe("heures", () => {
     const veille = render(data({ highlight: highlight({ acceptedAt: "2026-10-08T22:30:00Z" }) }), { now })
     expect(text(veille)).toMatch(/Retenue hier 23:30/)
     const note = render(data(), { now, unreadByMission: { m1: { at: "2026-10-08T23:30:00Z", state: "candidate" } } })
-    expect(text(note)).toContain("Rosine vous a écrit aujourd'hui à 0:30")
+    expect(text(note)).toContain("Rosine vous a écrit à 0:30")
   })
 })
 

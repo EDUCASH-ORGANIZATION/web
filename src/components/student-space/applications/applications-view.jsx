@@ -105,7 +105,9 @@ function headDate({ total, counts }) {
 function statusOf(row, tab, unread, now) {
   if (unread && row.status === "pending" && tab === "en-attente") {
     // Jour et heure du dernier message REÇU non lu ; sans date valide, formulation qui ne dit rien de faux.
-    const when = whenOf(unread.at, now)
+    // Message du jour : le jour est sous-entendu (« vous a écrit à 9:12 »), les autres jours sont écrits.
+    const clock = clockOf(unread.at)
+    const when = dayLabel(unread.at, now) === "aujourd'hui" && clock ? `à ${clock}` : whenOf(unread.at, now)
     const note = when ? `${row.clientFirst} vous a écrit ${when}` : `Message non lu de ${row.clientFirst}`
     return { view: applicationStatusView(row.status), icon: undefined, note }
   }

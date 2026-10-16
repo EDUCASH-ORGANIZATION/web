@@ -201,7 +201,7 @@ describe("StudentApplicationsView : répondre au client", () => {
     const html = render(attente, { unreadByMission })
     expect(html).toContain("Répondre à Rosine")
     expect(html).toContain('href="/messages/m1"')
-    expect(html).toContain("Rosine vous a écrit aujourd&#x27;hui à 9:12")
+    expect(html).toContain("Rosine vous a écrit à 9:12")
     expect(html).toContain('aria-label="Voir : Cours de maths"')
   })
 
@@ -237,13 +237,14 @@ describe("StudentApplicationsView : jour du dernier non lu, états et échéance
   const note = (at) => text(render(rows, { unreadByMission: { m1: { at, state: "candidate" } } }))
 
   it("non lu du jour, de la veille, d'avant-hier : le jour est écrit", () => {
-    expect(note("2026-10-08T09:12:00+01:00")).toContain("Rosine vous a écrit aujourd'hui à 9:12")
+    expect(note("2026-10-08T09:12:00+01:00")).toContain("Rosine vous a écrit à 9:12")
+    expect(note("2026-10-08T09:12:00+01:00")).not.toContain("aujourd'hui")
     expect(note("2026-10-07T17:40:00+01:00")).toContain("Rosine vous a écrit hier à 17:40")
     expect(note("2026-10-06T09:12:00+01:00")).toMatch(/Rosine vous a écrit le .*6 oct\. à 9:12/)
   })
 
   it("changement de jour au Bénin : 23:30 UTC est 0:30 le lendemain", () => {
-    expect(note("2026-10-07T23:30:00Z")).toContain("vous a écrit aujourd'hui à 0:30")
+    expect(note("2026-10-07T23:30:00Z")).toContain("vous a écrit à 0:30")
     expect(note("2026-10-07T22:59:00Z")).toContain("vous a écrit hier à 23:59")
   })
 

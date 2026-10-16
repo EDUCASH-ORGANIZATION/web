@@ -211,9 +211,9 @@
           ],
           "assume": {
             "y": "A3:4",
-            "h": "A2+X1:25"
+            "h": "A2:4"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : texte secondaire 13 -> 14 px (+1 par ligne, +3 sur trois lignes) ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px (+22), +25 mesuré"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : texte secondaire 13 -> 14 px, +1 par ligne sur trois lignes plus +1 d'arrondi, hauteur +4 mesuré"
         },
         {
           "id": "CA-01",
@@ -229,10 +229,9 @@
             "cols"
           ],
           "assume": {
-            "y": "A3:4",
-            "h": "X1:22"
+            "y": "A3:4"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px, hauteur +22 mesuré"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
         },
         {
           "id": "CA-01",
@@ -246,9 +245,9 @@
             "radius"
           ],
           "assume": {
-            "y": "A3+X1:14"
+            "y": "A3:4"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
         },
         {
           "id": "CA-01",
@@ -261,9 +260,9 @@
             "fontWeight"
           ],
           "assume": {
-            "y": "A3+X1:14"
+            "y": "A3:4"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
         },
         {
           "id": "CA-01",
@@ -275,9 +274,9 @@
             "fontSize"
           ],
           "assume": {
-            "y": "A3+X1:14"
+            "y": "A3:3"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
         },
         {
           "id": "CA-01",
@@ -291,10 +290,9 @@
             "gap"
           ],
           "assume": {
-            "y": "A3:4",
-            "h": "X1:22"
+            "y": "A3:4"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px, hauteur +22 mesuré"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
         },
         {
           "id": "CA-01",
@@ -307,10 +305,10 @@
             "h"
           ],
           "assume": {
-            "y": "A3+X1:14",
+            "y": "A3:3",
             "h": "A2:2"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11 ; A2 : deux lignes de 13 -> 14 px, hauteur +2 mesuré"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; A2 : deux lignes de 13 -> 14 px, hauteur +2 mesuré"
         },
         {
           "id": "CA-04",
@@ -324,9 +322,9 @@
             "gap"
           ],
           "assume": {
-            "y": "A3+X1:15"
+            "y": "A3:4"
           },
-          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11"
+          "note": "A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
         },
         {
           "id": "CA-04",
@@ -340,9 +338,9 @@
           ],
           "assume": {
             "x": "A8:59",
-            "y": "A3+X1:15"
+            "y": "A3:4"
           },
-          "note": "A8 : le lien « Retirer » est omis (non codé, D4, plan CA-04) et les liens sont alignés à droite : « Voir » se décale de la largeur de « Retirer » + gap, +59 mesuré ; A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi ; X1 : la ligne de statut du premier non lu (« Mawuli vous a écrit aujourd'hui à 9:12 », le jour est écrit, la planche dit « t'a écrit à 9:12 ») passe sur 2 lignes dans la colonne de 196 px : la ligne grandit de 22 px, contenu centré, +10 à +11"
+          "note": "A8 : le lien « Retirer » est omis (non codé, D4, plan CA-04) et les liens sont alignés à droite : « Voir » se décale de la largeur de « Retirer » + gap, +59 mesuré ; A3 : interligne du titre de page (3,42 px réels, --lh-display 1.14), tout ce qui suit descend de +3 ou +4 après arrondi"
         }
       ]
     },
