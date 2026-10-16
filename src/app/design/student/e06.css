@@ -1,6 +1,6 @@
 /* @ds-screen RD-STUDENT-01 */
 /* E06 Messages : boîte de réception centrée sur la personne (aussi utilisée par E07 en bureau).
-   La hauteur suit la fenêtre (244 px = barre du haut, titre et marges : le bas de la liste rejoint celui de la planche à 900 px) : la liste et le volet défilent dans leur cadre.
+   La hauteur suit la fenêtre (244 px = 194 de haut de grille, décalage A3 du titre compris, + 50 sous la liste : le bas de la liste rejoint celui de la planche à 900 px) : la liste et le volet défilent dans leur cadre.
    Les deux volets restent affichés quand une conversation est ouverte (layout de messages/). */
 .e2-06-inbox { display: grid; grid-template-columns: clamp(280px, 26vw, 360px) minmax(0, 1fr); gap: var(--s-5); height: max(480px, calc(100dvh - 244px)); min-height: 0; }
 .e2-06-inbox > .e2-07-pane { height: 100%; }
