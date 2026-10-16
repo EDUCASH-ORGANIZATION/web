@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
+vi.mock("server-only", () => ({}))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 vi.mock("@/lib/actions/profile.actions", () => ({ getMyProfile: vi.fn(), getMyStudentProfile: vi.fn() }))
 
@@ -22,12 +23,15 @@ function makeSupabase() {
       const state = { table, columns: null, filters: [] }
       calls.push(state)
       const resolve = () => {
+        // Lecture tolérante de la fin déclarée : requête séparée, réponse dédiée.
+        if (table === "missions" && state.columns === "id, completion_declared_at") return responses.completion
         const r = responses[table]
         return typeof r === "function" ? r(state) : (r ?? { data: null, error: null })
       }
       const b = {
         select: (columns) => { state.columns = columns; return b },
         eq: (c, v) => { state.filters.push(["eq", c, v]); return b },
+        in: (c, v) => { state.filters.push(["in", c, v]); return b },
         neq: (c, v) => { state.filters.push(["neq", c, v]); return b },
         or: (v) => { state.filters.push(["or", v]); return b },
         order: () => b,
@@ -64,6 +68,7 @@ beforeEach(() => {
     profiles: { data: { full_name: "Mawuli Adjovi", city: "Cotonou", avatar_url: null, rating: 4.7, missions_done: 5, is_verified: true }, error: null },
     wallet_transactions: { data: [], error: null },
     reviews: { data: null, error: null },
+    completion: { data: [{ id: MISSION, completion_declared_at: null }], error: null },
   }
   requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: ME }, role: "student", profile: {} })
   getMyProfile.mockResolvedValue({ profile: { is_verified: true, verified_until: null, rejection_reason: null } })
@@ -282,5 +287,54 @@ describe("getStudentMissionDetail : mission avec achats", () => {
     const full = callsOn("missions").find((c) => c.columns?.includes("client_id"))
     expect(full.columns).toContain("purchases_estimate")
     expect(full.columns).not.toContain("*")
+  })
+})
+
+describe("getStudentMissionDetail : fin déclarée (RD-DONE-01)", () => {
+  const selected = { ...baseMission, status: "in_progress", selected_student_id: ME }
+  const completionCalls = () => callsOn("missions").filter((c) => c.columns === "id, completion_declared_at")
+
+  it("selected non déclaré : completion disponible, declaredAt null, lecture sur cette mission seulement", async () => {
+    responses.missions = missionsFor(selected)
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.state).toBe("selected")
+    expect(detail.completion).toEqual({ available: true, declaredAt: null })
+    expect(completionCalls()).toHaveLength(1)
+    expect(completionCalls()[0].filters).toEqual([["in", "id", [MISSION]]])
+  })
+
+  it("selected déclaré : declaredAt renvoyé", async () => {
+    responses.missions = missionsFor(selected)
+    responses.completion = { data: [{ id: MISSION, completion_declared_at: "2026-10-12T10:00:00Z" }], error: null }
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.completion).toEqual({ available: true, declaredAt: "2026-10-12T10:00:00Z" })
+  })
+
+  it("mission ouverte : aucune lecture de la colonne, completion neutre", async () => {
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.state).toBe("open")
+    expect(detail.completion).toEqual({ available: false, declaredAt: null })
+    expect(completionCalls()).toHaveLength(0)
+  })
+
+  it("état closed : aucune lecture de la colonne", async () => {
+    responses.missions = missionsFor({ ...baseMission, status: "in_progress", selected_student_id: OTHER })
+    expect((await getStudentMissionDetail(MISSION)).state).toBe("closed")
+    expect(completionCalls()).toHaveLength(0)
+  })
+
+  it.each(["42703", "PGRST204"])("colonne absente (%s) : page rendue, available false", async (code) => {
+    responses.missions = missionsFor(selected)
+    responses.completion = { data: null, error: { code, message: "column missions.completion_declared_at does not exist" } }
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.state).toBe("selected")
+    expect(detail.mission.id).toBe(MISSION)
+    expect(detail.completion).toEqual({ available: false, declaredAt: null })
+  })
+
+  it("autre erreur : erreur neutre sans message SQL", async () => {
+    responses.missions = missionsFor(selected)
+    responses.completion = { data: null, error: { code: "XX000", message: "relation boom" } }
+    await expect(getStudentMissionDetail(MISSION)).rejects.toThrow("Impossible de charger la mission.")
   })
 })
