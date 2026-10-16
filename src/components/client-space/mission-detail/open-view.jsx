@@ -278,7 +278,12 @@ export function MissionOpenView({ detail, candidate, flags }) {
 
   return (
     <>
-      <MissionHeader mission={mission} status={view.status} actions={view.actions.cancel ? cancelAction : null} />
+      <MissionHeader
+        mission={mission}
+        status={view.status}
+        actions={view.actions.cancel ? cancelAction : null}
+        purchasesLine={false}
+      />
       {flags?.publiee ? <PublishedBanner /> : null}
       {view.overdue ? (
         <p className="note2 note2--box">

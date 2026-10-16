@@ -282,7 +282,8 @@ describe("onglet Détails et séquestre (commission par escrowSplit)", () => {
     expect(escrow).not.toContain(formatAmount(23000))
     expect(escrow).not.toContain(formatAmount(15000))
     expect(out).not.toContain(formatAmount(23000))
-    expect(out).toContain("Achats estimés : environ")
+    expect(out).not.toContain("Achats estimés : environ")
+    expect(count(out, formatAmount(15000))).toBe(1)
   })
 
   it("affiche le type par son libellé, jamais la valeur brute", () => {
