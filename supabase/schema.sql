@@ -217,7 +217,7 @@ create table public.notifications (
   created_at timestamp with time zone default now() not null
 );
 
--- Script 92 de RD-MSG-01 (NON appliqué en production au 2026-10-16) : journal des détections de
+-- Script 92 de RD-MSG-01 (appliqué en production le 2026-10-16) : journal des détections de
 -- coordonnées (le TYPE seulement, jamais la valeur) et signalements (utilisateurs et alertes automatiques).
 create table public.message_contact_events (
   id uuid default gen_random_uuid() not null,

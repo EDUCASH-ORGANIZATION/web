@@ -222,4 +222,9 @@ describe("schéma de référence : en-tête des scripts 92 et 93", () => {
     expect(header).not.toContain("Scripts 92 et 93 de RD-MSG-01 NON appliqués")
     expect(header).not.toContain("NON appliqué")
   })
+
+  it("aucune mention « NON appliqué » ne concerne les scripts 92 et 93 dans tout le fichier", () => {
+    const stale = lines.filter((l, i) => /NON appliqu/.test(l) && /\b9[23]\b/.test(`${lines[i - 1] ?? ""} ${l} ${lines[i + 1] ?? ""}`))
+    expect(stale).toEqual([])
+  })
 })
