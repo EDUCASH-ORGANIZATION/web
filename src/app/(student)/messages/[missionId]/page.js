@@ -2,6 +2,7 @@
 import { notFound } from "next/navigation"
 import { getStudentConversation } from "@/lib/actions/message.actions"
 import { StudentConversationView } from "@/components/student-space/messages/conversation-view"
+import { paymentsEnabled } from "@/lib/constants/payments"
 import { ErrorState } from "@/components/app-ui/state-block"
 
 export const metadata = { title: "Conversation - EduCash" }
@@ -24,5 +25,5 @@ export default async function StudentConversationPage({ params }) {
       />
     )
   }
-  return <StudentConversationView conversation={result.conversation} now={new Date().toISOString()} />
+  return <StudentConversationView conversation={result.conversation} now={new Date().toISOString()} paymentsEnabled={paymentsEnabled()} />
 }

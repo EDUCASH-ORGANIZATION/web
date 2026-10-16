@@ -7,7 +7,7 @@ import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
 import { useMessageMediaUpload, useRealtimeMessages } from "@/hooks/use-realtime-messages"
 import { getStudentMessageMedia, markStudentConversationRead, sendStudentMessage } from "@/lib/actions/message.actions"
-import { studentMessagesHref } from "@/lib/app/student-routes"
+import { studentMessagesHref, studentMissionHref } from "@/lib/app/student-routes"
 import { MEDIA_CONTENT, dayOf, formatDayLabel } from "@/lib/client-space/conversations"
 import { Bubble } from "./bubble"
 import { Composer, LockedComposer } from "./composer"
@@ -69,9 +69,10 @@ function pendingMessage(item) {
  * Conversation (mission, client) de l'étudiant : en-tête, bandeau de statut, journal des messages (annoncé
  * poliment), zone d'écriture. Les messages arrivent par le temps réel du hook (l'autre partie est le client),
  * l'envoi et le marquage « lu » passent par les actions serveur : aucune écriture depuis le navigateur.
- * @param {{ conversation: object, now?: string }} props `conversation` : réponse de getStudentConversation
+ * @param {{ conversation: object, now?: string, paymentsEnabled?: boolean }} props `conversation` : réponse de
+ *   getStudentConversation ; `paymentsEnabled` : lu côté serveur par la page (formulation du bandeau)
  */
-export function StudentConversationView({ conversation, now }) {
+export function StudentConversationView({ conversation, now, paymentsEnabled = false }) {
   const { userId, missionId, clientId, client, mission, state, canWrite } = conversation
   const nowDate = useMemo(() => (now ? new Date(now) : new Date()), [now])
   const markRead = useCallback(() => {
@@ -147,19 +148,23 @@ export function StudentConversationView({ conversation, now }) {
   return (
     <section className="e2-07-pane" aria-label={`Conversation avec ${client.name}`}>
       <header className="e2-07-head e2-07-mhead">
-        <Link className="iconbtn2" href={studentMessagesHref()} aria-label="Retour aux messages">
+        <Link className="iconbtn2 e2-07-back" href={studentMessagesHref()} aria-label="Retour aux messages">
           <Icon name="i-arrow-left" />
         </Link>
         <div className="e2-who">
           <Avatar name={client.name} src={client.avatarUrl} />
           <div className="e2-07-who">
-            <h1 className="e2-07-name">{client.name}</h1>
+            <h2 className="e2-who__name e2-07-name">{client.name}</h2>
             <div className="e2-who__sub">{mission.title}</div>
           </div>
         </div>
+        <Link className="btn btn--soft btn--sm e2-07-head__action" href={studentMissionHref(missionId)}>
+          <Icon name="i-briefcase" />
+          <span className="e2-07-head__label">Voir la mission</span>
+        </Link>
       </header>
 
-      <StatusBanner state={state} missionId={missionId} />
+      <StatusBanner state={state} missionId={missionId} mission={mission} paymentsEnabled={paymentsEnabled} />
 
       <div
         ref={chatRef}

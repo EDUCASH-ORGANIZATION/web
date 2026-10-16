@@ -6,15 +6,19 @@
 .e2-07-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; border-bottom: 1px solid var(--c-ligne); }
 .e2-07-head { flex: none; }
 .e2-07-head .e2-who { flex: 1; }
-.e2-07-who { min-width: 0; line-height: 1.25; }
+.e2-07-who { min-width: 0; }
 .e2-07-name { margin: 0; font-family: var(--f-text); font-size: 15px; font-weight: var(--fw-bold); text-transform: none; letter-spacing: normal; line-height: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .e2-07-mhead { background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne-2); }
 .e2-07-mhead .e2-who { flex: 1; gap: 10px; }
+/* Retour et libellé du bouton : le retour n'existe que sous 1024 (deux volets au-dessus), l'icône du bouton aussi */
+.e2-07-back, .e2-07-head__action .ic { display: none; }
+.e2-07-head__action { flex: none; }
 /* Bandeau de statut de mission : blanc, texte ardoise, le seul bouton encre de l'écran */
 .e2-07-status { flex: none; flex-wrap: wrap; display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--c-blanc); border-bottom: 1px solid var(--c-ligne); font-size: var(--t-caption); color: var(--c-ardoise); }
 .e2-07-status b { color: var(--c-encre); font-weight: var(--fw-bold); }
-.e2-07-status__text { min-width: 0; line-height: 1.35; }
+.e2-07-status__text { flex: 1 1 0; min-width: 0; line-height: 1.35; }
 .e2-07-status .btn { margin-left: auto; flex: none; }
+.e2-07-status__text--short { display: none; }
 /* Fil de messages calme : client blanc filet 1 px, toi en encre, système en ardoise */
 .e2-07-chat .bubble--them { border: 1px solid var(--c-ligne); }
 .e2-07-chat .bubble--me { background: var(--c-encre); color: var(--c-blanc); }
@@ -40,10 +44,10 @@
 .e2-07-fail { align-self: flex-end; display: flex; align-items: center; gap: 10px; margin-top: -2px; }
 .e2-07-bar { flex: none; background: var(--c-blanc); }
 .e2-07-composer { border-top: 1px solid var(--c-ligne); align-items: center; }
-.e2-07-composer .iconbtn2, .e2-07-composer .composer__send { width: 44px; height: 44px; }
+.e2-07-composer .iconbtn2, .e2-07-composer .composer__send { width: 40px; height: 40px; }
 .e2-07-composer .composer__field:focus-within { background: var(--c-blanc); border-color: var(--c-bleu); box-shadow: var(--sh-champ-focus); }
-.e2-07-composer .composer__input2 { min-height: 44px; box-sizing: border-box; }
-.e2-07-composer .composer__send:disabled { background: var(--c-off-bg); color: var(--c-off-txt); }
+.e2-07-composer .composer__field { box-sizing: border-box; min-height: 44px; padding: 0 16px; }
+.e2-07-composer .composer__input2 { min-height: 0; padding: 0; line-height: 1.4; }
 .e2-07-composer .composer__send { border-radius: 12px; background: var(--c-encre); }
 .e2-07-composer.is-recording .composer__field { background: var(--c-givre); color: var(--c-encre); }
 /* Carte « Demande de paiement » (décision 24) : blanche, filet 1 px, statut en petit badge, sans bande colorée */
@@ -64,21 +68,34 @@
 .e2-07-map .ic { width: 32px; height: 32px; }
 
 @media (max-width: 1023.98px) {
-  /* Conversation seule en mobile : son en-tête .e2-07-mhead remplace .mtop2, le volet occupe toute la hauteur
-     (bas de page : marge et safe-area seulement, la barre du bas est masquée sur /messages/<id>), le compositeur reste visible. */
+  /* Conversation seule en mobile : son en-tête .e2-07-mhead remplace .mtop2, le volet occupe toute la largeur
+     (sans rayon ni filet latéral, marges de la page reprises en négatif) et toute la hauteur (bas de page : marge et
+     safe-area seulement, la barre du bas est masquée sur /messages/<id>), le compositeur reste visible. */
   .e2:has(.e2-07-mhead) .mtop2 { display: none; }
-  .shell--v2:has(.e2-07-pane) .shell__main { padding-bottom: calc(var(--s-2) + env(safe-area-inset-bottom, 0px)); }
+  /* La zone sûre du bas n'est comptée qu'une fois : dans la saisie du volet (.e2-07-composer), pas dans la coquille. */
+  .shell--v2:has(.e2-07-pane) .shell__main { padding-bottom: var(--s-2); }
   .e2:has(.e2-07-pane) .page2 { padding-bottom: 0; }
-  .e2-07-pane { height: calc(100dvh - var(--s-2) - env(safe-area-inset-bottom, 0px)); border-radius: var(--r-m); }
+  .e2-07-pane { height: calc(100dvh - var(--s-2)); margin-inline: calc(-1 * var(--s-4)); border-radius: 0; border-width: 1px 0; }
+  .e2-07-head { height: 60px; padding: 0 16px 0 8px; gap: 8px; border-bottom-color: var(--c-ligne-2); }
+  .e2-07-head .av2 { width: 32px; height: 32px; font-size: var(--t-micro); }
+  .e2-07-back, .e2-07-head__action .ic { display: inline-grid; }
+  .e2-07-back { width: 44px; height: 44px; }
+  .e2-07-head__action { width: 44px; padding: 0; justify-content: center; }
+  .e2-07-head__label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* Bandeau avec montants sur une ligne : badge d'état, montant court, action. Les textes d'état plus longs passent à la ligne. */
+  .e2-07-status--amounts { flex-wrap: nowrap; }
+  .e2-07-status__achats, .e2-07-status__text--long { display: none; }
+  .e2-07-status__text--short { display: inline; }
+  .e2-07-status--amounts .e2-07-status__text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .e2-07-status .btn, .e2-07-fail .btn { min-height: 44px; }
+  .e2-07-composer .iconbtn2, .e2-07-composer .composer__send { width: 44px; height: 44px; }
+  .e2-07-composer:not(.is-locked) { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   .e2-07-place { min-height: 44px; }
 }
 
 @media (max-width: 480px) {
-  /* Écran étroit : les trois outils passent sur leur propre ligne, le champ et l'envoi gardent toute la largeur restante. */
-  .e2-07-composer { flex-wrap: wrap; row-gap: 0; }
-  .e2-07-composer .composer__tools { flex: 1 1 100%; }
-  .e2-07-composer .composer__field { min-width: 0; }
+  /* Écran étroit : le verrouillage garde son icône à gauche du texte ; la saisie reste sur une seule ligne. */
   .e2-07-composer.is-locked { flex-wrap: nowrap; gap: 8px; text-align: left; }
   .e2-07-composer.is-locked .ic { flex: none; }
+  .e2-07-composer .composer__field { min-width: 0; }
 }
