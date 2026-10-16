@@ -327,7 +327,7 @@
             "pad"
           ],
           "lot": "ST-05",
-          "note": "Hauteur liée au bouton « J'ai terminé » 36 px (D2, livraison différée RD-DONE-01 : action serveur disponible, branchement de l'interface hors ST-05) : sans bouton 43 px au lieu de 57 (-14). Reste ÉCHEC jusqu'au branchement, puis A5 éventuel."
+          "note": "Hauteur liée au bouton « J'ai terminé » 36 px (D2, branchement différé RD-DONE-01 : action serveur disponible, branchement de l'interface hors ST-05) : sans bouton 43 px au lieu de 57 (-14). Reste ÉCHEC jusqu'au branchement, puis A5 éventuel."
         },
         {
           "id": "ME-10",

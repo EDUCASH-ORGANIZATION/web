@@ -72,7 +72,7 @@
             "y": "X1:10",
             "h": "X1:28"
           },
-          "note": "y : La planche mobile montre les badges « En cours » et « Avec achats » puis la date sur une ligne, sans ville ; le code garde la ville, la date longue (mission-header.jsx) et une 2e ligne : choix de design de la planche mobile non repris ; h : La planche mobile montre les badges « En cours » et « Avec achats » puis la date sur une ligne, sans ville ; le code garde la ville, la date longue (mission-header.jsx) et une 2e ligne : choix de design de la planche mobile non repris"
+          "note": "La planche mobile montre un badge « En cours » puis la date sur une ligne, sans ville ; le code garde la ville, la date longue (mission-header.jsx) et une 2e ligne : choix de design de la planche mobile non repris"
         }
       ]
     }

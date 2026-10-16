@@ -68,10 +68,9 @@
           "assume": {
             "x": "A8+X1:66",
             "y": "A3:3",
-            "w": "A2:6",
-            "fontSize": "X1:1"
+            "w": "A2:6"
           },
-          "note": "x : x : Texte de date différent : la planche affiche une date courte avec heure (« Sam. 10 oct., 8:00 »), le code « Avant le 10 octobre 2999 » (mission sans heure, formatDateFr en toutes lettres dans mission-header.jsx, format conservé) ; nombre de candidats omis : donnée non lisible par l'étudiant (confidentialité) (la planche a « 3 candidats » avant le badge) ; y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; w : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (badge 12 px porté à 13 px) ; fontSize : Écart non expliqué"
+          "note": "x : Texte de date différent : la planche affiche une date courte avec heure (« Sam. 10 oct., 8:00 »), le code « Avant le 10 octobre 2999 » (mission sans heure, formatDateFr en toutes lettres dans mission-header.jsx, format conservé) ; nombre de candidats omis : donnée non lisible par l'étudiant (confidentialité) (la planche a « 3 candidats » avant le badge) ; y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; w : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (badge 12 px porté à 13 px)"
         },
         {
           "id": "MI-22",
@@ -308,10 +307,9 @@
           "lot": "ST-10",
           "assume": {
             "y": "A2+A3:5",
-            "h": "A2:4",
-            "fontSize": "X1:1"
+            "h": "A2:4"
           },
-          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page) ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) ; fontSize : Écart non expliqué"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page) ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-21",
@@ -497,7 +495,7 @@
             "y": "BANC:19",
             "h": "BANC:19"
           },
-          "note": "y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px) ; h : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px)"
+          "note": "y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px) ; h : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px) ; BANC ne se cumule pas (compare.mjs) : les 3 px d'A2 sont inclus dans la limite"
         },
         {
           "id": "MI-21",
@@ -514,7 +512,7 @@
             "x": "X1:4",
             "y": "BANC:20"
           },
-          "note": "x : Padding horizontal de la barre réduit à 12 px sous 400 px (student/base.css, coquille hors lot) contre 16 px dans la planche ; y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px)"
+          "note": "x : Padding horizontal de la barre réduit à 12 px sous 400 px (student/base.css, coquille hors lot) contre 16 px dans la planche ; y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px) ; BANC ne se cumule pas (compare.mjs) : les 3 px d'A2 sont inclus dans la limite"
         }
       ]
     }

@@ -284,7 +284,7 @@
             "y": "BANC:16",
             "h": "BANC:16"
           },
-          "note": "y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px) ; h : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px)"
+          "note": "y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px) ; h : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px) ; BANC ne se cumule pas (compare.mjs) : les 3 px d'A2 sont inclus dans la limite"
         },
         {
           "id": "MI-21",
@@ -301,7 +301,7 @@
             "x": "X1:4",
             "y": "BANC:19"
           },
-          "note": "x : Padding horizontal de la barre réduit à 12 px sous 400 px (student/base.css, coquille hors lot) contre 16 px dans la planche ; y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px)"
+          "note": "x : Padding horizontal de la barre réduit à 12 px sous 400 px (student/base.css, coquille hors lot) contre 16 px dans la planche ; y : BANC : la planche simule la zone sûre du téléphone par un padding bas de 34 px ; le code compte env(safe-area-inset-bottom) une seule fois, 0 dans Chromium headless ; A2 : texte de la barre à 13 px au lieu de 12 px (+3 px) ; BANC ne se cumule pas (compare.mjs) : les 3 px d'A2 sont inclus dans la limite"
         }
       ]
     }

@@ -153,7 +153,7 @@
           "assume": {
             "y": "A2+A3:6"
           },
-          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page) ; Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (livraison différée, écart visible volontairement jusqu'au branchement)"
+          "note": "y : A3 : titre Anton à 1.14 d'interligne (43,32 px contre 39,90 px), tout ce qui suit descend de 3 ou 4 px ; A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) (légendes et sous-titres plus hauts plus haut dans la page) ; Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
         },
         {
           "id": "MI-25",
@@ -169,7 +169,7 @@
           "assume": {
             "h": "A2:1"
           },
-          "note": "h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) ; Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (livraison différée, écart visible volontairement jusqu'au branchement)"
+          "note": "h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) ; Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
         },
         {
           "id": "MI-25",
@@ -181,7 +181,7 @@
             "h"
           ],
           "lot": "RD-DONE-01 ST-09",
-          "note": "Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (livraison différée, écart visible volontairement jusqu'au branchement)"
+          "note": "Le bouton « J'ai terminé » de la planche n'est pas codé : lot RD-DONE-01 ST-09 (branchement différé, écart visible volontairement jusqu'au branchement)"
         }
       ]
     }
