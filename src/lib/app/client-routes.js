@@ -1,5 +1,6 @@
 // Fabriques d'URL de l'espace client. Pur : paramètres vides omis.
 import { publishHref } from "../utils/publish-prefill.js"
+import { isUuid } from "../purchases/proofs.js"
 
 function withQuery(path, entries) {
   const query = new URLSearchParams()
@@ -33,10 +34,16 @@ export function clientMissionHref(id, { candidat, confirmer, publiee } = {}) {
   ])
 }
 
-/** `studentId` est le paramètre lu par la page de conversation existante. */
-export function clientConversationHref(missionId, studentId) {
+/**
+ * `studentId` est le paramètre lu par la page de conversation existante. `demande` (identifiant de demande de
+ * paiement d'achats) fait défiler jusqu'à la carte : drapeau sans action, ignoré s'il n'est pas un identifiant.
+ */
+export function clientConversationHref(missionId, studentId, { demande } = {}) {
   if (missionId === undefined || missionId === null || missionId === "") return "/client/messages"
-  return withQuery(`/client/messages/${encodeURIComponent(missionId)}`, [["studentId", studentId]])
+  return withQuery(`/client/messages/${encodeURIComponent(missionId)}`, [
+    ["studentId", studentId],
+    ["demande", isUuid(demande) ? demande : undefined],
+  ])
 }
 
 /** @param {{ recharger?: boolean, montant?: number|string, filtre?: string }} [params] */

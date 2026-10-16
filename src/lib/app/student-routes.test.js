@@ -66,6 +66,19 @@ describe("fabriques d'URL étudiant", () => {
     expect(studentConversationHref(undefined)).toBe("/messages")
   })
 
+  it("studentConversationHref porte les drapeaux d'achats valides et ignore les autres", () => {
+    const id = "33333333-3333-4333-8333-333333333333"
+    expect(studentConversationHref("m1", { achat: "nouveau" })).toBe("/messages/m1?achat=nouveau")
+    expect(studentConversationHref("m1", { achat: true })).toBe("/messages/m1?achat=nouveau")
+    expect(studentConversationHref("m1", { demande: id })).toBe(`/messages/m1?demande=${id}`)
+    expect(studentConversationHref("m1", { achat: "nouveau", demande: id })).toBe(`/messages/m1?achat=nouveau&demande=${id}`)
+    expect(studentConversationHref("m1", { achat: "oui", demande: "../x" })).toBe("/messages/m1")
+    expect(studentConversationHref("m1", { achat: false, demande: "" })).toBe("/messages/m1")
+    expect(studentConversationHref("m1", { demande: `${id}&x=1` })).toBe("/messages/m1")
+    expect(studentConversationHref("m1", {})).toBe("/messages/m1")
+    expect(studentConversationHref(undefined, { achat: "nouveau" })).toBe("/messages")
+  })
+
   it("studentWalletHref omet le filtre par défaut et gère retrait", () => {
     expect(studentWalletHref()).toBe("/wallet")
     expect(studentWalletHref({ filtre: "tout" })).toBe("/wallet")
