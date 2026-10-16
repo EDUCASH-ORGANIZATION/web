@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Banc de fidélité : compare la planche v2.1 et le rendu du code, sélecteur par sélecteur.
 // Usage : npm run fidelity -- E06 [E07,C12 ...] [--report-only]
-// Variables : FIDELITY_OUT (défaut /tmp/educash-fidelity), FIDELITY_CHROMIUM (chemin du Chromium,
+// Variables : FIDELITY_OUT (défaut /tmp/educash-fidelity/<hash du dépôt>), FIDELITY_CHROMIUM (chemin du Chromium,
 // obligatoire hors cache Playwright), FIDELITY_MAQUETTES (dossier des planches).
 import { spawnSync } from "node:child_process"
 import { createReadStream, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs"
+import { createHash } from "node:crypto"
 import { createServer } from "node:http"
 import { createRequire } from "node:module"
 import path from "node:path"
@@ -17,6 +18,17 @@ const SPECS_DIR = path.join(HERE, "specs")
 // Planches : dossier frère de organization/ (valable depuis web/ et depuis organization/web-*).
 const DEFAULT_MAQUETTES = path.resolve(ROOT, "../../design-rebrand/maquettes")
 const STATUS_BAR = 36
+const OUT_BASE = "/tmp/educash-fidelity"
+
+/**
+ * Dossier de sortie par défaut : un sous-dossier propre à chaque dépôt (worktree), dérivé d'un hash
+ * du chemin, pour que deux bancs lancés depuis deux worktrees n'écrasent pas le même app.css.
+ * Stable pour un même chemin, distinct pour deux chemins. FIDELITY_OUT garde la priorité (voir main).
+ */
+export function defaultOutDir(repoRoot) {
+  const hash = createHash("sha1").update(path.resolve(repoRoot)).digest("hex").slice(0, 10)
+  return path.join(OUT_BASE, hash)
+}
 
 // ---------------------------------------------------------------------------------------------
 // Comparaison (pure, testable)
@@ -340,7 +352,7 @@ async function main() {
   const args = process.argv.slice(2)
   const reportOnly = args.includes("--report-only")
   const ids = args.filter((a) => !a.startsWith("--")).flatMap((a) => a.split(",")).filter(Boolean)
-  const out = path.resolve(process.env.FIDELITY_OUT || "/tmp/educash-fidelity")
+  const out = path.resolve(process.env.FIDELITY_OUT || defaultOutDir(ROOT))
   const maquettes = process.env.FIDELITY_MAQUETTES || DEFAULT_MAQUETTES
   const specs = loadSpecs(ids)
   mkdirSync(out, { recursive: true })

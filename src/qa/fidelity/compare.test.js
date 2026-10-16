@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSyn
 import os from "node:os"
 import path from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
-import { compareEntry, fileForUrl, parseAssume, resolveInside, validateSpec } from "../../../scripts/fidelity/compare.mjs"
+import { compareEntry, defaultOutDir, fileForUrl, parseAssume, resolveInside, validateSpec } from "../../../scripts/fidelity/compare.mjs"
 
 const box = (over = {}) => ({ x: 0, y: 0, w: 100, h: 20, tw: 80, fontSize: "14px", ...over })
 
@@ -100,6 +100,22 @@ describe("compareEntry : rognage par un ancêtre", () => {
   it("sans rognage (null ou absent), le statut reste celui des écarts", () => {
     expect(compareEntry(box(), box({ clippedBy: null }), { props: ["x"] }).status).toBe("OK")
     expect(compareEntry(box(), box(), { props: ["x"] }).status).toBe("OK")
+  })
+})
+
+describe("defaultOutDir", () => {
+  it("un dossier par dépôt : deux chemins différents, deux dossiers", () => {
+    expect(defaultOutDir("/a/web-ST08")).not.toBe(defaultOutDir("/a/web-ST09"))
+  })
+
+  it("stable : même chemin, même dossier (barre finale ou segments relatifs inclus)", () => {
+    expect(defaultOutDir("/a/web-ST08")).toBe(defaultOutDir("/a/web-ST08"))
+    expect(defaultOutDir("/a/web-ST08")).toBe(defaultOutDir("/a/web-ST08/"))
+    expect(defaultOutDir("/a/b/../web-ST08")).toBe(defaultOutDir("/a/web-ST08"))
+  })
+
+  it("sous /tmp/educash-fidelity, avec un hash hexadécimal court", () => {
+    expect(defaultOutDir("/a/web")).toMatch(/^\/tmp\/educash-fidelity\/[0-9a-f]{10}$/)
   })
 })
 
