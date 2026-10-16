@@ -240,6 +240,19 @@ export function conversationAccess({ mission, application, studentId }) {
   return { allowed: true, canWrite: false, state: "closed" }
 }
 
+/**
+ * Ajoute la date de fin déclarée (RD-DONE-01) à côté de `state`. Elle n'est portée que par l'état
+ * `in_progress` (paire autorisée, étudiant retenu) ; toute autre valeur, ou une date absente, donne null.
+ * `state` n'est pas modifié : le bandeau décide de l'affichage « à confirmer ».
+ * @param {{ allowed: boolean, canWrite: boolean, state: string|null }} access
+ * @param {unknown} declaredAt date ISO lue dans `missions.completion_declared_at`, ou null
+ * @returns {{ allowed: boolean, canWrite: boolean, state: string|null, completionDeclaredAt: string|null }}
+ */
+export function withCompletionDeclared(access, declaredAt) {
+  const declared = access?.state === "in_progress" && typeof declaredAt === "string" && declaredAt !== ""
+  return { ...access, completionDeclaredAt: declared ? declaredAt : null }
+}
+
 // ─── Boîte de réception ───────────────────────────────────────────────────────────────────────
 
 /**
