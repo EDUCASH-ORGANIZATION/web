@@ -1,9 +1,8 @@
 // Données de la planche C13 (conversation client, mission en cours avec achats) : service 5 000 FCFA
 // en séquestre, achats estimés 7 450 FCFA. Vouvoiement, noms « Prénom N. » (A7).
 // Contrat de ST-02 : conversation.relation ("selected" : étudiant retenu) et mission.{budget,
-// purchasesEstimate, net}, le net étant le gain de l'étudiant (netAmount du budget).
-import { netAmount } from "@/lib/constants/missions"
-import { NOW } from "./c12.js"
+// purchasesEstimate}. Le client ne reçoit jamais le gain de l'étudiant (net).
+import { CONVERSATIONS, NOW } from "./c12.js"
 
 const msg = (i, mine, content, extra = {}) => ({
   id: `m${i}`,
@@ -28,7 +27,6 @@ export const conversation = {
     status: "in_progress",
     budget: 5000,
     purchasesEstimate: 7450,
-    net: netAmount(5000),
   },
   relation: "selected",
   state: "in_progress",
@@ -40,13 +38,20 @@ export const conversation = {
   ],
 }
 
+// La conversation est rendue dans les deux volets de la messagerie (layout de client/messages/) : la vue de la boîte
+// reçoit la liste de la planche C12 et la conversation en volet de droite (`child`).
 export const screens = [
   {
     name: "c13",
     space: "c2",
     path: "/client/messages/11111111-1111-4111-8111-111111111111",
-    view: "@/components/client-space/messages/conversation-view",
-    component: "ConversationView",
-    props: { conversation, now: NOW },
+    view: "@/components/client-space/messages/inbox-view",
+    component: "ClientInboxView",
+    props: { result: { conversations: CONVERSATIONS }, now: NOW },
+    child: {
+      view: "@/components/client-space/messages/conversation-view",
+      component: "ConversationView",
+      props: { conversation, now: NOW, paymentsEnabled: true },
+    },
   },
 ]

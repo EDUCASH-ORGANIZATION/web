@@ -188,14 +188,14 @@ describe("ClientInboxView : deux volets et ligne active", () => {
   it("compte la conversation ouverte comme lue (pastille retirée, total mis à jour)", () => {
     const html = render({ result: { conversations: LIST }, children: PANE }, { pathname: `/client/messages/${M1}`, search: `studentId=${S1}` })
     expect(html).not.toContain('class="count"')
-    expect(html).toContain("3 conversations · 0 non lue")
+    expect(html).toContain("Awa K. · Traduire un flyer en anglais")
   })
 
   it("garde les non lus des autres conversations", () => {
     const list = [conv({ unreadCount: 2 }), conv({ key: `${M2}:${S3}`, missionId: M2, studentId: S3, unreadCount: 3 })]
     const html = render({ result: { conversations: list }, children: PANE }, { pathname: `/client/messages/${M2}`, search: `studentId=${S3}` })
-    expect(html).toContain("2 conversations · 2 non lues")
-    expect(html).not.toContain("5 non lues")
+    expect(html).toMatch(/class="count">2</)
+    expect(html).not.toMatch(/class="count">[35]</)
   })
 })
 
@@ -416,5 +416,33 @@ describe("styles des deux volets", () => {
     expect(head.display).toBeUndefined()
     expect(head.position).toBe("absolute")
     expect(head["clip-path"]).toBe("inset(50%)")
+  })
+})
+
+describe("ClientInboxView : ligne de date de la page (MC-05)", () => {
+  const dateOf = (html) => html.match(/class="head2__date">([^<]*)</)?.[1]
+
+  it("liste : le résumé des conversations", () => {
+    expect(dateOf(render({ result: { conversations: LIST } }))).toBe("3 conversations · 2 non lues")
+  })
+
+  it("conversation ouverte : l'étudiant et la mission", () => {
+    const html = render({ result: { conversations: LIST }, children: <p /> }, { pathname: `/client/messages/${M2}`, search: `studentId=${S3}` })
+    expect(dateOf(html)).toBe("Rosine H. · Saisie de fiches")
+  })
+
+  it("conversation retenue ouverte sans studentId : l'étudiant retenu", () => {
+    const html = render({ result: { conversations: LIST }, children: <p /> }, { pathname: `/client/messages/${M2}` })
+    expect(dateOf(html)).toBe("Rosine H. · Saisie de fiches")
+  })
+
+  it("mission à deux candidats sans studentId (aucune ligne active) : retombe sur le résumé", () => {
+    const html = render({ result: { conversations: LIST }, children: <p /> }, { pathname: `/client/messages/${M1}` })
+    expect(dateOf(html)).toBe("3 conversations · 2 non lues")
+  })
+
+  it("conversation inconnue de la liste : retombe sur le résumé", () => {
+    const html = render({ result: { conversations: LIST }, children: <p /> }, { pathname: "/client/messages/autre" })
+    expect(dateOf(html)).toBe("3 conversations · 2 non lues")
   })
 })

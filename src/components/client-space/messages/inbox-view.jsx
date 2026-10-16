@@ -177,10 +177,14 @@ export function ClientInboxView({ result, now, children }) {
       ? "Aucune conversation"
       : `${plural(conversations.length, "conversation", "conversations")} · ${plural(unreadCount, "non lue", "non lues")}`
 
+  // Conversation ouverte : la ligne de date nomme l'étudiant et la mission (planche C13), sinon le résumé de la liste.
+  const active = isConversation ? conversations.find((c) => c.key === openedKey) : null
+  const date = active ? `${active.name} · ${active.missionTitle}` : summary
+
   return (
     <>
       <LiveRefresh />
-      <PageHead date={summary} title="Messages" />
+      <PageHead date={date} title="Messages" />
       <div className="c-inbox inbox2" data-view={isConversation ? "conversation" : "list"}>
         {hasError ? (
           <ListNotice>

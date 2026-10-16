@@ -30,7 +30,11 @@
             "radius",
             "bg"
           ],
-          "lot": "ST-06"
+          "lot": "ST-06",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : 3,42 px réels (39,90 px planche contre 43,32 px code, --lh-display 1.14 du titre de page), +3 mesuré. Hauteur non comparée : la planche fixe .inbox2--tall à 700 px (carte de 659 px dans le cadre), le code cale la carte sur la fenêtre (flex: 1, défilement interne de la liste et du fil)"
         },
         {
           "id": "MC-02",
@@ -79,7 +83,10 @@
             "tw"
           ],
           "lot": "ST-07",
-          "note": "Écart de contenu non toléré : la planche C13 écrit « Ulrich Zinsou · Courses au marché Dantokpa », la ligne de date rendue par le layout de ST-06 est le résumé de la liste (« 5 conversations · 2 non lues », cadre 0 de C12) ; à traiter par ST-07"
+          "note": "Le layout nomme l'étudiant et la mission quand une conversation est ouverte. A7 : « Ulrich Z. » au lieu de « Ulrich Zinsou » (largeur de texte)",
+          "assume": {
+            "tw": "A7:30"
+          }
         },
         {
           "id": "MC-06",
@@ -123,7 +130,8 @@
             "gap",
             "bg"
           ],
-          "lot": "ST-07"
+          "lot": "ST-07",
+          "note": "ÉCHEC conservé : la planche place un lien « Voir la mission » (link2, 21 px) dans un bandeau de 43 px ; le code garde le bouton encre « Confirmer la fin » (btn--sm 36 px, C09 par ?confirmer=1, décision du plan, confirmation de fin relevant de RD-DONE-01) et le texte « 5 000 FCFA en séquestre pour le service · achats estimés : environ 7 450 FCFA » passe sur deux lignes à côté du bouton : h59 contre h43 (+16)"
         },
         {
           "id": "MC-07",
@@ -143,7 +151,8 @@
           "props": [
             "h"
           ],
-          "lot": "ST-07"
+          "lot": "ST-07",
+          "note": "ÉCHEC conservé : lien « Voir la mission » absent, remplacé par le bouton encre « Confirmer la fin » (décision du plan, RD-DONE-01) ; la mission reste atteignable par « Confirmer la fin » (ouvre la mission) et par Mes missions"
         },
         {
           "id": "MC-11",
@@ -200,7 +209,11 @@
             "y",
             "w"
           ],
-          "lot": "ST-07"
+          "lot": "ST-07",
+          "assume": {
+            "y": "A5:22"
+          },
+          "note": "A5 : le bandeau est 22 px plus haut (bouton « Confirmer la fin » de 44 px contre un lien de 22 px), le fil descend d'autant (planche y103, code y125)"
         },
         {
           "id": "MC-09",
@@ -213,7 +226,11 @@
             "h",
             "pad"
           ],
-          "lot": "ST-07"
+          "lot": "ST-07",
+          "assume": {
+            "h": "A5:22"
+          },
+          "note": "A5 : action de 44 px (« Confirmer la fin ») contre un lien « Mission » de 22 px en planche : h65 contre h43, +22 mesuré"
         },
         {
           "id": "MC-11",
@@ -221,15 +238,14 @@
           "board": ".composer",
           "props": [
             "x",
-            "y",
             "w",
             "h"
           ],
           "lot": "ST-07",
           "assume": {
-            "h": "A5:8"
+            "h": "BANC:20"
           },
-          "note": "A5 : cible tactile 44 px (+8 de hauteur toléré) ; mesuré h-20 (planche 85 px, code 65 px) : hors limite, reste en ÉCHEC"
+          "note": "BANC : la planche ajoute une zone sûre simulée du téléphone (h85 = 10 + 44 + 30 + 1) ; le code ajoute env(safe-area-inset-bottom), qui vaut 0 dans le banc (h65 = 10 + 44 + 10 + 1) : h-20 mesuré. y non comparé : cadre de téléphone de la planche avec barre d'état simulée de 36 px (y723 planche contre fenêtre de 844 px du code), comme E07"
         }
       ]
     }
