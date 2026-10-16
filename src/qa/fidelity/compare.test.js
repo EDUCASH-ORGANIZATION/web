@@ -38,6 +38,12 @@ describe("compareEntry", () => {
     expect(result.status).toBe("ASSUMÉ A2, A3")
   })
 
+  it("A8 (élément omis par décision) : accepté dans sa limite, ÉCHEC au-delà, cumul accepté", () => {
+    expect(compareEntry(box(), box({ x: 52 }), { props: ["x"], assume: { x: "A8:52" } }).status).toBe("ASSUMÉ A8")
+    expect(compareEntry(box(), box({ x: 53 }), { props: ["x"], assume: { x: "A8:52" } }).status).toBe("ÉCHEC")
+    expect(compareEntry(box(), box({ w: 112 }), { props: ["w"], assume: { w: "A5+A8:12" } }).status).toBe("ASSUMÉ A5, A8")
+  })
+
   it("X1 donne un statut distinct, jamais ASSUMÉ", () => {
     const result = compareEntry(box(), box({ y: 4 }), { props: ["y"], assume: { y: "A3+X1:4" } })
     expect(result.status).toBe("NON EXPLIQUÉ A3, X1")
@@ -76,6 +82,20 @@ describe("parseAssume", () => {
     expect(() => parseAssume("POLICE", "w")).toThrow(/limite/)
   })
 
+  it("A8 exige une limite quel que soit le type de propriété", () => {
+    expect(() => parseAssume("A8", "bg")).toThrow(/A8 exige une limite/)
+    expect(() => parseAssume("A8", "x")).toThrow()
+    expect(() => parseAssume("A8:", "x")).toThrow()
+  })
+
+  it("BANC : limité à h, y, pad, limite obligatoire, hors limite ÉCHEC", () => {
+    expect(parseAssume("BANC:24", "h").max).toBe(24)
+    expect(() => parseAssume("BANC:24", "bg")).toThrow(/limité/)
+    expect(() => parseAssume("BANC", "h")).toThrow()
+    expect(compareEntry(box({ h: 89 }), box({ h: 65 }), { props: ["h"], assume: { h: "BANC:24" } }).status).toBe("ASSUMÉ BANC")
+    expect(compareEntry(box({ h: 89 }), box({ h: 64 }), { props: ["h"], assume: { h: "BANC:24" } }).status).toBe("ÉCHEC")
+  })
+
   it("limite obligatoire pour une propriété numérique", () => {
     expect(() => parseAssume("A3", "y")).toThrow(/obligatoire/)
     expect(parseAssume("A1", "color").max).toBeNull()
@@ -84,6 +104,11 @@ describe("parseAssume", () => {
 
 describe("validateSpec", () => {
   const spec = (selector, extra = {}) => ({ id: "T", views: [{ name: "v", selectors: [selector] }], ...extra })
+
+  it("A8 sans note est refusé, avec note accepté", () => {
+    expect(() => validateSpec(spec({ id: "X", label: "a", assume: { x: "A8:52" } }))).toThrow(/sans note/)
+    expect(validateSpec(spec({ id: "X", label: "a", assume: { x: "A8:52" }, note: "menu omis" }))).toBeTruthy()
+  })
 
   it("refuse une règle Ax:n sans note", () => {
     expect(() => validateSpec(spec({ id: "X", label: "a", assume: { h: "A2:4" } }))).toThrow(/sans note/)
