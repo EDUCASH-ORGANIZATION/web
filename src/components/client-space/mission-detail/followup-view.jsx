@@ -61,7 +61,9 @@ function DeclaredCard({ view, missionId, studentId, studentName, onConfirm }) {
         </span>
         <div className="status2__title">{studentName} a terminé la mission</div>
         <div className="status2__text">
-          {declaredOn ? `${studentName} indique avoir terminé le ${declaredOn}.` : `${studentName} indique avoir terminé.`}{" "}
+          {declaredOn
+            ? `${studentName} indique avoir terminé le ${declaredOn}${declaredOn.endsWith(".") ? "" : "."}`
+            : `${studentName} indique avoir terminé.`}{" "}
           Vérifiez le travail, puis confirmez la fin pour verser le paiement à {studentName}.{" "}
           <b>
             {view.reservedAt

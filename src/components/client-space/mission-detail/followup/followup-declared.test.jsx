@@ -49,7 +49,8 @@ describe("C08 fin déclarée : carte « À confirmer »", () => {
     expect(card).toMatch(/<span class="flag2">[\s\S]*À confirmer/)
     expect(card).not.toContain("flag2--neutre")
     expect(plain(card)).toContain("Sèna a terminé la mission")
-    expect(plain(card)).toMatch(/Sèna indique avoir terminé le mer\. 7 oct\./)
+    expect(plain(card)).toMatch(/Sèna indique avoir terminé le mer\. 7 oct\. Vérifiez/)
+    expect(plain(card)).not.toContain("..")
     expect(plain(card)).toContain("Vérifiez le travail, puis confirmez la fin pour verser le paiement à Sèna.")
   })
   it("séquestre : texte selon la réserve, aucun versement ni délai automatique promis", () => {

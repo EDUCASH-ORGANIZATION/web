@@ -171,6 +171,12 @@ describe("QA croisée : garde-fous de contenu", () => {
     }
   })
 
+  it.each(STATES)("aucun double point dans les textes rendus (%s)", (_label, completion) => {
+    for (const [name, html] of renders(SCREENS, completion)) {
+      expect(text(html), name).not.toContain("..")
+    }
+  })
+
   it.each(STATES)("aucun tiret cadratin ni demi-cadratin, vouvoiement (%s)", (_label, completion) => {
     const dashes = new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`)
     const tutoie = /(?<![\p{L}])(tu|toi|ton|ta|tes)(?![\p{L}])/iu
