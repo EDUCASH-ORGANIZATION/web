@@ -1,20 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
 import { Modal } from "@/components/app-ui/modal"
 import { coordsValid } from "@/lib/client-space/conversations"
+import { OSM_COPYRIGHT_HREF, nominatimSearchUrl, nominatimWaitMs, toPlace } from "@/lib/messaging/map-links"
 
-const SEARCH_DELAY_MS = 500
-const MIN_QUERY = 3
-
-// Résultat de recherche de lieu réduit à un libellé et des coordonnées valides.
-function toPlace(raw) {
-  const lat = Number.parseFloat(raw?.lat)
-  const lng = Number.parseFloat(raw?.lon)
-  if (!coordsValid(lat, lng) || typeof raw?.display_name !== "string") return null
-  return { label: raw.display_name, lat, lng }
-}
+const SEARCH_ERROR = "La recherche n'a pas pu aboutir. Veuillez réessayer."
 
 // Choix d'une position à partager : la position de l'appareil ou un lieu recherché.
 export function LocationDialog({ onConfirm, onClose }) {
@@ -26,36 +18,50 @@ export function LocationDialog({ onConfirm, onClose }) {
   const [searching, setSearching] = useState(false)
   const [places, setPlaces] = useState([])
   const [picked, setPicked] = useState(null)
+  const [searched, setSearched] = useState(false)
+  const [searchProblem, setSearchProblem] = useState("")
+  const lastRequestAt = useRef(null)
+  const timer = useRef(null)
+  const run = useRef(0)
 
-  useEffect(() => {
-    if (mode !== "search") return undefined
-    const text = query.trim()
-    if (text.length < MIN_QUERY) {
-      setPlaces([])
-      setSearching(false)
-      return undefined
-    }
-    let cancelled = false
+  useEffect(() => () => clearTimeout(timer.current), [])
+
+  // Recherche déclenchée par la validation seulement (bouton ou Entrée), jamais à la frappe. Une requête par
+  // seconde au plus : si la précédente est trop récente, celle-ci attend le délai restant.
+  function search(event) {
+    event?.preventDefault()
+    const url = nominatimSearchUrl(query)
+    if (!url) return
+    clearTimeout(timer.current)
+    run.current += 1
+    const id = run.current
     setSearching(true)
+    setSearched(false)
+    setSearchProblem("")
     setPicked(null)
-    const timer = setTimeout(async () => {
+    const fire = async () => {
+      lastRequestAt.current = Date.now()
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=5&accept-language=fr`,
-        )
+        const res = await fetch(url)
+        if (!res.ok) throw new Error("search")
         const data = await res.json()
-        if (!cancelled) setPlaces(Array.isArray(data) ? data.map(toPlace).filter(Boolean) : [])
+        if (id === run.current) setPlaces(Array.isArray(data) ? data.map(toPlace).filter(Boolean) : [])
       } catch {
-        if (!cancelled) setPlaces([])
+        if (id === run.current) {
+          setPlaces([])
+          setSearchProblem(SEARCH_ERROR)
+        }
       } finally {
-        if (!cancelled) setSearching(false)
+        if (id === run.current) {
+          setSearching(false)
+          setSearched(true)
+        }
       }
-    }, SEARCH_DELAY_MS)
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
     }
-  }, [mode, query])
+    const wait = nominatimWaitMs(lastRequestAt.current, Date.now())
+    if (wait > 0) timer.current = setTimeout(fire, wait)
+    else fire()
+  }
 
   function locate() {
     if (!navigator.geolocation) {
@@ -87,7 +93,7 @@ export function LocationDialog({ onConfirm, onClose }) {
       onClose={onClose}
       size="sm"
       title="Partager une position"
-      description="Votre interlocuteur pourra l'ouvrir dans une carte."
+      description="Votre interlocuteur pourra l'ouvrir dans Google Maps."
       footer={
         <>
           <button type="button" className="btn btn--soft" onClick={onClose}>
@@ -124,22 +130,32 @@ export function LocationDialog({ onConfirm, onClose }) {
         </div>
       ) : (
         <div>
-          <label className="search">
-            <Icon name="i-search" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Quartier, rue ou lieu"
-              aria-label="Rechercher un lieu"
-              maxLength={120}
-              autoComplete="off"
-            />
-          </label>
+          <div className="search-row2">
+            <label className="search">
+              <Icon name="i-search" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  setSearched(false)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") search(e)
+                }}
+                placeholder="Quartier, rue ou lieu"
+                aria-label="Rechercher un lieu"
+                maxLength={120}
+                autoComplete="off"
+              />
+            </label>
+            <button type="button" className="btn btn--soft" onClick={search} disabled={searching || !nominatimSearchUrl(query)}>
+              Rechercher
+            </button>
+          </div>
           {searching ? <p className="dialog-note2" role="status">Recherche en cours...</p> : null}
-          {!searching && query.trim().length >= MIN_QUERY && places.length === 0 ? (
-            <p className="dialog-note2" role="status">Aucun lieu trouvé.</p>
-          ) : null}
+          {searchProblem ? <p className="dialog-note2" role="alert">{searchProblem}</p> : null}
+          {searched && !searchProblem && places.length === 0 ? <p className="dialog-note2" role="status">Aucun lieu trouvé.</p> : null}
           {places.length > 0 ? (
             <ul className="places2">
               {places.map((place) => (
@@ -151,6 +167,12 @@ export function LocationDialog({ onConfirm, onClose }) {
               ))}
             </ul>
           ) : null}
+          <p className="dialog-note2">
+            Résultats : ©{" "}
+            <a href={OSM_COPYRIGHT_HREF} className="link" target="_blank" rel="noopener noreferrer">
+              contributeurs OpenStreetMap
+            </a>
+          </p>
         </div>
       )}
     </Modal>

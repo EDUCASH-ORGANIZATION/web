@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
+import { ContactWarning } from "@/components/messaging/contact-warning"
 import { MESSAGE_MAX_LENGTH, fileProblem, imageExtensionOf } from "@/lib/client-space/conversations"
 import { ImageDialog } from "./image-dialog"
 import { LocationDialog } from "./location-dialog"
@@ -228,6 +229,7 @@ export function Composer({ onSend }) {
             {problem}
           </p>
         ) : null}
+        <ContactWarning text={text} />
         <form className="composer" onSubmit={submitText}>
           <input ref={imageInput} type="file" accept={IMAGE_ACCEPT} hidden onChange={pickImage} />
           <div className="composer__tools">
