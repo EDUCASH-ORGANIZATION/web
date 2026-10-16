@@ -187,6 +187,18 @@ describe.each([
     expect(reportInserts[0].details).not.toMatch(/97 ?12 ?34 ?56|0197123456/)
   })
 
+  it("garde le commentaire masque sous 1000 caracteres (contrainte de base) sans couper un masque", async () => {
+    asRole(role, me)
+    const details = `${"a".repeat(950)} wa.me/1 a@b.co c@d.fr e@f.io`
+    expect(details.length).toBeLessThanOrEqual(1000)
+    await action(input(received, { reason: "contact_details", details }))
+    const stored = reportInserts[0].details
+    expect(stored.length).toBeLessThanOrEqual(1000)
+    expect(stored.length).toBeGreaterThan(960)
+    expect(stored).toContain("[coordonnées masquées]")
+    expect(stored).not.toMatch(/\[[^\]]*$/)
+  })
+
   it("stocke null pour un commentaire vide", async () => {
     asRole(role, me)
     await action(input(received, { details: "   " }))

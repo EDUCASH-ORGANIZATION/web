@@ -118,6 +118,17 @@ describe("Conversation client : composeur, mention et signalement", () => {
     expect(screen.getByText("SIG-0042")).toBeTruthy()
   })
 
+  it("traite une réponse vide comme un échec (message de repli)", async () => {
+    reportClientMessage.mockResolvedValue({})
+    view([msg({ id: RECEIVED })])
+    fireEvent.click(screen.getByRole("button", { name: /Signaler ce message/ }))
+    fireEvent.click(screen.getByRole("radio", { name: "Autre" }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Envoyer le signalement" }))
+    })
+    expect(screen.getByRole("alert").textContent).toContain("Signalement non envoyé")
+  })
+
   it("transmet l'erreur de l'action à la fenêtre", async () => {
     reportClientMessage.mockResolvedValue({ error: "Limite atteinte." })
     view([msg({ id: RECEIVED })])

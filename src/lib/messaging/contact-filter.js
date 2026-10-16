@@ -643,6 +643,23 @@ function truncateWithMask(out) {
   return body + MASK_TOKEN
 }
 
+/**
+ * Coupe un texte déjà masqué à `max` caractères sans laisser un morceau de masque ni une moitié de point de code.
+ * Utile quand une borne de base s'applique après masquage (un contact court devient MASK_TOKEN, plus long).
+ * @param {string} text
+ * @param {number} max
+ * @returns {string}
+ */
+export function clipMasked(text, max) {
+  if (text.length <= max) return text
+  let body = text.slice(0, max)
+  const last = body.charCodeAt(body.length - 1)
+  if (last >= 0xd800 && last <= 0xdbff) body = body.slice(0, -1)
+  const open = body.lastIndexOf("[")
+  if (open >= 0 && body.length - open < MASK_TOKEN.length && MASK_TOKEN.startsWith(body.slice(open))) body = body.slice(0, open)
+  return body
+}
+
 /** Remplace les plages d'origine par MASK_TOKEN : parenthèse ou « + » collés inclus, masques voisins fusionnés. */
 function buildMasked(src, groups) {
   const ranges = []

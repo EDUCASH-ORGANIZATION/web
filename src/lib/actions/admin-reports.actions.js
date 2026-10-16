@@ -2,7 +2,7 @@
 
 import { isUuid } from "@/lib/vitrine/ids"
 import { publicDisplayName } from "@/lib/vitrine/public-name"
-import { maskContacts } from "@/lib/messaging/contact-filter"
+import { clipMasked, maskContacts } from "@/lib/messaging/contact-filter"
 import { CONTACT_ALERT_WINDOW_DAYS, REPORT_REASONS, reportReference } from "@/lib/messaging/moderation-rules"
 import { toOwnedStoragePath } from "@/lib/storage/owned-paths"
 import { MEDIA_BUCKET } from "@/lib/client-space/conversations"
@@ -54,7 +54,7 @@ function normalizeNote(raw) {
   if (trimmed.length > REPORT_NOTE_MAX) return { error: ERR_NOTE_LONG }
   if (trimmed === "") return { value: null }
   // Défense en profondeur : une coordonnée saisie dans la note est masquée comme dans la messagerie.
-  return { value: maskContacts(trimmed).text.slice(0, REPORT_NOTE_MAX) }
+  return { value: clipMasked(maskContacts(trimmed).text, REPORT_NOTE_MAX) }
 }
 
 // Nombre de signalements par onglet (indicateurs de la file). Sonde GET, comme `countOpenAdminReports`.

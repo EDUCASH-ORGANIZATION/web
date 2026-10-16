@@ -18,6 +18,7 @@ const ROUTE_FILES = {
   "/etudiants": ["components/vitrine/etudiants/etudiants-steps.jsx"],
   "/aide": ["components/vitrine/aide/aide-content.js"],
   "/legal/terms": ["app/legal/terms/page.js"],
+  "/legal/privacy": ["app/legal/privacy/page.js"],
 }
 
 // Liens qui ne sont pas des ancres de page.

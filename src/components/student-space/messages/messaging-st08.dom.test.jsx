@@ -122,6 +122,17 @@ describe("bouton Signaler", () => {
     expect(screen.getByText("SIG-0007")).toBeTruthy()
   })
 
+  it("traite une réponse vide comme un échec (message de repli)", async () => {
+    reportStudentMessage.mockResolvedValue({})
+    render(<StudentConversationView conversation={conversation()} now="2026-10-13T12:00:00Z" />)
+    fireEvent.click(screen.getByRole("button", { name: "Signaler ce message de Rosine H." }))
+    fireEvent.click(screen.getAllByRole("radio")[0])
+    await act(async () => {
+      fireEvent.click(screen.getByText("Envoyer le signalement"))
+    })
+    expect(screen.getByRole("alert").textContent).toContain("Vérifiez votre connexion")
+  })
+
   it("affiche l'erreur de l'action", async () => {
     reportStudentMessage.mockResolvedValue({ error: "Vous avez déjà signalé ce message." })
     render(<StudentConversationView conversation={conversation()} now="2026-10-13T12:00:00Z" />)

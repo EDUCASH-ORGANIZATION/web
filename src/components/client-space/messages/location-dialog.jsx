@@ -141,7 +141,7 @@ export function LocationDialog({ onConfirm, onClose }) {
                   setSearched(false)
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") search(e)
+                  if (e.key === "Enter" && !e.nativeEvent?.isComposing && !searching) search(e)
                 }}
                 placeholder="Quartier, rue ou lieu"
                 aria-label="Rechercher un lieu"

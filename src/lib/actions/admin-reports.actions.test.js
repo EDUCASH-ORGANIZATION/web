@@ -338,6 +338,15 @@ describe("transitions", () => {
     expect(console.info).toHaveBeenCalledWith("[admin-audit]", expect.stringContaining("report_resolved"))
   })
 
+  it("resolveReport : la note masquée reste sous 500 caractères (contrainte de base)", async () => {
+    const note = `${"a".repeat(460)} wa.me/1 a@b.co c@d.fr e@f.io g@h.com`
+    expect(note.length).toBeLessThanOrEqual(500)
+    expect((await resolveReport(R2, { note })).success).toBe(true)
+    const stored = state.reports.find((r) => r.id === R2).resolution_note
+    expect(stored.length).toBeLessThanOrEqual(500)
+    expect(stored).not.toMatch(/\[[^\]]*$/)
+  })
+
   it("dismissReport : classé, note facultative", async () => {
     expect(await dismissReport(R2)).toEqual({ success: true, status: "dismissed" })
     expect(state.reports.find((r) => r.id === R2)).toMatchObject({ status: "dismissed", resolution_note: null })

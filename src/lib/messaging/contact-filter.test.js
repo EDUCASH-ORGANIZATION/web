@@ -652,3 +652,23 @@ describe("performance : pas de regex catastrophique", () => {
     30000,
   )
 })
+
+describe("clipMasked", () => {
+  it("laisse intact un texte assez court", async () => {
+    const { clipMasked } = await import("@/lib/messaging/contact-filter")
+    expect(clipMasked("abc", 10)).toBe("abc")
+  })
+
+  it("coupe avant un masque tronqué, jamais au milieu", async () => {
+    const { clipMasked, MASK_TOKEN } = await import("@/lib/messaging/contact-filter")
+    const text = `${"a".repeat(10)}${MASK_TOKEN}`
+    expect(clipMasked(text, 15)).toBe("a".repeat(10))
+    expect(clipMasked(text, 10 + MASK_TOKEN.length)).toBe(text)
+    expect(clipMasked(`${"a".repeat(5)}[ok`, 7)).toBe(`${"a".repeat(5)}[o`.slice(0, 7))
+  })
+
+  it("ne coupe pas une paire de substitution", async () => {
+    const { clipMasked } = await import("@/lib/messaging/contact-filter")
+    expect(clipMasked("ab😀cd", 3)).toBe("ab")
+  })
+})

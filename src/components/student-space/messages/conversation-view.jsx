@@ -6,7 +6,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
 import { MessagingNotice } from "@/components/messaging/messaging-notice"
-import { ReportDialog } from "@/components/messaging/report-dialog"
+import { REPORT_FALLBACK_ERROR, ReportDialog } from "@/components/messaging/report-dialog"
 import { useMessageMediaUpload, useRealtimeMessages } from "@/hooks/use-realtime-messages"
 import { getStudentMessageMedia, markStudentConversationRead, sendStudentMessage } from "@/lib/actions/message.actions"
 import { reportStudentMessage } from "@/lib/actions/message-report.actions"
@@ -155,7 +155,8 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
   // Adaptateur du contrat de ReportDialog ({ reason, details } -> { reference } | { error }).
   const submitReport = async ({ reason, details }) => {
     const result = await reportStudentMessage({ messageId: reporting.id, reason, details })
-    if (!result || result.error || !result.reference) return { error: result?.error }
+    if (result?.error) return { error: result.error }
+    if (!result?.reference) return { error: REPORT_FALLBACK_ERROR }
     return { reference: result.reference }
   }
 

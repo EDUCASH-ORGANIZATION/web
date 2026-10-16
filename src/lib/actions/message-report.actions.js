@@ -7,12 +7,13 @@
 // l'expéditeur), et la mission relie bien le client et l'étudiant de la conversation. Seule l'écriture passe par le
 // client service role, après ces contrôles. Un signalement par message et par auteur (unicité en base) ; au plus
 // REPORT_DAILY_LIMIT signalements par auteur sur 24 h. Le commentaire libre passe par maskContacts avant stockage et
-// n'est jamais journalisé. Avant le script 92 (table reports absente), la réponse est « indisponible ».
+// n'est jamais journalisé. Limite connue : le plafond de REPORT_DAILY_LIMIT par 24 h est contrôlé par lecture puis
+// écriture, il n'est donc pas atomique (des envois simultanés peuvent le dépasser légèrement). Avant le script 92 (table reports absente), la réponse est « indisponible ».
 
 import { z } from "zod"
 import { requireRole } from "@/lib/auth/require-role"
 import { createServiceClient } from "@/lib/supabase/service"
-import { maskContacts } from "@/lib/messaging/contact-filter"
+import { clipMasked, maskContacts } from "@/lib/messaging/contact-filter"
 import { REPORT_DETAILS_MAX, REPORT_REASONS, reportReference } from "@/lib/messaging/moderation-rules"
 import { isUuid } from "@/lib/vitrine/ids"
 
@@ -50,7 +51,8 @@ function cleanDetails(details) {
   if (typeof details !== "string") return null
   const trimmed = details.trim()
   if (trimmed === "") return null
-  return maskContacts(trimmed).text
+  // La borne de la base (reports_details_check) s'applique au texte masqué : un contact court devient plus long.
+  return clipMasked(maskContacts(trimmed).text, REPORT_DETAILS_MAX)
 }
 
 /** Référence du signalement existant (message, auteur), ou null. */
