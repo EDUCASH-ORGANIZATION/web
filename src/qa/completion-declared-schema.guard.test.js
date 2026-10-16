@@ -92,8 +92,9 @@ describe("schéma de référence : missions.completion_declared_at", () => {
     expect(done).toContain("if v_inserted = 1 then")
   })
 
-  it("la mention « NON appliqué » du script 90 figure dans l'en-tête", () => {
-    const head = SCHEMA.slice(0, 1800)
-    expect(head).toContain("Script 90 (RD-DONE-01) NON appliqué en production")
+  it("l'en-tête signale le script 90 comme appliqué en production", () => {
+    const head = SCHEMA.slice(0, 2200)
+    expect(head).toContain("Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.")
+    expect(head).not.toContain("Script 90 (RD-DONE-01) NON appliqué")
   })
 })
