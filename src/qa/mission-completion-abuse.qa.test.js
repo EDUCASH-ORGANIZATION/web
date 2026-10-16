@@ -6,6 +6,7 @@ import path from "node:path"
 // Chaque refus doit être vouvoyé, sans texte SQL ni identifiant tiers, et ne jamais écrire.
 vi.mock("server-only", () => ({}))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+vi.mock("next/server", () => ({ after: vi.fn((fn) => { fn() }) }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 

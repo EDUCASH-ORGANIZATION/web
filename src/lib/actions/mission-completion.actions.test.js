@@ -2,12 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("server-only", () => ({}))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+const afterJobs = vi.hoisted(() => [])
+vi.mock("next/server", () => ({ after: vi.fn((fn) => { afterJobs.push(fn()) }) }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn() }))
 vi.mock("@/lib/email/index", () => ({ sendEmail: vi.fn() }))
 
 import { revalidatePath } from "next/cache"
+import { after } from "next/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { notify } from "@/lib/notifications/notify"
@@ -50,6 +53,7 @@ function makeService({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  afterJobs.length = 0
   vi.spyOn(console, "error").mockImplementation(() => {})
   requireRole.mockResolvedValue({ user: { id: STUDENT }, role: "student" })
   notify.mockResolvedValue({ ok: true })
@@ -145,7 +149,9 @@ describe("declareMissionCompletion", () => {
     const declare = async (opts) => {
       const svc = makeService({ reads: [{ data: mission, error: null }], ...opts })
       createServiceClient.mockReturnValue(svc.client)
-      return { res: await declareMissionCompletion(M), svc }
+      const res = await declareMissionCompletion(M)
+      await Promise.all(afterJobs)
+      return { res, svc }
     }
 
     it("déclaration réelle : une notification et un e-mail, au client, prénom et titre seulement", async () => {
@@ -176,9 +182,10 @@ describe("declareMissionCompletion", () => {
       expect(notify.mock.calls[0][0].body).toMatch(/^L'étudiant indique/)
     })
 
-    it("alreadyDeclared : ni notification ni e-mail", async () => {
+    it("alreadyDeclared : ni notification ni e-mail, after non programmé", async () => {
       const { res } = await declare({ reads: [{ data: { ...mission, completion_declared_at: DATE }, error: null }] })
       expect(res.alreadyDeclared).toBe(true)
+      expect(after).not.toHaveBeenCalled()
       expect(notify).not.toHaveBeenCalled()
       expect(sendEmail).not.toHaveBeenCalled()
     })
@@ -189,8 +196,25 @@ describe("declareMissionCompletion", () => {
         update: { data: [], error: null },
       })
       expect(res.alreadyDeclared).toBe(true)
+      expect(after).not.toHaveBeenCalled()
       expect(notify).not.toHaveBeenCalled()
       expect(sendEmail).not.toHaveBeenCalled()
+    })
+
+    it("la réponse ne dépend pas de la fin de l'avertissement (notify et e-mail jamais résolus)", async () => {
+      notify.mockReturnValue(new Promise(() => {}))
+      sendEmail.mockReturnValue(new Promise(() => {}))
+      const svc = makeService({ reads: [{ data: mission, error: null }] })
+      createServiceClient.mockReturnValue(svc.client)
+      expect(await declareMissionCompletion(M)).toEqual({ success: true, alreadyDeclared: false, declaredAt: DATE })
+      expect(after).toHaveBeenCalledTimes(1)
+    })
+
+    it("prénom de 200 caractères : tronqué à 40, identique dans l'e-mail et la notification", async () => {
+      await declare({ profile: { data: { full_name: `${"A".repeat(200)} Koffi` }, error: null } })
+      const name = sendEmail.mock.calls[0][2].studentName
+      expect(Array.from(name).length).toBeLessThanOrEqual(40)
+      expect(notify.mock.calls[0][0].body.startsWith(`${name} indique`)).toBe(true)
     })
 
     it("notify qui lève : la déclaration reste un succès et l'e-mail part", async () => {
@@ -221,6 +245,7 @@ describe("declareMissionCompletion", () => {
       svc.client.auth.admin.getUserById.mockRejectedValue(new Error("réseau"))
       createServiceClient.mockReturnValue(svc.client)
       expect((await declareMissionCompletion(M)).success).toBe(true)
+      await Promise.all(afterJobs)
       expect(sendEmail).not.toHaveBeenCalled()
     })
 

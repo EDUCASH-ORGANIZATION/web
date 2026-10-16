@@ -1,9 +1,7 @@
 import { Html, Body, Container, Text, Button, Heading, Hr, Img } from "@react-email/components"
-import { logoProps, styles } from "@/lib/email/brand"
+import { APP_URL, logoProps, styles } from "@/lib/email/brand"
 import { clientMissionHref } from "@/lib/app/client-routes"
 import { paymentsEnabled } from "@/lib/constants/payments"
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://educash.bj"
 
 /**
  * Au client : l'étudiant retenu indique avoir terminé. Aucune donnée de contact de l'étudiant.

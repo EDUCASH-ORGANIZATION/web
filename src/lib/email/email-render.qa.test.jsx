@@ -90,6 +90,7 @@ describe("completion-declared : texte et confidentialité", () => {
     const html = await render("completion-declared.jsx", props)
     expect(html).toContain(`/client/missions/${props.missionId}"`)
     expect(html).not.toMatch(/confirmer=1/)
+    expect(html).not.toMatch(/https?:\/\/[^"]*\/\/client/)
     expect(html).not.toMatch(/\d+\s*(heures?|jours?)|stripe|fedapay|kkiapay|mobile money/i)
   })
 

@@ -1,12 +1,13 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { after } from "next/server"
 import { createServiceClient } from "@/lib/supabase/service"
 import { requireRole } from "@/lib/auth/require-role"
 import { isUuid } from "@/lib/vitrine/ids"
 import { firstName } from "@/lib/vitrine/public-name"
 import { notify } from "@/lib/notifications/notify"
-import { completionDeclared } from "@/lib/notifications/catalog"
+import { completionDeclared, truncate } from "@/lib/notifications/catalog"
 import { COMPLETION_COPY } from "@/lib/missions/completion"
 import { isMissingCompletionColumn } from "@/lib/actions/mission-completion-core"
 
@@ -22,7 +23,7 @@ const COLUMNS = "id, title, client_id, selected_student_id, status, completion_d
 /**
  * Déclare la fin d'une mission : l'étudiant retenu indique avoir terminé, le client doit confirmer.
  * N'écrit qu'une date. Aucun mouvement de fonds. Le statut ne change pas. Après une écriture réelle
- * seulement (jamais sur alreadyDeclared), le client reçoit une notification et un e-mail ; leur échec
+ * seulement (jamais sur alreadyDeclared), le client reçoit une notification et un e-mail, programmés après la réponse ; leur échec
  * n'a aucun effet sur le succès de la déclaration.
  * L'écriture est UNE requête conditionnelle (étudiant retenu, mission en cours, date vide) ; le
  * trigger `guard_mission_completion_declared` refuse en base toute autre écriture de la colonne.
@@ -76,7 +77,9 @@ export async function declareMissionCompletion(missionId) {
 
   if (updated?.length === 1) {
     revalidateMission(missionId)
-    await warnClient(service, mission, user.id)
+    // Après la réponse : ni profil, ni notification, ni Resend ne retardent l'étudiant. Valeurs capturées seulement.
+    const studentId = user.id
+    after(() => warnClient(service, mission, studentId))
     return { success: true, alreadyDeclared: false, declaredAt: updated[0].completion_declared_at }
   }
 
@@ -111,14 +114,14 @@ function revalidateMission(missionId) {
 // Prévient le client (notification puis e-mail). Ne lève jamais et ne journalise que des codes : ni adresse,
 // ni nom, ni titre. Le client ne reçoit que le prénom de l'étudiant et le titre de la mission.
 async function warnClient(service, mission, studentId) {
-  let studentFirstName = firstName(null, { fallback: STUDENT_FALLBACK })
+  let studentFirstName = STUDENT_FALLBACK
   try {
     const { data: profile } = await service
       .from("profiles")
       .select("full_name")
       .eq("user_id", studentId)
       .maybeSingle()
-    studentFirstName = firstName(profile?.full_name, { fallback: STUDENT_FALLBACK })
+    studentFirstName = truncate(firstName(profile?.full_name, { fallback: STUDENT_FALLBACK }), 40)
   } catch (err) {
     console.error("[declareMissionCompletion] profil", err?.code ?? "erreur")
   }

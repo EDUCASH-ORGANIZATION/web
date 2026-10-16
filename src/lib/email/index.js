@@ -90,13 +90,13 @@ export async function sendEmail(template, to, data = {}, options = {}) {
     })
 
     if (error) {
-      console.error("[email] Erreur Resend:", error)
+      console.error("[email] Erreur Resend:", error?.name ?? error?.statusCode ?? "erreur")
       return { error: error.message }
     }
 
     return { success: true }
   } catch (err) {
-    console.error("[email] Exception:", err)
+    console.error("[email] Exception:", err?.name ?? "erreur")
     return { error: err?.message ?? "Erreur inconnue" }
   }
 }

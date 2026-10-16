@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 // RD-DONE-01 / vérification indépendante (TESTER) : cas non couverts par les tests du développeur.
 vi.mock("server-only", () => ({}))
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+vi.mock("next/server", () => ({ after: vi.fn((fn) => { fn() }) }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 vi.mock("@/lib/notifications/notify", () => ({ notify: vi.fn(() => Promise.resolve({ ok: true })) }))
@@ -48,7 +49,7 @@ beforeEach(() => {
 })
 
 describe("declareMissionCompletion : compléments", () => {
-  it("ne touche qu'aux tables missions (écriture) et profiles (prénom, lecture) : ni wallets, transactions, mission_completions, notifications", async () => {
+  it("l'action elle-même n'écrit que dans missions (profiles en lecture) : ni wallets, transactions, mission_completions, notifications", async () => {
     const s = service({ reads: [{ data: row, error: null }], update: { data: [{ id: M, completion_declared_at: DATE }], error: null } })
     createServiceClient.mockReturnValue(s.client)
     await declareMissionCompletion(M)
