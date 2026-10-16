@@ -9,7 +9,7 @@
     "bg": "A1",
     "fontSize": "A2:1"
   },
-  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)",
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1). Fonctions de la planche non codées et omises (D4, pas de code d'écart car sans effet mesuré sur un sélecteur) : motif facultatif du refus et « Vous pourrez annuler pendant 10 secondes » (modale de refus), Modifier et Prolonger",
   "views": [
     {
       "name": "bureau",
@@ -242,11 +242,12 @@
             "h"
           ],
           "code": ".cand2:nth-of-type(3)",
+          "lot": "décision produit",
           "assume": {
             "y": "A3+A2:8",
             "h": "X1:29"
           },
-          "note": "X1 : la planche montre le badge « En cours d'examen » et la note « Carte en cours d'examen par EduCash : vous pouvez déjà le retenir » ; getClientMissionDetail n'expose que is_verified et verified_until (aucun état de vérification en cours), le code affiche « Non vérifié » sans note (-29) ; décision produit à prendre. y : cascade (A3, X1 de l'en-tête, A2)"
+          "note": "X1, décision produit à trancher : retenir un étudiant dont la carte est en cours d'examen (message de la planche : « vous pouvez déjà le retenir »). Donnée non exposée : l'état d'examen n'est pas lu (getClientMissionDetail ne lit que is_verified et verified_until ; la date de dépôt de la carte est une colonne privée), le code affiche « Non vérifié » sans le badge « En cours d'examen » ni la note (-29). y : cascade (A3, A2)"
         },
         {
           "id": "MI-04",
@@ -426,11 +427,11 @@
             "h",
             "fontSize"
           ],
-          "lot": "ST-03",
+          "lot": "coquille (lot 3)",
           "assume": {
             "y": "L3+X1:13"
           },
-          "note": "L3 : décalage de la coquille mobile (+12) et 1 px non expliqué (X1), mêmes valeurs que C12 et E06. Écart NON assumé : titre 30 px dans la planche, 26 px dans le code (fontSize -4, w -50, h -2, règle de .head2__title à 480 px dans app-shell.css), visible en ÉCHEC"
+          "note": "L3 : décalage de la coquille mobile (+12) et 1 px non expliqué (X1), mêmes valeurs que C12 et E06. Écart NON assumé : titre 30 px dans la planche, 26 px dans le code (fontSize -4, w -50, h -2) : règle .head2__title à 480 px de app-shell.css, lot coquille, visible en ÉCHEC"
         },
         {
           "id": "MI-04",
@@ -445,10 +446,10 @@
           "code": ".cand2:nth-of-type(1)",
           "lot": "ST-03",
           "assume": {
-            "y": "L3+X1:101",
+            "y": "L3+X1:159",
             "h": "A5+A2:9"
           },
-          "note": "y : L3 (+12, coquille mobile) et X1 (+89) : la planche masque la ligne d'actions « Annuler la mission » dans le menu ⋮ de la barre du haut et affiche une méta plus courte (statut, échéance, « 8 000 FCFA en séquestre »), le code garde l'action et une méta sur trois lignes (en-tête partagé mission-header.jsx, lot ST-03) ; A5 : liens de 44 px au lieu de 36 (+8), A2 : +1"
+          "note": "y : L3 (+12, coquille mobile) et X1 (+147 = +89 en-tête partagé ci-dessous et +58 de la rangée du tri, conservée : la planche mobile n'a pas d'en-tête de liste, mais le tri est une fonction codée, le titre « Candidatures » reste dans l'arbre d'accessibilité) : la planche masque la ligne d'actions « Annuler la mission » dans le menu ⋮ de la barre du haut et affiche une méta plus courte (statut, échéance, « 8 000 FCFA en séquestre »), le code garde l'action et une méta sur trois lignes (en-tête partagé mission-header.jsx, lot ST-03) ; A5 : liens de 44 px au lieu de 36 (+8), A2 : +1"
         },
         {
           "id": "MI-04",
@@ -462,7 +463,7 @@
           ],
           "lot": "ST-03",
           "assume": {
-            "y": "L3+X1:102",
+            "y": "L3+X1:160",
             "h": "A5:8"
           },
           "note": "y : voir la candidature 1 (+1) ; A5 : liens de 44 px au lieu de 36, h +8"

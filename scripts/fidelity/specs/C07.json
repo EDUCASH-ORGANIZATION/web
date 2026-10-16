@@ -104,7 +104,7 @@
           "assume": {
             "y": "A8:144"
           },
-          "note": "A8 : décalage vertical de la modale centrée. fontSize et h : le sous-titre est en 16 px (--t-para, RD-FIX-03) au lieu de 14 px dans la planche, écart du système non couvert par A1 à A7, visible en ÉCHEC"
+          "note": "A8 : décalage vertical de la modale centrée. fontSize et h : le sous-titre est en 16 px (--t-para, RD-FIX-03) au lieu de 14 px dans la planche, écart assumé du projet RD-FIX-03 (--t-para), code A9 à créer par l'orchestrateur (passe d'outillage), visible en ÉCHEC"
         },
         {
           "id": "CA-07",
