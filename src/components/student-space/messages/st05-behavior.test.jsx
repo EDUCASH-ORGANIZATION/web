@@ -22,7 +22,7 @@ vi.mock("@/hooks/use-realtime-messages", () => ({
 
 const { StudentConversationView } = await import("./conversation-view")
 const { StatusBanner } = await import("./status-banner")
-const { Composer, SendOrMic } = await import("./composer")
+const { Composer, SendOrMic, hasSendableText } = await import("./composer")
 
 const M1 = "11111111-1111-4111-8111-111111111111"
 const M2 = "44444444-4444-4444-8444-444444444444"
@@ -48,7 +48,7 @@ const clean = (html) => {
 }
 const fallbackText = "Mission en cours. Prévenez le client par message quand c&#x27;est terminé."
 // Le texte saisi pilote SendOrMic par `hasText` (même calcul que le compositeur : texte non blanc).
-const composer = (text) => renderToStaticMarkup(<SendOrMic hasText={Boolean(text.trim())} onRecord={vi.fn()} />)
+const composer = (text) => renderToStaticMarkup(<SendOrMic hasText={hasSendableText(text)} onRecord={vi.fn()} />)
 
 describe("ST-05 bandeau : montants", () => {
   it("budget et net valides, paiements ouverts : « en séquestre » et le net", () => {

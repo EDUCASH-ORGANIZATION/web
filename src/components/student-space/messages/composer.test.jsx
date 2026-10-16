@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
-import { Composer, SendOrMic } from "./composer"
+import { Composer, SendOrMic, hasSendableText } from "./composer"
+
+describe("hasSendableText", () => {
+  it.each([["", false], ["   ", false], ["\n\t ", false], ["a", true], [" a ", true]])("%j -> %s", (text, expected) => {
+    expect(hasSendableText(text)).toBe(expected)
+  })
+})
 
 describe("Composer étudiant : micro et envoi", () => {
   it("au repos : photo et position à gauche, micro à droite du champ, aucun bouton d'envoi", () => {

@@ -39,6 +39,9 @@ export function LockedComposer({ text }) {
  * Bouton à droite du champ : l'envoi dès qu'il y a du texte, sinon le micro (message vocal).
  * @param {{ hasText: boolean, onRecord: () => void }} props
  */
+/** Un texte est envoyable s'il contient autre chose que des blancs. */
+export const hasSendableText = (text) => text.trim().length > 0
+
 export function SendOrMic({ hasText, onRecord }) {
   if (hasText) {
     return (
@@ -250,7 +253,7 @@ export function Composer({ onSend }) {
               onKeyDown={onKeyDown}
             />
           </label>
-          <SendOrMic hasText={Boolean(text.trim())} onRecord={startRecording} />
+          <SendOrMic hasText={hasSendableText(text)} onRecord={startRecording} />
         </form>
       </div>
       {preview ? <ImageDialog file={preview.file} previewUrl={preview.url} onConfirm={confirmImage} onCancel={() => setPreview(null)} /> : null}

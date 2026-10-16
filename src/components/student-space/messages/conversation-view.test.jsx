@@ -532,5 +532,8 @@ describe("e07.css : saisie et bandeau (règles statiques)", () => {
     expect(tablet).toContain(".e2-07-composer:not(.is-locked) { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }")
     expect(tablet).toContain(".shell--v2:has(.e2-07-pane) .shell__main { padding-bottom: var(--s-2); }")
     expect((css.match(/safe-area-inset-bottom/g) ?? []).length).toBe(1)
+    const e06 = readFileSync(join(process.cwd(), "src/app/design/student/e06.css"), "utf8")
+    expect(e06).not.toContain("safe-area-inset-bottom")
+    expect(e06).toContain(".e2-06-inbox > .e2-07-pane { height: calc(100dvh - var(--s-2)); }")
   })
 })
