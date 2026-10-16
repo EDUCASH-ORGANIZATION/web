@@ -3,7 +3,33 @@
 // Aucune donnée, aucun import serveur. Entrée : `detail` de getStudentMissionDetail (voir son JSDoc).
 import { missionStatusView } from "../app/mission-status.js"
 import { escrowSplit } from "../app/money.js"
+import { purchasesEstimateOf } from "../app/purchases.js"
 import { todayInBenin, isPastDeadline } from "../vitrine/dates.js"
+
+// Nom public de repli de getStudentMissionDetail quand le client n'a pas de nom : pas de prénom à citer.
+const ANONYMOUS_CLIENT = "Client EduCash"
+
+/**
+ * Prénom du client pour une phrase (« Écrire à Afiavi »), tiré du nom public « Prénom N. » ; null si le nom est
+ * absent ou anonyme (la vue dit alors « le client »). Jamais de coordonnée : le nom public seul.
+ * @param {string|null|undefined} name
+ * @returns {string|null}
+ */
+export function clientFirstName(name) {
+  const text = typeof name === "string" ? name.trim() : ""
+  if (!text || text === ANONYMOUS_CLIENT) return null
+  return text.split(/\s+/)[0]
+}
+
+/**
+ * Le gain n'est affiché que si le budget est un nombre fini strictement positif et la part de l'étudiant (net)
+ * un nombre fini positif ou nul : sinon aucun montant (jamais NaN ni undefined à l'écran).
+ * @param {{ total: number, student: number }} split Résultat de escrowSplit
+ * @returns {boolean}
+ */
+export function gainIsValid(split) {
+  return Number.isFinite(split?.total) && split.total > 0 && Number.isFinite(split.student) && split.student >= 0
+}
 
 /**
  * Aiguillage de la page : "followup" (E05) pour l'étudiant retenu d'une mission qui n'est plus ouverte ;
@@ -105,11 +131,14 @@ export function buildTimeline(detail) {
 export function missionDetailView(detail, today = todayInBenin()) {
   if (!detail || detail.state === "closed") return { closed: true }
   const { mission } = detail
+  const split = escrowSplit(mission.budget)
   return {
     closed: false,
     status: missionStatusView(mission, today),
     deadlinePassed: isPastDeadline(mission.deadline, today),
-    split: escrowSplit(mission.budget),
+    split,
+    gainValid: gainIsValid(split),
+    purchases: purchasesEstimateOf(mission.purchasesEstimate),
     actions: missionActions(detail),
     timeline: detail.state === "selected" ? buildTimeline(detail) : [],
     receipt: receiptFromLedger(detail.ledger),
