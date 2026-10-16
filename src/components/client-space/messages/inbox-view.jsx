@@ -1,50 +1,44 @@
 "use client"
 
+// @ds-screen RD-CLIENT-01
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useRef } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
 import { PageHead } from "@/components/app-ui/page-head"
-import { Avatar } from "@/components/app-ui/avatar"
 import { EmptyState } from "@/components/app-ui/empty-state"
 import { ErrorState } from "@/components/app-ui/state-block"
-import { SkeletonRows } from "@/components/app-ui/skeletons"
 import { useUnread } from "@/components/app-shell/unread-provider"
-import { SEARCH_MAX_LENGTH } from "@/lib/constants/missions"
-import { clientConversationHref, clientMissionsHref, clientPublishHref } from "@/lib/app/client-routes"
-import { filterConversations, formatListTime, unreadTotal } from "@/lib/client-space/conversations"
+import { ClientInboxList, activeKeyOf } from "@/components/client-space/messages/inbox-list"
+import { clientMissionsHref, clientPublishHref } from "@/lib/app/client-routes"
+import { unreadTotal } from "@/lib/client-space/conversations"
 
 const INBOX_PATH = "/client/messages"
-const UNREAD_PARAM = "non-lues"
 
-const cx = (...parts) => parts.filter(Boolean).join(" ")
 const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`
 
-// Adresse de la boîte de réception avec recherche et filtre (paramètres vides omis).
-export function inboxHref({ q, unreadOnly } = {}) {
-  const query = new URLSearchParams()
-  if (q) query.set("q", q)
-  if (unreadOnly) query.set("filtre", UNREAD_PARAM)
-  const qs = query.toString()
-  return qs ? `${INBOX_PATH}?${qs}` : INBOX_PATH
-}
+/** Délai de regroupement des rafraîchissements : un INSERT et un UPDATE rapprochés ne coûtent qu'un seul. */
+export const REFRESH_DELAY_MS = 300
 
-// Mission en sous-titre, avec la relation avec l'étudiant.
-export function subtitleOf(conversation) {
-  const title = conversation.missionTitle || "Mission"
-  switch (conversation.state) {
-    case "candidate":
-      return `Candidat · ${title}`
-    case "in_progress":
-      return `${title} · en cours`
-    case "done":
-      return `${title} · terminée`
-    case "cancelled":
-      return `${title} · annulée`
-    case "rejected":
-      return `Candidature refusée · ${title}`
-    default:
-      return title
+/**
+ * Regroupe les demandes de rafraîchissement : chaque `trigger` repousse l'appel de `refresh`.
+ * @param {() => void} refresh
+ * @param {number} [delay]
+ */
+export function createDebouncedRefresh(refresh, delay = REFRESH_DELAY_MS) {
+  let timer = null
+  return {
+    trigger() {
+      if (timer !== null) clearTimeout(timer)
+      timer = setTimeout(() => {
+        timer = null
+        refresh()
+      }, delay)
+    },
+    cancel() {
+      if (timer !== null) clearTimeout(timer)
+      timer = null
+    },
   }
 }
 
@@ -53,37 +47,14 @@ function LiveRefresh() {
   const router = useRouter()
   const unread = useUnread()
   const seen = useRef(unread)
+  const scheduler = useMemo(() => createDebouncedRefresh(() => router.refresh()), [router])
   useEffect(() => {
     if (seen.current === unread) return
     seen.current = unread
-    router.refresh()
-  }, [unread, router])
+    scheduler.trigger()
+  }, [unread, scheduler])
+  useEffect(() => scheduler.cancel, [scheduler])
   return null
-}
-
-function ConversationRow({ conversation, now }) {
-  const unread = conversation.unreadCount > 0
-  return (
-    <li>
-      <Link className={cx("convo", unread && "is-unread")} href={clientConversationHref(conversation.missionId, conversation.studentId)}>
-        <Avatar name={conversation.name} src={conversation.avatarUrl} />
-        <div className="convo__body">
-          <div className="convo__name">{conversation.name}</div>
-          <div className="convo__mission">{subtitleOf(conversation)}</div>
-          <div className="convo__preview">{conversation.preview}</div>
-        </div>
-        <div className="convo__side">
-          {formatListTime(conversation.lastAt, now)}
-          {unread ? (
-            <span className="count">
-              {conversation.unreadCount}
-              <span className="sr-only">{conversation.unreadCount > 1 ? " messages non lus" : " message non lu"}</span>
-            </span>
-          ) : null}
-        </div>
-      </Link>
-    </li>
-  )
 }
 
 function NoConversation() {
@@ -111,104 +82,131 @@ function NoConversation() {
 }
 
 /**
- * Boîte de réception (C12) : une carte de conversations, une par (mission, étudiant), avec recherche
- * et filtre « Non lues » portés par l'adresse (aucun état local).
- * @param {{ result: { conversations?: object[], error?: string }, q?: string, unreadOnly?: boolean, now?: string }} props
+ * Conversations ouvertes depuis le dernier `result` (à lire comme lues) : vidé quand `result` change, cumulé
+ * d'une conversation à l'autre sinon. Renvoie l'état reçu s'il n'y a rien à changer.
+ * @param {{ result: unknown, ids: string[] }} state
+ * @param {unknown} result
+ * @param {string|null} openedId
  */
-export function InboxView({ result, q = "", unreadOnly = false, now }) {
-  const nowDate = useMemo(() => (now ? new Date(now) : new Date()), [now])
-  const all = result?.conversations ?? []
-  const unreadCount = unreadTotal(all)
-  const shown = filterConversations(all, { q, unreadOnly })
-  const summary =
-    all.length === 0
-      ? "Aucune conversation"
-      : `${plural(all.length, "conversation", "conversations")} · ${plural(unreadCount, "non lue", "non lues")}`
+export function nextOpened(state, result, openedId) {
+  const fresh = state.result !== result
+  const ids = fresh ? [] : state.ids
+  if (!fresh && (!openedId || ids.includes(openedId))) return state
+  return { result, ids: openedId && !ids.includes(openedId) ? [...ids, openedId] : ids }
+}
 
-  if (result?.error || !result?.conversations) {
+// Volet gauche réduit à un message (liste vide ou en erreur) quand une conversation est ouverte.
+function ListNotice({ children }) {
+  return (
+    <section className="c-inbox__list" aria-label="Conversations">
+      <div className="inbox-rows2 convos2">{children}</div>
+    </section>
+  )
+}
+
+// Volet de droite sans conversation ouverte.
+function EmptyPane() {
+  return (
+    <div className="c-inbox__thread inbox2__empty">
+      <div className="empty2">
+        <span className="empty2__ic">
+          <Icon name="i-message" />
+        </span>
+        <div className="empty2__title">Choisissez une conversation</div>
+        <div className="empty2__text">{"Vos échanges avec les étudiants s'affichent ici, une conversation par candidat."}</div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Messages (C12, C13) : titre de page puis une carte unique à deux volets, la liste des conversations à gauche et
+ * `children` à droite (volet vide sur /client/messages, où la page ne rend rien, conversation sur
+ * /client/messages/<mission>). Vue pure : `result` est la réponse de `getClientConversations`. La conversation
+ * ouverte est comptée comme lue sans attendre le rafraîchissement.
+ * @param {{ result: { conversations?: object[], error?: string }, now?: string, children?: import("react").ReactNode }} props
+ */
+export function ClientInboxView({ result, now, children }) {
+  const pathname = usePathname() || INBOX_PATH
+  const params = useSearchParams()
+  const nowDate = useMemo(() => (now ? new Date(now) : new Date()), [now])
+  const isConversation = pathname.startsWith(`${INBOX_PATH}/`)
+  const all = result?.conversations
+  const hasError = Boolean(result?.error) || !all
+
+  // Conversations ouvertes depuis le dernier `result` : comptées comme lues, vidé quand `result` change.
+  const openedKey = activeKeyOf(all, pathname, params?.get("studentId"))
+  const [opened, setOpened] = useState({ result, ids: [] })
+  const next = nextOpened(opened, result, openedKey)
+  if (next !== opened) setOpened(next)
+  const ids = next.ids
+
+  const conversations = (all ?? []).map((c) => (c.unreadCount > 0 && ids.includes(c.key) ? { ...c, unreadCount: 0 } : c))
+
+  // Sur /client/messages : l'état d'erreur ou vide occupe la page. Sur une conversation : il reste dans le volet
+  // gauche, le volet droit garde la conversation (404 d'un client sans lien avec la conversation).
+  if (!isConversation && hasError) {
     return (
       <>
         <PageHead title="Messages" />
         <section className="card2 card2--flush" aria-label="Erreur de chargement">
-          <ErrorState compact title="Impossible d'afficher vos messages" text={result?.error ?? "Le chargement a échoué. Veuillez réessayer."} />
+          <ErrorState
+            compact
+            title="Impossible d'afficher vos messages"
+            text={result?.error ?? "Le chargement a échoué. Veuillez réessayer."}
+          />
         </section>
       </>
     )
   }
 
+  if (!isConversation && conversations.length === 0) {
+    return (
+      <>
+        <LiveRefresh />
+        <PageHead date="Aucune conversation" title="Messages" />
+        <NoConversation />
+      </>
+    )
+  }
+
+  const unreadCount = unreadTotal(conversations)
+  const summary = hasError
+    ? "Messages indisponibles"
+    : conversations.length === 0
+      ? "Aucune conversation"
+      : `${plural(conversations.length, "conversation", "conversations")} · ${plural(unreadCount, "non lue", "non lues")}`
+
   return (
     <>
       <LiveRefresh />
       <PageHead date={summary} title="Messages" />
-      {all.length === 0 ? (
-        <NoConversation />
-      ) : (
-        <>
-          <div className="inbox-tools2">
-            <form role="search" method="get" action={INBOX_PATH}>
-              {unreadOnly ? <input type="hidden" name="filtre" value={UNREAD_PARAM} /> : null}
-              <label className="search">
-                <Icon name="i-search" />
-                <input
-                  type="search"
-                  name="q"
-                  defaultValue={q}
-                  maxLength={SEARCH_MAX_LENGTH}
-                  placeholder="Rechercher un étudiant, une mission"
-                  aria-label="Rechercher dans les messages"
-                  autoComplete="off"
-                />
-              </label>
-            </form>
-            <nav className="segmented segmented--block" aria-label="Filtrer les conversations">
-              <Link className={cx("segmented__item", !unreadOnly && "is-active")} href={inboxHref({ q })} aria-current={unreadOnly ? undefined : "page"}>
-                Toutes
-              </Link>
-              <Link className={cx("segmented__item", unreadOnly && "is-active")} href={inboxHref({ q, unreadOnly: true })} aria-current={unreadOnly ? "page" : undefined}>
-                {unreadCount > 0 ? `Non lues (${unreadCount})` : "Non lues"}
-              </Link>
-            </nav>
-          </div>
-          {shown.length === 0 ? (
-            <section className="card2 card2--flush" aria-label="Aucun résultat">
-              {q ? (
-                <EmptyState
-                  compact
-                  icon="i-search"
-                  title={`Aucune conversation pour « ${q} »`}
-                  text="Essayez un autre mot."
-                  action={{ label: "Effacer la recherche", href: inboxHref({ unreadOnly }) }}
-                />
-              ) : (
-                <EmptyState
-                  compact
-                  icon="i-check-circle"
-                  title="Aucun message non lu"
-                  text="Vous avez lu tous vos messages."
-                  action={{ label: "Voir toutes les conversations", href: inboxHref({ q }) }}
-                />
-              )}
-            </section>
-          ) : (
-            <ul className="convos2 inbox-list2" aria-label="Conversations">
-              {shown.map((conversation) => (
-                <ConversationRow key={conversation.key} conversation={conversation} now={nowDate} />
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+      <div className="c-inbox inbox2" data-view={isConversation ? "conversation" : "list"}>
+        {hasError ? (
+          <ListNotice>
+            <ErrorState
+              compact
+              title="Impossible d'afficher vos messages"
+              text={result?.error ?? "Le chargement a échoué. Veuillez réessayer."}
+            />
+          </ListNotice>
+        ) : conversations.length === 0 ? (
+          <ListNotice>
+            <EmptyState
+              compact
+              icon="i-message"
+              title="Aucune conversation"
+              text="Vos échanges avec les candidats apparaîtront ici."
+              action={{ label: "Voir mes missions", href: clientMissionsHref() }}
+            />
+          </ListNotice>
+        ) : (
+          <ClientInboxList conversations={conversations} now={nowDate} />
+        )}
+        {isConversation ? <div className="c-inbox__thread">{children}</div> : <EmptyPane />}
+      </div>
     </>
   )
 }
 
-export function InboxSkeleton() {
-  return (
-    <>
-      <PageHead title="Messages" />
-      <SkeletonRows count={5} />
-    </>
-  )
-}
-
-export default InboxView
+export default ClientInboxView

@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Icon } from "@/components/design/icon"
 
@@ -17,13 +18,20 @@ export function retry(router, onRetry) {
   router.refresh()
 }
 
+// Un chemin interne seulement ("/..." et pas "//..."), jamais une adresse externe ni un schéma.
+export function isInternalPath(href) {
+  return typeof href === "string" && href.startsWith("/") && !href.startsWith("//") && !href.includes("\\")
+}
+
 // Erreur de chargement, distincte du vide : annoncée (role alert) avec un bouton « Réessayer ».
+// `action` (optionnel, `{ href, label }`) ajoute un lien de sortie sous le bouton, chemin interne seulement.
 // `title` et `text` ont des défauts vouvoyés communs à tous les espaces (registre unique) ; ils restent surchargeables.
 export function ErrorState({
   title = "Un problème est survenu",
   text = "Le chargement a échoué. Vos données et vos fonds ne sont pas touchés.",
   compact = false,
   onRetry,
+  action,
   titleAs: Title = "div",
 }) {
   const router = useRouter()
@@ -38,6 +46,11 @@ export function ErrorState({
         <Icon name="i-refresh" />
         Réessayer
       </button>
+      {action && isInternalPath(action.href) ? (
+        <Link className="hero2__link" href={action.href}>
+          {action.label}
+        </Link>
+      ) : null}
     </div>
   )
 }

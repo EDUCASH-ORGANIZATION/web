@@ -1,9 +1,10 @@
 /* ---------- C12 Messages, C13 Conversation ---------- */
 .c2 .c-inbox { border-radius: var(--r-l); flex: 1; min-height: 0; }
-.inbox2 { display: grid; grid-template-columns: 360px minmax(0, 1fr); height: 640px; }
-.c2 .c-inbox__list { padding: 14px; gap: 2px; overflow: hidden; }
+/* Carte unique à deux volets sans gouttière (liste 360 px, filet vertical) : elle remplit la zone principale (flex: 1 de .c-inbox) */
+.inbox2 { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 0; }
+.c2 .c-inbox__list { padding: 14px; gap: 2px; overflow: hidden; min-height: 0; }
 .c2 .c-inbox__list .search { margin-bottom: 8px; }
-.c2 .c-inbox__list .segmented { margin-bottom: 8px; }
+.c2 .c-inbox__list .segmented { margin-bottom: 8px; flex: none; }
 .c2 .segmented { border: 1px solid var(--c-ligne); }
 .c2 .convo { padding: 12px; border-radius: 14px; }
 .c2 .convo .av2 { width: 44px; height: 44px; font-size: 14px; }
@@ -15,7 +16,6 @@
 .c2 .composer__field { background: var(--c-givre); }
 .c2 .c-inbox__head .av2 { width: 40px; height: 40px; }
 .inbox2__empty { display: grid; place-items: center; background: var(--c-givre); }
-.convos2 { display: flex; flex-direction: column; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); padding: 6px; }
 .mchat2 { display: flex; flex-direction: column; height: 100%; }
 .mchat2 .chat { flex: 1; }
 .mchat2 .composer { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
@@ -27,26 +27,36 @@
 .c2 .segmented__item { height: 36px; }
 .c2 .segmented__item.is-active { background: var(--c-blanc); color: var(--c-encre); box-shadow: 0 0 0 1px var(--c-ligne); }
 
-/* Boîte de réception : recherche et filtre au-dessus d'une seule carte de conversations */
-.inbox-tools2 { display: flex; flex-direction: column; gap: var(--s-3); margin-bottom: var(--s-4); max-width: 720px; }
-.c2 .inbox-tools2 .search { background: var(--c-blanc); }
-.c2 .inbox-tools2 .search:not(:focus-within) { border-color: var(--c-ligne); }
-.c2 .inbox-tools2 .segmented { background: var(--c-blanc); border-color: var(--c-ligne); }
-.inbox-list2 { max-width: 720px; list-style: none; margin: 0; }
-.c2 .inbox-list2 .convo { text-decoration: none; color: var(--c-encre); }
-.c2 .inbox-list2 .convo__name { min-width: 0; }
-.c2 .inbox-list2 .convo__side { align-self: stretch; justify-content: space-between; min-width: 44px; }
+/* Liste des conversations : lignes défilantes sous la recherche et le filtre, dans leur volet */
+.inbox-rows2 { display: flex; flex-direction: column; gap: 2px; list-style: none; margin: 0; padding: 0; min-height: 0; overflow-y: auto; }
+.c2 .inbox-rows2 .convo { text-decoration: none; color: var(--c-encre); }
+.c2 .inbox-rows2 .convo__name { min-width: 0; }
+.c2 .inbox-rows2 .convo__side { align-self: stretch; justify-content: space-between; min-width: 44px; }
 .c2 .convo:focus-visible { outline: none; box-shadow: var(--sh-focus); }
 .c2 .segmented__item:focus-visible { outline: none; box-shadow: var(--sh-focus); }
 .c2 .segmented__item.is-active:focus-visible { box-shadow: var(--sh-focus); }
 .inbox-empty2 .actions2 { justify-content: center; margin-top: var(--s-2); }
+/* Conversation ouverte dans le volet : plus de carte propre, elle remplit le volet de la carte unique */
+.c2 .c-inbox__thread > .conv2 { flex: 1; height: auto; min-height: 0; max-height: none; border: 0; border-radius: 0; }
 
 @media (max-width: 1023.98px) {
+  /* Une seule colonne : la liste seule sur /client/messages, la conversation seule sur /client/messages/<mission>
+     (son en-tête remplace alors le titre de page) */
   .inbox2 { grid-template-columns: minmax(0, 1fr); height: auto; }
-  .c2 .inbox2 .c-inbox__list { border-right: 0; border-bottom: 1px solid var(--c-ligne); }
-  .c2 .c-inbox { flex: none; }
+  .c2 .c-inbox { flex: none; border: 0; border-radius: 0; background: transparent; overflow: visible; }
+  .c2 .inbox2[data-view="list"] > :not(.c-inbox__list) { display: none; }
+  .c2 .inbox2[data-view="conversation"] > .c-inbox__list { display: none; }
+  /* Titre masqué à l'œil seulement : le h1 « Messages » reste lu par les lecteurs d'écran */
+  .head2:has(+ .inbox2[data-view="conversation"]) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* Mobile : recherche et filtre sur le fond de page, les conversations dans une seule carte blanche */
+  .c2 .inbox2 .c-inbox__list { border-right: 0; padding: 0; gap: var(--s-3); overflow: visible; }
+  .c2 .inbox2 .c-inbox__list .search { margin-bottom: 0; }
+  .c2 .inbox2 .c-inbox__list .segmented { margin-bottom: var(--s-1); }
+  /* Conversation seule : la hauteur mobile de c13.css (zone sûre comptée une seule fois) */
+  .c2 .c-inbox__thread > .conv2 { flex: none; height: calc(100dvh - 148px - env(safe-area-inset-bottom, 0px)); }
+  .c2 .convos2 { padding: 6px; overflow-y: visible; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); }
+  .c2 .c-inbox__list .search:not(:focus-within) { background: var(--c-blanc); border-color: var(--c-ligne); }
   .c2 .segmented__item { height: 44px; }
   /* Cibles tactiles : « Publier une mission » de l'état vide atteint 44 px. */
   .c2 .inbox-empty2 .actions2 .link2 { min-height: 44px; align-items: center; }
-  .inbox-tools2, .inbox-list2 { max-width: none; }
 }
