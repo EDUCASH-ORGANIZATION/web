@@ -8,14 +8,15 @@ import { formatMoment, movementDate } from "./timeline"
  * commission incluse) et « Versé » est `release - commission` quand les deux lignes existent ; à défaut,
  * seul « Prélevé » est affiché (jamais de détail mêlant grand livre et calcul). Sans libération au grand livre (mission héritée), seul le budget est rappelé.
  */
-export function Receipt({ view, ledger, studentName }) {
+export function Receipt({ view, ledger, studentName, withPurchases = false }) {
+  const title = withPurchases ? "Reçu du service" : "Reçu"
   const { receipt, split } = view
   const released = receipt.hasLedger && receipt.releasedGross > 0
   if (!released) {
     return (
-      <section className="card2" aria-label="Reçu">
+      <section className="card2 fup2__money" aria-label={title}>
         <div className="sec2">
-          <h2 className="sec2__title">Reçu</h2>
+          <h2 className="sec2__title">{title}</h2>
         </div>
         <Lines rows={[{ label: "Budget de la mission", value: split.total }]} />
         <p className="note2">Le détail du paiement n&apos;est pas disponible pour cette mission.</p>
@@ -26,9 +27,9 @@ export function Receipt({ view, ledger, studentName }) {
   const detailed = receipt.student !== null
   const releasedAt = formatMoment(movementDate(ledger, "release"))
   return (
-    <section className="card2" aria-label="Reçu">
+    <section className="card2 fup2__money" aria-label={title}>
       <div className="sec2">
-        <h2 className="sec2__title">Reçu</h2>
+        <h2 className="sec2__title">{title}</h2>
         <StatusBadge label="Payé" tone="succes" icon="i-check" />
       </div>
       {detailed ? (
@@ -42,18 +43,18 @@ export function Receipt({ view, ledger, studentName }) {
       ) : (
         <Lines rows={[{ label: "Prélevé du séquestre", value: receipt.releasedGross }]} />
       )}
-      <dl className="fup2__facts">
+      <div className="lines2">
         {releasedAt ? (
-          <div>
-            <dt>Libéré le</dt>
-            <dd>{releasedAt}</dd>
+          <div className="lines2__row">
+            <span>Libéré le</span>
+            <b>{releasedAt}</b>
           </div>
         ) : null}
-        <div>
-          <dt>Moyen</dt>
-          <dd>Portefeuille EduCash</dd>
+        <div className="lines2__row">
+          <span>Moyen</span>
+          <b>Portefeuille EduCash</b>
         </div>
-      </dl>
+      </div>
     </section>
   )
 }

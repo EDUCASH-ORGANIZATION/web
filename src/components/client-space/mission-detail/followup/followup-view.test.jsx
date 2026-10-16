@@ -8,6 +8,8 @@ const { MissionFollowupView } = await import("../followup-view")
 const { ConfirmEndDialogView, ConfirmEndSuccess, releaseOnce, refreshAndClose } = await import("./confirm-end-dialog")
 const { buildTimeline } = await import("./timeline")
 const { missionView } = await import("@/lib/client-space/mission-view")
+const { readFileSync } = await import("node:fs")
+const { declarationsOf } = await import("@/qa/fidelity/css-rules")
 const { escrowSplit } = await import("@/lib/app/money")
 
 const student = {
@@ -70,8 +72,7 @@ describe("C08 mission en cours", () => {
   })
 
   it("garde une chronologie fondée sur les dates connues", () => {
-    expect(html).toContain("Mission publiée")
-    expect(html).toContain("placés en séquestre")
+    expect(html).toMatch(/Publiée, 25\s000\sFCFA en séquestre/)
     expect(html).toContain("Candidature de Sèna acceptée")
   })
 
@@ -309,8 +310,7 @@ describe("chronologie", () => {
     const d = detailOf("in_progress")
     const titles = buildTimeline(d, missionView(d), "Sèna").map((i) => i.title)
     expect(titles).toEqual([
-      "Mission publiée",
-      expect.stringContaining("placés en séquestre"),
+      expect.stringMatching(/^Publiée, 25\s000\sFCFA en séquestre$/),
       "Candidature de Sèna acceptée",
       "Mission en cours",
       "Votre validation de la fin",
@@ -359,7 +359,7 @@ describe("le séquestre reste le budget seul (estimation d'achats jamais ajouté
       { type: "commission", amount: 960, createdAt: "2026-10-08T09:02:00Z" },
     ]
     const out = render(withPurchases("done", { ledger }))
-    const receipt = section(out, "Reçu")
+    const receipt = section(out, "Reçu du service")
     expect(receipt).toMatch(/8\s000/)
     expect(receipt).not.toMatch(/23\s000|15\s000/)
     expect(out).not.toMatch(/23\s000/)
@@ -375,5 +375,156 @@ describe("le séquestre reste le budget seul (estimation d'achats jamais ajouté
     expect(refund).toMatch(/8\s000/)
     expect(refund).not.toMatch(/23\s000|15\s000/)
     expect(out).not.toMatch(/23\s000/)
+  })
+})
+
+describe("achats pour votre compte (C08, C11), estimation seule", () => {
+  const withEstimate = (status, over = {}, estimate = 15000) => {
+    const base = detailOf(status, over)
+    return { ...base, mission: { ...base.mission, budget: 8000, purchasesEstimate: estimate } }
+  }
+  const RESERVE = [{ type: "reserve", amount: 8000, createdAt: "2026-10-02T10:14:00Z" }]
+  const DONE = [
+    ...RESERVE,
+    { type: "release", amount: 8000, createdAt: "2026-10-08T09:02:00Z" },
+    { type: "commission", amount: 960, createdAt: "2026-10-08T09:02:00Z" },
+  ]
+  const section = (out, label) => {
+    const from = out.slice(out.indexOf(`aria-label="${label}"`))
+    return from.slice(0, from.indexOf("</section>"))
+  }
+  const at = (out, label) => out.indexOf(`aria-label="${label}"`)
+  const PAYS = { ...FLAGS, paymentsEnabled: true }
+
+  it("C08 avec estimation : carte achats, Hors EduCash, estimation seule, étudiant et séquestre à droite", () => {
+    const out = render(withEstimate("in_progress", { ledger: RESERVE }), PAYS)
+    const card = section(out, "Achats pour votre compte")
+    expect(card).toContain("Hors EduCash")
+    expect(card).toMatch(/Estimation donnée à la publication/)
+    expect(card).toMatch(/15\s000/)
+    expect(card).toContain("directement par MoMo")
+    expect(card).not.toMatch(/Demande de paiement|Payé en direct|vendeur\s:/)
+    expect(at(out, "Mission en cours")).toBeLessThan(at(out, "Achats pour votre compte"))
+    expect(at(out, "Achats pour votre compte")).toBeLessThan(at(out, "Chronologie"))
+    expect(at(out, "Chronologie")).toBeLessThan(at(out, "Étudiant retenu"))
+    expect(at(out, "Étudiant retenu")).toBeLessThan(at(out, "Séquestre"))
+    expect(out.match(/Hors EduCash/g)).toHaveLength(1)
+  })
+
+  it("C08 : le séquestre reste le budget seul, ni 23 000 ni 15 000 dans la carte Séquestre", () => {
+    const out = render(withEstimate("in_progress", { ledger: RESERVE }), PAYS)
+    const escrow = section(out, "Séquestre")
+    expect(escrow).toMatch(/8\s000/)
+    expect(escrow).not.toMatch(/23\s000|15\s000/)
+    expect(escrow).toContain("pour le service seulement")
+    expect(out).not.toMatch(/23\s000/)
+  })
+
+  it("C08 : la ligne provisoire de l'en-tête migre vers la carte, une seule mention de l'estimation", () => {
+    const out = render(withEstimate("in_progress", { ledger: RESERVE }), PAYS)
+    expect(out).not.toContain("Achats estimés")
+    expect(out.match(/15\s000/g)).toHaveLength(1)
+    expect(out).toContain("Avec achats")
+  })
+
+  it("le mot séquestre n'entre jamais dans la carte achats quand les paiements sont en pause", () => {
+    const out = render(withEstimate("in_progress", { ledger: RESERVE }), FLAGS)
+    expect(section(out, "Achats pour votre compte")).not.toMatch(/séquestre/i)
+    const done = render(withEstimate("done", { ledger: DONE }), FLAGS)
+    expect(section(done, "Achats pour votre compte")).not.toMatch(/séquestre/i)
+    expect(section(render(withEstimate("in_progress", { ledger: RESERVE }), PAYS), "Achats pour votre compte")).toContain("séquestre")
+  })
+
+  it("jamais « vous touchez » côté client", () => {
+    const all = [render(withEstimate("in_progress", { ledger: RESERVE }), PAYS), render(withEstimate("done", { ledger: DONE }), PAYS)].join("")
+    expect(all).not.toMatch(/vous touchez/i)
+  })
+
+  it("sans estimation ou estimation invalide : aucune carte achats, étudiant à gauche", () => {
+    for (const estimate of [null, 0, -5, "abc"]) {
+      const out = render(withEstimate("in_progress", { ledger: RESERVE }, estimate), PAYS)
+      expect(out).not.toContain("Achats pour votre compte")
+      expect(out).not.toContain("Hors EduCash")
+      expect(at(out, "Étudiant retenu")).toBeLessThan(at(out, "Chronologie"))
+      expect(at(out, "Chronologie")).toBeLessThan(at(out, "Séquestre"))
+    }
+  })
+
+  it("C08 sans estimation : l'emplacement de Confirmer la fin reste actif (aucune déclaration de l'étudiant)", () => {
+    const out = render(detailOf("in_progress"), PAYS)
+    expect(section(out, "Séquestre")).toMatch(/<button[^>]*btn--dark[^>]*>/)
+    expect(out).not.toMatch(/à confirmer|Disponible quand/i)
+  })
+
+  it("C11 terminée non notée avec estimation : À faire, achats, chronologie, Reçu du service puis Réalisée par, sans Coût total", () => {
+    const out = render(withEstimate("done", { ledger: DONE }), PAYS)
+    expect(at(out, "Votre avis")).toBeLessThan(at(out, "Achats pour votre compte"))
+    expect(at(out, "Achats pour votre compte")).toBeLessThan(at(out, "Chronologie"))
+    expect(at(out, "Chronologie")).toBeLessThan(at(out, "Reçu du service"))
+    expect(at(out, "Reçu du service")).toBeLessThan(at(out, "Réalisée par"))
+    expect(out).not.toContain("Coût total")
+    expect(out).toContain("Avis à laisser")
+    const receipt = section(out, "Reçu du service")
+    expect(receipt).toMatch(/8\s000/)
+    expect(receipt).not.toMatch(/23\s000|15\s000/)
+    expect(receipt).toContain("Libéré le")
+    expect(out).not.toContain("Achats estimés")
+  })
+
+  it("C11 terminée notée avec estimation : la carte achats et l'avis donné cohabitent", () => {
+    const out = render(
+      withEstimate("done", { ledger: DONE, review: { id: "r1", rating: 5, comment: null, createdAt: "2026-10-09T08:00:00Z" } }),
+      PAYS,
+    )
+    expect(out).toContain("Achats pour votre compte")
+    expect(out).toContain("Votre avis")
+    expect(out).not.toContain("Avis à laisser")
+  })
+
+  it("C11 sans estimation : titre Reçu, Réalisée par avant le reçu, aucune carte achats", () => {
+    const out = render(detailOf("done", { ledger: DONE_LEDGER }), PAYS)
+    expect(out).not.toContain("Achats pour votre compte")
+    expect(out).not.toContain("Reçu du service")
+    expect(at(out, "Réalisée par")).toBeLessThan(at(out, "Reçu"))
+  })
+
+  it("C11 annulée avec estimation : la ligne de l'en-tête reste, aucune carte achats", () => {
+    const ledger = [...RESERVE, { type: "refund", amount: 8000, createdAt: "2026-10-05T16:20:00Z" }]
+    const out = render(withEstimate("cancelled", { selectedStudent: null, ledger }), PAYS)
+    expect(out).toContain("Achats estimés")
+    expect(out).not.toContain("Achats pour votre compte")
+  })
+
+  it("un seul h1 par page", () => {
+    for (const status of ["in_progress", "done", "cancelled"]) {
+      expect(render(withEstimate(status, { ledger: status === "done" ? DONE : RESERVE }), PAYS).match(/<h1/g)).toHaveLength(1)
+    }
+  })
+
+  it("la modale et Libérer le paiement restent inchangées avec une estimation", () => {
+    const out = render(withEstimate("in_progress", { ledger: RESERVE }), { ...PAYS, confirmer: true })
+    expect(out).toContain('role="dialog"')
+    expect(out).toContain("Libérer le paiement")
+  })
+})
+
+describe("feuilles C08 et C11 (planches mobiles)", () => {
+  const c08 = readFileSync(new URL("../../../../app/design/client/c08.css", import.meta.url), "utf8")
+  const c11 = readFileSync(new URL("../../../../app/design/client/c11.css", import.meta.url), "utf8")
+  const mobile = "max-width: 1023.98px"
+
+  it("sous 1024 px, les colonnes s'effacent et les cartes suivent l'ordre des planches", () => {
+    expect(declarationsOf(c08, ".fup2 .fup2__split > .col2", { media: mobile }).display).toBe("contents")
+    const order = (selector, css = c08) => declarationsOf(css, selector, { media: mobile }).order
+    expect([".fup2 .fup2__status", ".fup2 .fup2__student", ".fup2 .fup2__purchases", ".fup2 .fup2__money", ".fup2 .fup2__timeline"].map((s) => order(s)))
+      .toEqual(["1", "2", "3", "4", "5"])
+    expect(order(".fup2 .fup2__split--done .fup2__money", c11)).toBe("3")
+    expect(order(".fup2 .fup2__split--done .fup2__purchases", c11)).toBe("4")
+  })
+
+  it("la méta de l'en-tête descend de 10 px (8 px sur mobile) et les cartes mobiles gardent 20 px à 390 px", () => {
+    expect(declarationsOf(c08, ".fup2 > header .meta2")["margin-top"]).toBe("10px")
+    expect(declarationsOf(c08, ".fup2 > header .meta2", { media: "max-width: 767.98px" })["margin-top"]).toBe("8px")
+    expect(declarationsOf(c08, ".fup2 .card2", { media: "max-width: 480px" }).padding).toBe("var(--s-5)")
   })
 })

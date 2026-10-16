@@ -25,11 +25,20 @@
 
 /* Suivi de mission : en cours, terminee, annulee (C08, C11) */
 .fup2 { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
-.fup2 .btn--block { margin-top: 4px; }
 .fup2 .status2 .link2 { display: inline; }
 .fup2__who { min-width: 0; }
+/* Méta de l'en-tête : 10 px sous le titre sur bureau, 8 px sur mobile (style en ligne des planches C08 et C11) */
+.fup2 > header .meta2 { margin-top: 10px; }
 
 @media (max-width: 1023.98px) {
+  /* Ordre des planches mobiles : statut, étudiant, achats, argent (séquestre ou reçu), chronologie. Les colonnes
+     s'effacent (display: contents) pour ordonner les cartes dans une seule colonne. */
+  .fup2 .fup2__split > .col2 { display: contents; }
+  .fup2 .fup2__status { order: 1; }
+  .fup2 .fup2__student { order: 2; }
+  .fup2 .fup2__purchases { order: 3; }
+  .fup2 .fup2__money { order: 4; }
+  .fup2 .fup2__timeline { order: 5; }
   /* La barre d'action du bas porte « Confirmer la fin » : le bouton de la carte est masque */
   .fup2 .fup2__desk { display: none; }
   .fup2 .person2__acts .link2, .fup2 .detail-head__actions .link2 { min-height: 44px; }
@@ -41,7 +50,13 @@
   .c2 .head2__date .meta2 > a::after { content: ""; position: absolute; inset: -12px -6px; }
 }
 
+@media (max-width: 480px) {
+  /* Les cartes mobiles des planches C08 et C11 (card2--m) gardent 20 px de marge intérieure à 390 px */
+  .fup2 .card2 { padding: var(--s-5); }
+}
+
 @media (max-width: 767.98px) {
+  .fup2 > header .meta2 { margin-top: 8px; }
   .c2 .detail-head__actions { flex-wrap: wrap; gap: var(--s-4); }
   .status2__title { font-size: 17px; }
 }

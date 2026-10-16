@@ -43,6 +43,14 @@ describe("MissionHeader client", () => {
     expect(html.indexOf("Achats estimés")).toBeGreaterThan(html.indexOf("Avec achats"))
   })
 
+  it("purchasesLine={false} retire la ligne d'achats (portée par une carte) mais garde le badge", () => {
+    const html = renderToStaticMarkup(
+      <MissionHeader mission={mission({ purchasesEstimate: 7450 })} status={{ label: "Ouverte", tone: "bleu" }} purchasesLine={false} />,
+    )
+    expect(text(html)).not.toContain("Achats estimés")
+    expect(html).toContain("Avec achats")
+  })
+
   it("sans estimation, aucune ligne d'achats", () => {
     expect(render(mission({ purchasesEstimate: null }))).not.toContain("Achats estimés")
   })

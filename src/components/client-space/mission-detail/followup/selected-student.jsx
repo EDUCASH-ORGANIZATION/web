@@ -23,7 +23,7 @@ const formatRating = (rating) => (Math.round(rating * 10) / 10).toFixed(1).repla
 export function SelectedStudent({ title, student, missionId }) {
   if (!student) {
     return (
-      <section className="card2" aria-label={title}>
+      <section className="card2 fup2__student" aria-label={title}>
         <div className="sec2">
           <h2 className="sec2__title">{title}</h2>
         </div>
@@ -36,7 +36,7 @@ export function SelectedStudent({ title, student, missionId }) {
   const verified = isVerifiedNow(student)
   const sub = [student.level, student.school].filter(Boolean).join(" · ")
   return (
-    <section className="card2" aria-label={title}>
+    <section className="card2 fup2__student" aria-label={title}>
       <div className="sec2">
         <h2 className="sec2__title">{title}</h2>
         {verified ? <StatusBadge label="Vérifié" tone="succes" icon="i-shield" /> : null}
