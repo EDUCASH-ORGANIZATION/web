@@ -2,14 +2,13 @@ import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import path from "node:path"
 
-// Script 94 de RD-ACHATS-01 NON appliqué en production : le schéma de référence (supabase/schema.sql) décrit l'état
+// Script 94 de RD-ACHATS-01 appliqué en production le 2026-10-17 : le schéma de référence (supabase/schema.sql) décrit l'état
 // APRÈS le 94. Ses objets sont fusionnés dans les sections d'origine (3 tables, 4 contraintes, 5 index, 6 fonction,
 // 7 triggers, 8 RLS et politique de stockage, 9 privilèges, 10 compartiment) et repérés par « Script 94 ». Ce garde
 // vérifie les éléments qui portent la sécurité : statuts, montant, unicités, RLS sans politique, aucun droit pour anon
 // ni authenticated, trigger en SECURITY INVOKER à search_path vide, compartiment privé avec sa seule politique
 // d'insertion, CHECK de messages à 6 types avec CHECK de lien et clé étrangère composite, aucun droit UPDATE de
 // authenticated sur purchase_request_id, 4 motifs d'achats dans reports, 21 types de notifications.
-// Après l'application du script 94 : retirer « NON appliqué » de l'en-tête de schema.sql et de ce commentaire.
 const SCHEMA = readFileSync(path.join(process.cwd(), "supabase/schema.sql"), "utf8")
 const lines = SCHEMA.split("\n")
 
@@ -65,9 +64,12 @@ function guardFunction() {
 const onPurchaseRequests = lines.filter((l) => l.includes("public.purchase_requests"))
 
 describe("schéma de référence : état après le script 94, fusionné dans les sections d'origine", () => {
-  it("l'en-tête signale le script 94 comme NON appliqué en production, après le 93", () => {
+  it("l'en-tête signale le script 94 comme appliqué en production le 2026-10-17, après le 93", () => {
     const head = lines.slice(0, 40).join("\n")
-    expect(head).toContain("Script 94 de RD-ACHATS-01 NON appliqué en production")
+    expect(head).toContain("Script 94 de RD-ACHATS-01 appliqué en production le 2026-10-17.")
+    expect(head).not.toContain("Script 94 de RD-ACHATS-01 NON appliqué")
+    expect(head).not.toContain("à retirer de cet en-tête après application")
+    expect(SCHEMA).not.toMatch(/NON appliqu/)
     expect(head).toContain("strictement après le script 93")
   })
 

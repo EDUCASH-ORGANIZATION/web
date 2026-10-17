@@ -8,16 +8,15 @@
 -- public.message_contact_events et public.reports, retrait du droit INSERT de
 -- authenticated sur public.messages), puis script 94 de RD-ACHATS-01 (table
 -- public.purchase_requests, extension de messages, de reports et de notifications,
--- compartiment purchase-proofs), non appliqué en production.
+-- compartiment purchase-proofs).
 -- Script 70 appliqué en production le 2026-10-15.
 -- Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.
 -- Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.
 -- Script 91 de RD-ACCEPT-01 appliqué en production le 2026-10-16.
 -- Script 92 de RD-MSG-01 appliqué en production le 2026-10-16.
 -- Script 93 de RD-MSG-01 appliqué en production le 2026-10-16.
--- Script 94 de RD-ACHATS-01 NON appliqué en production (table purchase_requests,
--- extension de messages, de reports et de notifications, compartiment purchase-proofs) :
--- à retirer de cet en-tête après application. Il se lance strictement après le script 93.
+-- Script 94 de RD-ACHATS-01 appliqué en production le 2026-10-17.
+-- Le script 94 se lance strictement après le script 93.
 -- Ce fichier décrit l'état APRÈS le script 94 : ses objets sont repérés par « Script 94 »
 -- dans chaque section (3 à 10), les définitions d'origine de messages, reports et
 -- notifications y sont déjà remplacées.
@@ -259,7 +258,7 @@ create table public.reports (
   purchase_request_id uuid
 );
 
--- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17) : demandes de paiement d'achats (écrites par le
+-- Script 94 de RD-ACHATS-01 : demandes de paiement d'achats (écrites par le
 -- serveur seulement, machine à états imposée par le trigger guard_purchase_requests). Les colonnes
 -- purchase_request_id de messages et de reports ci-dessus appartiennent aussi au script 94.
 create table public.purchase_requests (
@@ -390,7 +389,7 @@ alter table public.reports add constraint reports_reporter_id_fkey FOREIGN KEY (
 alter table public.reports add constraint reports_reported_user_id_fkey FOREIGN KEY (reported_user_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
 alter table public.reports add constraint reports_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.profiles(user_id) ON DELETE SET NULL;
 
--- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17) : contraintes de purchase_requests, puis clés étrangères qui en dépendent.
+-- Script 94 de RD-ACHATS-01 : contraintes de purchase_requests, puis clés étrangères qui en dépendent.
 alter table public.purchase_requests add constraint purchase_requests_pkey PRIMARY KEY (id);
 alter table public.purchase_requests add constraint purchase_requests_id_mission_key UNIQUE (id, mission_id);
 alter table public.purchase_requests add constraint purchase_requests_mission_seq_key UNIQUE (mission_id, seq);
@@ -455,7 +454,7 @@ CREATE INDEX reports_reported_created_idx ON public.reports USING btree (reporte
 CREATE INDEX reports_status_created_idx ON public.reports USING btree (status, created_at DESC);
 CREATE UNIQUE INDEX reports_auto_open_per_user_idx ON public.reports USING btree (reported_user_id) WHERE ((source = 'auto'::text) AND (status = ANY (ARRAY['open'::text, 'in_progress'::text])));
 
--- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17)
+-- Script 94 de RD-ACHATS-01
 CREATE INDEX purchase_requests_student_id_idx ON public.purchase_requests USING btree (student_id);
 CREATE INDEX purchase_requests_client_id_idx ON public.purchase_requests USING btree (client_id);
 CREATE UNIQUE INDEX reports_purchase_reporter_idx ON public.reports USING btree (purchase_request_id, reporter_id) WHERE (purchase_request_id IS NOT NULL);
@@ -1034,7 +1033,7 @@ $function$;
 revoke all on function public.guard_profile_sensitive_columns() from public, anon, authenticated, service_role;
 grant execute on function public.guard_profile_sensitive_columns() to service_role;
 
--- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17)
+-- Script 94 de RD-ACHATS-01
 CREATE OR REPLACE FUNCTION public.guard_purchase_requests()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2267,7 +2266,7 @@ create policy "Upload avatar" on storage.objects as permissive for insert to pub
 create policy "Upload message media" on storage.objects as permissive for insert to authenticated
   with check (((bucket_id = 'message-media'::text) AND ((auth.uid())::text = (storage.foldername(name))[1])));
 
--- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17) : une seule politique sur le compartiment purchase-proofs (insertion dans
+-- Script 94 de RD-ACHATS-01 : une seule politique sur le compartiment purchase-proofs (insertion dans
 -- son dossier ; aucune lecture, aucun écrasement, aucune suppression pour authenticated).
 create policy purchase_proofs_insert_own on storage.objects as permissive for insert to authenticated
   with check (((bucket_id = 'purchase-proofs'::text) AND ((auth.uid())::text = (storage.foldername(name))[1])));
@@ -2406,7 +2405,7 @@ revoke all on table public.reports from public, anon, authenticated, service_rol
 grant DELETE, INSERT, SELECT, UPDATE on table public.reports to service_role;
 revoke all on sequence public.reports_number_seq from public, anon, authenticated, service_role;
 grant USAGE, SELECT on sequence public.reports_number_seq to service_role;
--- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17) : purchase_requests, service_role seulement.
+-- Script 94 de RD-ACHATS-01 : purchase_requests, service_role seulement.
 revoke all on table public.purchase_requests from public, anon, authenticated, service_role;
 grant INSERT, SELECT, UPDATE on table public.purchase_requests to service_role;
 
@@ -2424,7 +2423,7 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('student-cards', 'student-cards', false, 10485760, array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
 on conflict (id) do nothing;
 
--- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17) : photos de numéros, de tickets et captures de SMS.
+-- Script 94 de RD-ACHATS-01 : photos de numéros, de tickets et captures de SMS.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('purchase-proofs', 'purchase-proofs', false, 10485760, array['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
 on conflict (id) do nothing;

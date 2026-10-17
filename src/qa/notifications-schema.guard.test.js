@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 
 // RD-NOTIF-01 : le schéma de référence (supabase/schema.sql) décrit la table notifications telle
-// que le script 80 la crée, avec le CHECK de types APRÈS le script 94 de RD-ACHATS-01 (21 types, NON
+// que le script 80 la crée, avec le CHECK de types APRÈS le script 94 de RD-ACHATS-01 (21 types,
 // appliqué en production). Ce garde vérifie les éléments qui portent la sécurité : liste des types,
 // unicité de l'idempotence, RLS, absence de droit anon, seule colonne modifiable (read_at), garde
 // SECURITY INVOKER à search_path vide, et absence du temps réel.
