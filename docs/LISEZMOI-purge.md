@@ -9,6 +9,7 @@ Ce document explique ce que supprime la purge quotidienne, comment la mettre en 
 | P1 | Journal des détections (`message_contact_events`) | 180 jours | lignes |
 | P2 | Signalements clôturés (`reports`, statuts `resolved` ou `dismissed`) | 12 mois après la clôture | lignes |
 | P3 | Preuves d'achats non référencées (`purchase-proofs`) | 7 jours de grâce | fichiers |
+| P8 | Comptes fermés depuis plus de 14 jours (`closed_accounts`) | 14 jours après la fermeture | pseudonymisation du compte (aucune ligne de compte supprimée) |
 | P5 | Médias de messagerie non référencés (`message-media`) | 7 jours de grâce | fichiers |
 | P6 | Photos de profil et logos non référencés (`avatars`) | 7 jours de grâce | fichiers |
 | P7 | Cartes étudiantes non référencées (`student-cards`) | 7 jours de grâce | fichiers |
@@ -21,7 +22,7 @@ Précisions :
 - Si la lecture des références d'un dossier échoue ou est illisible (URL d'une autre origine, format inconnu), tout le dossier est ignoré et compté dans `ignores`. Rien n'est supprimé dans le doute.
 - Les lignes d'achats (`purchase_requests`) sont conservées : seuls les fichiers de preuves peuvent être supprimés (P4).
 - Les transactions (`transactions`, `wallet_transactions`) ne sont jamais supprimées : conservation comptable de 10 ans (OHADA). Un garde-fou de tests interdit aux modules de purge de les toucher.
-- Ordre d'exécution : P1, P2, puis les preuves d'achats (P3 et P4 traitées en un seul parcours, comptées `proof_orphans` et `proof_expired`), puis P5, P6 et P7. Une erreur dans une catégorie n'arrête pas les suivantes.
+- Ordre d'exécution : P1 (`contact_events`), P2 (`closed_reports`), P8 (`closed_accounts`), puis les preuves d'achats (P3 et P4 traitées en un seul parcours, comptées `proof_orphans` et `proof_expired`), puis P5 (`message_media`), P6 (`avatars`) et P7 (`student_cards`). Dans le résumé, les catégories apparaissent dans cet ordre : `contact_events`, `closed_reports`, `closed_accounts`, `proof_orphans`, `message_media`, `avatars`, `student_cards`, `proof_expired`. Une erreur dans une catégorie n'arrête pas les suivantes.
 
 ## La route et le planificateur
 
@@ -84,15 +85,26 @@ Les arrêts de sécurité sont listés avec leur motif : `breaker` (coupe-circui
 - La longueur minimale de `CRON_SECRET` n'est pas imposée par le code : respectez la recommandation ci-dessus.
 - Supprimer un signalement d'achat clos libère l'index `reports_purchase_reporter_idx` et peut laisser une demande au statut `reported` sans signalement.
 
-## Clôture de compte : procédure manuelle
+## Clôture de compte
 
-Il n'existe aucune clôture de compte en libre-service. Les demandes arrivent à contact@educash.bj et sont traitées par l'admin sous 30 jours. La purge ne supprime jamais de compte.
+Le script SQL 96 est requis (journal `account_closure_events`, colonnes de cycle, protections en base). Sans lui, la fermeture est refusée.
 
-Attention : la suppression d'un compte efface en cascade ses `transactions`, `wallet_transactions` et `purchase_requests`, ce qui contredit la conservation comptable de 10 ans. Procédure :
+Cycle d'un compte :
 
-1. Avant toute suppression, vérifier que le compte n'a aucune ligne dans `transactions`, `wallet_transactions` ni `purchase_requests` (comme étudiant et comme client : la cascade du schéma les efface aussi).
-2. S'il en a, ne pas supprimer : bloquer la suppression et planifier le chantier « clôture avec pseudonymisation » (modification des clés étrangères pour conserver les lignes comptables, à faire avant la réouverture des paiements).
-3. Sinon, supprimer le compte dans les 30 jours. Ses fichiers orphelins seront ensuite purgés par P3, P5, P6 et P7 après 7 jours de grâce.
+1. Fermeture : l'admin ferme le compte depuis la fiche du compte (Administration, Utilisateurs). La personne ne peut plus se connecter, son profil public est masqué et une confirmation lui est envoyée par e-mail. Aucune donnée n'est effacée à ce stade.
+2. Réactivation : pendant 14 jours (`CLOSURE_GRACE_DAYS`), l'admin peut rouvrir le compte depuis la même fiche, à la demande de la personne. Passé la pseudonymisation, la réactivation est impossible.
+3. Pseudonymisation : une fois les 14 jours écoulés, le passage quotidien de la purge (catégorie `closed_accounts`) remplace les données personnelles du compte par un libellé neutre et supprime ses notifications et ses candidatures en attente ou refusées. Les lignes comptables, les achats, les messages et les avis sont conservés, rattachés à un compte sans nom.
+
+Ce que vous devez savoir :
+
+- La pseudonymisation n'a lieu que si `PURGE_ENABLED=true`. Sinon, les comptes restent fermés sans être effacés, et la simulation (`?mode=dry`) les compte seulement.
+- Un compte n'est pas pseudonymisé tant qu'il a un signalement ou un litige en cours, un solde ou une réserve non nuls, un achat en attente ou une transaction en attente. Il est alors reporté au passage suivant, et l'admin peut le rouvrir.
+- Coupe-circuit : si plus de 10 comptes sont à pseudonymiser en même temps, aucun nouveau compte n'est traité (arrêt `breaker`), sauf `PURGE_ALLOW_MASS=true`. Vérifiez la cause avant toute dérogation. Les comptes dont la pseudonymisation était déjà commencée sont terminés. Un passage traite au plus 20 comptes (lots de 20) : le reste est traité les jours suivants.
+- Chaque fermeture, réactivation et pseudonymisation est inscrite dans la table `account_closure_events` (identifiant, type d'événement, auteur, motif, date, sans donnée personnelle). L'historique s'affiche sur la fiche admin.
+- Staging : la base est partagée avec la production. Pour tester, utilisez un compte de test dédié, jamais un vrai compte.
+- Ne jamais supprimer un compte dans le tableau de bord Supabase (Authentication), ni une ligne de `profiles` ou de `missions` dans l'éditeur de tables : la suppression effacerait en cascade des données comptables à conserver 10 ans. Fermez le compte depuis la fiche admin.
+- Les fichiers du compte (avatar, carte étudiante) sont supprimés lors de la pseudonymisation ; les fichiers orphelins restants sont purgés ensuite par P3, P5, P6 et P7.
+- Le script 97, à venir, traitera la cascade des missions.
 
 ## Reporté
 
