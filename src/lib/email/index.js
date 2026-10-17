@@ -17,6 +17,9 @@ import ContactMessage        from "./templates/contact-message.jsx"
 import PurchaseRequested     from "./templates/purchase-requested.jsx"
 import PurchasePaid          from "./templates/purchase-paid.jsx"
 import PurchaseReported      from "./templates/purchase-reported.jsx"
+import AccountClosed         from "./templates/account-closed.jsx"
+import AccountReopened       from "./templates/account-reopened.jsx"
+import { isClosedEmail } from "@/lib/account-closure/closure-rules"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -37,6 +40,8 @@ const TEMPLATES = {
   "purchase-requested":     PurchaseRequested,
   "purchase-paid":          PurchasePaid,
   "purchase-reported":      PurchaseReported,
+  "account-closed":         AccountClosed,
+  "account-reopened":       AccountReopened,
 }
 
 const SUBJECTS = {
@@ -55,6 +60,8 @@ const SUBJECTS = {
   "purchase-requested":         "Nouvelle demande de paiement d’achats",
   "purchase-paid":              "Paiement indiqué : confirmez la réception",
   "purchase-reported":          "Une demande d’achats a été signalée",
+  "account-closed":             "Votre compte EduCash est fermé",
+  "account-reopened":           "Votre compte EduCash est réactivé",
 }
 
 /**
@@ -70,6 +77,13 @@ export async function sendEmail(template, to, data = {}, options = {}) {
   if (!process.env.RESEND_API_KEY) {
     console.warn("[email] RESEND_API_KEY manquant - email non envoyé:", template)
     return { error: "RESEND_API_KEY non configuré" }
+  }
+
+  // Adresse pseudonyme d'un compte fermé : jamais d'envoi, journal sans l'adresse.
+  const recipients = Array.isArray(to) ? to : [to]
+  if (recipients.some(isClosedEmail)) {
+    console.warn("[email] Destinataire de compte fermé - email non envoyé:", template)
+    return { error: "Destinataire non disponible" }
   }
 
   const Template = TEMPLATES[template]
