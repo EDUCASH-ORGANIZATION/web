@@ -303,3 +303,25 @@ describe("confirmation et listes (corrections d'intégration)", () => {
     expect(studentStudiesSchema.safeParse({ ...base, skills: Array(30).fill("Livraison").map((v, i) => `${v}${i}`) }).success).toBe(false)
   })
 })
+
+describe("libellé réservé aux comptes clôturés", () => {
+  const phone = "01 97 45 21 08"
+  it.each(["Compte clôturé", "compte cloture", "  COMPTE   CLÔTURÉ ", "Compte\u00a0clôturé", "Compte clo\u200Bturé"])(
+    "refuse %j comme nom (étudiant et client)",
+    (name) => {
+      const student = parseFormData(studentIdentitySchema, form({ fullName: name, city: "Abomey-Calavi", phone, bio: "" }))
+      expect(student.ok).toBe(false)
+      expect(student.fieldErrors.fullName).toBe("Ce nom n'est pas disponible.")
+      const client = parseFormData(clientIdentitySchema, form({ name, city: "Abomey-Calavi", phone }))
+      expect(client.ok).toBe(false)
+      expect(client.fieldErrors.name).toBe("Ce nom n'est pas disponible.")
+    },
+  )
+
+  it("accepte des noms ordinaires proches", () => {
+    for (const name of ["Compte Clôturé Agossou", "Sèna Agossou", "Clôture Dossou"]) {
+      const result = parseFormData(studentIdentitySchema, form({ fullName: name, city: "Abomey-Calavi", phone, bio: "" }))
+      expect(result.ok).toBe(true)
+    }
+  })
+})

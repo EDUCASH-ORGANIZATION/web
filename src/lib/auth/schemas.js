@@ -5,6 +5,7 @@ import { z } from "zod"
 import { CITIES, MISSION_TYPES } from "@/lib/supabase/database.constants"
 import { isDisposableDomain } from "@/lib/auth/disposable-domains"
 import { makeBeninPhoneSchema } from "@/lib/utils/phone"
+import { isReservedDisplayName } from "@/lib/account-closure/closure-rules"
 
 export const AUDIENCES = ["student", "client"]
 export const SIGNUP_ROLES = ["student", "client"]
@@ -52,6 +53,9 @@ const COMMON = {
   city: "Choisissez votre ville.",
   phoneEmpty: "Saisissez votre numéro de téléphone.",
 }
+
+// Libellé réservé aux comptes clôturés : refusé comme nom (casse, accents et espaces ignorés).
+const NAME_RESERVED = "Ce nom n'est pas disponible."
 
 const STUDENT = {
   ...COMMON,
@@ -162,6 +166,7 @@ function nameSchema(m) {
         .min(NAME_MIN, m.nameLength)
         .max(NAME_MAX, m.nameLength)
         .refine((value) => /\p{L}/u.test(value), m.nameLetter)
+        .refine((value) => !isReservedDisplayName(value), NAME_RESERVED)
     )
 }
 

@@ -538,6 +538,28 @@ describe("sendClientMessage : destinataire et mission", () => {
   })
 })
 
+describe("sendClientMessage : destinataire dont le compte est fermé", () => {
+  const unavailable = { error: "Cette conversation n'est pas disponible." }
+
+  it("n'écrit aucun message vers un étudiant fermé (message générique existant)", async () => {
+    db.profiles.find((p) => p.user_id === S1).closed_at = "2026-10-10T08:00:00Z"
+    expect(await send()).toEqual(unavailable)
+    expect(inserts()).toHaveLength(0)
+  })
+
+  it("refuse aussi quand l'état du destinataire ne peut pas être lu", async () => {
+    failures["profiles.select"] = { code: "42703", message: "column closed_at does not exist" }
+    expect((await send()).error).toBe("Votre message n'a pas pu être envoyé. Veuillez réessayer.")
+    expect(inserts()).toHaveLength(0)
+  })
+
+  it("un destinataire actif (closed_at nul) reçoit le message", async () => {
+    db.profiles.find((p) => p.user_id === S1).closed_at = null
+    expect((await send()).success).toBe(true)
+    expect(inserts()).toHaveLength(1)
+  })
+})
+
 describe("sendClientMessage : pièces jointes", () => {
   const refused = { error: "Ce fichier n'est pas accepté. Choisissez une image ou un message vocal de 10 Mo au plus." }
 
@@ -991,6 +1013,14 @@ describe("espace étudiant", () => {
       failures["messages.insert"] = undefined
       failures["messages.select"] = "boom"
       expect(await sendS()).toEqual({ error: "Votre message n'a pas pu être envoyé. Veuillez réessayer." })
+    })
+  })
+
+  describe("sendStudentMessage : destinataire dont le compte est fermé", () => {
+    it("n'écrit aucun message vers un client fermé", async () => {
+      db.profiles.find((p) => p.user_id === CLIENT).closed_at = "2026-10-10T08:00:00Z"
+      expect(await sendS()).toEqual(unavailableS)
+      expect(studentInserts()).toHaveLength(0)
     })
   })
 

@@ -9,6 +9,7 @@ const MESSAGES = {
   network: "Problème de connexion. Vérifiez votre réseau et réessayez.",
   email_taken: "Cette adresse email est déjà utilisée. Connectez-vous ou utilisez une autre adresse.",
   suspended: "Votre compte est suspendu. Contactez-nous pour en savoir plus.",
+  user_banned: "Ce compte est fermé. Pour demander sa réactivation, écrivez-nous à contact@educash.bj.",
   same_password: "Choisissez un mot de passe différent de l'ancien.",
   weak_password: "Votre mot de passe ne respecte pas toutes les règles.",
   unknown: "Une erreur est survenue. Réessayez dans un instant.",
@@ -26,6 +27,8 @@ export function authErrorCode(error) {
   const text = String(error.message ?? "").toLowerCase()
   const name = String(error.name ?? "")
 
+  // Seuls les comptes fermés sont bannis (cycle de clôture) : le bannissement se lit comme une fermeture.
+  if (code === "user_banned" || /user is banned|user_banned/.test(text)) return "user_banned"
   if (code === "invalid_credentials" || /invalid login credentials/.test(text)) return "invalid_credentials"
   if (code === "email_not_confirmed" || /email not confirmed|email address not confirmed/.test(text)) {
     return "email_not_confirmed"

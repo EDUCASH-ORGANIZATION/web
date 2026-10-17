@@ -11,7 +11,7 @@ import { TalentReviews, REVIEWS_PAGE_SIZE } from "@/components/vitrine/talent/ta
 import { TalentActions, OwnerBanner } from "@/components/vitrine/talent/talent-actions"
 
 const PROFILE_COLUMNS =
-  "user_id, full_name, city, avatar_url, bio, role, is_verified, verified_until, rating, missions_done"
+  "user_id, full_name, city, avatar_url, bio, role, is_verified, verified_until, rating, missions_done, closed_at"
 
 // Chargement partagé entre les métadonnées et la page (une seule requête par rendu).
 const loadTalent = cache(async (id) => {
@@ -21,6 +21,8 @@ const loadTalent = cache(async (id) => {
     .select(PROFILE_COLUMNS)
     .eq("user_id", id)
     .maybeSingle()
+  // Compte fermé ou pseudonymisé (closed_at posé, colonne du script 96) : la page n'existe plus.
+  if (profile?.closed_at != null) return null
   return profile?.role === "student" ? profile : null
 })
 
