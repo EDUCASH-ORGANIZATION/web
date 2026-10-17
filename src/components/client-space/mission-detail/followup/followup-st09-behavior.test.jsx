@@ -238,15 +238,49 @@ describe("ST-09 dates de la note de blocage", () => {
 })
 
 describe("ST-09 zones intactes", () => {
-  it("confirmMission : diff vide ; ConfirmEndDialog : la libération (releaseOnce, confirmMission, libellé) n'est pas modifiée", () => {
-    const run = (args) => execFileSync("git", args, { encoding: "utf8", cwd: process.cwd() })
-    expect(run(["diff", "--name-only", "origin/main...HEAD", "--", "src/lib/actions/mission.actions.js"]).trim()).toBe("")
-    // RD-ACHATS-01 (ST-14) ajoute l'avertissement et la liste des achats à la modale : seules des lignes de
-    // libération modifiées ou retirées feraient échouer ce garde.
-    const dialogDiff = run(["diff", "-U0", "origin/main...HEAD", "--", "src/components/client-space/mission-detail/followup/confirm-end-dialog.jsx"])
-    const touched = dialogDiff.split("\n").filter((l) => /^[-+](?![-+])/.test(l) && /releaseOnce|confirmMission|Libérer le paiement/.test(l))
-    const removed = touched.filter((l) => l.startsWith("-"))
-    expect(removed).toEqual([])
+  // RD-ACHATS-01 (ST-14) ajoute l'avertissement et la liste des achats à la modale. La libération du séquestre,
+  // elle, doit rester octet pour octet celle de origin/main.
+  const DIALOG = "src/components/client-space/mission-detail/followup/confirm-end-dialog.jsx"
+  const git = (args) => execFileSync("git", args, { encoding: "utf8", cwd: process.cwd() })
+  const sliceBetween = (src, start, end) => {
+    const from = src.indexOf(start)
+    expect(from).toBeGreaterThan(-1)
+    const to = src.indexOf(end, from + start.length)
+    expect(to).toBeGreaterThan(from)
+    return src.slice(from, to)
+  }
+  const releaseOnceBody = (src) => sliceBetween(src, "export async function releaseOnce(", "\n}\n")
+  const submitBody = (src) => sliceBetween(src, "  async function submit() {", "\n  }\n")
+
+  it("mission.actions.js : diff vide", () => {
+    expect(git(["diff", "--name-only", "origin/main...HEAD", "--", "src/lib/actions/mission.actions.js"]).trim()).toBe("")
+  })
+
+  it("ConfirmEndDialog : releaseOnce et submit() identiques à origin/main", async () => {
+    const { readFileSync } = await import("node:fs")
+    const before = git(["show", `origin/main:${DIALOG}`])
+    const after = readFileSync(DIALOG, "utf8")
+    expect(releaseOnceBody(after)).toBe(releaseOnceBody(before))
+    expect(submitBody(after)).toBe(submitBody(before))
+  })
+
+  it("ConfirmEndDialog : même nombre d'appels à confirmMission, releaseOnce, libellé et verrou du bouton", async () => {
+    const { readFileSync } = await import("node:fs")
+    const before = git(["show", `origin/main:${DIALOG}`])
+    const after = readFileSync(DIALOG, "utf8")
+    const count = (src, re) => (src.match(re) ?? []).length
+    for (const re of [/confirmMission/g, /releaseOnce\(/g, /Libérer le paiement/g, /disabled=\{!checked \|\| pending\}/g]) {
+      expect(count(before, re)).toBeGreaterThan(0)
+      expect(count(after, re)).toBe(count(before, re))
+    }
+  })
+
+  it("ConfirmEndDialog : la seule ligne retirée par ST-14 est la signature de ConfirmEndDialogOpen", () => {
+    const diff = git(["diff", "-U0", "origin/main...HEAD", "--", DIALOG])
+    const removed = diff.split("\n").filter((l) => l.startsWith("-") && !l.startsWith("---"))
+    expect(removed).toEqual([
+      "-function ConfirmEndDialogOpen({ missionId, title, studentName, split, since, onClose, onPaid }) {",
+    ])
   })
 
   it("le libellé « Libérer le paiement » reste dans la modale", async () => {

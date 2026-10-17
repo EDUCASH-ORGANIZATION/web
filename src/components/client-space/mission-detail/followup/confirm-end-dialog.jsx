@@ -54,7 +54,7 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
 
 /**
  * Avertissement NON BLOQUANT des demandes d'achats en attente ou signalées (`detail.purchases.confirmWarning`). Il
- * informe seulement : la confirmation de fin n'en dépend jamais et le séquestre ne bouge que sur « Libérer le paiement ».
+ * informe seulement : la confirmation de fin n'en dépend jamais et le séquestre ne bouge que sur la libération explicite par le client.
  * Rien n'est affiché si `show` n'est pas vrai (mission sans achats, script 94 absent, rien en attente).
  */
 export function PurchasesWarning({ warning }) {
