@@ -2,6 +2,7 @@
 // Règles du profil étudiant (E10 et E11), partagées par le formulaire (contrôle local) et par l'action serveur
 // (autorité). Pur : aucun accès aux données. Les messages s'adressent à l'étudiant au vouvoiement.
 import { CITIES, MISSION_TYPES } from "../supabase/database.constants.js"
+import { isReservedDisplayName } from "../account-closure/closure-rules.js"
 import { BENIN_PHONE_MESSAGES, parseBeninPhone } from "../utils/phone.js"
 
 export const NAME_MAX = 100
@@ -98,6 +99,7 @@ export function validateStudentProfile(values) {
   if (!name) errors.fullName = "Indiquez votre nom."
   else if (name.length > NAME_MAX) errors.fullName = `Votre nom ne doit pas dépasser ${NAME_MAX} caractères.`
   else if (CONTROL_CHARS.test(name)) errors.fullName = "Votre nom contient un caractère non autorisé."
+  else if (isReservedDisplayName(name)) errors.fullName = "Ce nom n'est pas disponible."
 
   if (!CITIES.includes(values.city)) errors.city = "Choisissez votre ville."
 

@@ -616,6 +616,19 @@ async function deliverMessage({ tag, auth, pair, receiverId, draft }) {
     console.error(`[${tag}] configuration serveur`)
     return { error: ERR_SEND }
   }
+  // Destinataire dont le compte est fermé (colonne closed_at du script 96) : aucun message n'est écrit. Lecture en
+  // erreur : refus aussi (fail-closed).
+  const { data: receiver, error: receiverError } = await service
+    .from("profiles")
+    .select("closed_at")
+    .eq("user_id", receiverId)
+    .maybeSingle()
+  if (receiverError) {
+    console.error(`[${tag}] destinataire`, receiverError.code ?? "erreur")
+    return { error: ERR_SEND }
+  }
+  if (receiver?.closed_at != null) return { error: ERR_UNAVAILABLE }
+
   const { data: row, error } = await service
     .from("messages")
     .insert({
