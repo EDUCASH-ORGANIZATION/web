@@ -14,6 +14,7 @@ const { ANONYMOUS_CLIENT_NAME } = await import("@/lib/constants/client-name")
 const { rulesOf } = await import("@/qa/fidelity/css-rules")
 const { clientFirstName, gainIsValid } = await import("@/lib/student-space/mission-view")
 const { safeDateFr } = await import("@/lib/app/format")
+const { purchaseTotals: purchaseTotalsOf } = await import("@/lib/purchases/requests")
 
 const on = { postuler: false, paymentsEnabled: true }
 const off = { postuler: false, paymentsEnabled: false }
@@ -65,17 +66,31 @@ describe("clientFirstName et gainIsValid", () => {
 describe("E03 mission avec achats", () => {
   const html = apply(open())
 
-  it("encadré, déroulé en photos, ligne indicative, note, sans demande de paiement ni carte Détails", () => {
+  it("encadré, déroulé autour de la demande de paiement dans la conversation, ligne indicative, note, sans carte Détails", () => {
     expect(h1(html)).toBe(1)
     expect(html).toContain("Mission avec achats")
     expect(html).toContain("Comment se passent les achats")
     expect(html).toContain("Achats estimés · indicatif")
     expect(html).toContain(`≈ ${formatAmount(45000)}`)
     expect(html).toContain("Ni bloqués ni soumis à commission")
-    expect(html).toContain("photo")
+    expect(html).toContain("Chez le vendeur, vous envoyez une demande de paiement dans la conversation")
+    expect(html).toContain("photo du ticket ou des articles")
     expect(html).toContain("Afiavi paie le vendeur directement par MoMo")
-    expect(html).not.toMatch(/demande de paiement/i)
+    expect(html).toContain("Hors EduCash")
+    expect(html).toContain("Vous confirmez « Reçu par le vendeur »")
     expect(html).not.toContain("Détails")
+  })
+
+  it("plus de déroulé en photos seules, ni de phrase affirmant l'absence de demande de paiement", () => {
+    expect(html).not.toContain("vous envoyez une photo")
+    expect(html).not.toMatch(/jamais par une demande|supprimées par la décision|décision 24/i)
+    expect(html).not.toContain("sans passer par vous")
+  })
+
+  it("l'estimation d'achats reste hors séquestre, hors total et hors net dans le déroulé et l'encadré", () => {
+    expect(html).not.toContain(formatAmount(8000 + 45000))
+    expect(html).not.toContain(formatAmount(netAmount(8000) + 45000))
+    expect(html).toContain("Ni bloqués ni soumis à commission")
   })
 
   it("montants : le service et le net viennent de netAmount, jamais d'un taux écrit en dur", () => {
@@ -83,12 +98,15 @@ describe("E03 mission avec achats", () => {
     expect(html).toContain(formatAmount(netAmount(8000)))
   })
 
-  it("séquestre cité quand les paiements sont ouverts, jamais quand ils sont coupés", () => {
+  it("séquestre cité quand les paiements sont ouverts, jamais quand ils sont coupés (déroulé compris)", () => {
     expect(html.toLowerCase()).toContain("séquestre")
+    expect(html).toContain("Seul le service est bloqué en séquestre.")
     const paused = apply(open(), off)
     expect(paused.toLowerCase()).not.toContain("séquestre")
     expect(paused).toContain("Mission avec achats")
     expect(paused).toContain("Comment se passent les achats")
+    expect(paused).toContain("Chez le vendeur, vous envoyez une demande de paiement dans la conversation")
+    expect(paused).not.toContain("Seul le service est bloqué en séquestre.")
   })
 
   it("aucune coordonnée du client", () => {
@@ -144,7 +162,16 @@ describe("E05 suivi d'une mission avec achats", () => {
     expect(html).toContain("Hors EduCash")
     expect(html).toContain(`≈ ${formatFcfa(45000)}`)
     expect(html.indexOf("Achats de la mission")).toBeLessThan(html.indexOf("Où en est la mission"))
-    expect(html).not.toMatch(/demande de paiement/i)
+  })
+
+  it("fonction indisponible (table ou colonne absente, `purchases.available` faux) : ni liste, ni bouton, ni lien de demande", () => {
+    for (const purchases of [undefined, { available: false }, { available: true, requests: null }]) {
+      const out = follow(followed("in_progress", { purchases }))
+      expect(out).toContain("Achats de la mission")
+      expect(out).not.toContain("Demandes de paiement d&#x27;achats")
+      expect(out).not.toContain("Demander un paiement d&#x27;achats")
+      expect(out).not.toContain("?demande=")
+    }
   })
 
   it("colonne droite : badge En séquestre, budget du service, net par netAmount, écrire au prénom, sans profil client", () => {
@@ -200,6 +227,126 @@ describe("E05 suivi d'une mission avec achats", () => {
     expect(html).toContain("Mission en cours")
     expect(html).toContain('aria-label="Retour aux candidatures"')
     expect(html).toContain('aria-label="Écrire au client"')
+  })
+})
+
+const uuid = (n) => `00000000-0000-4000-8000-00000000000${n}`
+const req = (n, over) => ({ id: uuid(n), seq: n, status: "pending", version: 1, items: null, actions: {}, sentAt: "2026-10-08T10:05:00Z", ...over })
+const RECEIVED = req(1, { status: "received", vendorName: "Tantie Awa", items: "céréales", amount: 21500, paidAt: "2026-10-08T09:20:00Z", receivedAt: "2026-10-08T09:24:00Z" })
+const PAID = req(2, { status: "paid", vendorName: "Boutique Chez Codjo", amount: 12750, paidAt: "2026-10-08T10:02:00Z", actions: { confirmReceived: true } })
+const PENDING = req(3, { status: "pending", vendorName: "Poissonnerie Dossa", amount: 6000 })
+const listing = (requests = [RECEIVED, PAID, PENDING], over = {}) => ({
+  available: true,
+  requests,
+  totals: purchaseTotalsOf(requests),
+  exceedsEstimate: false,
+  canCreate: true,
+  ...over,
+})
+const withListing = (l = listing(), status = "in_progress", flagSet = on) => follow(followed(status, { purchases: l }), flagSet)
+const BUTTON = "Demander un paiement d&#x27;achats"
+
+describe("E05 demandes de paiement d'achats (modèle rétabli : le client paie le vendeur hors EduCash)", () => {
+  const html = withListing()
+
+  it("liste en tête, avant la chronologie : compteur, une ligne par demande avec numéro, vendeur, statut et montant", () => {
+    expect(html).toContain("Demandes de paiement d&#x27;achats<span>3</span>")
+    expect(html.indexOf("Demandes de paiement d&#x27;achats")).toBeLessThan(html.indexOf("Où en est la mission"))
+    expect(html).toContain("N° 1 · Tantie Awa · céréales")
+    expect(html).toContain("N° 2 · Boutique Chez Codjo")
+    expect(html).toContain("N° 3 · Poissonnerie Dossa")
+    for (const label of ["Reçu par le vendeur", "Payé", "En attente de paiement"]) expect(html).toContain(label)
+    for (const amount of [21500, 12750, 6000]) expect(html).toContain(formatFcfa(amount))
+    expect(html).not.toContain("Achats de la mission")
+  })
+
+  it("chaque ligne mène à la carte de la conversation (?demande=) ; l'étape est dite en vouvoiement", () => {
+    for (const n of [1, 2, 3]) expect(html).toContain(`href="/messages/m1?demande=${uuid(n)}"`)
+    expect(html).toContain("Payé à 10:20")
+    expect(html).toContain("reçu par le vendeur à 10:24")
+    expect(html).toContain("confirmez quand le vendeur a reçu")
+    expect(html).toContain("Envoyée à 11:05")
+  })
+
+  it("total demandé et total payé en direct, hors séquestre ; l'estimation reste à part et n'est jamais additionnée", () => {
+    expect(html).toContain("3 demandes · total des achats")
+    expect(html).toContain(formatFcfa(40250))
+    expect(html).toContain("Payés en direct par le client")
+    expect(html).toContain(formatFcfa(34250))
+    expect(html).toContain("Estimation de départ (indicative)")
+    expect(html).toContain(`≈ ${formatFcfa(45000)}`)
+    expect(html).toContain("hors EduCash : ces montants ne sont ni bloqués ni soumis à la commission")
+    expect(html).not.toContain(formatFcfa(40250 + 45000))
+    expect(clean(html)).not.toContain(formatFcfa(8000 + 40250))
+  })
+
+  it("« Ce que vous touchez » inchangé : le net vient de netAmount, aucun achat n'y entre", () => {
+    expect(html).toContain("Budget du service (100 %)")
+    expect(html).toContain(formatFcfa(8000))
+    expect(html).toContain(formatFcfa(netAmount(8000)))
+    expect(html).not.toContain(formatFcfa(netAmount(8000) + 40250))
+    expect(html).not.toContain(formatFcfa(netAmount(8000) - 40250))
+  })
+
+  it("bouton « Demander un paiement d'achats » si canCreate : un pour le bureau, un pour le mobile, tous deux vers la conversation (?achat=nouveau)", () => {
+    expect(html.split(BUTTON).length - 1).toBe(2)
+    expect(html.split('href="/messages/m1?achat=nouveau"').length - 1).toBe(2)
+    expect(html).toContain("ds-desk-only")
+    expect(html).toContain("ds-mob-only")
+    expect(html).toContain("Vous n&#x27;avancez jamais d&#x27;argent. Chez le vendeur, envoyez une demande : Afiavi paie directement par MoMo. EduCash n&#x27;intervient pas dans ce paiement.")
+  })
+
+  it("bouton absent si canCreate est faux, sur une mission terminée ou annulée (liste en lecture seule)", () => {
+    expect(withListing(listing(undefined, { canCreate: false }))).not.toContain(BUTTON)
+    expect(withListing(listing(undefined, { canCreate: false }))).not.toContain("achat=nouveau")
+    const done = withListing(listing(), "done")
+    expect(done).toContain("N° 1 · Tantie Awa")
+    expect(done).not.toContain(BUTTON)
+    expect(done).not.toContain("Vous n&#x27;avancez jamais")
+    const cancelled = withListing(listing(undefined, { canCreate: false }), "cancelled")
+    expect(cancelled).toContain("N° 2 · Boutique Chez Codjo")
+    expect(cancelled).not.toContain(BUTTON)
+  })
+
+  it("mission annulée sans aucune demande : plus de bloc ; mission en cours sans demande : liste vide avec le bouton", () => {
+    expect(withListing(listing([], { canCreate: false }), "cancelled")).not.toContain("Demandes de paiement")
+    const empty = withListing(listing([]))
+    expect(empty).toContain("Demandes de paiement d&#x27;achats<span>0</span>")
+    expect(empty).toContain(BUTTON)
+    expect(empty).toContain("0 demande · total des achats")
+    expect(empty).not.toContain("Payés en direct par le client")
+  })
+
+  it("demande signalée : badge Signalé, examen en cours puis « examinée par l'équipe EduCash »", () => {
+    const flagged = withListing(listing([RECEIVED, req(2, { status: "reported", vendorName: "Chez Codjo", amount: 12750 })]))
+    expect(flagged).toContain("Signalé")
+    expect(flagged).toContain("Signalée · l&#x27;équipe EduCash l&#x27;examine")
+    expect(withListing(listing([req(2, { status: "reported", vendorName: "Chez Codjo", amount: 12750, reviewed: true })]))).toContain("Signalée · examinée par l&#x27;équipe EduCash")
+  })
+
+  it("demande annulée : listée avec son badge, jamais comptée dans les totaux", () => {
+    const withCancelled = withListing(listing([RECEIVED, req(2, { status: "cancelled", vendorName: "Chez Codjo", amount: 12750 })]))
+    expect(withCancelled).toContain("N° 2 · Chez Codjo")
+    expect(withCancelled).toContain("Annulée")
+    expect(withCancelled).toContain("1 demande · total des achats")
+    expect(withCancelled).toContain(formatFcfa(21500))
+  })
+
+  it("séquestre : jamais cité par le bloc des demandes, paiements ouverts ou coupés ; aucune coordonnée, aucun style en ligne", () => {
+    for (const f of [on, off]) {
+      const out = withListing(listing(), "in_progress", f)
+      const block = out.slice(out.indexOf("Demandes de paiement d&#x27;achats<span>"), out.indexOf("Où en est la mission"))
+      expect(block.toLowerCase()).not.toContain("séquestre")
+      expect(block).not.toMatch(/\+229|@|téléphone|phone|style=/i)
+      expect(clean(block)).not.toMatch(/(?<![\p{L}])(tu|toi|ton|ta|tes)(?![\p{L}])/iu)
+      expect(block).not.toMatch(BROKEN)
+    }
+  })
+
+  it("estimation absente : aucun bloc achats, même si des demandes sont fournies", () => {
+    const out = follow(followed("in_progress", { purchases: listing() }, { purchasesEstimate: null }))
+    expect(out).not.toContain("Demandes de paiement")
+    expect(out).not.toContain("Achats de la mission")
   })
 })
 

@@ -30,6 +30,10 @@ const MOBILE_TITLES = { in_progress: "Mission en cours", done: "Mission terminé
  * client `DeclareEnd`) tant que la fin n'est pas déclarée, puis l'état « À confirmer » daté, sans bouton. Colonne
  * indisponible : le texte d'origine, aucun état. Aucune séance.
  *
+ * Mission avec achats : `detail.purchases` (lecteur de RD-ACHATS-01) nourrit le bloc « Demandes de paiement d'achats »
+ * (liste, totaux hors séquestre, bouton « Demander un paiement d'achats » si `canCreate`) ; indisponible, le bloc
+ * d'estimation d'origine s'affiche sans bouton. Les achats n'entrent jamais dans le séquestre ni dans le net.
+ *
  * `flags` = { postuler, terminer, paymentsEnabled } : `paymentsEnabled` décide si le badge et la phrase « séquestre »
  * s'affichent (paiements coupés : texte neutre, aucune promesse de fonds bloqués) ; `terminer` (`?terminer=1`) ouvre la
  * modale « J'ai terminé » seulement si `actions.declareEnd`, sans rien écrire.
@@ -81,6 +85,9 @@ export function MissionFollowupView({ detail, flags }) {
               purchases={view.purchases}
               clientName={client.name}
               cancelled={mission.status === "cancelled"}
+              missionId={mission.id}
+              missionStatus={mission.status}
+              listing={detail.purchases}
             />
           ) : null}
           <section className="e2-sec" aria-label="Où en est la mission">
