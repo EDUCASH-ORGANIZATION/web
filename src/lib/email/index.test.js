@@ -81,3 +81,31 @@ describe("sendEmail journal", () => {
     spy.mockRestore()
   })
 })
+
+describe("sendEmail comptes fermes", () => {
+  const uuid = "0b8f1c1e-2c1b-4b53-9a52-9d6b6a6f3a10"
+
+  it.each([
+    ["account-closed", "Votre compte EduCash est fermé"],
+    ["account-reopened", "Votre compte EduCash est réactivé"],
+  ])("%s : sujet fixe, rendu envoyé à l'adresse donnée", async (template, subject) => {
+    expect(await sendEmail(template, "a@b.bj", { name: "Awa" })).toEqual({ success: true })
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(send.mock.calls[0][0].subject).toBe(subject)
+    expect(send.mock.calls[0][0].to).toBe("a@b.bj")
+  })
+
+  it.each([
+    [`${uuid}@comptes-clotures.invalid`],
+    [`${uuid.toUpperCase()}@Comptes-Clotures.Invalid`],
+    [["a@b.bj", `${uuid}@comptes-clotures.invalid`]],
+  ])("adresse pseudonyme %j : refus sans appel Resend ni adresse dans le journal", async (to) => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const result = await sendEmail("welcome-student", to, {})
+    expect(result).toHaveProperty("error")
+    expect(send).not.toHaveBeenCalled()
+    expect(JSON.stringify(warn.mock.calls)).not.toMatch(/comptes-clotures|a@b\.bj|0b8f1c1e/i)
+    expect(JSON.stringify(result)).not.toMatch(/comptes-clotures|0b8f1c1e/i)
+    warn.mockRestore()
+  })
+})

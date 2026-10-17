@@ -81,8 +81,8 @@ describe("brand.js", () => {
 })
 
 describe("gabarits Resend migres", () => {
-  it("la liste couvre les 16 gabarits migres", () => {
-    expect(MIGRATED).toHaveLength(16)
+  it("la liste couvre les 18 gabarits migres", () => {
+    expect(MIGRATED).toHaveLength(18)
   })
 
   it("aucune couleur en dur ni ancienne palette : tout passe par brand.js", () => {
