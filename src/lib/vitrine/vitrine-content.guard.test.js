@@ -113,7 +113,7 @@ describe("garde-fous de contenu vitrine", () => {
     }
     const achats = between(termsSrc, 'id="achats"', "</LegalSection>").replace(/\s+/g, " ")
     const privacyBlock = between(privacySrc, "<LegalSection {...SECTIONS.demandes_d_achats}>", "</LegalSection>").replace(/\s+/g, " ")
-    // Durée chiffrée : décision D8 non tranchée, aucune promesse de conservation dans ces textes.
+    // Les CGU ne promettent aucune durée de conservation ; la confidentialité affiche celle de la décision D8 (12 mois).
     const NUMBERED_DURATION = /\d+(?:&nbsp;|\s)*(?:jours?|mois|ans?|semaines?|heures?|h\b|minutes?)/i
     const PROVIDER = /fedapay|kkiapay|feexpay|cinetpay|paydunya|stripe|paypal|flutterwave/i
 
@@ -142,7 +142,7 @@ describe("garde-fous de contenu vitrine", () => {
       expect(achats).not.toMatch(/Commission/)
     })
 
-    it("la politique de confidentialité décrit les données des demandes d'achats sans durée chiffrée", () => {
+    it("la politique de confidentialité décrit les données des demandes d'achats et leur durée de conservation", () => {
       expect(privacySrc).toContain('id: "demandes-d-achats"')
       expect(privacyBlock).toMatch(/numéro à payer/)
       expect(privacyBlock).toMatch(/nom du vendeur/)
@@ -155,8 +155,8 @@ describe("garde-fous de contenu vitrine", () => {
       expect(privacyBlock).not.toMatch(/en cas de signalement, l’équipe d’administration/)
       expect(privacyBlock).toMatch(/stockage privé/)
       expect(privacyBlock).toMatch(/Droits/)
-      expect(privacyBlock).toMatch(/Durée de conservation :<\/strong> elle sera précisée/)
-      expect(privacyBlock).not.toMatch(NUMBERED_DURATION)
+      expect(privacyBlock).toMatch(/Durée de conservation :<\/strong> les photos et captures sont supprimées automatiquement 12 mois après la fin de la mission/)
+      expect(privacyBlock).not.toMatch(/elle sera précisée/)
       expect(privacyBlock).not.toMatch(PROVIDER)
     })
 
