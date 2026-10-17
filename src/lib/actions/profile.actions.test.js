@@ -783,6 +783,12 @@ const SERVER_ALLOWLIST = [
   // l'action après contrôle d'identité, de rôle et de propriété, pour refuser un « numéro à payer » égal à son propre
   // téléphone. Jamais renvoyé. Les actions d'achats elles-mêmes ne figurent PAS dans la liste.
   "lib/purchases/payee-phone.js",
+  // RD-CLOSE-01 : lecture de `student_profiles.card_url` par le client service role injecté par /api/cron/purge après
+  // CRON_SECRET, pour supprimer le seul fichier du dossier du compte fermé. Jamais renvoyée ni journalisée.
+  "lib/actions/account-closure-pseudonymize.js",
+  // RD-CLOSE-01 : même justification (client service role injecté par /api/cron/purge après CRON_SECRET) pour lire
+  // `student_profiles.card_url` et ne supprimer que le fichier du dossier du compte. Jamais renvoyée ni journalisée.
+  "lib/actions/purge-files.js",
 ]
 
 const SELECT_ARG = /\.select\(\s*(`[^`]*`|"[^"]*"|'[^']*')/g
