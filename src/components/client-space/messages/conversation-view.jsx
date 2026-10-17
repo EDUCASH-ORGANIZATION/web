@@ -126,7 +126,6 @@ export function ConversationView({ conversation, now, paymentsEnabled = false, f
   const [reportingPurchaseId, setReportingPurchaseId] = useState(null)
   // Relecture des demandes après une adresse de photo expirée : valable tant que le serveur n'a pas renvoyé de nouvelles données.
   const [reread, setReread] = useState(null)
-  const [renewals, setRenewals] = useState({})
   const renewed = useRef(new Set())
   const counter = useRef(0)
   const chatRef = useRef(null)
@@ -213,7 +212,6 @@ export function ConversationView({ conversation, now, paymentsEnabled = false, f
         const result = await getClientPurchaseRequests({ missionId })
         if (!result || result.error || !Array.isArray(result.requests)) return
         setReread({ source: baseRequests, requests: result.requests })
-        setRenewals((current) => ({ ...current, [requestId]: (current[requestId] ?? 0) + 1 }))
       } catch {
         // Le repli « Photo indisponible » reste affiché.
       }
@@ -308,7 +306,7 @@ export function ConversationView({ conversation, now, paymentsEnabled = false, f
         ) : null}
         {messages.map((message, index) => (
           // La clé change après une relecture des photos : la carte repart sans l'état « photo indisponible ».
-          <Fragment key={`${message.id}:${message.purchaseRequestId ? (renewals[message.purchaseRequestId] ?? 0) : 0}`}>
+          <Fragment key={message.id}>
             {index === 0 || dayOf(message.createdAt) !== dayOf(messages[index - 1].createdAt) ? (
               <span className="chat__day">{formatDayLabel(message.createdAt, nowDate)}</span>
             ) : null}

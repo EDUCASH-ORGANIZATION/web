@@ -154,8 +154,10 @@ function findMedia(node) {
     return null
   }
   if (node.type === "img" || node.type === "audio") return node
-  const rendered = typeof node.type === "function" ? node.type(node.props) : null
-  return findMedia(rendered) ?? findMedia(node.props?.children)
+  // Les enfants d'abord : une enveloppe à état (Enlargeable) ne se rend pas en appel direct, son enfant est l'image.
+  const fromChildren = findMedia(node.props?.children)
+  if (fromChildren) return fromChildren
+  return findMedia(typeof node.type === "function" ? node.type(node.props) : null)
 }
 
 describe("StudentConversationView : médias signés", () => {

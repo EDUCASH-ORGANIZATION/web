@@ -2137,3 +2137,38 @@ describe("E05 : modale « J'ai terminé » au-dessus de la barre du haut", () =>
     expect(e05).toContain(".e2-05-modal { width: 560px; }")
   })
 })
+
+describe("C13 : badge de la demande de paiement", () => {
+  const css = read("client/c13.css")
+
+  it("l'en-tete passe a la ligne et le badge ne sort pas de la carte", () => {
+    expect(css).toMatch(/\.c2 \.c-payreq__head \{[^}]*flex-wrap: wrap/)
+    expect(css).toMatch(/\.c2 \.c-payreq__head > div \{[^}]*min-width: 0/)
+    expect(css).toMatch(/\.c2 \.c-payreq__head \.badge \{[^}]*flex: none[^}]*max-width: 100%/)
+  })
+})
+
+describe("Visionneuse de la messagerie", () => {
+  const shell = read("app-shell.css")
+
+  it("ses regles vivent dans app-shell.css sous .c2 et .e2, jamais dans components.css (copie des maquettes)", () => {
+    for (const cls of ["zoom-btn2", "viewer2__img", "viewer2__error", "zoom-link2"]) {
+      expect(shell).toContain(`.c2 .${cls}`)
+      expect(shell).toContain(`.e2 .${cls}`)
+      expect(read("components.css")).not.toContain(cls)
+    }
+  })
+
+  it("le focus clavier des vignettes client passe a l'interieur du cadre qui coupe l'anneau exterieur", () => {
+    expect(shell).toMatch(/\.c2 \.c-shot \.zoom-btn2:focus-visible \{[^}]*box-shadow: inset 0 0 0 3px var\(--c-bleu\)/)
+  })
+
+  it("le lien « Ouvrir dans un nouvel onglet » a une cible tactile de 44 px sous 1024 px, des deux cotes", () => {
+    expect(read("app-shell.css")).toMatch(/@media \(max-width: 1023\.98px\) \{[\s\S]*?\.c2 \.zoom-link2 \{ min-height: 44px; \}/)
+    expect(read("student/base.css")).toMatch(/@media \(max-width: 1023\.98px\) \{[\s\S]*?\.e2 \.zoom-link2 \{ min-height: 44px; \}/)
+  })
+
+  it("la zone cliquable d'une photo de bulle suit la photo", () => {
+    expect(shell).toMatch(/\.c2 \.bubble--media \.zoom-btn2, \.e2 \.bubble--media \.zoom-btn2 \{[^}]*width: auto/)
+  })
+})

@@ -529,3 +529,24 @@ describe("relecture et drapeaux d'URL", () => {
     delete Element.prototype.scrollIntoView
   })
 })
+
+describe("photos de preuve illisibles", () => {
+  it("une seule relecture par photo, même après plusieurs erreurs ; une autre photo en déclenche une de plus", () => {
+    vi.useFakeTimers()
+    show(conversation())
+    router.refresh.mockClear()
+    const payee = () => document.querySelector('img[src="https://example.supabase.co/sign/payee"]')
+    const ticket = () => document.querySelector('img[src="https://example.supabase.co/sign/ticket"]')
+    for (let i = 0; i < 3; i += 1) {
+      fireEvent.error(payee())
+      act(() => vi.advanceTimersByTime(5000))
+    }
+    expect(router.refresh).toHaveBeenCalledTimes(1)
+    fireEvent.error(ticket())
+    act(() => vi.advanceTimersByTime(5000))
+    expect(router.refresh).toHaveBeenCalledTimes(2)
+    fireEvent.error(ticket())
+    act(() => vi.advanceTimersByTime(5000))
+    expect(router.refresh).toHaveBeenCalledTimes(2)
+  })
+})

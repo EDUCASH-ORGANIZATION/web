@@ -438,6 +438,22 @@ describe("C13 : temps réel et photos", () => {
     expect(screen.getByText("Photo indisponible")).toBeTruthy()
   })
 
+  it("renouvellement avec la visionneuse ouverte : elle reste ouverte et affiche la nouvelle image", async () => {
+    getClientPurchaseRequests.mockResolvedValue({
+      available: true,
+      requests: [request({ payeePhotoUrl: "https://signed.example/payee-2.jpg" })],
+    })
+    view()
+    fireEvent.click(screen.getAllByRole("button", { name: /^Agrandir la photo/ })[0])
+    const viewerImg = screen.getByRole("dialog").querySelector("img")
+    expect(viewerImg.getAttribute("src")).toBe("https://signed.example/payee-1.jpg")
+    fireEvent.error(viewerImg)
+    await flush()
+    const dialog = screen.getByRole("dialog")
+    expect(dialog.querySelector("img").getAttribute("src")).toBe("https://signed.example/payee-2.jpg")
+    expect(getClientPurchaseRequests).toHaveBeenCalledTimes(1)
+  })
+
   it("relecture en échec : la photo reste signalée indisponible, sans erreur", async () => {
     getClientPurchaseRequests.mockResolvedValue({ error: "Impossible de charger." })
     view()

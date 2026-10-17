@@ -6,6 +6,9 @@ import { PAYMENT_WARNING, PURCHASE_NO_REFUND_NOTE, PURCHASE_REVIEWED_LABEL, form
 import { PurchaseCard } from "./purchase-card"
 import { PurchaseEventLine } from "./purchase-event-line"
 
+// Les vignettes de preuve sont des boutons « Agrandir la photo ... » : les assertions sur les actions les écartent.
+const actionButtons = () => screen.queryAllByRole("button").filter((b) => !/^Agrandir/.test(b.getAttribute("aria-label") ?? ""))
+
 const BASE = {
   id: "11111111-1111-4111-8111-111111111111",
   seq: 3,
@@ -106,7 +109,7 @@ describe("carte Reçu par le vendeur", () => {
     const { onReport } = setup({ status: "received", receivedAt: "2026-10-08T10:09:00Z", smsPhotoUrl: "https://exemple.test/sms.jpg" })
     expect(screen.getByText("Reçu par le vendeur")).toBeTruthy()
     expect(screen.getByText(/Vous avez confirmé à 11:09 que le vendeur a reçu le paiement/)).toBeTruthy()
-    const actions = screen.getAllByRole("button").map((b) => b.textContent)
+    const actions = actionButtons().map((b) => b.textContent)
     expect(actions).toEqual(["Signaler"])
     fireEvent.click(button("Signaler"))
     expect(onReport).toHaveBeenCalledTimes(1)
@@ -114,7 +117,7 @@ describe("carte Reçu par le vendeur", () => {
 
   it("masque « Signaler » à qui a déjà signalé", () => {
     setup({ status: "received" }, { alreadyReportedByMe: true })
-    expect(screen.queryAllByRole("button")).toHaveLength(0)
+    expect(actionButtons()).toHaveLength(0)
   })
 })
 
@@ -157,7 +160,7 @@ describe("carte Annulée", () => {
     setup({ status: "cancelled" })
     expect(screen.getByText("Annulée")).toBeTruthy()
     expect(screen.getByText("Cette demande a été annulée.")).toBeTruthy()
-    expect(screen.queryAllByRole("button")).toHaveLength(0)
+    expect(actionButtons()).toHaveLength(0)
   })
 })
 

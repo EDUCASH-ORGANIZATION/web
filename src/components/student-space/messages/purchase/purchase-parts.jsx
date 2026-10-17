@@ -5,20 +5,23 @@
 // prise de photo du formulaire, bandeau d'erreur. Vues pures : aucune donnée lue ici.
 import { useId, useRef } from "react"
 import { Icon } from "@/components/design/icon"
+import { Enlargeable } from "@/components/messaging/image-viewer"
 import { PROOF_MIME_TYPES } from "@/lib/purchases/proofs"
 
 export const PROOF_ACCEPT = PROOF_MIME_TYPES.join(",")
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
 
-/** Vignette d'une preuve : la photo (adresse signée fournie par la page) ou, à défaut, l'icône de sa nature. */
-export function Thumb({ url, icon, caption, variant, tag }) {
+/** Vignette d'une preuve : la photo (adresse signée fournie par la page, agrandie au clic) ou, à défaut, l'icône de sa nature. */
+export function Thumb({ url, icon, caption, noun, kind, variant, tag, onPhotoError }) {
   return (
     <figure className="e-thumb">
       <span className={cx("e-thumb__img", variant && `e-thumb__img--${variant}`)}>
         {url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="e2-07-pic" src={url} alt="" loading="lazy" />
+          <Enlargeable url={url} caption={caption} label={`Agrandir la photo ${noun}`} onError={onPhotoError && (() => onPhotoError(kind))}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="e2-07-pic" src={url} alt="" loading="lazy" onError={onPhotoError && (() => onPhotoError(kind))} />
+          </Enlargeable>
         ) : (
           <Icon name={icon} />
         )}

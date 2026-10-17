@@ -1,4 +1,5 @@
 import { Icon } from "@/components/design/icon"
+import { Enlargeable } from "@/components/messaging/image-viewer"
 import { PlaceLinks } from "@/components/messaging/place-links"
 import { coordsValid, formatClock } from "@/lib/client-space/conversations"
 import { PurchaseCard } from "./purchase/purchase-card"
@@ -14,8 +15,10 @@ function Body({ message, onMediaError }) {
     // Pas de lien vers l'objet brut : il servirait un fichier HTML déguisé sur l'origine du stockage. L'adresse
     // affichée est toujours une adresse signée ; sur erreur de chargement la vue la renouvelle une fois.
     return message.mediaUrl ? (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img className="bubble__photo2" src={message.mediaUrl} alt="Image envoyée" loading="lazy" onError={() => onMediaError?.(message.id)} />
+      <Enlargeable url={message.mediaUrl} caption="Image envoyée" label="Agrandir l'image envoyée" onError={() => onMediaError?.(message.id)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="bubble__photo2" src={message.mediaUrl} alt="Image envoyée" loading="lazy" onError={() => onMediaError?.(message.id)} />
+      </Enlargeable>
     ) : (
       <span className="bubble__text2">Image indisponible</span>
     )

@@ -1,5 +1,6 @@
 // @ds-screen RD-STUDENT-01
 import { Icon } from "@/components/design/icon"
+import { Enlargeable } from "@/components/messaging/image-viewer"
 import { PlaceLinks } from "@/components/messaging/place-links"
 import { PURCHASE_PREVIEW, formatClock, isPurchaseMessageType } from "@/lib/client-space/conversations"
 import { PURCHASE_EVENTS, purchaseMessageContent } from "@/lib/purchases/requests"
@@ -13,8 +14,10 @@ function Body({ message, onMediaError }) {
     // Pas de lien vers l'objet brut : il servirait un fichier HTML déguisé sur l'origine du stockage. L'adresse
     // affichée est toujours une adresse signée ; sur erreur de chargement la vue la renouvelle une fois.
     return message.mediaUrl ? (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img className="e2-07-photo" src={message.mediaUrl} alt="Image envoyée" loading="lazy" onError={() => onMediaError?.(message.id)} />
+      <Enlargeable url={message.mediaUrl} caption="Image envoyée" label="Agrandir l'image envoyée" onError={() => onMediaError?.(message.id)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="e2-07-photo" src={message.mediaUrl} alt="Image envoyée" loading="lazy" onError={() => onMediaError?.(message.id)} />
+      </Enlargeable>
     ) : (
       <span className="e2-07-text">Image indisponible</span>
     )
@@ -91,6 +94,7 @@ function PurchaseMessage({ message, purchase }) {
         onCancel={purchase.onCancel}
         onConfirmReceived={purchase.onConfirmReceived}
         onReport={purchase.onReport}
+        onPhotoError={purchase.onPhotoError}
       />
     </div>
   )

@@ -4,7 +4,7 @@ import path from "node:path"
 
 // RD-MSG-01 : le schéma de référence (supabase/schema.sql) décrit les tables message_contact_events et
 // reports telles que le script 92 les crée, et le droit INSERT de messages tel que le script 93 le laisse.
-// Il décrit aussi reports APRÈS le script 94 de RD-ACHATS-01 (NON appliqué en production) : cible
+// Il décrit aussi reports APRÈS le script 94 de RD-ACHATS-01 : cible
 // purchase_request, 4 motifs d'achats, contrainte de cible remplacée, motifs liés à la cible, une
 // signalisation par partie et par demande. Ce garde vérifie en dur les éléments qui portent la sécurité :
 // listes des CHECK, RLS activée sans politique, aucun droit pour anon ni authenticated, aucun temps réel,
@@ -262,18 +262,17 @@ describe("schéma de référence : en-tête des scripts 92 et 93", () => {
     expect(header).not.toContain("Scripts 92 et 93 de RD-MSG-01 NON appliqués")
   })
 
-  it("seul le script 94 de RD-ACHATS-01 reste « NON appliqué » dans l'en-tête", () => {
-    const notApplied = header.split("\n").filter((l) => /NON appliqu/.test(l))
-    expect(notApplied).toHaveLength(1)
-    expect(notApplied[0]).toContain("Script 94 de RD-ACHATS-01 NON appliqué en production")
+  it("le script 94 de RD-ACHATS-01 est appliqué en production dans l'en-tête", () => {
+    expect(header).toContain("Script 94 de RD-ACHATS-01 appliqué en production le 2026-10-17.")
+    expect(header).not.toContain("Script 94 de RD-ACHATS-01 NON appliqué")
+    expect(header.split("\n").filter((l) => /NON appliqu/.test(l))).toEqual([])
   })
 
   it("aucune mention « NON appliqué » ne concerne les scripts 92 et 93 dans tout le fichier", () => {
     const stale = lines.filter(
-      (l, i) => /NON appliqu/.test(l) && /\b9[23]\b/.test(`${lines[i - 1] ?? ""} ${l} ${lines[i + 1] ?? ""}`) && !/Script 94/.test(l)
+      (l, i) => /NON appliqu/.test(l) && /\b9[23]\b/.test(`${lines[i - 1] ?? ""} ${l} ${lines[i + 1] ?? ""}`)
     )
     expect(stale).toEqual([])
-    const withNotApplied = lines.filter((l) => /NON appliqu/.test(l))
-    expect(withNotApplied.every((l) => l.includes("Script 94"))).toBe(true)
+    expect(lines.filter((l) => /NON appliqu/.test(l))).toEqual([])
   })
 })
