@@ -239,7 +239,10 @@ describe("ST-09 dates de la note de blocage", () => {
 
 describe("ST-09 zones intactes", () => {
   // RD-ACHATS-01 (ST-14) ajoute l'avertissement et la liste des achats à la modale. La libération du séquestre,
-  // elle, doit rester octet pour octet celle de origin/main.
+  // elle, doit rester octet pour octet celle de BASE. BASE est un commit FIXE (main juste avant RD-ACHATS-01) et non
+  // origin/main : origin/main contient desormais ST-14, le diff serait vide et le garde rougirait. Le commit est dans
+  // l'historique de main ; un clone CI superficiel (fetch-depth 1) ne l'a pas, il faut un fetch complet.
+  const BASE = "b7c32af749996bfd207ca6ac3c5dcf728576bed4"
   const DIALOG = "src/components/client-space/mission-detail/followup/confirm-end-dialog.jsx"
   const git = (args) => execFileSync("git", args, { encoding: "utf8", cwd: process.cwd() })
   const sliceBetween = (src, start, end) => {
@@ -253,12 +256,12 @@ describe("ST-09 zones intactes", () => {
   const submitBody = (src) => sliceBetween(src, "  async function submit() {", "\n  }\n")
 
   it("mission.actions.js : diff vide", () => {
-    expect(git(["diff", "--name-only", "origin/main...HEAD", "--", "src/lib/actions/mission.actions.js"]).trim()).toBe("")
+    expect(git(["diff", "--name-only", `${BASE}...HEAD`, "--", "src/lib/actions/mission.actions.js"]).trim()).toBe("")
   })
 
-  it("ConfirmEndDialog : releaseOnce et submit() identiques à origin/main", async () => {
+  it("ConfirmEndDialog : releaseOnce et submit() identiques à BASE", async () => {
     const { readFileSync } = await import("node:fs")
-    const before = git(["show", `origin/main:${DIALOG}`])
+    const before = git(["show", `${BASE}:${DIALOG}`])
     const after = readFileSync(DIALOG, "utf8")
     expect(releaseOnceBody(after)).toBe(releaseOnceBody(before))
     expect(submitBody(after)).toBe(submitBody(before))
@@ -266,7 +269,7 @@ describe("ST-09 zones intactes", () => {
 
   it("ConfirmEndDialog : même nombre d'appels à confirmMission, releaseOnce, libellé et verrou du bouton", async () => {
     const { readFileSync } = await import("node:fs")
-    const before = git(["show", `origin/main:${DIALOG}`])
+    const before = git(["show", `${BASE}:${DIALOG}`])
     const after = readFileSync(DIALOG, "utf8")
     const count = (src, re) => (src.match(re) ?? []).length
     for (const re of [/confirmMission/g, /releaseOnce\(/g, /Libérer le paiement/g, /disabled=\{!checked \|\| pending\}/g]) {
@@ -276,7 +279,7 @@ describe("ST-09 zones intactes", () => {
   })
 
   it("ConfirmEndDialog : la seule ligne retirée par ST-14 est la signature de ConfirmEndDialogOpen", () => {
-    const diff = git(["diff", "-U0", "origin/main...HEAD", "--", DIALOG])
+    const diff = git(["diff", "-U0", `${BASE}...HEAD`, "--", DIALOG])
     const removed = diff.split("\n").filter((l) => l.startsWith("-") && !l.startsWith("---"))
     expect(removed).toEqual([
       "-function ConfirmEndDialogOpen({ missionId, title, studentName, split, since, onClose, onPaid }) {",
