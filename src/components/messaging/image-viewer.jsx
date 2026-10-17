@@ -3,11 +3,10 @@
 // Visionneuse commune de la messagerie (client et étudiant) : une photo reçue (preuve d'une demande de paiement
 // d'achats ou image d'une bulle) s'ouvre en grand au clic, pour la lire. Les adresses sont signées à courte durée
 // de vie : si la photo ne se charge plus dans la visionneuse, un message l'explique et `onError` permet à la vue de
-// renouveler l'adresse. La boîte est rendue dans <body> : une bulle ou une carte peut avoir un ancêtre qui casserait
-// le positionnement fixe du voile (voir app-ui/modal).
+// renouveler l'adresse. Comme toute boîte du projet, elle est rendue dans l'arbre, sous la racine
+// .c2 ou .e2 qui porte la police, les couleurs et les règles de la boîte (aucun portail, voir app-ui/modal).
 
 import { useState } from "react"
-import { createPortal } from "react-dom"
 import { Modal } from "@/components/app-ui/modal"
 
 export const VIEWER_ERROR_TEXT = "Photo indisponible, actualisez la conversation"
@@ -28,7 +27,7 @@ function ViewerBody({ url, caption, onError }) {
           onError?.()
         }}
       />
-      <a className="link2" href={url} target="_blank" rel="noopener noreferrer">
+      <a className="zoom-link2" href={url} target="_blank" rel="noopener noreferrer">
         Ouvrir dans un nouvel onglet
       </a>
     </>
@@ -37,7 +36,7 @@ function ViewerBody({ url, caption, onError }) {
 
 /** Photo en grand dans une boîte de dialogue ; `caption` (nature de la photo) sert de titre et de texte alternatif. */
 export function ImageViewer({ url, caption, onClose, onError }) {
-  return createPortal(
+  return (
     <Modal
       open
       onClose={onClose}
@@ -50,8 +49,7 @@ export function ImageViewer({ url, caption, onClose, onError }) {
       }
     >
       <ViewerBody key={url} url={url} caption={caption} onError={onError} />
-    </Modal>,
-    document.body,
+    </Modal>
   )
 }
 
@@ -71,5 +69,3 @@ export function Enlargeable({ url, caption, label, onError, children }) {
     </>
   )
 }
-
-export default Enlargeable

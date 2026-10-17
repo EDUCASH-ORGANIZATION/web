@@ -2147,3 +2147,23 @@ describe("C13 : badge de la demande de paiement", () => {
     expect(css).toMatch(/\.c2 \.c-payreq__head \.badge \{[^}]*flex: none[^}]*max-width: 100%/)
   })
 })
+
+describe("Visionneuse de la messagerie", () => {
+  const shell = read("app-shell.css")
+
+  it("ses regles vivent dans app-shell.css sous .c2 et .e2, jamais dans components.css (copie des maquettes)", () => {
+    for (const cls of ["zoom-btn2", "viewer2__img", "viewer2__error", "zoom-link2"]) {
+      expect(shell).toContain(`.c2 .${cls}`)
+      expect(shell).toContain(`.e2 .${cls}`)
+      expect(read("components.css")).not.toContain(cls)
+    }
+  })
+
+  it("le focus clavier des vignettes client passe a l'interieur du cadre qui coupe l'anneau exterieur", () => {
+    expect(shell).toMatch(/\.c2 \.c-shot \.zoom-btn2:focus-visible \{[^}]*box-shadow: inset 0 0 0 3px var\(--c-bleu\)/)
+  })
+
+  it("la zone cliquable d'une photo de bulle suit la photo", () => {
+    expect(shell).toMatch(/\.c2 \.bubble--media \.zoom-btn2, \.e2 \.bubble--media \.zoom-btn2 \{[^}]*width: auto/)
+  })
+})

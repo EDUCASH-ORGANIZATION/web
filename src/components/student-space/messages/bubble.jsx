@@ -94,6 +94,7 @@ function PurchaseMessage({ message, purchase }) {
         onCancel={purchase.onCancel}
         onConfirmReceived={purchase.onConfirmReceived}
         onReport={purchase.onReport}
+        onPhotoError={purchase.onPhotoError}
       />
     </div>
   )

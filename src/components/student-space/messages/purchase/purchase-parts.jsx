@@ -20,7 +20,7 @@ export function Thumb({ url, icon, caption, noun, variant, tag, onPhotoError }) 
         {url ? (
           <Enlargeable url={url} caption={caption} label={`Agrandir la photo ${noun}`} onError={onPhotoError}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="e2-07-pic" src={url} alt="" loading="lazy" />
+            <img className="e2-07-pic" src={url} alt="" loading="lazy" onError={onPhotoError} />
           </Enlargeable>
         ) : (
           <Icon name={icon} />

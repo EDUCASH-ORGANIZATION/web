@@ -1604,11 +1604,6 @@ textarea.input { height: auto; min-height: 120px; padding: 14px 16px; line-heigh
 .c-shot { margin: 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .c-shot > span { height: 74px; border-radius: 12px; border: 2px solid var(--c-encre); display: grid; place-items: center; overflow: hidden; }
 .c-shot figcaption { font-size: 11px; font-weight: var(--fw-bold); color: var(--c-ardoise); line-height: 1.2; }
-/* Vignette ou photo cliquable (messaging/image-viewer) : un bouton nu qui épouse son contenu */
-.zoom-btn2 { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; border-radius: inherit; cursor: zoom-in; line-height: 0; color: inherit; font: inherit; }
-.zoom-btn2:focus-visible { outline: none; box-shadow: var(--sh-focus); }
-.viewer2__img { display: block; max-width: 100%; max-height: 70dvh; margin: 0 auto var(--s-3); border-radius: var(--r-m); object-fit: contain; }
-.viewer2__error { margin: 0; padding: var(--s-6) 0; text-align: center; color: var(--c-ardoise); }
 .c-shot__sign { background: var(--c-citron); text-align: center; line-height: 1.1; }
 .c-shot__sign small { display: block; font-size: 10px; font-weight: var(--fw-xbold); letter-spacing: .06em; text-transform: uppercase; }
 .c-shot__sign b { display: block; font-size: 15px; font-weight: var(--fw-black); font-variant-numeric: tabular-nums; }

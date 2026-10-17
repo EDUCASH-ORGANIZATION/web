@@ -48,13 +48,13 @@ function Note({ icon, children }) {
 }
 
 // Vignette d'une photo : adresse signée en prop, repli lisible si elle manque ou ne se charge plus.
-function Shot({ kind, caption, noun, url, failed, onError }) {
+function Shot({ kind, caption, noun, url, failed, onError, onRenew }) {
   const usable = url && !failed
   return (
     <figure className="c-shot">
       <span>
         {usable ? (
-          <Enlargeable url={url} caption={caption} label={`Agrandir la photo ${noun}`} onError={() => onError(kind)}>
+          <Enlargeable url={url} caption={caption} label={`Agrandir la photo ${noun}`} onError={() => onRenew(kind)}>
             {/* Adresse signée à courte durée de vie : jamais next/image. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="h-full w-full object-cover" src={url} alt="" loading="lazy" onError={() => onError(kind)} />
@@ -118,6 +118,9 @@ export function PurchaseCard({ request, studentName, missionStatus, estimateExce
     onPhotoError?.(request.id, kind)
   }
 
+  // Photo en échec dans la visionneuse : renouvellement seul, la vignette (et la boîte ouverte) restent en place.
+  const photoRenew = (kind) => onPhotoError?.(request.id, kind)
+
   return (
     <article
       className={cx("c-payreq", status === "reported" && "c-payreq--flagged")}
@@ -147,10 +150,13 @@ export function PurchaseCard({ request, studentName, missionStatus, estimateExce
           url={request.payeePhotoUrl}
           failed={failed.payee}
           onError={photoFailed}
+          onRenew={photoRenew}
         />
-        <Shot kind="ticket" caption="Ticket ou articles" noun="du ticket" url={request.ticketPhotoUrl} failed={failed.ticket} onError={photoFailed} />
+        <Shot kind="ticket" caption="Ticket ou articles" noun="du ticket" url={request.ticketPhotoUrl} failed={failed.ticket} onError={photoFailed}
+          onRenew={photoRenew} />
         {request.smsPhotoUrl || failed.sms ? (
-          <Shot kind="sms" caption="Capture du SMS" noun="de la capture du SMS" url={request.smsPhotoUrl} failed={failed.sms} onError={photoFailed} />
+          <Shot kind="sms" caption="Capture du SMS" noun="de la capture du SMS" url={request.smsPhotoUrl} failed={failed.sms} onError={photoFailed}
+          onRenew={photoRenew} />
         ) : null}
       </div>
 

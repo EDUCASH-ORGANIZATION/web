@@ -15,7 +15,7 @@
 /* Le badge de statut ne sort jamais de la carte : il passe sous le titre quand la place manque */
 .c2 .c-payreq__head { flex-wrap: wrap; }
 .c2 .c-payreq__head > div { flex: 1 1 160px; min-width: 0; }
-.c2 .c-payreq__head .badge { flex: none; max-width: 100%; }
+.c2 .c-payreq__head .badge { flex: none; align-self: flex-start; max-width: 100%; }
 
 /* Conversation : une carte à hauteur de fenêtre, journal des messages défilant, saisie en bas */
 .c2 .conv2 { display: flex; flex-direction: column; height: calc(100dvh - 180px); min-height: 420px; max-height: 820px; background: var(--c-blanc); border: 1px solid var(--c-ligne); border-radius: var(--r-l); overflow: hidden; }

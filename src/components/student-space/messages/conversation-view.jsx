@@ -226,6 +226,7 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
       clientName: client.name,
       missionStatus: mission.status,
       busy: Boolean(request) && dialog?.request?.id === request.id,
+      onPhotoError: refreshPurchases,
       ...cardActions,
     }
   }

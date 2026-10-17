@@ -50,6 +50,7 @@ export function PurchaseCard({
   onConfirmReceived,
   onReport,
   onViewReport,
+  onPhotoError,
 }) {
   const { status } = request
   const badge = statusBadge(status)
@@ -66,6 +67,8 @@ export function PurchaseCard({
   const editedClock = formatClock(request.editedAt)
   const meta = [sentClock && `Envoyée à ${sentClock}`, editedClock && `Modifiée à ${editedClock}`].filter(Boolean).join(" · ")
   const canReceive = actions.includes("confirmReceived")
+  // Adresse signée expirée : la conversation relit les demandes pour en obtenir de nouvelles.
+  const renewPhoto = onPhotoError ? () => onPhotoError(request.id) : undefined
   const showViewReport = status === "reported" && alreadyReportedByMe && typeof onViewReport === "function"
 
   return (
@@ -94,9 +97,9 @@ export function PurchaseCard({
         </div>
 
         <div className={showSms ? "e-achat__photos e-achat__photos--3" : "e-achat__photos"}>
-          <Thumb url={request.payeePhotoUrl} icon="i-smartphone" caption={payeeKind?.label ?? "Numéro MoMo"} noun="du numéro de paiement" />
-          <Thumb url={request.ticketPhotoUrl} icon="i-receipt" variant="ticket" caption="Ticket ou articles" noun="du ticket" />
-          {showSms ? <Thumb url={request.smsPhotoUrl} icon="i-message" variant="sms" tag="Client" caption="Capture du SMS" noun="de la capture du SMS" /> : null}
+          <Thumb url={request.payeePhotoUrl} icon="i-smartphone" caption={payeeKind?.label ?? "Numéro MoMo"} noun="du numéro de paiement" onPhotoError={renewPhoto} />
+          <Thumb url={request.ticketPhotoUrl} icon="i-receipt" variant="ticket" caption="Ticket ou articles" noun="du ticket" onPhotoError={renewPhoto} />
+          {showSms ? <Thumb url={request.smsPhotoUrl} icon="i-message" variant="sms" tag="Client" caption="Capture du SMS" noun="de la capture du SMS" onPhotoError={renewPhoto} /> : null}
         </div>
 
         <dl className="e-achat__rows">

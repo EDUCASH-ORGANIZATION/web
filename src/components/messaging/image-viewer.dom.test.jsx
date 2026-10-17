@@ -124,6 +124,18 @@ describe("preuves de la carte client", () => {
     expect(onPhotoError).toHaveBeenCalledWith("6f1c2a52-8f3e-4c1d-9a55-0d3b6e4a7c10", "ticket")
   })
 
+  it("une photo en échec dans la visionneuse laisse la boîte ouverte avec le message d'erreur", () => {
+    const onPhotoError = vi.fn()
+    render(<ClientCard request={clientRequest()} studentName="Ulrich" missionStatus="in_progress" onPhotoError={onPhotoError} />)
+    const trigger = screen.getByRole("button", { name: "Agrandir la photo du ticket" })
+    fireEvent.click(trigger)
+    fireEvent.error(viewerImage())
+    expect(screen.getByRole("dialog")).toBeTruthy()
+    expect(screen.getByText(VIEWER_ERROR_TEXT)).toBeTruthy()
+    expect(onPhotoError).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole("button", { name: "Agrandir la photo du ticket" })).toBe(trigger)
+  })
+
   it("une vignette indisponible n'est pas un bouton", () => {
     render(<ClientCard request={clientRequest({ payeePhotoUrl: null, smsPhotoUrl: null })} studentName="Ulrich" missionStatus="in_progress" />)
     expect(screen.getByText("Photo indisponible")).toBeTruthy()
@@ -134,6 +146,23 @@ describe("preuves de la carte client", () => {
   it("le panneau d'un vendeur sans numéro marchand porte son propre libellé", () => {
     render(<ClientCard request={clientRequest({ payeeKind: "personal" })} studentName="Ulrich" missionStatus="in_progress" />)
     expect(screen.getByRole("button", { name: "Agrandir la photo du panneau du vendeur" })).toBeTruthy()
+  })
+})
+
+describe("visionneuse sous la racine de l'espace", () => {
+  it("reste dans la racine .c2 (client) et .e2 (étudiant), sans portail vers body", () => {
+    for (const root of ["ds c2", "ds e2"]) {
+      const { unmount } = render(
+        <div className={root}>
+          <Enlargeable url={URLS.ticket} caption="Ticket" label="Agrandir la photo du ticket">
+            <img src={URLS.ticket} alt="" />
+          </Enlargeable>
+        </div>,
+      )
+      fireEvent.click(screen.getByRole("button", { name: "Agrandir la photo du ticket" }))
+      expect(screen.getByRole("dialog").closest(`.${root.split(" ")[1]}`)).not.toBeNull()
+      unmount()
+    }
   })
 })
 
@@ -171,6 +200,18 @@ describe("preuves de la carte étudiant", () => {
       expect(document.activeElement).toBe(trigger)
       unmount()
     }
+  })
+
+  it("une photo en échec (vignette ou visionneuse) demande le renouvellement des adresses", () => {
+    const onPhotoError = vi.fn()
+    render(<StudentCard request={studentRequest({ status: "paid" })} clientName="Afiavi" onPhotoError={onPhotoError} />)
+    const trigger = screen.getByRole("button", { name: "Agrandir la photo du ticket" })
+    fireEvent.error(trigger.querySelector("img"))
+    expect(onPhotoError).toHaveBeenLastCalledWith("11111111-1111-4111-8111-111111111111")
+    fireEvent.click(trigger)
+    fireEvent.error(viewerImage())
+    expect(onPhotoError).toHaveBeenCalledTimes(2)
+    expect(screen.getByText(VIEWER_ERROR_TEXT)).toBeTruthy()
   })
 
   it("sans photo, la vignette garde son icône et n'est pas un bouton", () => {

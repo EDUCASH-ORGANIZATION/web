@@ -343,6 +343,21 @@ html:has(.shell--v2) { scroll-padding-top: calc(56px + var(--s-3)); }
 .c2 .tab:focus-visible, .shell--v2 .tab:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
 .c2 .chip:focus-visible, .shell--v2 .chip:focus-visible { outline: none; box-shadow: var(--sh-focus); }
 
+/* ---------- Visionneuse de la messagerie (client et étudiant) ---------- */
+/* Vignette ou photo cliquable (messaging/image-viewer) : un bouton nu qui épouse son contenu ; la visionneuse reste
+   dans l'arbre, sous la racine de l'espace. */
+.c2 .zoom-btn2, .e2 .zoom-btn2 { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; border-radius: inherit; cursor: zoom-in; line-height: 0; color: inherit; font: inherit; }
+.c2 .zoom-btn2:focus-visible, .e2 .zoom-btn2:focus-visible { outline: none; box-shadow: var(--sh-focus); }
+/* Le cadre des vignettes client coupe l'anneau extérieur : il passe à l'intérieur. */
+.c2 .c-shot .zoom-btn2:focus-visible { box-shadow: inset 0 0 0 3px var(--c-bleu); }
+/* Photo d'une bulle : la zone cliquable suit la photo, même étroite. */
+.c2 .bubble--media .zoom-btn2, .e2 .bubble--media .zoom-btn2 { display: inline-block; width: auto; height: auto; }
+.c2 .viewer2__img, .e2 .viewer2__img { display: block; max-width: 100%; max-height: 70dvh; margin: 0 auto var(--s-3); border-radius: var(--r-m); object-fit: contain; }
+.c2 .viewer2__error, .e2 .viewer2__error { margin: 0; padding: var(--s-6) 0; text-align: center; color: var(--c-ardoise); }
+.c2 .zoom-link2, .e2 .zoom-link2 { display: inline-flex; align-items: center; min-height: 32px; font-size: var(--t-body-s); font-weight: var(--fw-bold); color: var(--c-bleu); }
+.c2 .zoom-link2:focus-visible, .e2 .zoom-link2:focus-visible { outline: none; box-shadow: var(--sh-focus); border-radius: 6px; }
+
+
 /* ---------- Responsive : tablette et mobile (sous 1024) ---------- */
 @media (max-width: 1023.98px) {
   html:has(.shell--v2) { scroll-padding-top: calc(60px + var(--s-3)); }
