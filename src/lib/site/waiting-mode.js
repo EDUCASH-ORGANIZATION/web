@@ -31,8 +31,9 @@ export function waitingHeaders() {
   }
 }
 
-// Chemins servis normalement même en mode attente (comparaison exacte).
-const PASSTHROUGH_PATHS = ["/attente.css", "/api/health"]
+// Chemins servis normalement même en mode attente (comparaison exacte). /api/cron/purge : appelée par
+// le Cron Vercel (GET) ; la route se protège elle-même par CRON_SECRET.
+const PASSTHROUGH_PATHS = ["/attente.css", "/api/health", "/api/cron/purge"]
 
 export function isWaitingPassthrough(pathname) {
   return PASSTHROUGH_PATHS.includes(pathname)
