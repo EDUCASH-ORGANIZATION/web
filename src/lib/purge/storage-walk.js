@@ -1,4 +1,5 @@
 import "server-only"
+import { LIST_PAGE, REMOVE_BATCH } from "@/lib/purge/purge-rules"
 
 /**
  * Adaptateur Storage de la purge : SEUL module qui parle à l'API Storage pour lister et
@@ -12,8 +13,6 @@ import "server-only"
  * Pas de "use server" : ces fonctions ne doivent pas devenir des actions appelables du navigateur.
  */
 
-const LIST_PAGE = 1000
-const REMOVE_BATCH = 100
 // Garde-fou contre une boucle de pagination sans fin (1000 pages = 1 million d'entrées).
 const MAX_PAGES = 1000
 
