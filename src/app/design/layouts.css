@@ -594,23 +594,35 @@ summary.v09-acc__btn:focus-visible { outline: none; box-shadow: var(--sh-focus);
   .v03-mprice { display: block; }
   .v03-similar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .v03-applybar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-nav); align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom, 0px)); background: var(--c-blanc); border-top: var(--b-encre); }
-  /* Barre fixe de candidature (maquette V03 .action-bar) : bloc prix + légende à gauche, bouton dans une cellule
-     souple à droite. Le bouton .btn--block (width: 100 %) reste dans sa cellule : posé directement dans la barre
-     flex, il prenait toute la largeur et écrasait le prix. La cellule du bouton ne descend jamais sous le
-     contenu minimal du libellé (min-width: min-content) ; le bloc prix cède de la place et sa légende passe à
-     la ligne. Le libellé du bouton peut passer à la ligne (parcours visiteur : libellés longs). */
+  /* Barre fixe de candidature (maquette V03 .action-bar). Deux dispositions, choisies dans apply-bar.jsx selon le
+     `kind` de applyCta (src/lib/vitrine/apply-cta.js, libellés constants) :
+     - côte à côte (étudiant « Postuler », étudiant ayant postulé « Voir ma candidature ») : bloc prix + légende à
+       gauche, bouton dans une cellule souple à droite. Le bouton .btn--block (width: 100 %) reste dans sa cellule :
+       posé directement dans la barre flex, il prenait toute la largeur et écrasait le prix. La cellule ne descend
+       jamais sous le contenu minimal du libellé (min-width: min-content) ; le bloc prix cède de la place.
+     - empilée (.v03-applybar--stack : visiteur « Se connecter pour postuler », client « Publier une mission
+       similaire », mission fermée « Voir des missions similaires ») : ces libellés longs donnaient un bouton « galet »
+       de 3 à 4 lignes en cellule étroite. Prix + légende sur la première ligne, bouton pleine largeur dessous
+       (pilule de 48 px sur une ligne : 29 caractères tiennent dans les 288 px de 320 px). Un libellé plus long passe
+       à la ligne proprement sans réduire le bouton à une colonne étroite (white-space: normal, hauteur minimale 48 px).
+     - empilée aussi pour l'étudiant non vérifié (.v03-applybar--hint) : l'invitation à envoyer la carte occupe la
+       première ligne. */
   .v03-applybar__info { flex: 0 1 auto; min-width: 0; }
   .v03-applybar .amount small { font-size: var(--t-caption); }
   .v03-applybar__cta { flex: 1 1 0; min-width: min-content; }
   .v03-applybar .btn { white-space: normal; height: auto; min-height: var(--h-btn); padding-block: var(--s-2); line-height: 1.2; text-align: center; }
-  /* Étudiant non vérifié : l'invitation à envoyer la carte occupe la première ligne, le bouton passe dessous. */
-  .v03-applybar--hint { flex-wrap: wrap; row-gap: var(--s-2); }
-  .v03-applybar--hint .v03-applybar__info { flex-basis: 100%; }
-  .v03-applybar--hint .v03-applybar__cta { flex-basis: 100%; }
-  /* Le pied de page passe sous la barre fixe : marge basse = hauteur maximale mesurée de la barre (123 px à 320 px
-     avec un libellé long, 143 px avec l'invitation à envoyer la carte) + marge de 13 px + zone sûre iPhone. */
+  .v03-applybar--hint, .v03-applybar--stack { flex-wrap: wrap; row-gap: var(--s-2); }
+  .v03-applybar--hint .v03-applybar__info, .v03-applybar--stack .v03-applybar__info { flex-basis: 100%; }
+  .v03-applybar--hint .v03-applybar__cta, .v03-applybar--stack .v03-applybar__cta { flex-basis: 100%; }
+  /* Le pied de page passe sous la barre fixe : marge basse = hauteur maximale de la barre + marge de sécurité +
+     zone sûre iPhone. Mesures (Figtree, 320 à 430 px) : côte à côte 74 à 87 px (112 px réservés) ; empilée 122 px
+     et étudiant non vérifié 143 px (136 px réservés + 24 px de --s-6, soit 160 px). Les libellés des boutons sont des
+     constantes de apply-cta.js : le garde apply-bar-layout.guard.test.jsx échoue si l'un d'eux dépasse la longueur
+     qui tient sur une ligne, pour revoir ces marges en même temps.
+     La zone sûre (env(safe-area-inset-bottom)) ne vaut quelque chose qu'avec viewport-fit=cover dans le viewport de
+     layout.js ; sans lui elle vaut 0 et seules les marges ci-dessus s'appliquent. */
   .ds:has(.v03-applybar) .site-footer { padding-bottom: calc(var(--s-6) + 112px + env(safe-area-inset-bottom, 0px)); }
-  .ds:has(.v03-applybar--hint) .site-footer { padding-bottom: calc(var(--s-6) + 136px + env(safe-area-inset-bottom, 0px)); }
+  .ds:has(.v03-applybar--stack) .site-footer, .ds:has(.v03-applybar--hint) .site-footer { padding-bottom: calc(var(--s-6) + 136px + env(safe-area-inset-bottom, 0px)); }
 
   .v04-wrap { padding: var(--s-4) var(--s-4) 0; }
   .v04-hero { margin: 0; border-radius: 0 0 var(--r-xl) var(--r-xl); padding: var(--s-6) var(--s-4) var(--s-8); display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }

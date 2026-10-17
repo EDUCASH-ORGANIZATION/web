@@ -14,7 +14,8 @@ const { applyCta } = await import("@/lib/vitrine/apply-cta")
 // flex .v03-applybar. Sa base de 100 % ne laissait que l'espace du gap au bloc prix : « Vous touchez 8 800 FCFA »
 // était écrasé sur une colonne de 0 px et le bouton le recouvrait. La maquette V03 (.action-bar) place le bouton
 // dans une cellule souple (.grow) à côté du bloc prix.
-const css = readFileSync(path.join(import.meta.dirname, "../../../app/design/layouts.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "")
+const rawCss = readFileSync(path.join(import.meta.dirname, "../../../app/design/layouts.css"), "utf8")
+const css = rawCss.replace(/\/\*[\s\S]*?\*\//g, "")
 const rulesOf = (selector) =>
   [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
     .filter((m) => m[1].split(",").some((s) => s.trim() === selector))
@@ -28,7 +29,7 @@ const html = renderToStaticMarkup(<ApplyBar cta={student} budget={10000} caption
 describe("barre de candidature mobile : prix, légende et bouton côte à côte", () => {
   it("le bouton est dans une cellule souple, jamais enfant direct de la barre", () => {
     expect(html).toMatch(/class="v03-applybar ds-mob-only"><div class="v03-applybar__info">/)
-    expect(html).toMatch(/<div class="ds-grow v03-applybar__cta"><a href="[^"]*" class="btn btn--accent btn--block">Postuler<\/a><\/div>/)
+    expect(html).toMatch(/<div class="v03-applybar__cta"><a href="[^"]*" class="btn btn--accent btn--block">Postuler<\/a><\/div>/)
     expect(html).toContain("Vous touchez 8 800 FCFA")
   })
 
@@ -64,5 +65,73 @@ describe("barre de candidature mobile : prix, légende et bouton côte à côte"
     expect(hint).toContain('class="v03-applybar v03-applybar--hint ds-mob-only"')
     expect(rulesOf(".v03-applybar--hint")).toMatch(/flex-wrap:\s*wrap/)
     expect(rulesOf(".v03-applybar--hint .v03-applybar__info")).toMatch(/flex-basis:\s*100%/)
+  })
+
+  it("la cellule du bouton ne porte plus ds-grow (écrasé par .v03-applybar__cta)", () => {
+    expect(html).not.toContain("ds-grow")
+  })
+})
+
+// RD-FIX-18 (revue) : en cellule étroite à côté du prix, les libellés longs donnaient des boutons « galet » de 3 à 4
+// lignes (visiteur 124 x 97 px à 320 px). Visiteur, mission fermée et client sont donc empilés comme l'étudiant non
+// vérifié : prix + légende, puis bouton pleine largeur de 48 px. Étudiant et étudiant ayant postulé restent côte à côte.
+describe("barre de candidature mobile : disposition empilée selon le cas", () => {
+  const barOf = (cta, props = {}) => renderToStaticMarkup(<ApplyBar cta={cta} budget={10000} {...props} />)
+  const classOf = (markup) => markup.match(/^<div class="([^"]*)"/)[1]
+  const cases = {
+    visitor: applyCta({ role: null, missionId: ID, missionType: "Saisie", accepting: true }),
+    closed: applyCta({ role: "student", missionId: ID, missionType: "Saisie", accepting: false }),
+    client: applyCta({ role: "client", missionId: ID, missionType: "Saisie", accepting: true }),
+  }
+
+  it.each(Object.keys(cases))("%s : barre empilée (modificateur --stack)", (kind) => {
+    expect(classOf(barOf(cases[kind]))).toBe("v03-applybar v03-applybar--stack ds-mob-only")
+  })
+
+  it("étudiant et étudiant ayant postulé : côte à côte, sans modificateur", () => {
+    const applied = applyCta({ role: "student", missionId: ID, missionType: "Saisie", accepting: true, hasApplied: true })
+    expect(classOf(barOf(student))).toBe("v03-applybar ds-mob-only")
+    expect(classOf(barOf(applied))).toBe("v03-applybar ds-mob-only")
+  })
+
+  it("étudiant non vérifié : seule la disposition --hint s'applique", () => {
+    expect(classOf(barOf(student, { needsVerification: true }))).toBe("v03-applybar v03-applybar--hint ds-mob-only")
+  })
+
+  it("la barre empilée met prix et légende sur la première ligne et le bouton pleine largeur dessous", () => {
+    expect(rulesOf(".v03-applybar--stack")).toMatch(/flex-wrap:\s*wrap/)
+    expect(rulesOf(".v03-applybar--stack .v03-applybar__info")).toMatch(/flex-basis:\s*100%/)
+    expect(rulesOf(".v03-applybar--stack .v03-applybar__cta")).toMatch(/flex-basis:\s*100%/)
+  })
+
+  it("le libellé reste libre de passer à la ligne et le bouton garde 48 px minimum (jamais de colonne étroite forcée)", () => {
+    const btn = rulesOf(".v03-applybar .btn")
+    expect(btn).toMatch(/white-space:\s*normal/)
+    expect(btn).toMatch(/min-height:\s*var\(--h-btn\)/)
+    expect(css).not.toMatch(/\.v03-applybar[^{]*\{[^}]*white-space:\s*nowrap/)
+  })
+
+  it("le pied de page réserve 136 px sous la barre empilée (122 px mesurés) et sous l'invitation (143 px mesurés)", () => {
+    const reserve = (selector) => Number(rulesOf(selector).match(/calc\(var\(--s-6\) \+ (\d+)px/)?.[1])
+    expect(reserve(".ds:has(.v03-applybar--stack) .site-footer")).toBeGreaterThanOrEqual(136)
+    expect(reserve(".ds:has(.v03-applybar--hint) .site-footer")).toBeGreaterThanOrEqual(136)
+    expect(reserve(".ds:has(.v03-applybar) .site-footer")).toBeGreaterThanOrEqual(112)
+  })
+
+  it("les libellés de bouton de applyCta (constantes) tiennent sur une ligne à 320 px : sinon revoir les marges du pied de page", () => {
+    // 29 caractères (« Publier une mission similaire ») tiennent dans les 288 px de 320 px en Figtree gras 16 px,
+    // police de repli Arial comprise. Un libellé plus long ferait grandir la barre empilée au-delà des 136 px réservés.
+    const all = [
+      ...Object.values(cases),
+      student,
+      applyCta({ role: "student", missionId: ID, missionType: "Saisie", accepting: true, hasApplied: true }),
+      applyCta({ role: "admin", missionId: ID, missionType: "Saisie", accepting: true }),
+    ]
+    for (const cta of all) if (cta.primary) expect(cta.primary.label.length).toBeLessThanOrEqual(29)
+  })
+
+  it("la zone sûre iPhone et le lien avec apply-cta.js sont documentés à côté des marges", () => {
+    expect(rawCss).toMatch(/viewport-fit=cover/)
+    expect(rawCss).toMatch(/apply-cta\.js/)
   })
 })
