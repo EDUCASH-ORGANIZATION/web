@@ -188,15 +188,15 @@ describe("schéma de référence : table purchase_requests (script 94)", () => {
     expect(constraintDef("purchase_requests_parties_check")).toBe("CHECK ((student_id <> client_id));")
   })
 
-  it("la suppression d'une mission ou d'un compte emporte les demandes (cascade), jamais un DELETE direct", () => {
+  it("la suppression d'une mission emporte les demandes (cascade) ; celle d'un compte est refusée (RESTRICT, script 96)", () => {
     expect(constraintDef("purchase_requests_mission_id_fkey")).toBe(
       "FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;"
     )
     expect(constraintDef("purchase_requests_student_id_fkey")).toBe(
-      "FOREIGN KEY (student_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;"
+      "FOREIGN KEY (student_id) REFERENCES public.profiles(user_id) ON DELETE RESTRICT;"
     )
     expect(constraintDef("purchase_requests_client_id_fkey")).toBe(
-      "FOREIGN KEY (client_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;"
+      "FOREIGN KEY (client_id) REFERENCES public.profiles(user_id) ON DELETE RESTRICT;"
     )
     expect(onPurchaseRequests.some((l) => l.includes("auth.users"))).toBe(false)
     expect(guardFunction()).toContain("Demande d''achats : suppression interdite.")
