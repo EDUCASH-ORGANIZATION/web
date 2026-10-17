@@ -97,6 +97,10 @@ export const CARD_UPLOAD_INSTRUCTIONS = [
  * @property {number} rating
  * @property {number} missions_done
  * @property {string|null} fcm_token
+ * @property {boolean} [is_suspended]
+ * @property {string|null} [closed_at] Date de fermeture du compte (null : actif)
+ * @property {string|null} [pseudonymized_at] Date de debut de pseudonymisation (irreversible)
+ * @property {boolean|null} [closure_prev_suspended] Suspension d'avant la fermeture
  * @property {string} created_at
  * @property {string} updated_at
  */

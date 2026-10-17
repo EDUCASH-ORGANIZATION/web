@@ -1,3 +1,5 @@
+import { CLOSED_ACCOUNT_LABEL } from "@/lib/account-closure/closure-rules"
+
 const FALLBACK_STUDENT = "Étudiant EduCash"
 const FALLBACK_CLIENT = "Client"
 
@@ -15,6 +17,7 @@ function words(fullName) {
 export function publicDisplayName(fullName, { full = false } = {}) {
   const parts = words(fullName)
   if (parts.length === 0) return FALLBACK_STUDENT
+  if (parts.join(" ") === CLOSED_ACCOUNT_LABEL) return CLOSED_ACCOUNT_LABEL
   if (full) return parts.join(" ")
   if (parts.length === 1) return parts[0]
   const last = parts[parts.length - 1]
@@ -28,5 +31,7 @@ export function publicDisplayName(fullName, { full = false } = {}) {
  * @returns {string}
  */
 export function firstName(fullName, { fallback = FALLBACK_CLIENT } = {}) {
-  return words(fullName)[0] ?? fallback
+  const parts = words(fullName)
+  if (parts.join(" ") === CLOSED_ACCOUNT_LABEL) return CLOSED_ACCOUNT_LABEL
+  return parts[0] ?? fallback
 }
