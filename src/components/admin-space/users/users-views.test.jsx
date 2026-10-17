@@ -339,6 +339,8 @@ const closure = (over = {}) => ({
   blockers: [],
   deferred: [],
   history: [],
+  authBanned: false,
+  incomplete: false,
   ...over,
 })
 
@@ -370,6 +372,30 @@ describe("fermeture de compte : fiche", () => {
     expect(out).not.toContain("Réactiver")
     expect(out).not.toContain("pseudonymisation prévue")
     expect(out).not.toContain("Historique de fermeture")
+  })
+
+  it("compte actif encore banni : bouton Rétablir la connexion", () => {
+    expect(html(<UserDetailView data={withClosure({ authBanned: true })} />)).toContain("Rétablir la connexion")
+    expect(html(<UserDetailView data={withClosure({})} />)).not.toContain("Rétablir la connexion")
+  })
+
+  it("fermeture inachevée : Relancer la fermeture en plus de Réactiver le compte", () => {
+    const base = { state: "closed", canReopen: true, closedAt: "2026-10-10T08:00:00Z", dueAt: "2026-10-24T08:00:00Z" }
+    const out = html(<UserDetailView data={withClosure({ ...base, incomplete: true })} />)
+    expect(out).toContain("Relancer la fermeture")
+    expect(out).toContain("Réactiver le compte")
+    expect(html(<UserDetailView data={withClosure(base)} />)).not.toContain("Relancer la fermeture")
+  })
+
+  it("adresse pseudonymisée : remplacée par un libellé, fiche et liste", () => {
+    const erased = "abc@comptes-clotures.invalid"
+    const d = withClosure({ state: "pseudonymized" }, { email: erased })
+    const out = html(<UserDetailView data={d} />)
+    expect(out).toContain("Adresse effacée (compte clôturé)")
+    expect(out).not.toContain(erased)
+    const listOut = html(<UsersView data={list({ rows: [row({ userId: ID1, closure: "pseudonymized", email: erased })] })} />)
+    expect(listOut).toContain("Adresse effacée (compte clôturé)")
+    expect(listOut).not.toContain(erased)
   })
 
   it("blocages : bouton Fermer inactif et blocages listés", () => {
@@ -458,6 +484,20 @@ describe("modales de fermeture", () => {
   it("fermées : rien n'est rendu", () => {
     expect(html(<CloseAccountDialog open={false} onClose={() => {}} onConfirm={() => {}} name="Sèna" />)).not.toContain("dialog")
     expect(html(<ReopenAccountDialog open={false} onClose={() => {}} onConfirm={() => {}} name="Sèna" />)).not.toContain("dialog")
+  })
+
+  it("reprise de fermeture et rétablissement de la connexion : libellés dédiés, mêmes champs", () => {
+    const resume = html(<CloseAccountDialog open resume onClose={() => {}} onConfirm={() => {}} name="Sèna" />)
+    expect(resume).toContain("Relancer la fermeture du compte de Sèna ?")
+    expect(resume).toContain("Saisissez FERMER pour confirmer")
+    expect(resume).toContain("Motif")
+    const restore = html(<ReopenAccountDialog open restore onClose={() => {}} onConfirm={() => {}} name="Sèna" />)
+    expect(restore).toContain("Rétablir la connexion de Sèna ?")
+    expect(restore).toContain("Motif")
+    for (const out of [resume, restore]) {
+      expect(out).not.toMatch(DASHES)
+      expect(out).not.toMatch(/\b(tu|ton|ta|tes)\b/i)
+    }
   })
 
   it("fermeture : motif en liste, confirmation FERMER, conséquences et échéance, vouvoiement", () => {

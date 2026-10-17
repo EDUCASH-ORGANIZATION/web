@@ -10,6 +10,9 @@ import { adminUserHref, adminUsersHref } from "@/lib/app/admin-routes"
 import { formatAmount, formatDateFr } from "@/lib/app/format"
 import { roleLabel } from "@/lib/admin-space/labels"
 import { pageWindow } from "@/lib/admin-space/users"
+import { isClosedEmail } from "@/lib/account-closure/closure-rules"
+
+const ERASED_EMAIL = "Adresse effacée (compte clôturé)"
 
 const plural = (n, one, many) => (n > 1 ? many : one)
 
@@ -191,7 +194,7 @@ function Table({ rows }) {
                       {displayName(row)}
                       {row.isSelf ? " (vous)" : ""}
                     </Link>
-                    {row.email ? <div className="a2-03-who__sub">{row.email}</div> : null}
+                    {row.email ? <div className="a2-03-who__sub">{isClosedEmail(row.email) ? ERASED_EMAIL : row.email}</div> : null}
                   </div>
                 </div>
               </td>

@@ -17,7 +17,7 @@ export const CLOSURE_REASON_OPTIONS = [
   { value: CLOSURE_REASONS.ADMIN_DECISION, label: "Décision de l'administration" },
 ]
 
-function Form({ onClose, onConfirm, name }) {
+function Form({ onClose, onConfirm, name, resume = false }) {
   const [reasonCode, setReasonCode] = useState("")
   const [confirmation, setConfirmation] = useState("")
   const [error, setError] = useState("")
@@ -53,8 +53,12 @@ function Form({ onClose, onConfirm, name }) {
       onClose={() => {
         if (!pending) onClose()
       }}
-      title={`Fermer le compte de ${name} ?`}
-      description="Action réversible pendant le délai de grâce et tracée. Indiquez le motif de la fermeture."
+      title={resume ? `Relancer la fermeture du compte de ${name} ?` : `Fermer le compte de ${name} ?`}
+      description={
+        resume
+          ? "La fermeture est restée incomplète. Elle sera reprise avec les mêmes contrôles. Indiquez le motif de la fermeture."
+          : "Action réversible pendant le délai de grâce et tracée. Indiquez le motif de la fermeture."
+      }
       size="sm"
       tone="danger"
       initialFocusRef={cancelRef}
@@ -70,7 +74,7 @@ function Form({ onClose, onConfirm, name }) {
             disabled={pending}
             aria-busy={pending ? "true" : undefined}
           >
-            {pending ? "Envoi en cours" : "Fermer le compte"}
+            {pending ? "Envoi en cours" : resume ? "Relancer la fermeture" : "Fermer le compte"}
           </button>
         </>
       }
@@ -116,7 +120,7 @@ function Form({ onClose, onConfirm, name }) {
 
 /**
  * Fermeture d'un compte : motif en liste fermée, confirmation par la saisie de « FERMER », rappel des conséquences et
- * de l'échéance. `onConfirm({ reasonCode, confirmation })` renvoie `{ error }` en cas de refus.
+ * de l'échéance. Avec `resume` : reprise d'une fermeture inachevée, mêmes contrôles. `onConfirm({ reasonCode, confirmation })` renvoie `{ error }` en cas de refus.
  */
 export function CloseAccountDialog({ open, ...props }) {
   if (!open) return null
