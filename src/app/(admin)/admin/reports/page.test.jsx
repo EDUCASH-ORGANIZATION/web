@@ -64,6 +64,16 @@ describe("page admin signalements", () => {
     expect(view.props.error).toMatch(/pas pu être chargés/)
   })
 
+  it("la clé du Suspense change avec le filtre de type pour réafficher le squelette", async () => {
+    requireRole.mockResolvedValue({ user: { id: "a" } })
+    const keyFor = async (params) => (await Page({ searchParams: Promise.resolve(params) })).key
+    const all = await keyFor({ statut: "resolus" })
+    const purchases = await keyFor({ statut: "resolus", type: "demande-paiement-achats" })
+    const messages = await keyFor({ statut: "resolus", type: "messages" })
+    expect(new Set([all, purchases, messages]).size).toBe(3)
+    expect(purchases).toContain("demande-paiement-achats")
+  })
+
   it("sans paramètres d'URL, l'action reçoit un objet vide", async () => {
     requireRole.mockResolvedValue({ user: { id: "a" } })
     listAdminReports.mockResolvedValue({ items: [] })

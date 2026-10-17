@@ -103,12 +103,17 @@ export function adminNotificationsHref({ filtre } = {}) {
 const DEFAULT_REPORT_TAB = "a-traiter"
 const DEFAULT_REPORT_SORT = "anciens"
 
-/** File des signalements. Onglet « à traiter » et tri « anciens » par défaut : omis de l'URL. */
-export function adminReportsHref({ statut, tri, page } = {}) {
+/**
+ * File des signalements. Onglet « à traiter » et tri « anciens » par défaut : omis de l'URL.
+ * `type` : filtre par type de cible (`messages` ou `demande-paiement-achats`), absent pour tous les types.
+ * @param {{ statut?: string, tri?: string, page?: number|string, type?: string }} [params]
+ */
+export function adminReportsHref({ statut, tri, page, type } = {}) {
   return withQuery("/admin/reports", [
     ["statut", statut === DEFAULT_REPORT_TAB ? undefined : statut],
     ["tri", tri === DEFAULT_REPORT_SORT ? undefined : tri],
     ["page", pageParam(page)],
+    ["type", type],
   ])
 }
 

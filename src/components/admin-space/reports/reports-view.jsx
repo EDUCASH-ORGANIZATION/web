@@ -30,12 +30,6 @@ const TYPE_OPTIONS = [
   { value: PURCHASE_TYPE, label: "Demandes de paiement d'achats" },
 ]
 
-// Adresse de la file : `adminReportsHref` ne connaît pas le filtre de type, il est ajouté ici.
-function listHref({ statut, tri, page, type }) {
-  const href = adminReportsHref({ statut, tri, page })
-  return type ? `${href}${href.includes("?") ? "&" : "?"}type=${encodeURIComponent(type)}` : href
-}
-
 const plural = (n, one, many) => (n > 1 ? many : one)
 
 /** Sous-titre : nombre de signalements à traiter. */
@@ -77,7 +71,7 @@ function SortLink({ data }) {
       <span className="caption">Tri : {label.toLowerCase()}. Les demandes de paiement d&apos;achats passent toujours en premier.</span>
       <Link
         className="btn btn--secondary btn--sm"
-        href={listHref({ statut: data.tab, tri: next === DEFAULT_REPORT_SORT ? undefined : next, type: data.type })}
+        href={adminReportsHref({ statut: data.tab, tri: next === DEFAULT_REPORT_SORT ? undefined : next, type: data.type })}
       >
         <Icon name="i-sort" />
         {next === "recents" ? "Voir les plus récents d'abord" : "Voir les plus anciens d'abord"}
@@ -89,7 +83,7 @@ function SortLink({ data }) {
 function TypeFilter({ data }) {
   const options = TYPE_OPTIONS.map((o) => ({
     ...o,
-    href: listHref({ statut: data.tab, tri: data.sort, type: o.value }),
+    href: adminReportsHref({ statut: data.tab, tri: data.sort, type: o.value }),
   }))
   return (
     <div className="a2-filters">
@@ -188,7 +182,7 @@ export function ReportsView({ data, error, now = new Date() }) {
   const tabs = REPORT_TABS.map((key) => ({
     key,
     label: REPORT_TAB_LABELS[key],
-    href: listHref({ statut: key === DEFAULT_REPORT_TAB ? undefined : key, type: data.type }),
+    href: adminReportsHref({ statut: key === DEFAULT_REPORT_TAB ? undefined : key, type: data.type }),
     count: counts[key],
   }))
 
@@ -233,7 +227,7 @@ export function ReportsView({ data, error, now = new Date() }) {
         pageSize={data.pageSize}
         total={data.total}
         label="Pagination des signalements"
-        hrefFor={(page) => listHref({ statut: tab, tri: data.sort, page, type: data.type })}
+        hrefFor={(page) => adminReportsHref({ statut: tab, tri: data.sort, page, type: data.type })}
       />
     </div>
   )
