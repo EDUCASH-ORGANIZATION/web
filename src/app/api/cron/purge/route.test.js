@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
 vi.mock("@/lib/actions/purge-rows", () => ({ purgeContactEvents: vi.fn(), purgeClosedReports: vi.fn() }))
+vi.mock("@/lib/actions/account-closure-pseudonymize", () => ({ pseudonymizeClosedAccounts: vi.fn() }))
 vi.mock("@/lib/actions/purge-files", () => ({
   purgeProofFiles: vi.fn(),
   purgeMessageMedia: vi.fn(),
@@ -12,6 +13,7 @@ vi.mock("@/lib/actions/purge-files", () => ({
 
 import { createServiceClient } from "@/lib/supabase/service"
 import { purgeContactEvents, purgeClosedReports } from "@/lib/actions/purge-rows"
+import { pseudonymizeClosedAccounts } from "@/lib/actions/account-closure-pseudonymize"
 import { purgeProofFiles, purgeMessageMedia, purgeAvatars, purgeStudentCards } from "@/lib/actions/purge-files"
 import * as routeModule from "./route"
 
@@ -38,6 +40,7 @@ describe("GET /api/cron/purge", () => {
     purgeContactEvents.mockResolvedValue(undefined)
     purgeClosedReports.mockResolvedValue(undefined)
     for (const fn of fileFns) fn.mockResolvedValue({ categories: {}, stops: [] })
+    pseudonymizeClosedAccounts.mockResolvedValue({ categories: {}, stops: [] })
   })
   afterEach(() => {
     for (const k of keys) {
@@ -143,6 +146,43 @@ describe("GET /api/cron/purge", () => {
     expect(body.categories.contact_events.erreurs).toBe(1)
     expect(body.categories.proof_orphans.erreurs).toBe(1)
     expect(JSON.stringify(body)).not.toMatch(/boom|secret\/path|123e4567/)
+  })
+
+  it("closed_accounts : mode dry transmis sans PURGE_ENABLED, entre closed_reports et proof_orphans", async () => {
+    await GET(req(`Bearer ${SECRET}`))
+    const opts = pseudonymizeClosedAccounts.mock.calls[0][1]
+    expect(opts.mode).toBe("dry")
+    expect(opts.allowMass).toBe(false)
+    const order = (fn) => fn.mock.invocationCallOrder[0]
+    expect(order(purgeClosedReports)).toBeLessThan(order(pseudonymizeClosedAccounts))
+    expect(order(pseudonymizeClosedAccounts)).toBeLessThan(order(purgeProofFiles))
+  })
+
+  it("closed_accounts : mode real avec PURGE_ENABLED=true et allowMass transmis", async () => {
+    process.env.PURGE_ENABLED = "true"
+    process.env.PURGE_ALLOW_MASS = "true"
+    await GET(req(`Bearer ${SECRET}`))
+    const opts = pseudonymizeClosedAccounts.mock.calls[0][1]
+    expect(opts.mode).toBe("real")
+    expect(opts.allowMass).toBe(true)
+  })
+
+  it("closed_accounts : une exception n'arrete pas les categories suivantes", async () => {
+    pseudonymizeClosedAccounts.mockRejectedValue(new Error("boom 123e4567-e89b-12d3-a456-426614174000"))
+    const res = await GET(req(`Bearer ${SECRET}`))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.categories.closed_accounts.erreurs).toBe(1)
+    expect(body.arrets).toContainEqual({ categorie: "closed_accounts", motif: "error" })
+    for (const fn of fileFns) expect(fn).toHaveBeenCalled()
+    expect(JSON.stringify(body)).not.toMatch(/boom|123e4567/)
+  })
+
+  it("closed_accounts : fusionne ses compteurs", async () => {
+    pseudonymizeClosedAccounts.mockResolvedValue({ categories: { closed_accounts: { examines: 2, candidats: 1 } }, stops: ["breaker"] })
+    const body = await (await GET(req(`Bearer ${SECRET}`))).json()
+    expect(body.categories.closed_accounts.examines).toBe(2)
+    expect(body.arrets).toContainEqual({ categorie: "closed_accounts", motif: "breaker" })
   })
 
   it("fusionne les compteurs de fichiers et le journal ne contient que des compteurs", async () => {

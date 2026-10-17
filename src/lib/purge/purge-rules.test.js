@@ -487,7 +487,7 @@ describe("résumé", () => {
     const s = emptySummary()
     expect(s.mode).toBe("dry")
     expect(Object.keys(s.categories)).toEqual(PURGE_CATEGORIES)
-    expect(PURGE_CATEGORIES).toEqual(["contact_events", "closed_reports", "proof_orphans", "message_media", "avatars", "student_cards", "proof_expired"])
+    expect(PURGE_CATEGORIES).toEqual(["contact_events", "closed_reports", "closed_accounts", "proof_orphans", "message_media", "avatars", "student_cards", "proof_expired"])
     for (const c of PURGE_CATEGORIES) {
       expect(Object.keys(s.categories[c])).toEqual(SUMMARY_FIELDS)
       expect(Object.values(s.categories[c]).every((v) => v === 0)).toBe(true)

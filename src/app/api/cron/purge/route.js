@@ -10,6 +10,7 @@ import {
 } from "@/lib/purge/purge-rules"
 import { purgeClosedReports, purgeContactEvents } from "@/lib/actions/purge-rows"
 import { purgeAvatars, purgeMessageMedia, purgeProofFiles, purgeStudentCards } from "@/lib/actions/purge-files"
+import { pseudonymizeClosedAccounts } from "@/lib/actions/account-closure-pseudonymize"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const runtime = "nodejs"
@@ -61,6 +62,10 @@ export async function GET(request) {
     const steps = [
       { category: "contact_events", run: () => purgeContactEvents(service, { ...common, summary }) },
       { category: "closed_reports", run: () => purgeClosedReports(service, { ...common, summary }) },
+      {
+        category: "closed_accounts",
+        run: async () => mergeFileResult(summary, await pseudonymizeClosedAccounts(service, { ...common, allowMass })),
+      },
       {
         category: "proof_orphans",
         run: async () => mergeFileResult(summary, await purgeProofFiles(service, { ...common, allowMass })),
