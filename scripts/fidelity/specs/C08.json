@@ -449,8 +449,10 @@
             "bg"
           ],
           "lot": "ST-09",
-          "note": "ÉCHEC conservé, écart permanent (D2 de RD-DONE-01 et arbitrage de RD-ACHATS-01) : la planche place « Confirmer la fin » en contour et désactivé dans la carte Séquestre, sous « Disponible quand Ulrich aura déclaré la mission terminée ». Dans le code il reste ACTIF (le client paie ; un étudiant qui oublie de déclarer ne doit pas bloquer son paiement) et, tant qu'une demande attend, il est rendu en contour (un seul bouton encre par cadre : « Ouvrir la demande ») dans la carte « À faire », la carte Séquestre (escrow-card.jsx, inchangée) n'affichant alors aucun bouton. Le sélecteur du code vise donc ce bouton, d'où les écarts de position.",
-          "code": "section.card2[aria-label=\"À faire\"] .btn.btn--soft"
+          "note": "A3 : titre de page à 1.14 d'interligne (+3 px). A8 : carte étudiant au-dessus (-23 px). ÉCHEC conservé sur le fond, écart permanent (D2 de RD-DONE-01) : la planche place « Confirmer la fin » en contour et désactivé, sous « Disponible quand Ulrich aura déclaré la mission terminée ». Dans le code il reste ACTIF (le client paie ; un étudiant qui oublie de déclarer ne doit pas bloquer son paiement) et, tant qu'une demande attend, il est en contour (confirmTone=\"soft\" : un seul bouton encre par cadre, « Ouvrir la demande »). Le fond mesuré diffère de la planche (la planche est soft grisé par is-disabled, le code est le soft actif de la charte) ; la note « Disponible quand... » est absente (hauteur de la carte Séquestre -47 px).",
+          "assume": {
+            "y": "A3+A8:19"
+          }
         }
       ]
     },

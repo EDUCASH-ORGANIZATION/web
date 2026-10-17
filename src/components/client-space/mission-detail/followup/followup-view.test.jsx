@@ -714,7 +714,9 @@ describe("C08 avec demandes de paiement d'achats (ST-13)", () => {
       expect(b).toContain("btn--soft")
       expect(b).not.toMatch(/disabled|aria-disabled|is-disabled/)
     }
-    expect(section(out, "Séquestre")).not.toContain("Confirmer la fin")
+    // Le bouton reste dans la carte Séquestre (contour), pas dans la carte « À faire ».
+    expect(section(out, "Séquestre")).toMatch(/<button[^>]*btn--soft[^>]*>[^]*Confirmer la fin/)
+    expect(section(out, "À faire")).not.toContain("Confirmer la fin")
   })
 
   it("sans demande en attente, Confirmer la fin reste le bouton encre et la carte Mission en cours est conservée", () => {

@@ -138,7 +138,6 @@ function InProgress({ detail, view, studentName, onConfirm }) {
               others={pendingOthers}
               studentName={studentName}
               href={clientConversationHref(mission.id, selectedStudent?.id, { demande: pendingRequest.id })}
-              confirm={declared ? undefined : onConfirm}
             />
           ) : null}
           {declared ? (
@@ -170,7 +169,8 @@ function InProgress({ detail, view, studentName, onConfirm }) {
           <EscrowCard
             split={view.split}
             studentName={studentName}
-            onConfirm={declared || pendingRequest ? undefined : onConfirm}
+            onConfirm={declared ? undefined : onConfirm}
+            confirmTone={confirmTone}
             withPurchases={estimate !== null}
             since={view.reservedAt ? formatDay(view.reservedAt) : ""}
           />

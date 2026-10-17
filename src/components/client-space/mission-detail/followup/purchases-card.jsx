@@ -116,10 +116,9 @@ export function PurchasesCard({ estimate, escrowed = false, purchases }) {
 /**
  * Carte « À faire » d'une demande de paiement en attente (C08) : « <Prénom> vous demande de payer X à <vendeur> »,
  * l'avertissement PAYMENT_WARNING et le bouton encre « Ouvrir la demande » vers la conversation (le paiement s'y fait,
- * jamais depuis cet écran). `confirm` : bouton « Confirmer la fin » en contour, jamais désactivé (bureau seulement,
- * la barre du bas le porte sur mobile) ; absent quand la carte « À confirmer » le porte déjà.
+ * jamais depuis cet écran).
  */
-export function PaymentTodoCard({ request, others = 0, studentName, href, confirm }) {
+export function PaymentTodoCard({ request, others = 0, studentName, href }) {
   const lead = studentName.charAt(0).toUpperCase() + studentName.slice(1)
   return (
     <section className="card2 fup2__status fup2__status--todo" aria-label="À faire">
@@ -140,12 +139,6 @@ export function PaymentTodoCard({ request, others = 0, studentName, href, confir
             <Icon name="i-receipt" />
             Ouvrir la demande
           </Link>
-          {confirm ? (
-            <button type="button" className="btn btn--soft fup2__desk" onClick={confirm}>
-              <Icon name="i-check-circle" />
-              Confirmer la fin
-            </button>
-          ) : null}
         </div>
       </div>
     </section>

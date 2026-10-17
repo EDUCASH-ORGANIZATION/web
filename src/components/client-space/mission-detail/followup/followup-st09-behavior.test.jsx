@@ -297,3 +297,26 @@ describe("ST-13 demandes de paiement : chronologie, bouton et séquestre inchang
     expect(bar).not.toMatch(/disabled/)
   })
 })
+
+describe("ST-13 EscrowCard : prop confirmTone", () => {
+  const split = { total: 8000, commission: 960, student: 7040 }
+  const html = (props) => renderToStaticMarkup(<EscrowCard split={split} studentName="Sèna" onConfirm={() => {}} {...props} />)
+
+  it("absente : bouton encre comme avant", () => {
+    expect(html({})).toMatch(/<button[^>]*btn btn--dark btn--block[^>]*>/)
+  })
+
+  it("soft : bouton en contour, actif", () => {
+    const out = html({ confirmTone: "soft" })
+    expect(out).toMatch(/<button[^>]*btn btn--soft btn--block[^>]*>/)
+    expect(out).not.toMatch(/btn--dark|disabled/)
+  })
+
+  it("valeur inconnue : retombe sur l'encre", () => {
+    expect(html({ confirmTone: "x" })).toContain("btn--dark")
+  })
+
+  it("sans onConfirm : aucun bouton", () => {
+    expect(html({ onConfirm: undefined, confirmTone: "soft" })).not.toContain("Confirmer la fin")
+  })
+})
