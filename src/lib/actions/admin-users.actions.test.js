@@ -686,8 +686,17 @@ describe("closeAccount", () => {
     })
     const line = console.info.mock.calls.find((c) => c[0] === "[admin-audit]")[1]
     expect(JSON.parse(line)).toMatchObject({ adminId: ADMIN_ID, action: "user.close", targetId: id, reason: "admin_decision" })
+    expect(JSON.parse(line)).toMatchObject({ before: { state: "active" }, after: { state: "closed" } })
     expect(line).not.toMatch(/exemple\.bj|\+229|Utilisateur/)
     expect(revalidatePath).toHaveBeenCalledWith(`/admin/users/${id}`)
+  })
+
+  it("reprise d'une fermeture : le journal part de l'état fermé", async () => {
+    const id = addProfile(1)
+    closeAccountCore.mockResolvedValue({ ...ok, alreadyClosed: true })
+    await closeAccount(id, valid)
+    const line = console.info.mock.calls.find((c) => c[0] === "[admin-audit]")[1]
+    expect(JSON.parse(line)).toMatchObject({ action: "user.close", before: { state: "closed" }, after: { state: "closed" } })
   })
 
   it("blocages : messages d'administration, aucun journal", async () => {
@@ -761,7 +770,16 @@ describe("reopenAccount", () => {
     })
     const line = console.info.mock.calls.find((c) => c[0] === "[admin-audit]")[1]
     expect(JSON.parse(line)).toMatchObject({ action: "user.reopen", targetId: id, reason: "user_request" })
+    expect(JSON.parse(line)).toMatchObject({ before: { state: "closed" }, after: { state: "active" } })
     expect(revalidatePath).toHaveBeenCalledWith("/admin/users")
+  })
+
+  it("rétablissement de connexion d'un compte déjà actif : le journal part de l'état actif", async () => {
+    const id = addProfile(1)
+    reopenAccountCore.mockResolvedValue({ success: true, complete: true, alreadyActive: true })
+    await reopenAccount(id, { reasonCode: "admin_decision" })
+    const line = console.info.mock.calls.find((c) => c[0] === "[admin-audit]")[1]
+    expect(JSON.parse(line)).toMatchObject({ action: "user.reopen", before: { state: "active" }, after: { state: "active" } })
   })
 
   it("le coeur répond PSEUDONYMIZED (course) : message d'impossibilité, aucun journal", async () => {
