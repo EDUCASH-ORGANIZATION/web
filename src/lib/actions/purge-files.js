@@ -69,14 +69,16 @@ function chunks(values, size) {
 async function readAll(page) {
   const rows = []
   try {
+    // PostgREST peut plafonner une réponse sous PAGE (max_rows) : l'offset avance du nombre de lignes reçues et seule
+    // une page vide termine la lecture.
     for (let i = 0; i < MAX_PAGES; i += 1) {
-      const { data, error } = await page(i * PAGE, (i + 1) * PAGE - 1)
+      const { data, error } = await page(rows.length, rows.length + PAGE - 1)
       if (error || !Array.isArray(data)) return null
+      if (data.length === 0) return rows
       for (const row of data) {
         if (!row || typeof row !== "object") return null
         rows.push(row)
       }
-      if (data.length < PAGE) return rows
     }
   } catch {
     return null
@@ -98,8 +100,8 @@ async function readByIds(service, table, columns, column, ids) {
 }
 
 /**
- * Parcourt un compartiment dossier par dossier, cumule les candidats, applique le disjoncteur puis supprime par
- * paquets. `evaluateOwner(ownerId)` renvoie `{ failed, timedOut, ignored, examined, candidates }` où
+ * Parcourt TOUT le compartiment dossier par dossier en cumulant les candidats, applique le disjoncteur une seule
+ * fois sur les totaux du compartiment, puis supprime par paquets (`removePaths`). `evaluateOwner(ownerId)` renvoie `{ failed, timedOut, ignored, examined, candidates }` où
  * `candidates` liste `{ path, category }`.
  */
 async function purgeBucket({ service, bucket, categories, evaluateOwner, options }) {
@@ -116,29 +118,7 @@ async function purgeBucket({ service, bucket, categories, evaluateOwner, options
   }
 
   let examined = 0
-  let candidates = 0
-  let pending = []
-  let tripped = false
-
-  async function flush() {
-    if (pending.length === 0) return
-    if (tripsBreaker({ examined, candidates, allowMass })) {
-      tripped = true
-      stop("breaker")
-      pending = []
-      return
-    }
-    for (const category of categories) {
-      const paths = pending.filter((c) => c.category === category).map((c) => c.path)
-      if (paths.length === 0) continue
-      const r = await removePaths(service, bucket, paths, { dryRun, deadline })
-      counters[category].supprimes += r.supprimes
-      counters[category].erreurs += r.erreurs
-      counters[category].ignores += r.ignores
-      if (r.arretBudget) stop("deadline")
-    }
-    pending = []
-  }
+  const pending = []
 
   const owners = await listOwnerFolders(service, bucket, { deadline })
   if (owners.error) {
@@ -167,20 +147,30 @@ async function purgeBucket({ service, bucket, categories, evaluateOwner, options
       continue
     }
     examined += r.examined
-    candidates += r.candidates.length
     for (const c of categories) {
       counters[c].examines += r.examined
       counters[c].ignores += r.ignored
     }
     for (const candidate of r.candidates) counters[candidate.category].candidats += 1
     pending.push(...r.candidates)
-    if (pending.length >= REMOVE_BATCH) {
-      await flush()
-      if (tripped || result.stops.includes("deadline")) break
-    }
   }
 
-  if (!tripped && !result.stops.includes("deadline")) await flush()
+  // Le disjoncteur porte sur les totaux du compartiment entier, évalués avant toute suppression. Une échéance
+  // atteinte pendant le parcours : rien n'est supprimé pour ce compartiment.
+  if (result.stops.includes("deadline") || pending.length === 0) return result
+  if (tripsBreaker({ examined, candidates: pending.length, allowMass })) {
+    stop("breaker")
+    return result
+  }
+  for (const category of categories) {
+    const paths = pending.filter((c) => c.category === category).map((c) => c.path)
+    if (paths.length === 0) continue
+    const r = await removePaths(service, bucket, paths, { dryRun, deadline })
+    counters[category].supprimes += r.supprimes
+    counters[category].erreurs += r.erreurs
+    counters[category].ignores += r.ignores
+    if (r.arretBudget) stop("deadline")
+  }
   return result
 }
 
@@ -271,19 +261,20 @@ function lastHandledAt(reports) {
 }
 
 /**
- * Lit les demandes d'un déposant et, si P4 est active, leurs missions et signalements. Renvoie `{ requests }`
+ * Lit les demandes d'un déposant, leurs signalements et, si P4 est active, leurs missions. Renvoie `{ requests }`
  * (Map requestId -> entrée de classification) ou null si une lecture ou une référence est illisible.
  */
 async function readProofContext(service, requestIds, retentionMonths) {
   const rows = await readByIds(service, "purchase_requests", REQUEST_COLUMNS, "id", requestIds)
   if (rows === null) return null
+  // Les signalements sont toujours lus : un signalement ouvert protège aussi les versions remplacées (P3).
+  const reports = await readByIds(service, "reports", "id, purchase_request_id, status, handled_at", "purchase_request_id", rows.map((r) => r.id).filter(isUuid))
+  if (reports === null) return null
   let missions = null
-  let reports = null
   if (retentionMonths !== null) {
     const missionIds = [...new Set(rows.map((r) => r.mission_id).filter(isUuid))]
     missions = await readByIds(service, "missions", "id, status, updated_at", "id", missionIds)
-    reports = await readByIds(service, "reports", "id, purchase_request_id, status, handled_at", "purchase_request_id", rows.map((r) => r.id).filter(isUuid))
-    if (missions === null || reports === null) return null
+    if (missions === null) return null
   }
   const requests = new Map()
   for (const row of rows) {
@@ -293,10 +284,10 @@ async function readProofContext(service, requestIds, retentionMonths) {
     const clientPaths = referencedPathsOrNull([row.sms_photo_path], PROOF_BUCKET, row.client_id)
     if (studentPaths === null || clientPaths === null) return null
     const entry = { request: { paths: new Set([...studentPaths, ...clientPaths]), updated_at: row.updated_at } }
+    const own = reports.filter((r) => r.purchase_request_id === row.id)
+    entry.openReport = own.some((r) => !CLOSED_REPORT_STATUSES.includes(r.status))
     if (retentionMonths !== null) {
-      const own = reports.filter((r) => r.purchase_request_id === row.id)
       entry.mission = missions.find((m) => m.id === row.mission_id) ?? null
-      entry.openReport = own.some((r) => !CLOSED_REPORT_STATUSES.includes(r.status))
       entry.lastReportHandledAt = lastHandledAt(own)
     }
     requests.set(row.id, entry)
@@ -336,6 +327,7 @@ function proofEvaluator(service, { now, deadline, retentionMonths }) {
         now,
         retentionMonths,
       })
+      if (verdict === "superseded" && entry?.openReport !== false) continue
       if (verdict === "orphan" || verdict === "superseded") candidates.push({ path: file.name, category: "proof_orphans" })
       else if (verdict === "expired") candidates.push({ path: file.name, category: "proof_expired" })
     }

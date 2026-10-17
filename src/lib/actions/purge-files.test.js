@@ -276,6 +276,20 @@ describe("médias de messagerie (P5)", () => {
     expect(state.selects[0]).toEqual({ table: "messages", columns: "id, media_url" })
   })
 
+  it("un plafond PostgREST sous 1000 lignes ne tronque pas les références", async () => {
+    const messages = Array.from({ length: 250 }, (_, i) => ({
+      id: `m${String(i).padStart(5, "0")}`,
+      sender_id: U1,
+      media_url: `${U1}/f-${i}.jpg`,
+    }))
+    const files = Object.fromEntries(messages.map((m) => [m.media_url, OLD]))
+    const { service, state } = fakeService({ tables: { messages }, buckets: { "message-media": files } })
+    state.maxRows = 100
+    const r = await purgeMessageMedia(service, real)
+    expect(state.removed).toEqual([])
+    expect(r.categories.message_media.candidats).toBe(0)
+  })
+
   it("lit toutes les références au-delà d'une page (plus de 1000 messages d'un expéditeur)", async () => {
     const messages = Array.from({ length: 1500 }, (_, i) => ({
       id: `m${String(i).padStart(5, "0")}`,
@@ -426,6 +440,51 @@ describe("disjoncteur", () => {
       expect(b.state.removeCalls).toBe(0)
       expect(res.stops).toEqual(["breaker"])
     }
+  })
+
+  it("évalué sur tout le compartiment : premiers lots sous le seuil, total au-dessus, aucun remove", async () => {
+    // U1 : 120 orphelins sur 1100 fichiers (sous le seuil) ; U2 : 600 orphelins de plus -> 720 sur 1700 puis le reste référencé
+    const refs = Array.from({ length: 1000 }, (_, i) => ({ id: `p${String(i).padStart(4, "0")}`, user_id: U1, avatar_url: `${U1}/ref-${i}.jpg` }))
+    const files = { ...many(120, U1), ...many(1100, U2) }
+    for (const r of refs) files[r.avatar_url] = OLD
+    const { service, state } = fakeService({ tables: { profiles: refs }, buckets: { avatars: files } })
+    const res = await purgeAvatars(service, real)
+    expect(state.removeCalls).toBe(0)
+    expect(res.stops).toEqual(["breaker"])
+    expect(res.categories.avatars.candidats).toBe(1220)
+    expect(res.categories.avatars.supprimes).toBe(0)
+  })
+
+  it("nominal : plus de 100 candidats sous le seuil, tous supprimés par lots de 100", async () => {
+    const refs = Array.from({ length: 300 }, (_, i) => ({ id: `p${String(i).padStart(4, "0")}`, user_id: U1, avatar_url: `${U1}/ref-${i}.jpg` }))
+    const files = many(150, U2)
+    for (const r of refs) files[r.avatar_url] = OLD
+    const { service, state } = fakeService({ tables: { profiles: refs }, buckets: { avatars: files } })
+    const res = await purgeAvatars(service, real)
+    expect(res.stops).toEqual([])
+    expect(state.removed).toHaveLength(150)
+    expect(state.removeCalls).toBe(2)
+    expect(res.categories.avatars.supprimes).toBe(150)
+  })
+
+  it("échéance en cours de parcours : aucun remove, motif deadline", async () => {
+    const files = { ...many(5, U1), ...many(5, U2) }
+    const { service, state } = fakeService({ tables: { profiles: [] }, buckets: { avatars: files } })
+    // Les deux dossiers sont lus, l'échéance tombe avant la fin du parcours
+    const spy = vi.spyOn(Date, "now")
+    let calls = 0
+    spy.mockImplementation(() => (++calls < 6 ? 1000 : 99999))
+    const res = await purgeAvatars(service, { ...real, deadline: 5000 })
+    spy.mockRestore()
+    expect(res.stops).toContain("deadline")
+    expect(state.removeCalls).toBe(0)
+  })
+
+  it("simulation : le parcours va jusqu'au bout et compte tous les candidats", async () => {
+    const { service, state } = fakeService({ tables: { profiles: [] }, buckets: { avatars: { ...many(20, U1), ...many(20, U2) } } })
+    const res = await purgeAvatars(service, { now: NOW, mode: "dry", allowMass: true })
+    expect(res.categories.avatars.candidats).toBe(40)
+    expect(state.removeCalls).toBe(0)
   })
 
   it("en simulation le disjoncteur est aussi signalé", async () => {
@@ -589,7 +648,7 @@ describe("preuves d'achats (P3 et P4)", () => {
     expect(recentReport.state.removed).toEqual([])
   })
 
-  it("P4 désactivée par injection de retentionMonths null : rien d'expiré, missions et signalements non lus", async () => {
+  it("P4 désactivée par injection de retentionMonths null : rien d'expiré, missions non lues (signalements lus pour P3)", async () => {
     const { service, state } = fakeService({
       tables: { purchase_requests: [baseRequest()], missions: [mission()], reports: [] },
       buckets: { "purchase-proofs": files() },
@@ -598,7 +657,23 @@ describe("preuves d'achats (P3 et P4)", () => {
     expect(state.removed).toEqual([])
     expect(r.categories.proof_expired).toEqual({ examines: 2, candidats: 0, supprimes: 0, erreurs: 0, ignores: 0 })
     expect(state.selects.map((s) => s.table)).not.toContain("missions")
-    expect(state.selects.map((s) => s.table)).not.toContain("reports")
+    expect(state.selects.map((s) => s.table)).toContain("reports")
+  })
+
+  it("version remplacée conservée tant qu'un signalement est ouvert, supprimée quand il est clos ou absent (rétention nulle)", async () => {
+    const stale = proofPath(U1, R1, "payee-oldoldold")
+    const run = async (reports) => {
+      const { service, state } = fakeService({
+        tables: { purchase_requests: [baseRequest()], reports },
+        buckets: { "purchase-proofs": files({ [stale]: OLD }) },
+      })
+      await purgeProofFiles(service, { ...real, retentionMonths: null })
+      return state.removed
+    }
+    expect(await run([{ id: "r1", purchase_request_id: R1, status: "open", handled_at: null }])).toEqual([])
+    expect(await run([{ id: "r1", purchase_request_id: R1, status: "statut-inconnu", handled_at: null }])).toEqual([])
+    expect(await run([{ id: "r1", purchase_request_id: R1, status: "resolved", handled_at: OLD }])).toEqual([stale])
+    expect(await run([])).toEqual([stale])
   })
 
   it("la durée par défaut est celle de la constante (12 mois) : preuve de 11 mois conservée", async () => {
