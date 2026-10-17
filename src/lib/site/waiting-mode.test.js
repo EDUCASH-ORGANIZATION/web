@@ -95,6 +95,40 @@ describe("isWaitingPassthrough", () => {
   )
 })
 
+describe("isWaitingPassthrough /api/cron/purge", () => {
+  it("laisse passer exactement /api/cron/purge", () => {
+    expect(isWaitingPassthrough("/api/cron/purge")).toBe(true)
+  })
+  it.each([
+    "/api/cron",
+    "/api/cron/",
+    "/api/cron/purge/",
+    "/api/cron/purge/x",
+    "/api/cron/purge.rsc",
+    "/api/cron/purge.json",
+    "/api/cron/Purge",
+    "/API/cron/purge",
+    "/api/CRON/purge",
+    "//api/cron/purge",
+    "/api//cron/purge",
+    "/api/cron/purge;x=1",
+    "/api/cron/purge?x=1",
+    "/api/cron/purge#x",
+    "/api/cron/%70urge",
+    "/api/%63ron/purge",
+    "/api%2Fcron%2Fpurge",
+    "/api/cron/purge%2F",
+    "/api/cron/purge%00",
+    "/api/cron/purge ",
+    "/api/cron/../cron/purge",
+    "/api/cron/./purge",
+    "/api/email",
+    "/api/cron/other",
+  ])("refuse la variante %s", (p) => {
+    expect(isWaitingPassthrough(p)).toBe(false)
+  })
+})
+
 describe("ROBOTS_WAITING_TEXT", () => {
   it("interdit tout et n'annonce pas de sitemap", () => {
     expect(ROBOTS_WAITING_TEXT).toBe("User-agent: *\nDisallow: /\n")
