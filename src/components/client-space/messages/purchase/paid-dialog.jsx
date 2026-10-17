@@ -239,7 +239,7 @@ export function PaidDialog({ request, studentName, onSubmit, onClose }) {
             aria-describedby={fileError ? `${fileHelpId} ${fileErrorId}` : fileHelpId}
           />
           <span id={fileHelpId} className="field__help">
-            Le SMS de MoMo avec le montant, le nom du bénéficiaire et la référence.
+            Le SMS de MoMo avec le montant, le nom du bénéficiaire et la référence. La capture sera visible de l&apos;étudiant (et de l&apos;équipe EduCash). Vous pouvez masquer votre solde avant de l&apos;envoyer.
           </span>
           {fileError ? (
             <div id={fileErrorId} className="field__error" role="alert">

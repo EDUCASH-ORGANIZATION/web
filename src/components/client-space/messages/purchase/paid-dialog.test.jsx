@@ -87,6 +87,12 @@ describe("PaidDialog - accessibilité", () => {
     const help = document.getElementById(fileInput().getAttribute("aria-describedby").split(" ")[0])
     expect(help.textContent).toMatch(/SMS de MoMo/)
   })
+
+  it("prévient que la capture est visible de l'étudiant et de l'équipe EduCash, et qu'on peut masquer son solde", () => {
+    setup()
+    const help = document.getElementById(fileInput().getAttribute("aria-describedby").split(" ")[0])
+    expect(help.textContent).toContain("La capture sera visible de l'étudiant (et de l'équipe EduCash). Vous pouvez masquer votre solde avant de l'envoyer.")
+  })
 })
 
 describe("PaidDialog - validations", () => {
