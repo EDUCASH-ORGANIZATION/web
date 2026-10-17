@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { readFileSync } from "node:fs"
+import { readFileSync, readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
 
 const createServiceClient = vi.fn()
@@ -180,5 +180,63 @@ describe("GET /api/cron/purge", () => {
     const res = await call()
     expect(res.status).toBe(500)
     expect(JSON.stringify(await res.json())).not.toContain("abc")
+  })
+})
+
+function listJs(dir) {
+  return readdirSync(dir).flatMap((name) => {
+    const full = join(dir, name)
+    if (statSync(full).isDirectory()) return listJs(full)
+    return /\.(js|jsx)$/.test(name) ? [full] : []
+  })
+}
+
+const isProd = (f) => !/\.test\.jsx?$/.test(f) && !/test-support/.test(f)
+const purgeModules = [
+  ...readdirSync(join(ROOT, "src/lib/purge")).map((n) => join(ROOT, "src/lib/purge", n)),
+  ...readdirSync(join(ROOT, "src/lib/actions"))
+    .filter((n) => /^purge-.*\.js$/.test(n))
+    .map((n) => join(ROOT, "src/lib/actions", n)),
+].filter(isProd)
+const rel = (f) => f.slice(ROOT.length + 1)
+
+describe("garde statique des modules de purge", () => {
+  it("trouve les modules attendus", () => {
+    expect(purgeModules.map(rel).sort()).toEqual([
+      "src/lib/actions/purge-files.js",
+      "src/lib/actions/purge-rows.js",
+      "src/lib/purge/purge-rules.js",
+      "src/lib/purge/storage-walk.js",
+    ])
+  })
+
+  it.each(purgeModules.map((f) => [rel(f), readFileSync(f, "utf8")]))("%s : aucun use server", (_n, src) => {
+    // Directive seule sur sa ligne : une mention dans un commentaire n'est pas une directive.
+    expect(src).not.toMatch(/^\s*["']use server["']/m)
+  })
+
+  it.each(purgeModules.filter((f) => !f.endsWith("purge-rules.js")).map((f) => [rel(f), readFileSync(f, "utf8")]))(
+    "%s : importe server-only",
+    (_n, src) => {
+      expect(src).toMatch(/import\s+["']server-only["']/)
+    },
+  )
+
+  it.each(purgeModules.map((f) => [rel(f), readFileSync(f, "utf8")]))("%s : ni deleteUser ni table protégée supprimée", (_n, src) => {
+    expect(src).not.toContain("deleteUser")
+    expect(src).not.toMatch(
+      /\.from\(\s*["'](transactions|wallet_transactions|wallets|purchase_requests)["']\s*\)[\s\S]{0,400}?\.delete\(/,
+    )
+  })
+
+  it(".delete( n'apparaît que dans purge-rows.js", () => {
+    const withDelete = purgeModules.filter((f) => readFileSync(f, "utf8").includes(".delete(")).map(rel)
+    expect(withDelete.every((f) => f === "src/lib/actions/purge-rows.js")).toBe(true)
+  })
+
+  it("aucun module client n'importe un module de purge", () => {
+    const clientFiles = ["src/components", "src/hooks"].flatMap((d) => listJs(join(ROOT, d)))
+    const offenders = clientFiles.filter((f) => /@\/lib\/(purge\/|actions\/purge-)/.test(readFileSync(f, "utf8"))).map(rel)
+    expect(offenders).toEqual([])
   })
 })
