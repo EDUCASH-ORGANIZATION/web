@@ -16,6 +16,21 @@ import {
 } from "@/lib/admin-space/users"
 import { notify } from "@/lib/notifications/notify"
 import { accountReactivated } from "@/lib/notifications/catalog"
+import {
+  ACTOR_KINDS,
+  CLOSURE_REASONS,
+  blockerMessage,
+  closureBlockers,
+  closureDueAt,
+  closureState,
+  pseudonymizationBlockers,
+} from "@/lib/account-closure/closure-rules"
+import {
+  closeAccountCore,
+  readClosureHistory,
+  readClosureSnapshot,
+  reopenAccountCore,
+} from "./account-closure-core"
 import { inChunks, logAdminAction, requireAdminService } from "./admin-context"
 
 const ERR_READ = "Les comptes n'ont pas pu être chargés. Réessayez dans un instant."
@@ -24,6 +39,14 @@ const ERR_SELF = "Vous ne pouvez pas modifier le statut de votre propre compte."
 const ERR_ADMIN = "Le statut d'un compte administrateur ne peut pas être modifié."
 const ERR_ALREADY_SUSPENDED = "Ce compte est déjà suspendu. Rechargez la page."
 const ERR_NOT_SUSPENDED = "Ce compte n'est pas suspendu. Rechargez la page."
+const ERR_CLOSED = "Ce compte est fermé. Réactivez-le avant de modifier sa suspension."
+const ERR_CLOSE_SELF = "Vous ne pouvez pas fermer votre propre compte."
+const ERR_CLOSE_ADMIN = "Un compte administrateur ne peut pas être fermé depuis cet écran."
+const ERR_CLOSE_REASON = "Choisissez un motif de fermeture dans la liste."
+const ERR_CONFIRMATION = "Saisissez FERMER pour confirmer la fermeture."
+const ERR_NOT_CLOSED = "Ce compte n'est pas fermé. Rechargez la page."
+const ERR_PSEUDONYMIZED = "Réactivation impossible : les données personnelles de ce compte ont été effacées."
+const CLOSE_CONFIRMATION = "FERMER"
 const ERR_WRITE = "Le changement n'a pas pu être enregistré. Réessayez dans un instant."
 
 // Recherche par e-mail : 20 pages de 1000 comptes au plus, 100 correspondances au plus.
@@ -34,9 +57,9 @@ const EMAIL_PARALLEL = 10
 const DETAIL_LIST_LIMIT = 20
 
 const LIST_COLUMNS =
-  "user_id, full_name, role, city, is_verified, verified_until, rejection_reason, verification_submitted_at, is_suspended, missions_done, created_at"
+  "user_id, full_name, role, city, is_verified, verified_until, rejection_reason, verification_submitted_at, is_suspended, missions_done, created_at, closed_at, pseudonymized_at"
 const DETAIL_COLUMNS =
-  "user_id, full_name, role, city, phone, is_verified, verified_until, rejection_reason, verification_submitted_at, is_suspended, missions_done, rating, created_at"
+  "user_id, full_name, role, city, phone, is_verified, verified_until, rejection_reason, verification_submitted_at, is_suspended, missions_done, rating, created_at, closed_at, pseudonymized_at"
 const MISSION_COLUMNS = "id, title, type, status, budget, city, deadline, created_at"
 
 /** Applique les filtres de la liste. Chaque valeur vient d'une liste fermée ou d'un paramètre déjà validé. */
@@ -203,6 +226,7 @@ export async function listAdminUsers(searchParams) {
         role: p.role,
         verification: verificationLabel(p.role, tab),
         isSuspended: p.is_suspended === true,
+        closure: closureState(p),
         city: p.city ?? null,
         balance: p.role === "admin" ? null : (balances.get(p.user_id) ?? 0),
         missions: p.role === "admin" ? null : (Number(p.missions_done) || 0),
@@ -266,6 +290,45 @@ async function readWallet(service, userId) {
   }
 }
 
+function pickHistory(history) {
+  if (!Array.isArray(history?.events)) return null
+  return history.events.map((e) => ({
+    event: e.event,
+    actorKind: e.actor_kind,
+    reasonCode: e.reason_code ?? null,
+    createdAt: e.created_at ?? null,
+  }))
+}
+
+/**
+ * Cycle de vie du compte pour la fiche : état, échéance, blocages (aperçu pour un compte actif, motif de report
+ * pour un compte fermé échu) et historique. Aucune donnée personnelle : codes, dates et genre d'acteur seulement.
+ */
+async function readClosureView(service, profile, isSelf) {
+  const state = closureState(profile)
+  const now = new Date()
+  const dueAt = closureDueAt(profile.closed_at)
+  let blockers = []
+  let deferred = []
+  if (state === "active" && profile.role !== "admin" && !isSelf) {
+    const snapshot = await readClosureSnapshot(service, profile.user_id, { now })
+    blockers = closureBlockers(snapshot).map((code) => ({ code, message: blockerMessage(code, "admin") }))
+  }
+  if (state === "closed" && dueAt && now >= dueAt) {
+    deferred = pseudonymizationBlockers(await readClosureSnapshot(service, profile.user_id, { now }))
+  }
+  return {
+    state,
+    closedAt: profile.closed_at ?? null,
+    dueAt: dueAt ? dueAt.toISOString() : null,
+    pseudonymizedAt: profile.pseudonymized_at ?? null,
+    canReopen: state === "closed",
+    blockers,
+    deferred,
+    history: pickHistory(await readClosureHistory(service, profile.user_id)),
+  }
+}
+
 /**
  * Fiche d'un compte (AD04). Téléphone et e-mail ne sont lus qu'ici, pour l'administrateur. Un identifiant invalide ou
  * inconnu donne `{ notFound: true }` (la page répond 404). Le jeton de notification n'est jamais lu.
@@ -326,6 +389,7 @@ export async function getAdminUserDetail(id, { onglet } = {}) {
         role: profile.role,
         city: profile.city ?? null,
         isSuspended: profile.is_suspended === true,
+        closure: closureState(profile),
         isSelf: userId === admin.userId,
         createdAt: profile.created_at ?? null,
         missionsDone: Number(profile.missions_done) || 0,
@@ -359,6 +423,7 @@ export async function getAdminUserDetail(id, { onglet } = {}) {
       },
       applicationsCount: applicationsRes.count ?? null,
       wallet,
+      closure: await readClosureView(service, profile, userId === admin.userId),
     }
   } catch (err) {
     console.error("[admin-users] fiche:", err?.message)
@@ -388,7 +453,7 @@ async function changeSuspension(service, admin, id, reason, suspend) {
   try {
     const { data: target, error } = await service
       .from("profiles")
-      .select("user_id, role, is_suspended")
+      .select("user_id, role, is_suspended, closed_at")
       .eq("user_id", userId)
       .maybeSingle()
     if (error) {
@@ -397,6 +462,7 @@ async function changeSuspension(service, admin, id, reason, suspend) {
     }
     if (!target) return { error: ERR_INVALID }
     if (target.role === "admin") return { error: ERR_ADMIN }
+    if (target.closed_at !== null && target.closed_at !== undefined) return { error: ERR_CLOSED }
     const current = target.is_suspended === true
     if (current === suspend) return { error: suspend ? ERR_ALREADY_SUSPENDED : ERR_NOT_SUSPENDED }
 
@@ -405,6 +471,7 @@ async function changeSuspension(service, admin, id, reason, suspend) {
       .update({ is_suspended: suspend })
       .eq("user_id", userId)
       .neq("role", "admin")
+      .is("closed_at", null)
       .eq("is_suspended", current)
       .select("user_id")
     if (writeError) {
@@ -459,4 +526,119 @@ export async function reactivateAccount(id, { reason } = {}) {
   const ctx = await requireAdminService()
   if (ctx.error) return { error: ctx.error }
   return changeSuspension(ctx.service, ctx.admin, id, reason, false)
+}
+
+/**
+ * Ferme un compte (réversible pendant le délai de grâce). Refus sans appel au coeur : identifiant invalide, soi-même,
+ * motif hors liste, confirmation différente de « FERMER », compte administrateur ou inconnu. Les blocages du coeur
+ * sont renvoyés avec leur message d'administration. Journal : codes seulement.
+ * @param {string} id
+ * @param {{ reasonCode?: string, confirmation?: string }} [options]
+ * @returns {Promise<{ success: true, complete: boolean, alreadyClosed: boolean, dueAt: string|null } | { error: string, blockers?: { code: string, message: string }[] }>}
+ */
+export async function closeAccount(id, { reasonCode, confirmation } = {}) {
+  const ctx = await requireAdminService()
+  if (ctx.error) return { error: ctx.error }
+  const { admin, service } = ctx
+
+  const parsedId = uuidSchema.safeParse(id)
+  if (!parsedId.success) return { error: ERR_INVALID }
+  const userId = parsedId.data.toLowerCase()
+  if (userId === admin.userId) return { error: ERR_CLOSE_SELF }
+  if (!Object.values(CLOSURE_REASONS).includes(reasonCode)) return { error: ERR_CLOSE_REASON }
+  if (confirmation !== CLOSE_CONFIRMATION) return { error: ERR_CONFIRMATION }
+
+  try {
+    const { data: target, error } = await service.from("profiles").select("user_id, role").eq("user_id", userId).maybeSingle()
+    if (error) {
+      console.error("[admin-users] user.close lecture:", error.message)
+      return { error: ERR_WRITE }
+    }
+    if (!target) return { error: ERR_INVALID }
+    if (target.role === "admin") return { error: ERR_CLOSE_ADMIN }
+
+    const result = await closeAccountCore(service, {
+      userId,
+      actor: { kind: ACTOR_KINDS.ADMIN, id: admin.userId },
+      reasonCode,
+    })
+    if (result?.blocked) {
+      const blockers = result.blocked.map((code) => ({ code, message: blockerMessage(code, "admin") }))
+      return { error: blockers[0]?.message ?? blockerMessage("READ_ERROR", "admin"), blockers }
+    }
+    if (!result?.success) return { error: result?.error ?? ERR_WRITE }
+
+    logAdminAction({
+      adminId: admin.userId,
+      action: "user.close",
+      targetId: userId,
+      before: { state: "active" },
+      after: { state: "closed" },
+      reason: reasonCode,
+    })
+    revalidateUsers(userId)
+    return { success: true, complete: result.complete === true, alreadyClosed: result.alreadyClosed === true, dueAt: result.dueAt ?? null }
+  } catch (err) {
+    console.error("[admin-users] user.close:", err?.message)
+    return { error: ERR_WRITE }
+  }
+}
+
+/**
+ * Réactive un compte fermé, tant qu'il n'est pas pseudonymisé : refus côté serveur dans les états `pseudonymizing`
+ * et `pseudonymized`. Code de motif de la liste fermée ; journal : codes seulement.
+ * @param {string} id
+ * @param {{ reasonCode?: string }} [options]
+ * @returns {Promise<{ success: true, complete: boolean, alreadyActive: boolean } | { error: string }>}
+ */
+export async function reopenAccount(id, { reasonCode } = {}) {
+  const ctx = await requireAdminService()
+  if (ctx.error) return { error: ctx.error }
+  const { admin, service } = ctx
+
+  const parsedId = uuidSchema.safeParse(id)
+  if (!parsedId.success) return { error: ERR_INVALID }
+  const userId = parsedId.data.toLowerCase()
+  if (userId === admin.userId) return { error: ERR_SELF }
+  if (!Object.values(CLOSURE_REASONS).includes(reasonCode)) return { error: ERR_CLOSE_REASON }
+
+  try {
+    const { data: target, error } = await service
+      .from("profiles")
+      .select("user_id, role, full_name, closed_at, pseudonymized_at")
+      .eq("user_id", userId)
+      .maybeSingle()
+    if (error) {
+      console.error("[admin-users] user.reopen lecture:", error.message)
+      return { error: ERR_WRITE }
+    }
+    if (!target) return { error: ERR_INVALID }
+    if (target.role === "admin") return { error: ERR_ADMIN }
+    const state = closureState(target)
+    if (state === "pseudonymizing" || state === "pseudonymized") return { error: ERR_PSEUDONYMIZED }
+    if (state !== "closed") return { error: ERR_NOT_CLOSED }
+
+    const result = await reopenAccountCore(service, {
+      userId,
+      actor: { kind: ACTOR_KINDS.ADMIN, id: admin.userId },
+      reasonCode,
+    })
+    if (!result?.success) {
+      return { error: result?.code === "PSEUDONYMIZED" ? ERR_PSEUDONYMIZED : (result?.error ?? ERR_WRITE) }
+    }
+
+    logAdminAction({
+      adminId: admin.userId,
+      action: "user.reopen",
+      targetId: userId,
+      before: { state: "closed" },
+      after: { state: "active" },
+      reason: reasonCode,
+    })
+    revalidateUsers(userId)
+    return { success: true, complete: result.complete === true, alreadyActive: result.alreadyActive === true }
+  } catch (err) {
+    console.error("[admin-users] user.reopen:", err?.message)
+    return { error: ERR_WRITE }
+  }
 }
