@@ -73,6 +73,7 @@ Marketplace étudiants / clients au Bénin. Site en refonte "Direction A" : lire
 ## Données
 - Accès aux données uniquement via `src/lib/actions` (server actions) et `src/lib/supabase/{client,server}.js`. Pas de couche `services` séparée.
 - Une migration de Supabase vers **Neon** est prévue. Ne pas investir dans du nouveau SQL, des politiques RLS ou des Edge Functions spécifiques à Supabase, et garder l'accès aux données isolé dans `src/lib/actions` pour faciliter le changement.
+- Purge : route `/api/cron/purge` (Cron Vercel, `CRON_SECRET`, simulation par défaut tant que `PURGE_ENABLED` n'est pas `true`), règles dans `src/lib/purge/purge-rules.js`, mode d'emploi dans `docs/LISEZMOI-purge.md` ; toute nouvelle donnée à durée limitée ou tout nouveau compartiment y est ajouté.
 
 ## Métier
 - Commission EduCash 12 % : `COMMISSION_RATE` et `netAmount()` dans `src/lib/constants/missions.js` (valeurs de `src/lib/supabase/database.constants.js`). Ne jamais écrire 0.12 en dur.
