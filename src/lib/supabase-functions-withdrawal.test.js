@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { describe, it, expect } from "vitest"
 import {
   extractBearerToken,
@@ -83,5 +84,29 @@ describe("corsOrigin", () => {
   it("omet Access-Control-Allow-Origin sans APP_URL", () => {
     expect(corsHeaders(undefined)).not.toHaveProperty("Access-Control-Allow-Origin")
     expect(corsHeaders("https://educash.bj")["Access-Control-Allow-Origin"]).toBe("https://educash.bj")
+  })
+})
+
+describe("process-withdrawal : rattachement du fedapay_id", () => {
+  const src = readFileSync(
+    new URL("../../supabase/functions/process-withdrawal/index.ts", import.meta.url),
+    "utf8"
+  )
+  const start = src.indexOf("Le payout est deja lance")
+  const block = src.slice(start, src.indexOf("return json({ success: true", start))
+
+  it("lit l'erreur et le nombre de lignes mises a jour", () => {
+    expect(start).toBeGreaterThan(-1)
+    expect(block).toMatch(/error: linkError/)
+    expect(block).toMatch(/\.select\("id"\)/)
+    expect(block).toMatch(/linkError/)
+    expect(block).toMatch(/linked\?\.length/)
+  })
+  it("journalise transaction et payout sans donnee personnelle, sans erreur ni nouvel appel", () => {
+    expect(block).toMatch(/wallet_transaction id:/)
+    expect(block).toMatch(/"payout id:"/)
+    expect(block).not.toMatch(/return json\(/)
+    expect(block).not.toMatch(/phone|amount/)
+    expect(block).not.toMatch(/fetch\(/)
   })
 })
