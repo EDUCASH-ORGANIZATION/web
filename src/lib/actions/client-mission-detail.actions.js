@@ -2,7 +2,9 @@
 
 import { requireRole } from "@/lib/auth/require-role"
 import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
+import { getClientPurchaseRequests } from "@/lib/actions/purchase-request.actions"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
+import { PURCHASE_STATUSES, exceedsEstimate, purchaseTotals } from "@/lib/purchases/requests"
 import { isUuid } from "@/lib/vitrine/ids"
 import { firstName } from "@/lib/vitrine/public-name"
 
@@ -65,6 +67,32 @@ const CANDIDATE_REVIEWS_LIMIT = 20
  *   `amount` est celui stocké en base (le signe n'est pas supposé : utiliser Math.abs).
  * @property {{ id: string, rating: number, comment: string|null, createdAt: string }|null} review
  *   Avis déjà donné par le client pour cette mission, sinon null
+ * @property {ClientMissionPurchases} purchases
+ *   Demandes de paiement d'achats (RD-ACHATS-01), lues pour une mission AVEC achats et un étudiant retenu seulement
+ */
+
+/**
+ * @typedef {{ available: false } | {
+ *   available: true,
+ *   requests: Array<Object>,
+ *   totals: { count: number, requested: number, paid: number, pending: number, reported: number },
+ *   exceedsEstimate: boolean,
+ *   confirmWarning: { show: boolean, pending: number, reported: number },
+ *   costTotal: { service: number, purchasesPaid: number, total: number }|null
+ * }} ClientMissionPurchases
+ * `available: false` : rien à afficher (mission sans achats ou sans étudiant retenu, script 94 non appliqué, ou
+ * demandes illisibles) ; les vues gardent leur rendu actuel, sans erreur.
+ * - `requests` : vues de `getClientPurchaseRequests` (numéro d'ordre croissant, annulées sans carte écartées), avec
+ *   `status`, `version`, `amount`, `vendorName`, `payeeKind`, `payeeNumber` (numéro à payer), photos signées 120 s,
+ *   `actions` (allowedActions du client) et `alreadyReportedByMe` ; aucun chemin de fichier ;
+ * - `totals` : `requested` (annulées exclues), `paid` (payées et reçues, payées en direct HORS séquestre), `pending`,
+ *   `reported` ; l'estimation (`mission.purchasesEstimate`) n'y est jamais additionnée ; `exceedsEstimate` : demandé au-delà
+ *   de 1,5 fois l'estimation (simple avertissement) ;
+ * - `confirmWarning` (C09) : `show` vrai quand la mission est en cours et qu'au moins une demande est en attente ou
+ *   signalée ; avertit sans jamais bloquer la confirmation de fin ;
+ * - `costTotal` (C11, D7, reçu seulement) : mission terminée avec au moins un achat payé. `service` est le montant de la
+ *   mission (budget), `purchasesPaid` la somme des demandes payées ou reçues (les demandes signalées et en attente sont
+ *   exclues), `total` leur somme. null sinon : le séquestre, la commission et le net ne comptent jamais d'achat.
  */
 
 /**
@@ -83,6 +111,50 @@ const CANDIDATE_REVIEWS_LIMIT = 20
  *   `available: false` quand la colonne n'existe pas encore en base ou pour les autres statuts ;
  *   `declaredAt` : date ISO (conservée une fois la mission terminée) ou null
  */
+
+const NO_PURCHASES = Object.freeze({ available: false })
+
+const isValidRequest = (r) =>
+  r !== null &&
+  typeof r === "object" &&
+  typeof r.id === "string" &&
+  PURCHASE_STATUSES.includes(r.status) &&
+  Number.isSafeInteger(r.amount) &&
+  r.amount > 0
+
+// Demandes d'achats du client propriétaire : les lecteurs de RD-ACHATS-01 (ST-04) font l'accès, la propriété et la
+// signature des photos ; ce module n'en garde que la forme exposée. Mission sans estimation d'achats ou sans étudiant
+// retenu : aucune demande ne peut exister (le déclencheur de la base l'exige), donc aucune lecture. Table absente ou
+// réponse inattendue : indisponible, jamais une erreur. Autre échec : erreur neutre, comme les autres lectures.
+async function readPurchases(mission) {
+  const estimate = purchasesEstimateOf(mission.purchases_estimate)
+  if (estimate === null || !mission.selected_student_id) return NO_PURCHASES
+  const res = await getClientPurchaseRequests({ missionId: mission.id })
+  if (res?.error) {
+    console.error("[getClientMissionDetail] demandes d'achats")
+    throw new Error(ERR_LOAD)
+  }
+  if (res?.available !== true || !Array.isArray(res.requests)) return NO_PURCHASES
+  // Ligne invalide (identifiant, statut ou montant inattendu) : ignorée, jamais affichée ni additionnée.
+  const requests = res.requests.filter(isValidRequest)
+  const totals = purchaseTotals(requests)
+  const service = Number(mission.budget) || 0
+  return {
+    available: true,
+    requests,
+    totals,
+    exceedsEstimate: exceedsEstimate({ requested: totals.requested, estimate }),
+    confirmWarning: {
+      show: mission.status === "in_progress" && totals.pending + totals.reported > 0,
+      pending: requests.filter((r) => r.status === "pending").length,
+      reported: requests.filter((r) => r.status === "reported").length,
+    },
+    costTotal:
+      mission.status === "done" && totals.paid > 0
+        ? { service, purchasesPaid: totals.paid, total: service + totals.paid }
+        : null,
+  }
+}
 
 function toStudent(userId, profile, studentProfile) {
   return {
@@ -154,7 +226,7 @@ export async function getClientMissionDetail(id) {
   if (!mission) return null
 
   // Tout ce qui suit est filtré par l'identifiant d'une mission dont la propriété est établie.
-  const [applicationsRes, ledgerRes, reviewRes, completionRes] = await Promise.all([
+  const [applicationsRes, ledgerRes, reviewRes, completionRes, purchases] = await Promise.all([
     supabase
       .from("applications")
       .select(APPLICATION_COLUMNS)
@@ -178,6 +250,7 @@ export async function getClientMissionDetail(id) {
     mission.status === "in_progress" || mission.status === "done"
       ? readCompletionDeclared(supabase, [mission.id]).catch((failure) => ({ failure }))
       : Promise.resolve({ available: false, byId: new Map() }),
+    readPurchases(mission),
   ])
   if (applicationsRes.error || ledgerRes.error || reviewRes.error) {
     console.error(
@@ -227,6 +300,7 @@ export async function getClientMissionDetail(id) {
       student: students.get(a.student_id),
     })),
     completion,
+    purchases,
     selectedStudent: mission.selected_student_id ? (students.get(mission.selected_student_id) ?? null) : null,
     ledger: (ledgerRes.data ?? []).map((m) => ({
       type: m.type,

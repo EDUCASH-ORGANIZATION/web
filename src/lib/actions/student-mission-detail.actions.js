@@ -6,7 +6,9 @@ import { ANONYMOUS_CLIENT_NAME } from "@/lib/constants/client-name"
 import { readAcceptedAt, validAcceptedAt } from "@/lib/actions/application-accepted-core"
 import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
+import { getStudentPurchaseRequests } from "@/lib/actions/purchase-request.actions"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
+import { PURCHASE_STATUSES, exceedsEstimate, purchaseTotals } from "@/lib/purchases/requests"
 import { isUuid } from "@/lib/vitrine/ids"
 import { publicDisplayName } from "@/lib/vitrine/public-name"
 import { toProjectAvatarUrl } from "@/lib/storage/owned-paths"
@@ -66,8 +68,30 @@ const LEDGER_COLUMNS = "type, amount, created_at"
  * @property {{ available: boolean, declaredAt: string|null }} completion
  *   Fin déclarée par l'étudiant (RD-DONE-01), lue pour l'état "selected" seulement. `available: false` quand la
  *   colonne n'existe pas encore en base, et toujours pour l'état "open" ; `declaredAt` : date ISO ou null
+ * @property {StudentMissionPurchases} purchases
+ *   Demandes de paiement d'achats (RD-ACHATS-01), lues pour l'état "selected" d'une mission AVEC achats seulement
  * @property {Array<{ id: string, title: string, type: string, city: string|null, budget: number }>} similar
  *   Missions ouvertes non expirées du même type (4 au plus), hors mission courante
+ */
+
+/**
+ * @typedef {{ available: false } | {
+ *   available: true,
+ *   requests: Array<Object>,
+ *   totals: { count: number, requested: number, paid: number, pending: number, reported: number },
+ *   exceedsEstimate: boolean,
+ *   canCreate: boolean
+ * }} StudentMissionPurchases
+ * `available: false` : rien à afficher (étudiant non retenu, mission sans achats, script 94 non appliqué, ou
+ * demandes illisibles pour cet appelant) ; les vues masquent alors le bloc et le bouton, sans erreur.
+ * - `requests` : vues de `getStudentPurchaseRequests` (numéro d'ordre croissant, annulées sans carte écartées), avec
+ *   `status`, `version`, `amount`, `vendorName`, `payeeKind`, `payeeNumber`, photos signées 120 s, `actions` (allowedActions
+ *   de l'étudiant) et `alreadyReportedByMe` ; jamais d'information du client ;
+ * - `totals` : `requested` (annulées exclues), `paid` (payées et reçues, payées en direct HORS séquestre), `pending`,
+ *   `reported` ; l'estimation (`mission.purchasesEstimate`) n'y est jamais additionnée ni comparée en dehors de
+ *   `exceedsEstimate` (demandé au-delà de 1,5 fois l'estimation) ;
+ * - `canCreate` : l'étudiant peut envoyer une nouvelle demande (mission en cours, estimation posée, 20 au plus).
+ * Aucun montant d'achat n'entre dans `ledger`, le séquestre ni le net.
  */
 
 /**
@@ -116,6 +140,40 @@ async function readVerification() {
     throw new Error(ERR_LOAD)
   }
   return verificationFromRows(profileRes.profile, studentRes.studentProfile)
+}
+
+const NO_PURCHASES = Object.freeze({ available: false })
+
+const isValidRequest = (r) =>
+  r !== null &&
+  typeof r === "object" &&
+  typeof r.id === "string" &&
+  PURCHASE_STATUSES.includes(r.status) &&
+  Number.isSafeInteger(r.amount) &&
+  r.amount > 0
+
+// Demandes d'achats de l'étudiant retenu : les lecteurs de RD-ACHATS-01 (ST-04) font l'accès, la propriété et la
+// signature des photos ; ce module n'en garde que la forme exposée. Mission sans estimation d'achats : aucune demande
+// ne peut exister (le déclencheur de la base l'exige), donc aucune lecture. Table absente ou réponse inattendue :
+// indisponible, jamais une erreur. Autre échec : erreur neutre, comme les autres lectures du détail.
+async function readPurchases(mission) {
+  if (purchasesEstimateOf(mission.purchases_estimate) === null) return NO_PURCHASES
+  const res = await getStudentPurchaseRequests({ missionId: mission.id })
+  if (res?.error) {
+    console.error("[getStudentMissionDetail] demandes d'achats")
+    throw new Error(ERR_LOAD)
+  }
+  if (res?.available !== true || !Array.isArray(res.requests)) return NO_PURCHASES
+  // Ligne invalide (identifiant, statut ou montant inattendu) : ignorée, jamais affichée ni additionnée.
+  const requests = res.requests.filter(isValidRequest)
+  const totals = purchaseTotals(requests)
+  return {
+    available: true,
+    requests,
+    totals,
+    exceedsEstimate: exceedsEstimate({ requested: totals.requested, estimate: purchasesEstimateOf(mission.purchases_estimate) }),
+    canCreate: res.canCreate === true,
+  }
 }
 
 function toClient(profile) {
@@ -173,7 +231,7 @@ export async function getStudentMissionDetail(id) {
       .eq("student_id", user.id)
       .maybeSingle(),
   )
-  const [applicationRes, clientRes, similarRes, ledgerRes, reviewRes, verification, completion, acceptedAt] = await Promise.all([
+  const [applicationRes, clientRes, similarRes, ledgerRes, reviewRes, verification, completion, acceptedAt, purchases] = await Promise.all([
     applicationPromise,
     supabase.from("profiles").select(CLIENT_COLUMNS).eq("user_id", mission.client_id).maybeSingle(),
     followed
@@ -208,6 +266,7 @@ export async function getStudentMissionDetail(id) {
     followed ? readCompletion(supabase, mission.id) : Promise.resolve({ available: false, declaredAt: null }),
     // Dépend de l'id de la candidature : enchaînée sur sa lecture, en parallèle des autres. Étudiant non retenu : aucune lecture.
     followed ? applicationPromise.then((res) => (res.error ? null : readRetainedAt(supabase, res.data, user.id))) : Promise.resolve(null),
+    followed ? readPurchases(mission) : Promise.resolve(NO_PURCHASES),
   ])
   const failure = applicationRes.error ?? clientRes.error ?? similarRes.error ?? ledgerRes.error ?? reviewRes.error
   if (failure) {
@@ -245,6 +304,7 @@ export async function getStudentMissionDetail(id) {
     isSelected,
     verification,
     completion,
+    purchases,
     ledger: (ledgerRes.data ?? []).map((m) => ({
       type: "release",
       amount: Math.abs(Number(m.amount) || 0),

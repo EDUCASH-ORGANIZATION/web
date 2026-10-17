@@ -2,8 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
+vi.mock("@/lib/actions/purchase-request.actions", () => ({ getClientPurchaseRequests: vi.fn() }))
 
+import { readFileSync } from "node:fs"
 import { requireRole } from "@/lib/auth/require-role"
+import { getClientPurchaseRequests } from "@/lib/actions/purchase-request.actions"
 import { getClientMissionDetail, getCandidateProfile } from "./client-mission-detail.actions"
 
 const CLIENT = "00000000-0000-4000-8000-000000000001"
@@ -70,6 +73,8 @@ beforeEach(() => {
     },
     student_profiles: { data: [{ user_id: S1, school: "UAC", level: "L3", skills: ["Babysitting"] }], error: null },
   }
+  getClientPurchaseRequests.mockReset()
+  getClientPurchaseRequests.mockResolvedValue({ available: false })
   requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: CLIENT }, role: "client", profile: {} })
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
@@ -333,5 +338,149 @@ describe("getClientMissionDetail : fin déclarée (RD-DONE-01)", () => {
   it("autre erreur : erreur neutre sans message SQL", async () => {
     responses.completion = { data: null, error: { code: "XX000", message: "relation boom" } }
     await expect(getClientMissionDetail(MISSION)).rejects.toThrow("Impossible de charger la mission.")
+  })
+})
+
+describe("getClientMissionDetail : demandes de paiement d'achats (RD-ACHATS-01)", () => {
+  const withPurchases = (over = {}) => {
+    responses.missions = { data: { ...mission, purchases_estimate: 20000, ...over }, error: null }
+  }
+  const view = (over = {}) => ({
+    id: "r1", seq: 1, status: "pending", version: 1, amount: 6000, vendorName: "Dossa", payeeNumber: "123456", actions: ["paid", "report"], ...over,
+  })
+  const answer = (requests) => getClientPurchaseRequests.mockResolvedValue({ available: true, requests })
+
+  it("client propriétaire : demandes, numéro à payer et vendeur, totaux hors séquestre", async () => {
+    withPurchases()
+    answer([view(), view({ id: "r2", seq: 2, status: "paid", amount: 4000 })])
+    const { purchases } = await getClientMissionDetail(MISSION)
+    expect(getClientPurchaseRequests).toHaveBeenCalledWith({ missionId: MISSION })
+    expect(purchases.available).toBe(true)
+    expect(purchases.requests[0]).toMatchObject({ vendorName: "Dossa", payeeNumber: "123456", actions: ["paid", "report"] })
+    expect(purchases.totals).toEqual({ count: 2, requested: 10000, paid: 4000, pending: 6000, reported: 0 })
+    expect(purchases.exceedsEstimate).toBe(false)
+  })
+
+  it("0 demande : totaux nuls, aucun avertissement, aucun coût total", async () => {
+    withPurchases()
+    answer([])
+    const { purchases } = await getClientMissionDetail(MISSION)
+    expect(purchases.requests).toEqual([])
+    expect(purchases.totals).toEqual({ count: 0, requested: 0, paid: 0, pending: 0, reported: 0 })
+    expect(purchases.confirmWarning).toEqual({ show: false, pending: 0, reported: 0 })
+    expect(purchases.costTotal).toBeNull()
+  })
+
+  it("la ligne du grand livre et le budget ne contiennent jamais d'achat", async () => {
+    withPurchases()
+    answer([view({ status: "received", amount: 4000 })])
+    const detail = await getClientMissionDetail(MISSION)
+    expect(detail.mission.budget).toBe(10000)
+    expect(detail.ledger).toEqual([{ type: "reserve", amount: 10000, createdAt: "2026-10-01T09:00:00Z" }])
+  })
+
+  it.each([
+    ["en attente", [view()], { show: true, pending: 1, reported: 0 }],
+    ["signalée", [view({ status: "reported" })], { show: true, pending: 0, reported: 1 }],
+    ["attente et signalée", [view(), view({ id: "r2", status: "reported" })], { show: true, pending: 1, reported: 1 }],
+    ["payée", [view({ status: "paid" })], { show: false, pending: 0, reported: 0 }],
+    ["reçue", [view({ status: "received" })], { show: false, pending: 0, reported: 0 }],
+    ["annulée", [view({ status: "cancelled" })], { show: false, pending: 0, reported: 0 }],
+  ])("C09, demande %s : avertissement %j", async (_label, requests, expected) => {
+    withPurchases()
+    answer(requests)
+    const { purchases } = await getClientMissionDetail(MISSION)
+    expect(purchases.confirmWarning).toEqual(expected)
+  })
+
+  it("C09 : l'avertissement n'apparaît que mission en cours, et ne retire rien à la confirmation de fin", async () => {
+    withPurchases({ status: "done" })
+    answer([view()])
+    const detail = await getClientMissionDetail(MISSION)
+    expect(detail.purchases.confirmWarning.show).toBe(false)
+    expect(detail.mission.status).toBe("done")
+  })
+
+  it("C11 : coût total = service plus achats payés ou reçus seulement (ni attente, ni signalée, ni annulée, ni estimation)", async () => {
+    withPurchases({ status: "done" })
+    answer([
+      view({ id: "a", status: "paid", amount: 4000 }),
+      view({ id: "b", status: "received", amount: 3000 }),
+      view({ id: "c", status: "pending", amount: 2000 }),
+      view({ id: "d", status: "reported", amount: 1500 }),
+      view({ id: "e", status: "cancelled", amount: 900 }),
+    ])
+    const { purchases } = await getClientMissionDetail(MISSION)
+    expect(purchases.costTotal).toEqual({ service: 10000, purchasesPaid: 7000, total: 17000 })
+  })
+
+  it.each(["in_progress", "cancelled", "open"])("coût total absent quand la mission est %s", async (status) => {
+    withPurchases({ status })
+    answer([view({ status: "paid", amount: 4000 })])
+    const { purchases } = await getClientMissionDetail(MISSION)
+    expect(purchases.costTotal).toBeNull()
+  })
+
+  it("C11 : aucun achat payé, pas de coût total (le reçu reste inchangé)", async () => {
+    withPurchases({ status: "done" })
+    answer([view({ status: "reported" })])
+    expect((await getClientMissionDetail(MISSION)).purchases.costTotal).toBeNull()
+  })
+
+  it("dépassement de l'estimation : simple indicateur, jamais bloquant", async () => {
+    withPurchases()
+    answer([view({ amount: 30001 })])
+    expect((await getClientMissionDetail(MISSION)).purchases.exceedsEstimate).toBe(true)
+  })
+
+  it("ligne invalide ignorée : statut inconnu, montant décimal ou négatif, sans identifiant", async () => {
+    withPurchases()
+    answer([view(), view({ id: "x1", status: "?" }), view({ id: "x2", amount: 10.5 }), view({ id: "x3", amount: -5 }), view({ id: 7 }), null])
+    const { purchases } = await getClientMissionDetail(MISSION)
+    expect(purchases.requests.map((r) => r.id)).toEqual(["r1"])
+    expect(purchases.totals.requested).toBe(6000)
+  })
+
+  it("mission sans achats ou sans étudiant retenu : aucune lecture, bloc indisponible", async () => {
+    responses.missions = { data: { ...mission, purchases_estimate: null }, error: null }
+    expect((await getClientMissionDetail(MISSION)).purchases).toEqual({ available: false })
+    responses.missions = { data: { ...mission, status: "open", purchases_estimate: 20000, selected_student_id: null }, error: null }
+    expect((await getClientMissionDetail(MISSION)).purchases).toEqual({ available: false })
+    expect(getClientPurchaseRequests).not.toHaveBeenCalled()
+  })
+
+  it("autre client ou mission inexistante : null, aucune demande lue", async () => {
+    responses.missions = { data: null, error: null }
+    expect(await getClientMissionDetail(MISSION)).toBeNull()
+    expect(getClientPurchaseRequests).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["table absente", { available: false }],
+    ["introuvable", { notFound: true }],
+    ["réponse sans liste", { available: true }],
+    ["réponse vide", undefined],
+  ])("%s : bloc indisponible, aucune erreur, le reste du détail est rendu", async (_label, response) => {
+    withPurchases()
+    getClientPurchaseRequests.mockResolvedValue(response)
+    const detail = await getClientMissionDetail(MISSION)
+    expect(detail.purchases).toEqual({ available: false })
+    expect(detail.mission.title).toBe("Cours de maths")
+    expect(detail.selectedStudent).not.toBeNull()
+  })
+
+  it("lecture en échec : erreur neutre sans message de base", async () => {
+    withPurchases()
+    getClientPurchaseRequests.mockResolvedValue({ error: "Impossible de charger les demandes de paiement. Veuillez réessayer." })
+    await expect(getClientMissionDetail(MISSION)).rejects.toThrow("Impossible de charger la mission.")
+  })
+
+  it("la source réutilise le lecteur d'ST-04 : ni service role, ni sonde HEAD, ni écriture, ni calcul de commission", () => {
+    const src = readFileSync("src/lib/actions/client-mission-detail.actions.js", "utf8")
+    expect(src).toContain("getClientPurchaseRequests")
+    expect(src).not.toContain("createServiceClient")
+    expect(src).not.toMatch(/head:\s*true|\.head\(|\.insert\(|\.update\(|\.delete\(|\.upsert\(/)
+    expect(src).not.toMatch(/from "@\/lib\/(app\/money|constants\/missions|wallet\/[^"]*)"/)
+    expect(src).not.toContain("0.12")
   })
 })
