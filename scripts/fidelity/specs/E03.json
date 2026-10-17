@@ -458,9 +458,9 @@
           "code": ".e2-stack > section:nth-of-type(3)",
           "assume": {
             "y": "X1:17",
-            "h": "A2:13"
+            "h": "A2+A6:53"
           },
-          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale) ; A6 : étapes vouvoyées plus longues que celles de la planche tutoyée (« Vous confirmez ... et repartez avec les articles », « Afiavi vérifie » au lieu de « Elle vérifie ») et phrase « Seul le service est bloqué en séquestre » ajoutée à la 3e étape quand les paiements sont ouverts"
         },
         {
           "id": "MI-19",
@@ -475,10 +475,10 @@
           "lot": "ST-10",
           "code": ".e2-stack > section:nth-of-type(4)",
           "assume": {
-            "y": "X1:5",
+            "y": "X1:41",
             "h": "A2:2"
           },
-          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
+          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit, dont les 40 px de plus de la carte « Comment se passent les achats » au-dessus ; h : A2 : textes 12 et 13 px de la planche portés à 13 et 14 px (taille minimale)"
         },
         {
           "id": "MI-21",

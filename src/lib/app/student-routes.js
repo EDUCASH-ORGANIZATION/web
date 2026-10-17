@@ -1,6 +1,7 @@
 // @ds-screen RD-STUDENT-01
 // Fabriques d'URL de l'espace étudiant. Pur : paramètres vides omis.
 // Routes actuelles conservées (décision D1) : un seul endroit à changer lors du déménagement sous /student/.
+import { isUuid } from "../purchases/proofs.js"
 
 function withQuery(path, entries) {
   const query = new URLSearchParams()
@@ -61,9 +62,18 @@ export function studentMessagesHref() {
   return "/messages"
 }
 
-export function studentConversationHref(missionId) {
+/**
+ * @param {string} missionId
+ * @param {{ achat?: string|boolean, demande?: string }} [params] `achat` (seule valeur acceptée : "nouveau", ou
+ *   `true`) ouvre le formulaire de demande de paiement d'achats ; `demande` (identifiant de demande) fait
+ *   défiler jusqu'à la carte. Drapeaux sans action ; toute autre valeur est ignorée.
+ */
+export function studentConversationHref(missionId, { achat, demande } = {}) {
   if (!hasId(missionId)) return "/messages"
-  return `/messages/${encodeURIComponent(missionId)}`
+  return withQuery(`/messages/${encodeURIComponent(missionId)}`, [
+    ["achat", achat === "nouveau" || achat === true ? "nouveau" : undefined],
+    ["demande", isUuid(demande) ? demande : undefined],
+  ])
 }
 
 /** @param {{ filtre?: string, retrait?: boolean }} [params] Le filtre "tout" est le défaut : omis. */

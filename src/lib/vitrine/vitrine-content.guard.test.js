@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
 import { MISSION_TYPES } from "@/lib/constants/missions"
+import { PAYMENT_WARNING } from "@/lib/purchases/requests"
 
 const ROOT = path.resolve(import.meta.dirname, "../../..")
 const DIRS = ["src/components/vitrine", "src/app/legal", "src/app/about", "src/app/contact", "src/app/(home)", "src/app/(public)", "src/app/(mission-detail)", "src/app/auth", "src/components/auth"]
@@ -58,7 +59,6 @@ describe("garde-fous de contenu vitrine", () => {
     ["privacy@educash.bj", /privacy@educash\.bj/],
     ["24 h ouvrées", /24(\s|&nbsp;|\u00a0)*h ouvrées/],
     ["lundi au samedi", /lundi au samedi/i],
-    ["Demande de paiement", /demande de paiement/i],
   ])("aucune promesse retiree (%s) dans les fichiers vitrine", (_n, re) => {
     const hits = files.filter((f) => /\.jsx?$/.test(f) && re.test(read(f)))
     expect(hits).toEqual([])
@@ -80,10 +80,92 @@ describe("garde-fous de contenu vitrine", () => {
     expect(src).toContain("0202212868410")
   })
 
-  it("les CGU contiennent la clause achats", () => {
-    const src = read("src/app/legal/terms/page.js")
-    expect(src).toMatch(/achats/)
-    expect(src).toMatch(/Missions avec achats/)
+  // Une mention de « demande de paiement » (carte d'achats de RD-ACHATS-01) n'est tolérée que si le même fichier
+  // dit « hors EduCash » et porte l'avertissement PAYMENT_WARNING (constante ou texte identique).
+  const PAYMENT_REQUEST = /demandes?\s+de\s+paiement/i
+  const isFramedPaymentRequest = (src) =>
+    !PAYMENT_REQUEST.test(src) || (/hors\s+EduCash/.test(src) && (/\bPAYMENT_WARNING\b/.test(src) || src.includes(PAYMENT_WARNING)))
+
+  it("« demande de paiement » n'apparait qu'avec « hors EduCash » et l'avertissement de paiement dans le meme fichier", () => {
+    const hits = files.filter((f) => /\.jsx?$/.test(f) && !isFramedPaymentRequest(read(f)))
+    expect(hits).toEqual([])
+  })
+
+  it("le cas négatif de « demande de paiement » échoue sans l'avertissement ou sans « hors EduCash » (construit en mémoire)", () => {
+    const bare = "<p>Envoyez une demande de paiement au client.</p>"
+    const noWarning = "<p>Une demande de paiement, réglée hors EduCash.</p>"
+    const noHors = `<p>Une demande de paiement.</p> {PAYMENT_WARNING}`
+    const framed = `<p>Une demande de paiement, réglée hors EduCash.</p> {PAYMENT_WARNING}`
+    expect(isFramedPaymentRequest(bare)).toBe(false)
+    expect(isFramedPaymentRequest(noWarning)).toBe(false)
+    expect(isFramedPaymentRequest(noHors)).toBe(false)
+    expect(isFramedPaymentRequest(framed)).toBe(true)
+    expect(isFramedPaymentRequest("<p>Aucune mention.</p>")).toBe(true)
+  })
+
+  describe("achats : CGU et confidentialité (RD-ACHATS-01)", () => {
+    const termsSrc = read("src/app/legal/terms/page.js")
+    const privacySrc = read("src/app/legal/privacy/page.js")
+    const between = (src, start, end) => {
+      const a = src.indexOf(start)
+      expect(a).toBeGreaterThan(-1)
+      return src.slice(a, src.indexOf(end, a))
+    }
+    const achats = between(termsSrc, 'id="achats"', "</LegalSection>").replace(/\s+/g, " ")
+    const privacyBlock = between(privacySrc, "<LegalSection {...SECTIONS.demandes_d_achats}>", "</LegalSection>").replace(/\s+/g, " ")
+    // Durée chiffrée : décision D8 non tranchée, aucune promesse de conservation dans ces textes.
+    const NUMBERED_DURATION = /\d+(?:&nbsp;|\s)*(?:jours?|mois|ans?|semaines?|heures?|h\b|minutes?)/i
+    const PROVIDER = /fedapay|kkiapay|feexpay|cinetpay|paydunya|stripe|paypal|flutterwave/i
+
+    it("les CGU contiennent la clause achats et le modèle rétabli", () => {
+      expect(termsSrc).toMatch(/id="achats">Missions avec achats/)
+      expect(achats).toMatch(/directement au vendeur par Mobile Money, hors EduCash/)
+      expect(achats).toMatch(/n’avance jamais d’argent/)
+      expect(achats).toMatch(/ni partie, ni dépositaire, ni garant/)
+      expect(achats).toMatch(/ne rembourse pas un paiement effectué hors plateforme/)
+      expect(achats).toMatch(/« demande de paiement d’achats »/)
+      for (const word of ["numéro à payer", "nom du vendeur", "montant", "numéro marchand", "panneau", "ticket", "capture du SMS"]) {
+        expect(achats).toContain(word)
+      }
+      expect(achats).toMatch(/confirme la réception/)
+      expect(achats).toMatch(/Chaque partie peut signaler/)
+      expect(achats).toMatch(/sans remboursement ni compensation/)
+      expect(achats).toMatch(/n’entre jamais dans le séquestre ni dans la commission de 12(?:&nbsp;| )%/)
+      expect(achats).toMatch(/nom du bénéficiaire/)
+      expect(achats).toMatch(/PAYMENT_WARNING/)
+      expect(achats).toMatch(/une personne peut indiquer un numéro qui n’est pas celui du vendeur/)
+    })
+
+    it("la clause achats ne nomme aucun prestataire et ne promet aucune durée", () => {
+      expect(achats).not.toMatch(PROVIDER)
+      expect(achats).not.toMatch(NUMBERED_DURATION)
+      expect(achats).not.toMatch(/Commission/)
+    })
+
+    it("la politique de confidentialité décrit les données des demandes d'achats sans durée chiffrée", () => {
+      expect(privacySrc).toContain('id: "demandes-d-achats"')
+      expect(privacyBlock).toMatch(/numéro à payer/)
+      expect(privacyBlock).toMatch(/nom du vendeur/)
+      expect(privacyBlock).toMatch(/photo du numéro marchand ou du panneau/)
+      expect(privacyBlock).toMatch(/photo du ticket/)
+      expect(privacyBlock).toMatch(/capture du SMS/)
+      expect(privacyBlock).toMatch(/concerner des tiers, notamment des vendeurs/)
+      expect(privacyBlock).toMatch(/Finalité/)
+      expect(privacyBlock).toMatch(/les deux parties de la mission et l’équipe d’administration d’EduCash, pour le suivi des missions et le traitement des signalements\./)
+      expect(privacyBlock).not.toMatch(/en cas de signalement, l’équipe d’administration/)
+      expect(privacyBlock).toMatch(/stockage privé/)
+      expect(privacyBlock).toMatch(/Droits/)
+      expect(privacyBlock).toMatch(/Durée de conservation :<\/strong> elle sera précisée/)
+      expect(privacyBlock).not.toMatch(NUMBERED_DURATION)
+      expect(privacyBlock).not.toMatch(PROVIDER)
+    })
+
+    it("la détection d'une durée chiffrée ou d'un prestataire fonctionne (cas construits en mémoire)", () => {
+      expect("conservés 90 jours").toMatch(NUMBERED_DURATION)
+      expect("purgés après 6 mois").toMatch(NUMBERED_DURATION)
+      expect("via FedaPay").toMatch(PROVIDER)
+      expect("la durée sera précisée").not.toMatch(NUMBERED_DURATION)
+    })
   })
 
   it("les CGU et la politique de confidentialite annoncent l'analyse automatique des messages (RD-MSG-01)", () => {

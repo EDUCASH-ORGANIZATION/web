@@ -62,8 +62,10 @@ export function SendOrMic({ hasText, onRecord }) {
  * Zone d'écriture : texte, image, message vocal, position. `onSend(payload)` reçoit
  * `{ type: "text", content }`, `{ type: "image"|"voice", file, ext }` ou `{ type: "location", lat, lng }` ;
  * l'envoi, les échecs et les reprises sont gérés par la conversation (bulle « non envoyé » avec Réessayer).
+ * `onRequestPurchase()` facultative : le bouton ticket (« Demander un paiement d'achats ») n'est affiché que si la
+ * conversation la fournit (étudiant retenu, mission en cours, demandes disponibles) ; il ouvre le formulaire.
  */
-export function Composer({ onSend }) {
+export function Composer({ onSend, onRequestPurchase }) {
   const [text, setText] = useState("")
   const [problem, setProblem] = useState("")
   const [preview, setPreview] = useState(null)
@@ -240,6 +242,11 @@ export function Composer({ onSend }) {
             <button type="button" className="iconbtn2" aria-label="Partager une position" onClick={() => setLocating(true)}>
               <Icon name="i-navigation" />
             </button>
+            {onRequestPurchase ? (
+              <button type="button" className="iconbtn2" aria-label="Demander un paiement d'achats" onClick={onRequestPurchase}>
+                <Icon name="i-receipt" />
+              </button>
+            ) : null}
           </div>
           <label className="composer__field">
             <span className="sr-only">Votre message</span>

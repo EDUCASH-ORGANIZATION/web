@@ -15,15 +15,15 @@ async function ReportsContent({ params }) {
 }
 
 // Page mince : contrôle admin avant toute lecture (le layout le refait), puis action `admin-*` et vue pure.
-// Les paramètres d'URL (onglet, tri, page) sont validés par l'action : une valeur inconnue retombe sur le défaut.
+// Les paramètres d'URL (onglet, tri, page, type) sont validés par l'action : une valeur inconnue retombe sur le défaut.
 export default async function AdminReportsPage({ searchParams } = {}) {
   const auth = await requireRole(["admin"])
   if (auth.error) redirect("/auth/login")
 
   const params = (await searchParams) ?? {}
-  const { statut, tri, page } = params
+  const { statut, tri, page, type } = params
   return (
-    <Suspense key={JSON.stringify({ statut, tri, page })} fallback={<SkeletonRows count={6} />}>
+    <Suspense key={JSON.stringify({ statut, tri, page, type })} fallback={<SkeletonRows count={6} />}>
       <ReportsContent params={params} />
     </Suspense>
   )

@@ -73,6 +73,12 @@ describe("signalements admin", () => {
     expect(adminReportsHref({ statut: "resolus" })).toBe("/admin/reports?statut=resolus")
     expect(adminReportsHref({ statut: "classes", tri: "recents", page: 3 })).toBe("/admin/reports?statut=classes&tri=recents&page=3")
     expect(adminReportsHref({ page: "x" })).toBe("/admin/reports")
+    expect(adminReportsHref({ type: "messages" })).toBe("/admin/reports?type=messages")
+    expect(adminReportsHref({ type: "demande-paiement-achats" })).toBe("/admin/reports?type=demande-paiement-achats")
+    expect(adminReportsHref({ type: "" })).toBe("/admin/reports")
+    expect(adminReportsHref({ statut: "resolus", tri: "recents", page: 3, type: "demande-paiement-achats" })).toBe(
+      "/admin/reports?statut=resolus&tri=recents&page=3&type=demande-paiement-achats",
+    )
   })
 
   it("détail : identifiant encodé, retour à la file sans identifiant", () => {

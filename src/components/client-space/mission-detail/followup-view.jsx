@@ -10,8 +10,8 @@ import { SelectedStudent, STUDENT_FALLBACK } from "./followup/selected-student"
 import { EscrowCard } from "./followup/escrow-card"
 import { Timeline, buildTimeline, formatDay } from "./followup/timeline"
 import { ConfirmEndDialog, ConfirmEndSuccess } from "./followup/confirm-end-dialog"
-import { Receipt } from "./followup/receipt"
-import { PurchasesCard } from "./followup/purchases-card"
+import { Receipt, DonePurchasesCard } from "./followup/receipt"
+import { PurchasesCard, PaymentTodoCard, firstPendingRequest } from "./followup/purchases-card"
 import { CancelledSummary } from "./followup/cancelled-summary"
 import { COMPLETION_COPY } from "@/lib/missions/completion"
 import { missionView } from "@/lib/client-space/mission-view"
@@ -50,7 +50,7 @@ function ReviewCard({ review, studentName }) {
   )
 }
 
-function DeclaredCard({ view, missionId, studentId, studentName, onConfirm }) {
+function DeclaredCard({ view, missionId, studentId, studentName, onConfirm, confirmTone = "dark" }) {
   const declaredOn = formatShortDate(view.completion.declaredAt)
   const lead = studentName.charAt(0).toUpperCase() + studentName.slice(1)
   return (
@@ -73,7 +73,7 @@ function DeclaredCard({ view, missionId, studentId, studentName, onConfirm }) {
           </b>
         </div>
         <div className="actions2">
-          <button type="button" className="btn btn--dark fup2__desk" onClick={onConfirm}>
+          <button type="button" className={`btn btn--${confirmTone} fup2__desk`} onClick={onConfirm}>
             <Icon name="i-check-circle" />
             Confirmer la fin
           </button>
@@ -120,11 +120,26 @@ function InProgress({ detail, view, studentName, onConfirm }) {
   const { mission, selectedStudent } = detail
   const estimate = purchasesEstimateOf(mission.purchasesEstimate)
   const declared = view.completion.state === "declared"
+  // Une demande de paiement en attente : « Ouvrir la demande » est l'unique bouton encre du cadre, « Confirmer la fin »
+  // passe en contour sans jamais être désactivé (aucune action d'argent depuis cet écran).
+  const pendingRequest = firstPendingRequest(detail.purchases)
+  const pendingOthers = pendingRequest
+    ? detail.purchases.requests.filter((r) => r.status === "pending").length - 1
+    : 0
+  const confirmTone = pendingRequest ? "soft" : "dark"
   const student = <SelectedStudent title="Étudiant retenu" student={selectedStudent} missionId={mission.id} />
   return (
     <>
       <div className="split2 fup2__split">
         <div className="col2">
+          {pendingRequest ? (
+            <PaymentTodoCard
+              request={pendingRequest}
+              others={pendingOthers}
+              studentName={studentName}
+              href={clientConversationHref(mission.id, selectedStudent?.id, { demande: pendingRequest.id })}
+            />
+          ) : null}
           {declared ? (
             <DeclaredCard
               view={view}
@@ -132,11 +147,16 @@ function InProgress({ detail, view, studentName, onConfirm }) {
               studentId={selectedStudent?.id}
               studentName={studentName}
               onConfirm={onConfirm}
+              confirmTone={confirmTone}
             />
-          ) : (
+          ) : pendingRequest ? null : (
             <RunningCard view={view} studentName={studentName} />
           )}
-          {estimate === null ? student : <PurchasesCard estimate={estimate} escrowed={Boolean(view.reservedAt)} />}
+          {estimate === null ? (
+            student
+          ) : (
+            <PurchasesCard estimate={estimate} escrowed={Boolean(view.reservedAt)} purchases={detail.purchases} />
+          )}
           <section className="card2 fup2__timeline" aria-label="Chronologie">
             <div className="sec2">
               <h2 className="sec2__title">Chronologie</h2>
@@ -150,6 +170,7 @@ function InProgress({ detail, view, studentName, onConfirm }) {
             split={view.split}
             studentName={studentName}
             onConfirm={declared ? undefined : onConfirm}
+            confirmTone={confirmTone}
             withPurchases={estimate !== null}
             since={view.reservedAt ? formatDay(view.reservedAt) : ""}
           />
@@ -161,7 +182,7 @@ function InProgress({ detail, view, studentName, onConfirm }) {
             <Icon name="i-message" />
             Discuter
           </Link>
-          <button type="button" className="btn btn--dark" onClick={onConfirm}>
+          <button type="button" className={`btn btn--${confirmTone}`} onClick={onConfirm}>
             <Icon name="i-check-circle" />
             Confirmer la fin
           </button>
@@ -199,7 +220,7 @@ function Done({ detail, view, studentName }) {
           ) : review ? (
             <ReviewCard review={review} studentName={studentName} />
           ) : null}
-          {estimate === null ? null : <PurchasesCard estimate={estimate} escrowed={Boolean(view.reservedAt)} />}
+          {estimate === null ? null : <DonePurchasesCard estimate={estimate} escrowed={Boolean(view.reservedAt)} purchases={detail.purchases} />}
           <section className="card2 fup2__timeline" aria-label="Chronologie">
             <div className="sec2">
               <h2 className="sec2__title">Chronologie</h2>
@@ -209,7 +230,7 @@ function Done({ detail, view, studentName }) {
         </div>
         <div className="col2">
           {estimate === null ? <SelectedStudent title="Réalisée par" student={selectedStudent} missionId={mission.id} /> : null}
-          <Receipt view={view} ledger={ledger} studentName={studentName} withPurchases={estimate !== null} />
+          <Receipt view={view} ledger={ledger} studentName={studentName} withPurchases={estimate !== null} purchases={detail.purchases} />
           {estimate === null ? null : <SelectedStudent title="Réalisée par" student={selectedStudent} missionId={mission.id} />}
         </div>
       </div>
@@ -260,7 +281,7 @@ function Cancelled({ detail, view, studentName }) {
           </section>
         </div>
         <div className="col2">
-          <CancelledSummary mission={mission} view={view} applicationsCount={applications.length} />
+          <CancelledSummary mission={mission} view={view} applicationsCount={applications.length} purchases={detail.purchases} />
         </div>
       </div>
       <div className="mbar2">
@@ -347,6 +368,7 @@ export function MissionFollowupView({ detail, flags }) {
         studentName={studentName}
         split={view.split}
         since={view.reservedAt ? formatShortDate(view.reservedAt) : ""}
+        purchases={detail.purchases}
         onClose={() => setDialogOpen(false)}
         onPaid={(amount) => {
           setDialogOpen(false)

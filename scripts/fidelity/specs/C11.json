@@ -158,7 +158,6 @@
           "id": "MI-10",
           "label": "carte achats",
           "board": "section.card2[aria-label=\"Achats payés en direct\"]",
-          "code": "section.card2[aria-label=\"Achats pour votre compte\"]",
           "props": [
             "x",
             "y",
@@ -170,15 +169,14 @@
           "lot": "ST-09",
           "assume": {
             "y": "A3:3",
-            "h": "A8:200"
+            "h": "A8:19"
           },
-          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : lignes « N° 1 » et « N° 2 » (vendeur, code marchand, statut « Reçu par le vendeur », montant payé) et lignes « Total payé par vous aux vendeurs » absentes de la carte achats (décision 24 révisée, aucune donnée de vendeur ni de montant payé : seule l'estimation est affichée) : -200 px. "
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : les lignes d'achat du code (vendeur, N°, montant, articles, pastille de statut) n'affichent ni la date et l'heure du paiement ni le code marchand de la planche (RD-ACHATS-01 : horodatage du paiement et numéro à payer non repris dans le reçu) : -19 px."
         },
         {
           "id": "MI-10",
           "label": "achats : badge « Hors EduCash »",
           "board": "section.card2[aria-label=\"Achats payés en direct\"] .badge",
-          "code": "section.card2[aria-label=\"Achats pour votre compte\"] .badge",
           "props": [
             "x",
             "w",
@@ -206,10 +204,10 @@
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "A3+A8:197",
+            "y": "A3+A8:16",
             "h": "A8:89"
           },
-          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : lignes « N° 1 » et « N° 2 » (vendeur, code marchand, statut « Reçu par le vendeur », montant payé) et lignes « Total payé par vous aux vendeurs » absentes de la carte achats (décision 24 révisée, aucune donnée de vendeur ni de montant payé : seule l'estimation est affichée) : -200 px. Chronologie : les étapes « 2 achats payés en direct : 13 650 FCFA » et « Livraison à Cadjèhoun » (heure de livraison) sont absentes (aucune donnée d'achat payé ni de livraison) et l'étape « retenu » n'a pas de date (non connue) : -89 px (A8)"
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : les étapes « 2 achats payés en direct : 13 650 FCFA » et « Livraison à Cadjèhoun » (heure de livraison) sont absentes de la chronologie (étape de la chronologie hors de ST-14, aucune heure de livraison) et l'étape « retenu » n'a pas de date (non connue) : -89 px (A8). La position verticale suit le Coût total, qui reste dans la colonne droite."
         },
         {
           "id": "MI-10",
@@ -228,7 +226,7 @@
             "y": "A3:3",
             "h": "A8:71"
           },
-          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : ligne « Référence EDC-R-0436 » (référence non codée, D4) et lien « Télécharger le reçu (PDF) » (non codé, D4) absents : -42 px et -29 px. Écart décidé : la carte « Coût total » (service + achats payés en direct) est omise, la planche additionne des montants d'achats payés qui n'existent pas en base"
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : ligne « Référence EDC-R-0436 » (référence non codée, D4) et lien « Télécharger le reçu (PDF) » (non codé, D4) absents : -42 px et -29 px."
         },
         {
           "id": "MI-10",
@@ -280,6 +278,40 @@
             "h": "A8:42"
           },
           "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : ligne « Référence EDC-R-0436 » absente (référence non codée, D4) : -42 px"
+        },
+        {
+          "id": "MI-10",
+          "label": "carte coût total",
+          "board": "section.card2[aria-label=\"Coût total\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-14",
+          "assume": {
+            "y": "A3+A8:68"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : la carte suit un reçu plus court de 71 px (référence et lien PDF absents, D4)."
+        },
+        {
+          "id": "MI-10",
+          "label": "coût total : lignes",
+          "board": "section.card2[aria-label=\"Coût total\"] .lines2",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "lot": "ST-14",
+          "assume": {
+            "y": "A3+A8:67"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : la carte suit un reçu plus court de 71 px (référence et lien PDF absents, D4)."
         }
       ]
     },
@@ -307,13 +339,12 @@
           "assume": {
             "y": "X1:100"
           },
-          "note": "X1 : en-tête mobile du code plus haut que celui de la planche (voir C08 mobile, lot ST-03)"
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : ligne « Référence EDC-R-0436 » (référence non codée, D4) et lien « Télécharger le reçu (PDF) » (non codé, D4) absents : -42 px et -29 px."
         },
         {
           "id": "MI-10",
           "label": "carte achats",
           "board": "section.card2[aria-label=\"Achats payés en direct\"]",
-          "code": "section.card2[aria-label=\"Achats pour votre compte\"]",
           "props": [
             "x",
             "y",
@@ -323,9 +354,10 @@
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "X1:231"
+            "y": "X1:231",
+            "h": "X1:217"
           },
-          "note": "X1 : décalage de l'en-tête mobile et hauteur du reçu du code (reçu complet avec « Libéré le » et « Moyen » contre un reçu compact de 2 lignes dans la planche mobile). Lot : aucun, écart décidé : le reçu complet est conservé sur mobile (ni PDF ni référence codés, rien à compacter sans perdre « Libéré le »)"
+          "note": "X1 : décalage de l'en-tête mobile (+100) et du reçu complet du code (voir carte reçu). Hauteur +217 : la planche mobile est compacte (nom, montant et pastille « Reçu » sur une ligne) ; le code garde le N°, les articles, la pastille « Reçu par le vendeur » sous le texte, l'estimation, le total payé et la note « hors EduCash ». Lot : aucun, écart décidé (honnêteté sur ce qui est hors EduCash)."
         }
       ]
     }

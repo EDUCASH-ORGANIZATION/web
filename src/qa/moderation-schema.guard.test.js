@@ -4,8 +4,11 @@ import path from "node:path"
 
 // RD-MSG-01 : le schéma de référence (supabase/schema.sql) décrit les tables message_contact_events et
 // reports telles que le script 92 les crée, et le droit INSERT de messages tel que le script 93 le laisse.
-// Ce garde vérifie en dur les éléments qui portent la sécurité : listes des CHECK, RLS activée sans
-// politique, aucun droit pour anon ni authenticated, aucun temps réel, aucun INSERT direct sur messages.
+// Il décrit aussi reports APRÈS le script 94 de RD-ACHATS-01 (NON appliqué en production) : cible
+// purchase_request, 4 motifs d'achats, contrainte de cible remplacée, motifs liés à la cible, une
+// signalisation par partie et par demande. Ce garde vérifie en dur les éléments qui portent la sécurité :
+// listes des CHECK, RLS activée sans politique, aucun droit pour anon ni authenticated, aucun temps réel,
+// aucun INSERT direct sur messages.
 const SCHEMA = readFileSync(path.join(process.cwd(), "supabase/schema.sql"), "utf8")
 const lines = SCHEMA.split("\n")
 
@@ -76,13 +79,17 @@ describe("schéma de référence : journal des détections (script 92)", () => {
 describe("schéma de référence : signalements (script 92)", () => {
   it("source, target_type, motif et statut ont exactement les listes attendues", () => {
     expect(listOf(check("reports_source_check"))).toEqual(["user", "auto"])
-    expect(listOf(check("reports_target_type_check"))).toEqual(["message"])
+    expect(listOf(check("reports_target_type_check"))).toEqual(["message", "purchase_request"])
     expect(listOf(check("reports_reason_check"))).toEqual([
       "harassment",
       "scam",
       "contact_details",
       "inappropriate",
       "other",
+      "purchase_amount_mismatch",
+      "purchase_payee_mismatch",
+      "purchase_vendor_not_paid",
+      "purchase_items_not_delivered",
     ])
     expect(listOf(check("reports_status_check"))).toEqual(["open", "in_progress", "resolved", "dismissed"])
   })
@@ -98,9 +105,33 @@ describe("schéma de référence : signalements (script 92)", () => {
       "(((source = 'user'::text) AND (reporter_id IS NOT NULL)) OR ((source = 'auto'::text) AND (reporter_id IS NULL)))"
     )
     expect(check("reports_not_self_check")).toContain("(reporter_id <> reported_user_id)")
-    expect(check("reports_message_target_check")).toContain(
-      "((target_type <> 'message'::text) OR (message_id IS NOT NULL))"
+  })
+
+  it("la cible est exclusive : un message porte message_id, une demande d'achats porte purchase_request_id (script 94)", () => {
+    const target = check("reports_target_check")
+    expect(target).toContain("((target_type = 'message'::text) AND (message_id IS NOT NULL) AND (purchase_request_id IS NULL))")
+    expect(target).toContain(
+      "((target_type = 'purchase_request'::text) AND (purchase_request_id IS NOT NULL) AND (message_id IS NULL) AND (source = 'user'::text))"
     )
+    expect(lines.some((l) => l.includes("reports_message_target_check") && /^alter table /.test(l))).toBe(false)
+  })
+
+  it("les motifs sont liés à la cible : 5 motifs de messagerie ou 4 motifs d'achats plus other (script 94)", () => {
+    const [messageSide, purchaseSide] = check("reports_reason_target_check").split("(target_type = 'purchase_request'::text)")
+    expect(listOf(messageSide.split("(target_type = 'message'::text)")[1])).toEqual([
+      "harassment",
+      "scam",
+      "contact_details",
+      "inappropriate",
+      "other",
+    ])
+    expect(listOf(purchaseSide)).toEqual([
+      "purchase_amount_mismatch",
+      "purchase_payee_mismatch",
+      "purchase_vendor_not_paid",
+      "purchase_items_not_delivered",
+      "other",
+    ])
   })
 
   it("un seul signalement par message et par auteur, une seule alerte automatique ouverte par utilisateur", () => {
@@ -109,6 +140,15 @@ describe("schéma de référence : signalements (script 92)", () => {
     )
     expect(SCHEMA).toContain(
       "CREATE UNIQUE INDEX reports_auto_open_per_user_idx ON public.reports USING btree (reported_user_id) WHERE ((source = 'auto'::text) AND (status = ANY (ARRAY['open'::text, 'in_progress'::text])));"
+    )
+  })
+
+  it("un seul signalement d'achat par demande et par auteur : chaque partie peut signaler une fois (script 94)", () => {
+    expect(SCHEMA).toContain(
+      "CREATE UNIQUE INDEX reports_purchase_reporter_idx ON public.reports USING btree (purchase_request_id, reporter_id) WHERE (purchase_request_id IS NOT NULL);"
+    )
+    expect(SCHEMA).toContain(
+      "alter table public.reports add constraint reports_purchase_request_id_fkey FOREIGN KEY (purchase_request_id) REFERENCES public.purchase_requests(id) ON DELETE CASCADE;"
     )
   })
 
@@ -134,7 +174,7 @@ describe("schéma de référence : signalements (script 92)", () => {
       expect(fks.length).toBeGreaterThan(0)
       expect(fks.some((l) => l.includes("auth.users"))).toBe(false)
     }
-    expect(onTable("reports").filter((l) => l.includes("FOREIGN KEY"))).toHaveLength(5)
+    expect(onTable("reports").filter((l) => l.includes("FOREIGN KEY"))).toHaveLength(6)
     expect(onTable("message_contact_events").filter((l) => l.includes("FOREIGN KEY"))).toHaveLength(3)
   })
 })
@@ -213,8 +253,27 @@ describe("schéma de référence : messages sans INSERT direct (script 93)", () 
 describe("schéma de référence : en-tête des scripts 92 et 93", () => {
   const header = lines.slice(0, 30).join("\n")
 
-  it("signale que les scripts 92 et 93 ne sont pas appliqués", () => {
-    expect(header).toMatch(/Scripts 92 et 93 de RD-MSG-01 NON appliqués en production/)
-    expect(header).toContain("après le déploiement du")
+  it("signale que les scripts 92 et 93 sont appliqués en production", () => {
+    expect(header).toContain("Script 92 de RD-MSG-01 appliqué en production le 2026-10-16.")
+    expect(header).toContain("Script 93 de RD-MSG-01 appliqué en production le 2026-10-16.")
+    expect(header).not.toContain(
+      "Script 93 de RD-MSG-01 (retrait du droit INSERT sur public.messages à authenticated) NON appliqué"
+    )
+    expect(header).not.toContain("Scripts 92 et 93 de RD-MSG-01 NON appliqués")
+  })
+
+  it("seul le script 94 de RD-ACHATS-01 reste « NON appliqué » dans l'en-tête", () => {
+    const notApplied = header.split("\n").filter((l) => /NON appliqu/.test(l))
+    expect(notApplied).toHaveLength(1)
+    expect(notApplied[0]).toContain("Script 94 de RD-ACHATS-01 NON appliqué en production")
+  })
+
+  it("aucune mention « NON appliqué » ne concerne les scripts 92 et 93 dans tout le fichier", () => {
+    const stale = lines.filter(
+      (l, i) => /NON appliqu/.test(l) && /\b9[23]\b/.test(`${lines[i - 1] ?? ""} ${l} ${lines[i + 1] ?? ""}`) && !/Script 94/.test(l)
+    )
+    expect(stale).toEqual([])
+    const withNotApplied = lines.filter((l) => /NON appliqu/.test(l))
+    expect(withNotApplied.every((l) => l.includes("Script 94"))).toBe(true)
   })
 })

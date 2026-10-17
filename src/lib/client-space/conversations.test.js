@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { PURCHASE_MESSAGE_TYPES } from "@/lib/purchases/requests"
 import {
   MEDIA_MAX_BYTES,
+  MESSAGE_TYPES,
+  PURCHASE_PREVIEW,
+  SENDABLE_MESSAGE_TYPES,
+  isPurchaseMessageType,
   buildConversations,
   conversationAccess,
   conversationKey,
@@ -298,7 +303,7 @@ describe("toMessage, isPairRow, mergeMessages", () => {
 
   it("réduit une ligne à ce que la vue affiche, sans identifiant de personne", () => {
     const m = toMessage(raw(), ME)
-    expect(m).toEqual({ id: "m1", mine: true, type: "text", content: "Bonjour", mediaPath: null, mediaUrl: null, lat: null, lng: null, createdAt: "2026-10-13T08:00:00Z", read: true })
+    expect(m).toEqual({ id: "m1", mine: true, type: "text", content: "Bonjour", purchaseRequestId: null, mediaPath: null, mediaUrl: null, lat: null, lng: null, createdAt: "2026-10-13T08:00:00Z", read: true })
     expect(toMessage(raw({ sender_id: S1, receiver_id: ME }), ME).mine).toBe(false)
   })
 
@@ -445,5 +450,136 @@ describe("withCompletionDeclared", () => {
     expect(withCompletionDeclared(candidate, "2026-10-14T09:30:00Z", true)).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
     const denied = conversationAccess({ mission: { status: "in_progress", selectedStudentId: S2 }, application: null, studentId: S1 })
     expect(withCompletionDeclared(denied, "2026-10-14T09:30:00Z", true)).toMatchObject({ completionDeclaredAt: null, completionAvailable: false })
+  })
+})
+
+// ─── Messages d'achats (RD-ACHATS-01 ST-09) ─────────────────────────────────────────────────────
+
+const REQ = "55555555-5555-4555-8555-555555555551"
+
+describe("types de message d'achat", () => {
+  it("lit 6 types, dont les 2 d'achat, et n'en laisse que 4 envoyables", () => {
+    expect(SENDABLE_MESSAGE_TYPES).toEqual(["text", "image", "voice", "location"])
+    expect(PURCHASE_MESSAGE_TYPES).toEqual(["purchase_request", "purchase_event"])
+    expect(MESSAGE_TYPES).toEqual([...SENDABLE_MESSAGE_TYPES, ...PURCHASE_MESSAGE_TYPES])
+    for (const type of PURCHASE_MESSAGE_TYPES) expect(SENDABLE_MESSAGE_TYPES).not.toContain(type)
+  })
+
+  it("reconnaît seulement la carte et la ligne système", () => {
+    expect(isPurchaseMessageType("purchase_request")).toBe(true)
+    expect(isPurchaseMessageType("purchase_event")).toBe(true)
+    for (const type of [...SENDABLE_MESSAGE_TYPES, "purchase", "Purchase_Request", "", null, undefined]) {
+      expect(isPurchaseMessageType(type)).toBe(false)
+    }
+  })
+})
+
+describe("toMessage : messages d'achat", () => {
+  const raw = (over) => ({
+    id: "p1",
+    sender_id: S1,
+    receiver_id: ME,
+    content: "Demande de paiement d'achats N° 1",
+    type: "purchase_request",
+    purchase_request_id: REQ,
+    media_url: null,
+    location_lat: null,
+    location_lng: null,
+    read: false,
+    created_at: "2026-10-13T08:00:00Z",
+    ...over,
+  })
+
+  it("expose le type, le contenu fixe et l'identifiant de la demande pour la carte", () => {
+    expect(toMessage(raw(), ME)).toEqual({
+      id: "p1",
+      mine: false,
+      type: "purchase_request",
+      content: "Demande de paiement d'achats N° 1",
+      purchaseRequestId: REQ,
+      mediaPath: null,
+      mediaUrl: null,
+      lat: null,
+      lng: null,
+      createdAt: "2026-10-13T08:00:00Z",
+      read: false,
+    })
+  })
+
+  it("expose aussi la ligne système, et marque mine selon la session", () => {
+    const m = toMessage(raw({ type: "purchase_event", content: "La demande N° 1 a été annulée.", sender_id: ME, receiver_id: S1 }), ME)
+    expect(m).toMatchObject({ type: "purchase_event", content: "La demande N° 1 a été annulée.", purchaseRequestId: REQ, mine: true })
+  })
+
+  it("met l'identifiant de la demande en minuscules", () => {
+    expect(toMessage(raw({ purchase_request_id: REQ.toUpperCase() }), ME).purchaseRequestId).toBe(REQ)
+  })
+
+  it("ignore une ligne d'achat sans identifiant de demande valide : elle ne devient jamais un message texte", () => {
+    for (const bad of [null, undefined, "", "pas-un-uuid", 42, {}, `${REQ}x`]) {
+      expect(toMessage(raw({ purchase_request_id: bad }), ME)).toBeNull()
+      expect(toMessage(raw({ type: "purchase_event", purchase_request_id: bad }), ME)).toBeNull()
+    }
+  })
+
+  it("ne donne un identifiant de demande qu'aux types d'achat (colonne absente ou posée sur un texte)", () => {
+    expect(toMessage(raw({ type: "text", content: "Bonjour" }), ME).purchaseRequestId).toBeNull()
+    const noColumn = raw({ type: "text", content: "Bonjour" })
+    delete noColumn.purchase_request_id
+    expect(toMessage(noColumn, ME)).toMatchObject({ type: "text", purchaseRequestId: null })
+    expect(toMessage(raw({ type: "image", media_url: null }), ME).purchaseRequestId).toBeNull()
+  })
+
+  it("n'attache ni média ni position à un message d'achat", () => {
+    const good = `${ORIGIN}/storage/v1/object/public/message-media/${S1}/p.png`
+    const m = toMessage(raw({ media_url: good, location_lat: 6.4, location_lng: 2.4 }), ME, { [`${S1}/p.png`]: "x" })
+    expect(m).toMatchObject({ mediaPath: null, mediaUrl: null, lat: null, lng: null })
+  })
+
+  it("se fusionne avec les autres messages sans doublon, dans l'ordre", () => {
+    const card = toMessage(raw({ created_at: "2026-10-13T08:00:00Z" }), ME)
+    const text = toMessage(raw({ id: "t1", type: "text", content: "Bonjour", created_at: "2026-10-13T07:00:00Z" }), ME)
+    expect(mergeMessages([card], [text, card]).map((m) => m.id)).toEqual(["t1", "p1"])
+  })
+})
+
+describe("aperçu et non lus des messages d'achat", () => {
+  it("donne un texte fixe sans numéro, vendeur ni montant, quel que soit le contenu de la ligne", () => {
+    const content = "Demande de paiement d'achats N° 12 - Chez Mama Bénin - 15 000 FCFA - 0197000000"
+    expect(previewOf({ mine: false, type: "purchase_request", content })).toBe(PURCHASE_PREVIEW.purchase_request)
+    expect(previewOf({ mine: false, type: "purchase_event", content })).toBe(PURCHASE_PREVIEW.purchase_event)
+    for (const text of Object.values(PURCHASE_PREVIEW)) {
+      expect(text).not.toMatch(/\d/)
+      expect(text).not.toMatch(/FCFA|N°/)
+    }
+  })
+
+  it("préfixe « Vous : » la carte envoyée, jamais la ligne système", () => {
+    expect(previewOf({ mine: true, type: "purchase_request", content: "x" })).toBe("Vous : Demande de paiement d'achats")
+    expect(previewOf({ mine: true, type: "purchase_event", content: "x" })).toBe("Mise à jour d'une demande de paiement")
+    expect(previewOf({ mine: false, type: "purchase_event", content: "x" })).toBe("Mise à jour d'une demande de paiement")
+  })
+
+  it("compte une carte ou une ligne système reçue non lue, et les prend pour dernier message", () => {
+    const [conv] = buildConversations(
+      [
+        row({ id: "a", content: "Bonjour", created_at: "2026-10-13T08:00:00Z", read: true }),
+        row({ id: "b", type: "purchase_request", content: "Demande de paiement d'achats N° 1", created_at: "2026-10-13T09:00:00Z" }),
+        row({ id: "c", type: "purchase_event", content: "La demande N° 1 est marquée « Payé ».", created_at: "2026-10-13T10:00:00Z", sender_id: ME, receiver_id: S1 }),
+      ],
+      ME,
+    )
+    expect(conv.unreadCount).toBe(1)
+    expect(conv.lastUnreadAt).toBe("2026-10-13T09:00:00Z")
+    expect(conv.last).toMatchObject({ mine: true, type: "purchase_event" })
+    expect(previewOf(conv.last)).toBe(PURCHASE_PREVIEW.purchase_event)
+  })
+
+  it("ne compte pas une ligne système envoyée par soi comme non lue pour soi", () => {
+    const [conv] = buildConversations(
+      [row({ type: "purchase_event", sender_id: ME, receiver_id: S1, read: false })],
+      ME,
+    )
+    expect(conv.unreadCount).toBe(0)
   })
 })

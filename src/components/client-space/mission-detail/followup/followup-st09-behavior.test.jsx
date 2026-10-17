@@ -238,17 +238,121 @@ describe("ST-09 dates de la note de blocage", () => {
 })
 
 describe("ST-09 zones intactes", () => {
-  it("ConfirmEndDialog, releaseOnce, confirmMission : diff vide et libellé conservé", () => {
-    const diff = execFileSync(
-      "git",
-      ["diff", "--name-only", "origin/main...HEAD", "--", "src/components/client-space/mission-detail/followup/confirm-end-dialog.jsx", "src/lib/actions/mission.actions.js"],
-      { encoding: "utf8", cwd: process.cwd() },
-    )
-    expect(diff.trim()).toBe("")
+  // RD-ACHATS-01 (ST-14) ajoute l'avertissement et la liste des achats à la modale. La libération du séquestre,
+  // elle, doit rester octet pour octet celle de origin/main.
+  const DIALOG = "src/components/client-space/mission-detail/followup/confirm-end-dialog.jsx"
+  const git = (args) => execFileSync("git", args, { encoding: "utf8", cwd: process.cwd() })
+  const sliceBetween = (src, start, end) => {
+    const from = src.indexOf(start)
+    expect(from).toBeGreaterThan(-1)
+    const to = src.indexOf(end, from + start.length)
+    expect(to).toBeGreaterThan(from)
+    return src.slice(from, to)
+  }
+  const releaseOnceBody = (src) => sliceBetween(src, "export async function releaseOnce(", "\n}\n")
+  const submitBody = (src) => sliceBetween(src, "  async function submit() {", "\n  }\n")
+
+  it("mission.actions.js : diff vide", () => {
+    expect(git(["diff", "--name-only", "origin/main...HEAD", "--", "src/lib/actions/mission.actions.js"]).trim()).toBe("")
+  })
+
+  it("ConfirmEndDialog : releaseOnce et submit() identiques à origin/main", async () => {
+    const { readFileSync } = await import("node:fs")
+    const before = git(["show", `origin/main:${DIALOG}`])
+    const after = readFileSync(DIALOG, "utf8")
+    expect(releaseOnceBody(after)).toBe(releaseOnceBody(before))
+    expect(submitBody(after)).toBe(submitBody(before))
+  })
+
+  it("ConfirmEndDialog : même nombre d'appels à confirmMission, releaseOnce, libellé et verrou du bouton", async () => {
+    const { readFileSync } = await import("node:fs")
+    const before = git(["show", `origin/main:${DIALOG}`])
+    const after = readFileSync(DIALOG, "utf8")
+    const count = (src, re) => (src.match(re) ?? []).length
+    for (const re of [/confirmMission/g, /releaseOnce\(/g, /Libérer le paiement/g, /disabled=\{!checked \|\| pending\}/g]) {
+      expect(count(before, re)).toBeGreaterThan(0)
+      expect(count(after, re)).toBe(count(before, re))
+    }
+  })
+
+  it("ConfirmEndDialog : la seule ligne retirée par ST-14 est la signature de ConfirmEndDialogOpen", () => {
+    const diff = git(["diff", "-U0", "origin/main...HEAD", "--", DIALOG])
+    const removed = diff.split("\n").filter((l) => l.startsWith("-") && !l.startsWith("---"))
+    expect(removed).toEqual([
+      "-function ConfirmEndDialogOpen({ missionId, title, studentName, split, since, onClose, onPaid }) {",
+    ])
   })
 
   it("le libellé « Libérer le paiement » reste dans la modale", async () => {
     const { readFileSync } = await import("node:fs")
     expect(readFileSync("src/components/client-space/mission-detail/followup/confirm-end-dialog.jsx", "utf8")).toContain("Libérer le paiement")
+  })
+})
+
+describe("ST-13 demandes de paiement : chronologie, bouton et séquestre inchangés", () => {
+  const PENDING = {
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1", seq: 1, status: "pending", version: 1, amount: 6200,
+    vendorName: "Boutique Sœur Odile", items: null, payeeKind: "merchant", payeeNumber: "123456",
+  }
+  const withRequests = (requests, extra = {}) => ({
+    ...detailOf("in_progress", {}, extra),
+    purchases: {
+      available: true, requests,
+      totals: { count: requests.length, requested: 6200, paid: 0, pending: 6200, reported: 0 },
+      exceedsEstimate: false, confirmWarning: { show: true, pending: 1, reported: 0 }, costTotal: null,
+    },
+  })
+  const titles = (d) => buildTimeline(d, missionView(d), "Sèna").map((i) => i.title)
+
+  it("sans demande : la chronologie reste celle de RD-DONE-01", () => {
+    expect(titles(detailOf("in_progress"))).toContain("Mission en cours")
+    expect(titles({ ...detailOf("in_progress"), purchases: { available: false } })).toContain("Mission en cours")
+  })
+
+  it("avec une demande : l'étape en cours devient Achats en cours avec le résumé", () => {
+    const d = withRequests([PENDING])
+    expect(titles(d)).toContain("Achats en cours")
+    expect(titles(d)).not.toContain("Mission en cours")
+    const item = buildTimeline(d, missionView(d), "Sèna").find((i) => i.title === "Achats en cours")
+    expect(item.meta).toBe("1 en attente")
+  })
+
+  it("le séquestre n'affiche aucun montant de demande, avec ou sans paiements ouverts", () => {
+    for (const flags of [OPEN, CLOSED]) {
+      const html = render(withRequests([PENDING]), flags)
+      expect(plain(section(html, "Séquestre"))).not.toMatch(/6\s200/)
+      expect(plain(section(html, "Séquestre"))).toMatch(/8\s000/)
+    }
+  })
+
+  it("l'unique bouton encre est Ouvrir la demande ; la barre du bas garde Confirmer la fin en contour actif", () => {
+    const html = render(withRequests([PENDING]))
+    expect(html.match(/class="btn btn--dark[^"]*"/g)).toHaveLength(1)
+    const bar = html.slice(html.indexOf('class="mbar2"'))
+    expect(bar).toMatch(/<button[^>]*btn--soft[^>]*>[^]*Confirmer la fin/)
+    expect(bar).not.toMatch(/disabled/)
+  })
+})
+
+describe("ST-13 EscrowCard : prop confirmTone", () => {
+  const split = { total: 8000, commission: 960, student: 7040 }
+  const html = (props) => renderToStaticMarkup(<EscrowCard split={split} studentName="Sèna" onConfirm={() => {}} {...props} />)
+
+  it("absente : bouton encre comme avant", () => {
+    expect(html({})).toMatch(/<button[^>]*btn btn--dark btn--block[^>]*>/)
+  })
+
+  it("soft : bouton en contour, actif", () => {
+    const out = html({ confirmTone: "soft" })
+    expect(out).toMatch(/<button[^>]*btn btn--soft btn--block[^>]*>/)
+    expect(out).not.toMatch(/btn--dark|disabled/)
+  })
+
+  it("valeur inconnue : retombe sur l'encre", () => {
+    expect(html({ confirmTone: "x" })).toContain("btn--dark")
+  })
+
+  it("sans onConfirm : aucun bouton", () => {
+    expect(html({ onConfirm: undefined, confirmTone: "soft" })).not.toContain("Confirmer la fin")
   })
 })

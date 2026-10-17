@@ -1,5 +1,6 @@
 import { Icon } from "@/components/design/icon"
 import { formatAmount } from "@/lib/app/format"
+import { purchasesCounts } from "./purchases-card"
 
 const MOMENT_TZ = "Africa/Porto-Novo"
 
@@ -67,6 +68,16 @@ export function buildTimeline(detail, view, studentName) {
 
   items.push({ state: "done", icon: "i-user-check", title: `Candidature de ${studentName} acceptée` })
 
+  // Demandes de paiement d'achats (RD-ACHATS-01) : résumé en méta de l'étape en cours, jamais un montant.
+  const counts = purchasesCounts(detail.purchases)
+  const purchasesMeta = [
+    counts.paid > 0 ? `${counts.paid} ${counts.paid > 1 ? "demandes payées" : "demande payée"}` : "",
+    counts.pending > 0 ? `${counts.pending} en attente` : "",
+    counts.reported > 0 ? `${counts.reported} ${counts.reported > 1 ? "signalées" : "signalée"}` : "",
+  ]
+    .filter(Boolean)
+    .join(", ")
+
   const declaredAt = view.completion?.declaredAt ?? null
   const declaredStep = { state: "done", icon: "i-check", title: `Fin déclarée par ${studentName}`, meta: formatMoment(declaredAt) }
 
@@ -84,11 +95,15 @@ export function buildTimeline(detail, view, studentName) {
   }
 
   if (view.completion?.state === "declared") {
-    items.push({ state: "done", icon: "i-clock", title: "Mission en cours" })
+    items.push({ state: "done", icon: "i-clock", title: "Mission en cours", meta: purchasesMeta })
     items.push(declaredStep)
     items.push({ state: "current", icon: "i-check-circle", title: "Votre validation de la fin" })
   } else {
-    items.push({ state: "current", icon: "i-clock", title: "Mission en cours" })
+    items.push(
+      purchasesMeta
+        ? { state: "current", icon: "i-receipt", title: "Achats en cours", meta: purchasesMeta }
+        : { state: "current", icon: "i-clock", title: "Mission en cours" },
+    )
     items.push({ state: "todo", icon: "i-check-circle", title: "Votre validation de la fin" })
   }
   items.push({ state: "todo", icon: "i-coins", title: `Fonds versés à ${studentName}` })

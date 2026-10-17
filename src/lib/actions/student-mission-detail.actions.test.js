@@ -4,9 +4,11 @@ import { readFileSync } from "node:fs"
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 vi.mock("@/lib/actions/profile.actions", () => ({ getMyProfile: vi.fn(), getMyStudentProfile: vi.fn() }))
+vi.mock("@/lib/actions/purchase-request.actions", () => ({ getStudentPurchaseRequests: vi.fn() }))
 
 import { requireRole } from "@/lib/auth/require-role"
 import { getMyProfile, getMyStudentProfile } from "@/lib/actions/profile.actions"
+import { getStudentPurchaseRequests } from "@/lib/actions/purchase-request.actions"
 import { getStudentMissionDetail } from "./student-mission-detail.actions"
 
 const ME = "00000000-0000-4000-8000-000000000001"
@@ -81,6 +83,8 @@ beforeEach(() => {
     acceptedAt: { data: [], error: null },
   }
   requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: ME }, role: "student", profile: {} })
+  getStudentPurchaseRequests.mockReset()
+  getStudentPurchaseRequests.mockResolvedValue({ available: false })
   getMyProfile.mockResolvedValue({ profile: { is_verified: true, verified_until: null, rejection_reason: null } })
   getMyStudentProfile.mockResolvedValue({ studentProfile: { card_url: "student-cards/x.png" } })
   vi.spyOn(console, "error").mockImplementation(() => {})
@@ -468,5 +472,144 @@ describe("getStudentMissionDetail : date de rétention (RD-ACCEPT-01, accepted_a
     expect(src).not.toMatch(/acceptedAt:\s*application\.updated_at/)
     expect(src).not.toContain("createServiceClient")
     expect(src).not.toContain("head: true")
+  })
+})
+
+describe("getStudentMissionDetail : demandes de paiement d'achats (RD-ACHATS-01)", () => {
+  const retained = { ...baseMission, status: "in_progress", selected_student_id: ME, purchases_estimate: 20000 }
+  const view = (over = {}) => ({ id: "r1", seq: 1, status: "pending", version: 1, amount: 6000, vendorName: "Dossa", actions: ["edit", "cancel"], ...over })
+
+  it("étudiant retenu, 0 demande : bloc disponible, totaux nuls, estimation séparée", async () => {
+    responses.missions = missionsFor(retained)
+    getStudentPurchaseRequests.mockResolvedValue({ available: true, requests: [], canCreate: true })
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(getStudentPurchaseRequests).toHaveBeenCalledWith({ missionId: MISSION })
+    expect(detail.purchases).toEqual({
+      available: true,
+      requests: [],
+      totals: { count: 0, requested: 0, paid: 0, pending: 0, reported: 0 },
+      exceedsEstimate: false,
+      canCreate: true,
+    })
+    expect(detail.mission.purchasesEstimate).toBe(20000)
+  })
+
+  it("1 demande puis 3 demandes : liste dans l'ordre reçu, totaux recalculés, annulée exclue des totaux", async () => {
+    responses.missions = missionsFor(retained)
+    getStudentPurchaseRequests.mockResolvedValue({ available: true, requests: [view()], canCreate: true })
+    let detail = await getStudentMissionDetail(MISSION)
+    expect(detail.purchases.requests).toHaveLength(1)
+    expect(detail.purchases.totals).toEqual({ count: 1, requested: 6000, paid: 0, pending: 6000, reported: 0 })
+
+    getStudentPurchaseRequests.mockResolvedValue({
+      available: true,
+      requests: [
+        view(),
+        view({ id: "r2", seq: 2, status: "received", amount: 4000 }),
+        view({ id: "r3", seq: 3, status: "cancelled", amount: 9000 }),
+        view({ id: "r4", seq: 4, status: "reported", amount: 2500 }),
+      ],
+      canCreate: false,
+    })
+    detail = await getStudentMissionDetail(MISSION)
+    expect(detail.purchases.requests.map((r) => r.id)).toEqual(["r1", "r2", "r3", "r4"])
+    expect(detail.purchases.totals).toEqual({ count: 3, requested: 12500, paid: 4000, pending: 6000, reported: 2500 })
+    expect(detail.purchases.canCreate).toBe(false)
+    // L'estimation n'entre jamais dans les totaux ni dans le grand livre.
+    expect(detail.purchases.totals.requested).not.toBe(12500 + 20000)
+    expect(detail.ledger).toEqual([])
+  })
+
+  it("dépassement : vrai seulement au-delà de 1,5 fois l'estimation", async () => {
+    responses.missions = missionsFor(retained)
+    getStudentPurchaseRequests.mockResolvedValue({ available: true, requests: [view({ amount: 30000 })], canCreate: true })
+    expect((await getStudentMissionDetail(MISSION)).purchases.exceedsEstimate).toBe(false)
+    getStudentPurchaseRequests.mockResolvedValue({ available: true, requests: [view({ amount: 30001 })], canCreate: true })
+    expect((await getStudentMissionDetail(MISSION)).purchases.exceedsEstimate).toBe(true)
+  })
+
+  it("ligne invalide ignorée : statut inconnu, montant non entier, négatif ou sans identifiant", async () => {
+    responses.missions = missionsFor(retained)
+    getStudentPurchaseRequests.mockResolvedValue({
+      available: true,
+      requests: [
+        view(),
+        view({ id: "x1", status: "mystere" }),
+        view({ id: "x2", amount: 150.5 }),
+        view({ id: "x3", amount: -100 }),
+        view({ id: undefined }),
+        null,
+        "texte",
+      ],
+      canCreate: true,
+    })
+    const { purchases } = await getStudentMissionDetail(MISSION)
+    expect(purchases.requests.map((r) => r.id)).toEqual(["r1"])
+    expect(purchases.totals.requested).toBe(6000)
+  })
+
+  it("étudiant candidat (mission ouverte) : aucune demande lue, bloc indisponible", async () => {
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.state).toBe("open")
+    expect(detail.purchases).toEqual({ available: false })
+    expect(getStudentPurchaseRequests).not.toHaveBeenCalled()
+  })
+
+  it("étudiant retenu d'une autre mission en cours : état fermé, aucune demande lue", async () => {
+    responses.missions = missionsFor({ ...retained, selected_student_id: OTHER })
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail).toEqual({ state: "closed", mission: { id: MISSION } })
+    expect(getStudentPurchaseRequests).not.toHaveBeenCalled()
+  })
+
+  it("mission sans achats : aucune lecture des demandes, rendu actuel inchangé", async () => {
+    responses.missions = missionsFor({ ...retained, purchases_estimate: null })
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(getStudentPurchaseRequests).not.toHaveBeenCalled()
+    expect(detail.purchases).toEqual({ available: false })
+    expect(detail.state).toBe("selected")
+  })
+
+  it.each([
+    ["table absente", { available: false }],
+    ["introuvable", { notFound: true }],
+    ["réponse sans liste", { available: true }],
+    ["réponse vide", undefined],
+  ])("%s : bloc indisponible, aucune erreur, le reste du détail est rendu", async (_label, answer) => {
+    responses.missions = missionsFor(retained)
+    getStudentPurchaseRequests.mockResolvedValue(answer)
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.purchases).toEqual({ available: false })
+    expect(detail.state).toBe("selected")
+    expect(detail.mission.title).toBe("Cours de maths")
+  })
+
+  it("lecture des achats en échec : achats indisponibles, la mission reste lisible, sans message de base", async () => {
+    responses.missions = missionsFor(retained)
+    const log = vi.spyOn(console, "error").mockImplementation(() => {})
+    getStudentPurchaseRequests.mockResolvedValue({ error: "Impossible de charger les demandes de paiement. Veuillez réessayer.", code: "XX000" })
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.purchases).toEqual({ available: false })
+    expect(detail.mission.title).toBe("Cours de maths")
+    expect(log).toHaveBeenCalledWith("[getStudentMissionDetail] demandes d'achats", "XX000")
+    expect(JSON.stringify(detail)).not.toContain("Impossible de charger les demandes")
+  })
+
+  it("n'expose ni identifiant du client ni colonne d'une autre partie, et ne lit pas purchase_requests lui-même", async () => {
+    responses.missions = missionsFor(retained)
+    getStudentPurchaseRequests.mockResolvedValue({ available: true, requests: [view()], canCreate: true })
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(JSON.stringify(detail)).not.toContain(CLIENT)
+    expect(callsOn("purchase_requests")).toHaveLength(0)
+    expect(callsOn("reports")).toHaveLength(0)
+  })
+
+  it("la source réutilise le lecteur d'ST-04 : ni service role, ni sonde HEAD, ni écriture", () => {
+    const src = readFileSync("src/lib/actions/student-mission-detail.actions.js", "utf8")
+    expect(src).toContain("getStudentPurchaseRequests")
+    expect(src).not.toContain("createServiceClient")
+    expect(src).not.toMatch(/head:\s*true|\.head\(|\.insert\(|\.update\(|\.delete\(|\.upsert\(/)
+    expect(src).not.toMatch(/from "@\/lib\/(app\/money|constants\/missions|wallet\/[^"]*)"/)
+    expect(src).not.toContain("0.12")
   })
 })

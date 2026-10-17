@@ -1,5 +1,6 @@
 import { COMMISSION_RATE, netAmount } from "@/lib/constants/missions"
 import { MIN_DEPOSIT_AMOUNT } from "@/lib/supabase/database.constants"
+import { PAYMENT_WARNING } from "@/lib/purchases/requests"
 import { formatFcfa } from "@/lib/vitrine/format"
 
 // Budget de l'exemple chiffré (illustration, pas une donnée de la base).
@@ -40,8 +41,8 @@ export const FAQ_ITEMS = [
   {
     id: "achats-marche",
     question: "Pour le marché, qui paie les achats ?",
-    answer: "Vous, directement au vendeur, par MoMo. L'étudiant vous envoie dans la conversation la photo du numéro marchand, le montant et le ticket. Vous payez le vendeur et vous lui envoyez la capture du SMS. Seul le service de l'étudiant passe par le séquestre.",
-    warning: "Vérifiez toujours le nom du bénéficiaire affiché par MoMo.",
+    answer: "Vous, directement au vendeur, par MoMo, hors EduCash. L'étudiant vous envoie dans la conversation une carte de paiement d'achats : numéro à payer, nom du vendeur, montant, photo du numéro marchand ou du panneau, et photo du ticket. Vous payez le vendeur, puis vous joignez à la carte la capture du SMS de paiement ; l'étudiant confirme que le vendeur a bien reçu. L'étudiant n'avance jamais d'argent. Seul le service de l'étudiant passe par le séquestre, et EduCash n'est ni partie, ni dépositaire, ni garant du paiement des achats.",
+    warning: PAYMENT_WARNING,
   },
   {
     id: "entreprise",

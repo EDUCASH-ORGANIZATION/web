@@ -1,14 +1,14 @@
 // Contenu de la page /aide. Données sérialisables (utilisables côté serveur et côté client).
 import { COMMISSION_RATE } from "@/lib/constants/missions"
 import { MIN_WITHDRAWAL_AMOUNT } from "@/lib/supabase/database.constants"
+import { PAYMENT_WARNING, PURCHASE_NO_REFUND_NOTE } from "@/lib/purchases/requests"
 
 const COMMISSION_PCT = Math.round(COMMISSION_RATE * 100)
 const NET_PCT = 100 - COMMISSION_PCT
 const MIN_WITHDRAWAL = `${MIN_WITHDRAWAL_AMOUNT.toLocaleString("fr-FR").replace(/\s/g, " ")} FCFA`
 
-/** Avertissement affiché avant tout paiement d'achats (décision 24), repris à l'identique. */
-export const PAYMENT_WARNING =
-  "Vérifiez le nom du bénéficiaire affiché par MoMo avant de payer. EduCash n'intervient pas dans ce paiement."
+// Avertissement affiché avant tout paiement d'achats : source unique dans le domaine des achats.
+export { PAYMENT_WARNING }
 
 /**
  * Thèmes de l'aide. Un item peut porter des étapes (`steps`) et un avertissement (`notice`),
@@ -33,25 +33,34 @@ export const AIDE_THEMES = [
         id: "achats",
         question: "Mission avec achats : qui paie les achats ?",
         answer: [
-          "Le client, directement au vendeur. Jamais vous, et jamais par EduCash : l'argent des achats ne transite pas par la plateforme, seul le service passe par le séquestre. Tout se passe dans la conversation de la mission.",
+          "Le client, directement au vendeur, par Mobile Money et hors EduCash. Jamais vous : vous n'avancez jamais d'argent. L'argent des achats ne transite pas par la plateforme, seul le service passe par le séquestre. EduCash n'est ni partie, ni dépositaire, ni garant du paiement des achats.",
           "Pourquoi ce choix ? Par transparence et par honnêteté. Chaque franc des achats va droit à celui qui vend, le ticket fait foi, et personne n'avance d'argent pour l'autre. L'estimation des achats donnée sur la mission est indicative : elle ne bloque aucun fonds et ne porte aucune commission. Seul votre service passe par le séquestre, et la commission de " +
             `${COMMISSION_PCT} % ne porte que sur lui : EduCash ne gagne rien sur les achats.`,
         ],
         steps: [
           {
-            title: "Vous envoyez les infos du vendeur",
-            text: "Dans la conversation : la photo du numéro marchand, le montant exact et le ticket.",
+            title: "Vous envoyez la carte de paiement d'achats",
+            text: "Dans la conversation de la mission : le numéro à payer, le nom du vendeur, le montant, la photo du numéro marchand ou du panneau, et la photo du ticket.",
           },
           {
             title: "Le client paie le vendeur par MoMo",
-            text: "Directement, hors EduCash. Il vous envoie la capture du SMS.",
+            text: "Directement, hors EduCash. Il joint ensuite la capture du SMS de paiement à la carte.",
           },
           {
-            title: "Vous confirmez le paiement au client",
-            text: "Vous confirmez au client que le vendeur a bien reçu le paiement. Vous n'avancez jamais d'argent.",
+            title: "Vous confirmez la réception",
+            text: "Vous confirmez que le vendeur a bien reçu le paiement. Vous n'avancez jamais d'argent.",
           },
         ],
         notice: PAYMENT_WARNING,
+      },
+      {
+        id: "achats-probleme",
+        question: "Un paiement d'achats pose problème : que faire ?",
+        answer: [
+          "Chaque carte de paiement d'achats peut être signalée, par le client comme par l'étudiant : montant différent du ticket, bénéficiaire différent du vendeur, vendeur qui n'a pas reçu l'argent. L'équipe EduCash examine le signalement.",
+          "EduCash n'est ni partie, ni dépositaire, ni garant du paiement des achats. Le signalement ne déclenche ni remboursement ni compensation.",
+        ],
+        notice: PURCHASE_NO_REFUND_NOTE,
       },
       {
         id: "commission",

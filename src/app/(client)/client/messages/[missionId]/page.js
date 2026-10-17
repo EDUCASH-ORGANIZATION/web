@@ -4,6 +4,7 @@ import { getClientConversation } from "@/lib/actions/message.actions"
 import { ConversationView } from "@/components/client-space/messages/conversation-view"
 import { ErrorState } from "@/components/app-ui/state-block"
 import { paymentsEnabled } from "@/lib/constants/payments"
+import { isUuid } from "@/lib/purchases/proofs"
 
 export const metadata = { title: "Conversation - EduCash" }
 
@@ -30,5 +31,14 @@ export default async function ClientConversationPage({ params, searchParams }) {
       />
     )
   }
-  return <ConversationView conversation={result.conversation} now={new Date().toISOString()} paymentsEnabled={paymentsEnabled()} />
+  // ?demande= : drapeau sans action, ignoré s'il n'est pas un identifiant ; il fait seulement défiler jusqu'à la carte.
+  const demande = paramText(query.demande)
+  return (
+    <ConversationView
+      conversation={result.conversation}
+      now={new Date().toISOString()}
+      paymentsEnabled={paymentsEnabled()}
+      focusRequestId={isUuid(demande) ? demande.toLowerCase() : undefined}
+    />
+  )
 }

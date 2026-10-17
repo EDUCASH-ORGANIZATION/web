@@ -236,6 +236,20 @@ describe("notificationHref : chemins internes seulement", () => {
       expect(catalog.notificationHref({ type }, "admin")).toMatch(/^\/admin(\/|\?|$)/)
     }
   })
+
+  it("achats : liens client sous /client, lien étudiant interne, aucun lien administrateur", () => {
+    const clientTypes = ["purchase_requested", "purchase_updated", "purchase_cancelled", "purchase_received", "purchase_reported", "purchase_report_closed"]
+    for (const type of clientTypes) {
+      expect(catalog.notificationHref({ type, mission_id: M, actor_id: A }, "client")).toMatch(/^\/client(\/|\?|$)/)
+      expect(catalog.notificationHref({ type, mission_id: M, actor_id: A }, "admin")).toBeNull()
+    }
+    for (const type of ["purchase_paid", "purchase_reported", "purchase_report_closed"]) {
+      expect(catalog.isInternalPath(catalog.notificationHref({ type, mission_id: M, actor_id: A }, "student"))).toBe(true)
+      expect(catalog.notificationHref({ type, mission_id: M, actor_id: A }, "admin")).toBeNull()
+    }
+    expect(catalog.notificationHref({ type: "purchase_paid", mission_id: M, actor_id: A }, "client")).toBeNull()
+    expect(catalog.notificationHref({ type: "purchase_requested", mission_id: M, actor_id: A }, "student")).toBeNull()
+  })
 })
 
 describe("catalogue : textes bornes, sans donnee personnelle, sans tiret cadratin", () => {
@@ -257,6 +271,13 @@ describe("catalogue : textes bornes, sans donnee personnelle, sans tiret cadrati
     catalog.badgeRevoked({ at: new Date(), ...evil }),
     catalog.accountReactivated({ at: new Date(), ...evil }),
     catalog.cardSubmitted({ studentId: A, studentName: long, at: new Date(), ...evil }),
+    catalog.purchaseRequested({ requestId: ID, missionId: M, missionTitle: long, studentId: A, studentName: long, version: 1, ...evil }),
+    catalog.purchaseUpdated({ requestId: ID, missionId: M, missionTitle: long, studentId: A, studentName: long, version: 2, ...evil }),
+    catalog.purchaseCancelled({ requestId: ID, missionId: M, missionTitle: long, studentId: A, studentName: long, version: 3, ...evil }),
+    catalog.purchasePaid({ requestId: ID, missionId: M, missionTitle: long, clientId: A, clientName: long, version: 1, ...evil }),
+    catalog.purchaseReceived({ requestId: ID, missionId: M, missionTitle: long, studentId: A, studentName: long, version: 1, ...evil }),
+    catalog.purchaseReported({ requestId: ID, missionId: M, missionTitle: long, actorId: A, version: 1, ...evil }),
+    catalog.purchaseReportClosed({ requestId: ID, missionId: M, missionTitle: long, actorId: A, version: 1, ...evil }),
   ]
 
   it("titre <= 120, corps <= 280, cle <= 200, valides", () => {
