@@ -6,6 +6,7 @@ import { Stat } from "@/components/app-ui/stats"
 import { SectionCard } from "@/components/app-ui/section-card"
 import { EmptyState } from "@/components/app-ui/empty-state"
 import { ErrorState } from "@/components/app-ui/state-block"
+import { CloseAccountCard } from "@/components/app-ui/close-account"
 import { formatBeninPhone } from "@/lib/utils/phone"
 
 const EDIT_HREF = "/client/profile/edit"
@@ -252,6 +253,7 @@ export function ClientProfileView({ summary, error, logoutAction }) {
               </button>
             </form>
           </section>
+          <CloseAccountCard space="client" />
         </div>
       </div>
     </div>
