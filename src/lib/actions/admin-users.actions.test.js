@@ -718,7 +718,7 @@ describe("closeAccount", () => {
 describe("reopenAccount", () => {
   const closedAt = "2026-10-10T08:00:00+00:00"
 
-  it("refuse sans appel au coeur : uuid, soi-même, motif hors liste, admin, compte inconnu, compte actif", async () => {
+  it("refuse sans appel au coeur : uuid, soi-même, motif hors liste, admin, compte inconnu", async () => {
     const active = addProfile(1)
     const admin = addProfile(2, { role: "admin" })
     expect((await reopenAccount("x", { reasonCode: "admin_decision" })).error).toBeTruthy()
@@ -726,8 +726,16 @@ describe("reopenAccount", () => {
     expect((await reopenAccount(active, { reasonCode: "autre" })).error).toMatch(/motif/)
     expect((await reopenAccount(admin, { reasonCode: "admin_decision" })).error).toMatch(/administrateur/)
     expect((await reopenAccount(uid(999), { reasonCode: "admin_decision" })).error).toBeTruthy()
-    expect((await reopenAccount(active, { reasonCode: "admin_decision" })).error).toMatch(/pas fermé/)
     expect(reopenAccountCore).not.toHaveBeenCalled()
+  })
+
+  it("compte actif : le coeur tranche (NOT_CLOSED sans bannissement, reprise sinon)", async () => {
+    const id = addProfile(1)
+    reopenAccountCore.mockResolvedValueOnce({ error: "Ce compte n'est pas fermé.", code: "NOT_CLOSED" })
+    expect((await reopenAccount(id, { reasonCode: "admin_decision" })).error).toMatch(/pas fermé/)
+    reopenAccountCore.mockResolvedValueOnce({ success: true, complete: true, alreadyActive: true })
+    expect(await reopenAccount(id, { reasonCode: "admin_decision" })).toEqual({ success: true, complete: true, alreadyActive: true })
+    expect(reopenAccountCore).toHaveBeenCalledTimes(2)
   })
 
   it.each([
@@ -784,6 +792,27 @@ describe("getAdminUserDetail : cycle de vie", () => {
     const res = await getAdminUserDetail(id, {})
     expect(res.closure).toMatchObject({ state: "closed", canReopen: true, dueAt: "2026-10-24T08:00:00.000Z", blockers: [], deferred: [] })
     expect(readClosureSnapshot).not.toHaveBeenCalled()
+  })
+
+  it("fermeture inachevée : compte fermé non banni, ou dernier événement différent de closed", async () => {
+    const future = new Date(Date.now() + 86400000 * 365).toISOString()
+    const id = addProfile(1, { closed_at: "2026-10-10T08:00:00+00:00", is_suspended: true })
+    state.authUsers.find((u) => u.id === id).banned_until = future
+    readClosureHistory.mockResolvedValue({ events: [{ event: "closed", actor_kind: "admin", created_at: "2026-10-10T08:00:00Z" }] })
+    expect((await getAdminUserDetail(id, {})).closure).toMatchObject({ authBanned: true, incomplete: false })
+
+    readClosureHistory.mockResolvedValue({ events: [] })
+    expect((await getAdminUserDetail(id, {})).closure).toMatchObject({ authBanned: true, incomplete: true })
+
+    state.authUsers.find((u) => u.id === id).banned_until = null
+    readClosureHistory.mockResolvedValue({ events: [{ event: "closed", actor_kind: "admin", created_at: "2026-10-10T08:00:00Z" }] })
+    expect((await getAdminUserDetail(id, {})).closure).toMatchObject({ authBanned: false, incomplete: true })
+  })
+
+  it("compte actif encore banni : authBanned vrai, pas d'incomplétude de fermeture", async () => {
+    const id = addProfile(1)
+    state.authUsers.find((u) => u.id === id).banned_until = new Date(Date.now() + 86400000 * 365).toISOString()
+    expect((await getAdminUserDetail(id, {})).closure).toMatchObject({ state: "active", authBanned: true, incomplete: false })
   })
 
   it("compte fermé et échu avec un signalement ouvert : pseudonymisation reportée", async () => {
