@@ -152,7 +152,7 @@ export default async function MissionDetailPage({ params }) {
 
   return (
     <VitrinePage audience="etudiants">
-      <div className="v03-wrap v03-with-bar">
+      <div className="v03-wrap">
         <div className="ds-desk-only">
           <Breadcrumb
             items={[
