@@ -11,10 +11,15 @@ import { ReactivateDialog } from "./reactivate-dialog"
 import { CloseAccountDialog } from "./close-account-dialog"
 import { ReopenAccountDialog } from "./reopen-account-dialog"
 
+const CLOSE_INCOMPLETE =
+  "Fermeture enregistrée, mais la coupure de connexion n'est pas terminée. Contactez l'équipe technique."
+const REOPEN_INCOMPLETE = "La connexion n'a pas pu être rétablie. Rechargez la page et réessayez."
+
 /**
  * Actions de compte de la fiche. Compte actif : « Suspendre » (ou « Réactiver » la suspension) et « Fermer le compte »
  * (inactif tant qu'un blocage est listé). Compte fermé : « Réactiver le compte » seulement. Compte en cours d'effacement
- * ou clôturé : aucune action. Rendu seulement pour un compte qui n'est ni administrateur ni le compte connecté.
+ * ou clôturé : aucune action. Un compte fermé dont la fermeture est inachevée propose aussi « Relancer la fermeture »;
+ * un compte actif encore banni propose « Rétablir la connexion ». Rendu seulement pour un compte qui n'est ni administrateur ni le compte connecté.
  */
 export function AccountActions({ userId, name, isSuspended, closure }) {
   const router = useRouter()
@@ -55,16 +60,25 @@ export function AccountActions({ userId, name, isSuspended, closure }) {
           <Icon name="i-undo" />
           Réactiver le compte
         </button>
+        {closure?.incomplete ? (
+          <button type="button" className="btn btn--secondary" onClick={() => setDialog("resume")}>
+            <Icon name="i-lock" />
+            Relancer la fermeture
+          </button>
+        ) : null}
+        <CloseAccountDialog
+          open={dialog === "resume"}
+          onClose={() => setDialog(null)}
+          name={name}
+          resume
+          onConfirm={runClosure(closeAccount, `La fermeture du compte de ${name} est terminée`, CLOSE_INCOMPLETE)}
+        />
         <ReopenAccountDialog
           open={dialog === "reopen"}
           onClose={() => setDialog(null)}
           name={name}
           dueAt={closure?.dueAt ?? null}
-          onConfirm={runClosure(
-            reopenAccount,
-            `Le compte de ${name} est réactivé`,
-            "La connexion n'a pas pu être rétablie. Rechargez la page et réessayez.",
-          )}
+          onConfirm={runClosure(reopenAccount, `Le compte de ${name} est réactivé`, REOPEN_INCOMPLETE)}
         />
       </>
     )
@@ -93,6 +107,12 @@ export function AccountActions({ userId, name, isSuspended, closure }) {
         <Icon name="i-lock" />
         Fermer le compte
       </button>
+      {closure?.authBanned ? (
+        <button type="button" className="btn btn--dark" onClick={() => setDialog("restore")}>
+          <Icon name="i-undo" />
+          Rétablir la connexion
+        </button>
+      ) : null}
       <SuspendDialog
         open={dialog === "suspend"}
         onClose={() => setDialog(null)}
@@ -109,12 +129,17 @@ export function AccountActions({ userId, name, isSuspended, closure }) {
         open={dialog === "close"}
         onClose={() => setDialog(null)}
         name={name}
-        onConfirm={runClosure(
-          closeAccount,
-          `Le compte de ${name} est fermé`,
-          "Fermeture enregistrée, mais la coupure de connexion n'est pas terminée. Contactez l'équipe technique.",
-        )}
+        onConfirm={runClosure(closeAccount, `Le compte de ${name} est fermé`, CLOSE_INCOMPLETE)}
       />
+      {closure?.authBanned ? (
+        <ReopenAccountDialog
+          open={dialog === "restore"}
+          onClose={() => setDialog(null)}
+          name={name}
+          restore
+          onConfirm={runClosure(reopenAccount, `La connexion de ${name} est rétablie`, REOPEN_INCOMPLETE)}
+        />
+      ) : null}
     </>
   )
 }

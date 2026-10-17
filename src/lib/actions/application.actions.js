@@ -10,6 +10,7 @@ import { isUuid } from "@/lib/vitrine/ids"
 import { todayInBenin, isPastDeadline } from "@/lib/vitrine/dates"
 import { verificationFromRows } from "@/lib/student-space/verification-status"
 import { notify } from "@/lib/notifications/notify"
+import { isClosedEmail } from "@/lib/account-closure/closure-rules"
 import { applicationAccepted, applicationReceived, applicationRejected } from "@/lib/notifications/catalog"
 
 // Un seul registre, vouvoyé, pour tous les rôles.
@@ -46,6 +47,28 @@ async function getAuthEmail(userId) {
   } catch (err) {
     console.error("[application.actions] Lecture de l'email impossible:", err?.message)
     return null
+  }
+}
+
+/**
+ * Indique si le compte d'un étudiant est fermé ou suspendu (lecture service role, colonnes non exposées).
+ * Fail-closed : une erreur de lecture ou un profil introuvable valent refus.
+ *
+ * @param {string} studentId
+ * @returns {Promise<boolean>}
+ */
+async function isStudentUnavailable(studentId) {
+  try {
+    const { data, error } = await createServiceClient()
+      .from("profiles")
+      .select("closed_at, is_suspended")
+      .eq("user_id", studentId)
+      .maybeSingle()
+    if (error || !data) return true
+    return data.closed_at != null || data.is_suspended === true
+  } catch (err) {
+    console.error("[application.actions] Lecture de l'état du compte impossible:", err?.message)
+    return true
   }
 }
 
@@ -239,7 +262,22 @@ export async function getMissionApplications(missionId, { limit } = {}) {
     console.error("[getMissionApplications]", error.message)
     throw new Error(ERR_LOAD)
   }
-  return data ?? []
+  const rows = data ?? []
+
+  // Les candidatures d'étudiants dont le compte est fermé ne sont plus présentées au client.
+  const studentIds = [...new Set(rows.map((row) => row.student_id).filter(Boolean))]
+  if (studentIds.length === 0) return rows
+  const { data: closed, error: closedError } = await createServiceClient()
+    .from("profiles")
+    .select("user_id")
+    .in("user_id", studentIds)
+    .not("closed_at", "is", null)
+  if (closedError) {
+    console.error("[getMissionApplications] Etat des comptes:", closedError.message)
+    throw new Error(ERR_LOAD)
+  }
+  const closedIds = new Set((closed ?? []).map((row) => row.user_id))
+  return rows.filter((row) => !closedIds.has(row.student_id))
 }
 
 /**
@@ -267,6 +305,8 @@ export async function acceptApplication({ applicationId, studentId, missionId })
 
   if (!mission) return { error: "Mission introuvable." }
   if (mission.status !== "open") return { error: "Cette mission n'est plus ouverte." }
+
+  if (await isStudentUnavailable(studentId)) return { error: "Cette candidature n'est plus disponible." }
 
   // 1. Accepte la candidature (de cette mission, de cet étudiant, encore en attente)
   const { data: accepted, error: acceptError } = await supabase
@@ -369,7 +409,7 @@ export async function acceptApplication({ applicationId, studentId, missionId })
             getFullName(supabase, rejectedId),
             getAuthEmail(rejectedId),
           ])
-          if (rEmail) {
+          if (rEmail && !isClosedEmail(rEmail)) {
             await sendEmail("application-rejected", rEmail, {
               studentName: rName ?? "Étudiant",
               missionTitle,

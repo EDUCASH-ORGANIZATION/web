@@ -12,6 +12,8 @@ function makeQuery(table) {
     update: (v) => { q.action = "update"; q.values = v; return chain },
     eq: (c, v) => { q.filters.push(["eq", c, v]); return chain },
     neq: (c, v) => { q.filters.push(["neq", c, v]); return chain },
+    in: (c, v) => { q.filters.push(["in", c, v]); return chain },
+    not: (c, op, v) => { q.filters.push(["not", c, v]); return chain },
     order: () => chain,
     limit: (n) => { q.limit = n; return chain },
     maybeSingle: () => chain,
@@ -315,6 +317,42 @@ describe("acceptApplication", () => {
     expect(writes()).toHaveLength(0)
   })
 
+  describe("étudiant fermé ou suspendu", () => {
+    const withProfile = (profile) => (q) =>
+      q.table === "profiles" && q.filters.some((f) => f[1] === "user_id" && f[0] === "eq")
+        && q.action === "select" ? profile : happy()(q)
+
+    it.each([
+      ["fermé", { data: { closed_at: "2026-10-01T00:00:00Z", is_suspended: false }, error: null }],
+      ["suspendu", { data: { closed_at: null, is_suspended: true }, error: null }],
+      ["profil illisible", { data: null, error: { message: "boom" } }],
+      ["profil introuvable", { data: null, error: null }],
+    ])("refuse sans rien écrire : %s", async (_label, profile) => {
+      asClient()
+      respond = withProfile(profile)
+      const res = await acceptApplication(params)
+      expect(res.error).toBe("Cette candidature n'est plus disponible.")
+      expect(writes()).toHaveLength(0)
+      expect(sendEmail).not.toHaveBeenCalled()
+    })
+
+    it("accepte un étudiant actif", async () => {
+      asClient()
+      respond = withProfile({ data: { closed_at: null, is_suspended: false }, error: null })
+      expect(await acceptApplication(params)).toEqual({ success: true })
+    })
+  })
+
+  it("n'envoie pas l'e-mail de rejet à un étudiant dont l'adresse est effacée", async () => {
+    asClient()
+    respond = happy()
+    getUserById.mockImplementation(async (id) => ({
+      data: { user: { email: id === "stu-2" ? "x@comptes-clotures.invalid" : "dest@example.com" } },
+    }))
+    await acceptApplication(params)
+    expect(sendEmail.mock.calls.map((c) => c[0])).toEqual(["application-accepted"])
+  })
+
   it("filtre la candidature par id, mission, étudiant et statut pending", async () => {
     asClient()
     respond = happy()
@@ -483,6 +521,29 @@ describe("getMissionApplications", () => {
     const read = calls.find((q) => q.table === "applications")
     expect(filterOf(read, "mission_id")).toBe("m1")
     expect(read.limit).toBe(100)
+  })
+})
+
+describe("getMissionApplications : comptes fermés", () => {
+  const rows = [{ id: "a1", student_id: "s1" }, { id: "a2", student_id: "s2" }]
+  beforeEach(() => requireRole.mockResolvedValue({ supabase, user: { id: "cli-1" }, role: "client" }))
+
+  it("masque les candidatures d'étudiants fermés", async () => {
+    respond = (q) => {
+      if (q.table === "missions") return { data: { id: "m1" } }
+      if (q.table === "profiles") return { data: [{ user_id: "s2" }], error: null }
+      return { data: rows, error: null }
+    }
+    expect(await getMissionApplications("m1")).toEqual([rows[0]])
+  })
+
+  it("échoue fermé si l'état des comptes est illisible", async () => {
+    respond = (q) => {
+      if (q.table === "missions") return { data: { id: "m1" } }
+      if (q.table === "profiles") return { data: null, error: { message: "boom" } }
+      return { data: rows, error: null }
+    }
+    await expect(getMissionApplications("m1")).rejects.toThrow("Impossible de charger les candidatures.")
   })
 })
 

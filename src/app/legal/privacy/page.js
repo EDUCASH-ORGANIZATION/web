@@ -98,9 +98,9 @@ export default function PrivacyPage() {
             adresse sans lien avec vous, et sont effacés le nom, la photo de profil, la
             présentation, le numéro de téléphone, l’identifiant de notification, les informations
             d’étudiant (école, niveau, disponibilités, compétences, carte étudiante), les
-            notifications reçues et les candidatures non retenues. Si un signalement ou un litige
+            notifications reçues, les candidatures en attente et les candidatures non retenues. Si un signalement ou un litige
             est en cours à l’échéance, l’effacement est reporté jusqu’à sa clôture. Restent
-            conservés, rattachés à un compte sans nom : les données comptables (10 ans), les
+            conservés, rattachés à un compte sans nom : la ville, les données comptables (10 ans), les
             demandes d’achats (section 7), les messages et les avis, dont l’auteur est alors
             affiché « Compte clôturé », les signalements (section 8) et un journal des fermetures
             sans donnée personnelle. Les fichiers associés au compte (photo de profil, carte

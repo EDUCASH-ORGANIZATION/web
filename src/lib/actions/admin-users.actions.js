@@ -18,6 +18,7 @@ import { notify } from "@/lib/notifications/notify"
 import { accountReactivated } from "@/lib/notifications/catalog"
 import {
   ACTOR_KINDS,
+  CLOSURE_EVENTS,
   CLOSURE_REASONS,
   blockerMessage,
   closureBlockers,
@@ -44,7 +45,6 @@ const ERR_CLOSE_SELF = "Vous ne pouvez pas fermer votre propre compte."
 const ERR_CLOSE_ADMIN = "Un compte administrateur ne peut pas être fermé depuis cet écran."
 const ERR_CLOSE_REASON = "Choisissez un motif de fermeture dans la liste."
 const ERR_CONFIRMATION = "Saisissez FERMER pour confirmer la fermeture."
-const ERR_NOT_CLOSED = "Ce compte n'est pas fermé. Rechargez la page."
 const ERR_PSEUDONYMIZED = "Réactivation impossible : les données personnelles de ce compte ont été effacées."
 const CLOSE_CONFIRMATION = "FERMER"
 const ERR_WRITE = "Le changement n'a pas pu être enregistré. Réessayez dans un instant."
@@ -304,7 +304,7 @@ function pickHistory(history) {
  * Cycle de vie du compte pour la fiche : état, échéance, blocages (aperçu pour un compte actif, motif de report
  * pour un compte fermé échu) et historique. Aucune donnée personnelle : codes, dates et genre d'acteur seulement.
  */
-async function readClosureView(service, profile, isSelf) {
+async function readClosureView(service, profile, isSelf, authUser) {
   const state = closureState(profile)
   const now = new Date()
   const dueAt = closureDueAt(profile.closed_at)
@@ -317,15 +317,23 @@ async function readClosureView(service, profile, isSelf) {
   if (state === "closed" && dueAt && now >= dueAt) {
     deferred = pseudonymizationBlockers(await readClosureSnapshot(service, profile.user_id, { now }))
   }
+  const history = pickHistory(await readClosureHistory(service, profile.user_id))
+  const bannedUntil = Date.parse(authUser?.banned_until ?? "")
+  const authBanned = Number.isFinite(bannedUntil) && bannedUntil > now.getTime()
+  // Fermeture inachevée : compte fermé dont la connexion n'est pas coupée ou dont l'événement `closed` manque.
+  const incomplete =
+    state === "closed" && (!authBanned || (history !== null && history[0]?.event !== CLOSURE_EVENTS.CLOSED))
   return {
     state,
+    authBanned,
+    incomplete,
     closedAt: profile.closed_at ?? null,
     dueAt: dueAt ? dueAt.toISOString() : null,
     pseudonymizedAt: profile.pseudonymized_at ?? null,
     canReopen: state === "closed",
     blockers,
     deferred,
-    history: pickHistory(await readClosureHistory(service, profile.user_id)),
+    history,
   }
 }
 
@@ -423,7 +431,7 @@ export async function getAdminUserDetail(id, { onglet } = {}) {
       },
       applicationsCount: applicationsRes.count ?? null,
       wallet,
-      closure: await readClosureView(service, profile, userId === admin.userId),
+      closure: await readClosureView(service, profile, userId === admin.userId, authRes?.data?.user),
     }
   } catch (err) {
     console.error("[admin-users] fiche:", err?.message)
@@ -616,7 +624,7 @@ export async function reopenAccount(id, { reasonCode } = {}) {
     if (target.role === "admin") return { error: ERR_ADMIN }
     const state = closureState(target)
     if (state === "pseudonymizing" || state === "pseudonymized") return { error: ERR_PSEUDONYMIZED }
-    if (state !== "closed") return { error: ERR_NOT_CLOSED }
+    // Un compte actif passe aussi par le cœur : il lève un bannissement resté en place, ou répond NOT_CLOSED.
 
     const result = await reopenAccountCore(service, {
       userId,

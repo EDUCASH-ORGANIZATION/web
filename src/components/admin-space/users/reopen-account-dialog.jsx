@@ -9,7 +9,7 @@ import { confirmOnce } from "@/components/app-ui/confirm-dialog"
 import { formatDateFr } from "@/lib/app/format"
 import { CLOSURE_REASON_OPTIONS } from "./close-account-dialog"
 
-function Form({ onClose, onConfirm, name, dueAt }) {
+function Form({ onClose, onConfirm, name, dueAt, restore = false }) {
   const [reasonCode, setReasonCode] = useState("")
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
@@ -39,8 +39,12 @@ function Form({ onClose, onConfirm, name, dueAt }) {
       onClose={() => {
         if (!pending) onClose()
       }}
-      title={`Réactiver le compte de ${name} ?`}
-      description="Le compte pourra de nouveau se connecter. Indiquez le motif de la réactivation."
+      title={restore ? `Rétablir la connexion de ${name} ?` : `Réactiver le compte de ${name} ?`}
+      description={
+        restore
+          ? "La connexion de ce compte est restée coupée alors qu'il est actif. Indiquez le motif du rétablissement."
+          : "Le compte pourra de nouveau se connecter. Indiquez le motif de la réactivation."
+      }
       size="sm"
       initialFocusRef={cancelRef}
       footer={
@@ -55,7 +59,7 @@ function Form({ onClose, onConfirm, name, dueAt }) {
             disabled={pending}
             aria-busy={pending ? "true" : undefined}
           >
-            {pending ? "Envoi en cours" : "Réactiver le compte"}
+            {pending ? "Envoi en cours" : restore ? "Rétablir la connexion" : "Réactiver le compte"}
           </button>
         </>
       }
@@ -73,11 +77,13 @@ function Form({ onClose, onConfirm, name, dueAt }) {
           }}
           error={error || undefined}
         />
-        <div className="a2-note">
-          <Icon name="i-info" className="ic" />
-          <span>La suspension posée à la fermeture est retirée, sauf si le compte était déjà suspendu avant.</span>
-        </div>
-        {dueAt ? (
+        {restore ? null : (
+          <div className="a2-note">
+            <Icon name="i-info" className="ic" />
+            <span>La suspension posée à la fermeture est retirée, sauf si le compte était déjà suspendu avant.</span>
+          </div>
+        )}
+        {dueAt && !restore ? (
           <div className="a2-note">
             <Icon name="i-info" className="ic" />
             <span>La réactivation reste possible jusqu&apos;au {formatDateFr(dueAt)}. Ensuite, les données personnelles sont effacées.</span>
@@ -88,7 +94,10 @@ function Form({ onClose, onConfirm, name, dueAt }) {
   )
 }
 
-/** Réactivation d'un compte fermé (avant l'effacement des données) : motif en liste fermée et rappel de l'échéance. */
+/**
+ * Réactivation d'un compte fermé (avant l'effacement des données) : motif en liste fermée et rappel de l'échéance.
+ * Avec `restore` : rétablissement de la connexion d'un compte actif resté banni (reprise d'une réactivation inachevée).
+ */
 export function ReopenAccountDialog({ open, ...props }) {
   if (!open) return null
   return <Form {...props} />

@@ -14,6 +14,7 @@ import { missionStatusView } from "@/lib/app/mission-status"
 import { missionTypeLabel } from "@/lib/constants/missions"
 import { roleLabel, transactionTypeLabel } from "@/lib/admin-space/labels"
 import { AccountActions } from "./account-actions"
+import { isClosedEmail } from "@/lib/account-closure/closure-rules"
 
 const RECENT_MISSIONS = 5
 
@@ -50,6 +51,8 @@ const DEFERRED_LABELS = {
   TRANSACTION_PENDING: "transaction en attente",
   READ_ERROR: "vérifications impossibles",
 }
+
+const ERASED_EMAIL = "Adresse effacée (compte clôturé)"
 
 const EVENT_LABELS = { closed: "Fermeture", reopened: "Réactivation", pseudonymized: "Pseudonymisation" }
 const ACTOR_LABELS = { admin: "Administrateur", self: "Titulaire du compte", system: "Automatique" }
@@ -242,7 +245,7 @@ function Overview({ data }) {
       <SectionCard title="Coordonnées">
         <dl className="a2-kv">
           <dt>E-mail</dt>
-          <dd>{user.email || "Non renseigné"}</dd>
+          <dd>{isClosedEmail(user.email) ? ERASED_EMAIL : user.email || "Non renseigné"}</dd>
           <dt>Téléphone</dt>
           <dd>{user.phone || "Non renseigné"}</dd>
           <dt>Ville</dt>
