@@ -13,6 +13,9 @@ import {
   PURCHASE_REVIEWED_LABEL,
 } from "@/lib/purchases/requests"
 
+// Les vignettes de preuve sont des boutons « Agrandir la photo ... » : les assertions sur les actions les écartent.
+const actionButtons = () => screen.queryAllByRole("button").filter((b) => !/^Agrandir/.test(b.getAttribute("aria-label") ?? ""))
+
 const ID = "6f1c2a52-8f3e-4c1d-9a55-0d3b6e4a7c10"
 
 function request(overrides = {}) {
@@ -137,7 +140,7 @@ describe("PurchaseCard - en attente de paiement", () => {
     expect(screen.queryByRole("button", { name: /Marquer comme payé/ })).toBeNull()
     expect(screen.getByRole("button", { name: /Signaler/ })).toBeTruthy()
     rerender(<PurchaseCard request={request()} studentName="Ulrich" missionStatus="inconnu" onMarkPaid={() => {}} onReport={() => {}} />)
-    expect(screen.queryByRole("button")).toBeNull()
+    expect(actionButtons()).toHaveLength(0)
     rerender(<PurchaseCard request={request()} studentName="Ulrich" missionStatus="cancelled" onMarkPaid={() => {}} onReport={() => {}} />)
     expect(screen.queryByRole("button", { name: /Marquer comme payé/ })).toBeNull()
   })
@@ -213,14 +216,14 @@ describe("PurchaseCard - reçu par le vendeur", () => {
     expect(t).toContain("Reçu par le vendeur")
     expect(t).toContain("Ulrich confirme à 10:56 : le vendeur a bien reçu")
     expect(t).toContain("Payé à 10:51 · réf. MP-0436-1")
-    expect(screen.getAllByRole("button")).toHaveLength(1)
+    expect(actionButtons()).toHaveLength(1)
     expect(screen.getByRole("button", { name: /Signaler/ })).toBeTruthy()
     expect(container.querySelector(".c-payreq__warn")).toBeNull()
   })
 
   it("ne propose plus « Signaler » à qui a déjà signalé", () => {
     renderCard({ request: { ...received(), alreadyReportedByMe: true } })
-    expect(screen.queryByRole("button")).toBeNull()
+    expect(actionButtons()).toHaveLength(0)
   })
 })
 
@@ -244,7 +247,7 @@ describe("PurchaseCard - signalé", () => {
     expect(t).toContain("Vous avez signalé cette demande : « Le vendeur n'a pas reçu l'argent ». Signalement SIG-0112.")
     expect(t).toContain(PURCHASE_NO_REFUND_NOTE)
     expect(t).not.toContain(PURCHASE_REVIEWED_LABEL)
-    expect(screen.queryByRole("button")).toBeNull()
+    expect(actionButtons()).toHaveLength(0)
   })
 
   it("affiche « Examiné par l'équipe EduCash » sans lien quand le signalement est clos", () => {
@@ -267,7 +270,7 @@ describe("PurchaseCard - annulée", () => {
     const { container } = renderCard({ request: request({ status: "cancelled" }) })
     expect(text(container)).toContain("Annulée")
     expect(text(container)).toContain("Ulrich a annulé cette demande.")
-    expect(screen.queryByRole("button")).toBeNull()
+    expect(actionButtons()).toHaveLength(0)
     expect(container.querySelector(".c-payreq__warn")).toBeNull()
   })
 })
