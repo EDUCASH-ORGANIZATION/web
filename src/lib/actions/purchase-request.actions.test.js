@@ -1031,11 +1031,16 @@ describe("signalement d'une demande", () => {
     asStudent()
     await reportPurchaseRequestAsStudent(reportInput())
     notify.mockClear()
+    const reportedAt = "2026-01-01T00:00:00.000Z"
+    db.tables.purchase_requests[0].reported_at = reportedAt
     asClient()
     const res = await reportPurchaseRequestAsClient(reportInput({ reason: "purchase_vendor_not_paid" }))
     expect(res).toEqual({ success: true, reference: "SIG-0002" })
     expect(db.tables.reports).toHaveLength(2)
     expect(db.tables.purchase_requests[0].status).toBe("reported")
+    // La date du premier signalement est conservée : la seconde partie ne réécrit pas la demande.
+    expect(db.tables.purchase_requests[0].reported_at).toBe(reportedAt)
+    expect(db.tables.messages.filter((m) => m.content === "La demande N° 1 a été signalée.")).toHaveLength(2)
     expect(notify).toHaveBeenCalledWith(expect.objectContaining({ recipientId: STUDENT, type: "purchase_reported" }))
   })
 
@@ -1268,5 +1273,247 @@ describe("lecteurs", () => {
     const res = await getStudentPurchaseRequests({ missionId: MISSION })
     expect(res.requests[0].actions).toEqual(["report"])
     expect(res.canCreate).toBe(false)
+  })
+})
+
+// ─── Rejeu après arrêt, signalement en course, lecteurs et contrôles isolés (relecture ST-04) ──
+
+describe("createPurchaseRequest : rejeu d'une demande dont la carte manque", () => {
+  it("arrêt entre l'INSERT et la carte : le rejeu écrit la carte et notifie une seule fois", async () => {
+    asStudent()
+    withProofs()
+    db.tables.purchase_requests.push(requestRow())
+    const res = await createPurchaseRequest(createInput())
+    expect(res).toEqual({ success: true, replay: true, request: { id: REQ, seq: 1, status: "pending", version: 1 } })
+    expect(db.tables.purchase_requests).toHaveLength(1)
+    expect(db.tables.messages).toHaveLength(1)
+    expect(db.tables.messages[0]).toMatchObject({ type: "purchase_request", purchase_request_id: REQ, sender_id: STUDENT, receiver_id: CLIENT })
+    expect(notify).toHaveBeenCalledTimes(1)
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ recipientId: CLIENT, type: "purchase_requested", dedupeKey: `purchase:${REQ}:requested:1` }))
+
+    // Troisième appel : la carte existe, rien de plus.
+    const again = await createPurchaseRequest(createInput())
+    expect(again.replay).toBe(true)
+    expect(db.tables.messages).toHaveLength(1)
+    expect(notify).toHaveBeenCalledTimes(1)
+  })
+
+  it("carte déjà présente : le rejeu n'écrit rien et ne notifie pas", async () => {
+    asStudent()
+    withProofs()
+    await createPurchaseRequest(createInput())
+    notify.mockClear()
+    const writesBefore = db.writes.length
+    expect((await createPurchaseRequest(createInput())).replay).toBe(true)
+    expect(db.writes.length).toBe(writesBefore)
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it("la carte du rejeu ne peut pas être écrite : erreur neutre, rien d'autre n'est écrit", async () => {
+    asStudent()
+    withProofs()
+    db.tables.purchase_requests.push(requestRow())
+    db.faults["messages.insert"] = { code: "XX000", message: "boom" }
+    expect(await createPurchaseRequest(createInput())).toEqual({ error: PURCHASE_ERR.generic })
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it("rejeu d'une demande déjà payée : aucune carte n'est cherchée ni écrite", async () => {
+    asStudent()
+    withProofs()
+    db.tables.purchase_requests.push(requestRow({ status: "paid", paid_at: "2026-10-17T09:00:00.000Z", sms_photo_path: proof(CLIENT, REQ, "sms"), beneficiary_confirmed: true }))
+    expect((await createPurchaseRequest(createInput())).replay).toBe(true)
+    expect(db.tables.messages).toHaveLength(0)
+  })
+
+  it("erreur de lecture de la carte : erreur neutre", async () => {
+    asStudent()
+    withProofs()
+    db.tables.purchase_requests.push(requestRow())
+    db.faults["messages.select"] = { code: "XX000", message: "boom" }
+    expect(await createPurchaseRequest(createInput())).toEqual({ error: PURCHASE_ERR.generic })
+  })
+})
+
+describe("limite de 20 demandes : courses", () => {
+  const seed = (seqs) =>
+    seqs.forEach((seq) => db.tables.purchase_requests.push(requestRow({ id: `44444444-4444-4444-8444-${String(seq).padStart(12, "0")}`, seq })))
+
+  it("deux demandes concurrentes de rang inférieur : la nôtre devient la 22e et s'annule", async () => {
+    asStudent()
+    withProofs()
+    seed(Array.from({ length: 18 }, (_, i) => i + 3))
+    db.onInsert = (table, row) => {
+      if (table === "purchase_requests" && row.id === REQ && !db.tables.purchase_requests.some((r) => r.seq === 1)) {
+        db.tables.purchase_requests.push(requestRow({ id: IDS.request2, seq: 1 }), requestRow({ id: IDS.foreignRequest, seq: 2 }))
+      }
+    }
+    const res = await createPurchaseRequest(createInput())
+    expect(res.error).toMatch(/limite de 20 demandes/)
+    expect(db.tables.purchase_requests.find((r) => r.id === REQ).status).toBe("cancelled")
+    expect(db.tables.messages).toHaveLength(0)
+  })
+
+  it("une demande concurrente de rang supérieur ne fait pas annuler la nôtre", async () => {
+    asStudent()
+    withProofs()
+    seed(Array.from({ length: 19 }, (_, i) => i + 1))
+    db.onInsert = (table, row) => {
+      if (table === "purchase_requests" && row.id === REQ) db.tables.purchase_requests.push(requestRow({ id: IDS.request2, seq: 30 }))
+    }
+    const res = await createPurchaseRequest(createInput())
+    expect(res.success).toBe(true)
+    expect(db.tables.purchase_requests.find((r) => r.id === REQ).status).toBe("pending")
+  })
+
+  it("les demandes annulées ne comptent pas dans le rang", async () => {
+    asStudent()
+    withProofs()
+    seed(Array.from({ length: 25 }, (_, i) => i + 1))
+    for (let i = 0; i < 6; i += 1) db.tables.purchase_requests[i].status = "cancelled"
+    // 19 actives : une 20e est possible, le rang est 20.
+    const res = await createPurchaseRequest(createInput())
+    expect(res.success).toBe(true)
+    expect(res.request.seq).toBe(26)
+  })
+})
+
+describe("natures de preuve et parties : contrôles isolés", () => {
+  it("création : une capture de SMS ou un ticket ne peut pas servir de photo du numéro, et inversement", async () => {
+    asStudent()
+    withProofs()
+    db.objects.add(proof(STUDENT, REQ, "sms"))
+    expect(await createPurchaseRequest(createInput({ payeePhotoPath: proof(STUDENT, REQ, "sms") }))).toEqual({ error: PURCHASE_ERR.proof })
+    expect(await createPurchaseRequest(createInput({ payeePhotoPath: proof(STUDENT, REQ, "ticket") }))).toEqual({ error: PURCHASE_ERR.proof })
+    expect(await createPurchaseRequest(createInput({ ticketPhotoPath: proof(STUDENT, REQ, "sms") }))).toEqual({ error: PURCHASE_ERR.proof })
+    expect(db.writes).toHaveLength(0)
+  })
+
+  it("paiement : une photo de nature numéro ou ticket, même dans le dossier du client, n'est pas une capture de SMS", async () => {
+    asClient()
+    seedPending()
+    for (const kind of ["payee", "ticket"]) {
+      db.objects.add(proof(CLIENT, REQ, kind))
+      expect(await markPurchasePaid(paidInput({ smsPhotoPath: proof(CLIENT, REQ, kind) }))).toEqual({ error: PURCHASE_ERR.proof })
+    }
+    expect(db.tables.purchase_requests[0].status).toBe("pending")
+  })
+
+  it("modification : une capture de SMS ne peut pas remplacer la photo du numéro", async () => {
+    asStudent()
+    seedPending()
+    db.objects.add(proof(STUDENT, REQ, "sms"))
+    expect(await editPurchaseRequest(editInput({ payeePhotoPath: proof(STUDENT, REQ, "sms") }))).toEqual({ error: PURCHASE_ERR.proof })
+  })
+
+  it("chaque action sur une demande prend uniquement les demandes de la partie de l'appelant", async () => {
+    // Un étudiant et un client du bon rôle mais étrangers à la demande.
+    const asOtherStudent = () => asStudent(OTHER_STUDENT)
+    const calls = [
+      [asOtherStudent, () => editPurchaseRequest(editInput({ payeePhotoPath: proof(OTHER_STUDENT, REQ, "payee"), ticketPhotoPath: proof(OTHER_STUDENT, REQ, "ticket") }))],
+      [asOtherStudent, () => cancelPurchaseRequest({ requestId: REQ, expectedVersion: 1 })],
+      [asOtherStudent, () => confirmPurchaseReceived({ requestId: REQ, expectedVersion: 1 })],
+      [asOtherStudent, () => reportPurchaseRequestAsStudent(reportInput())],
+      [() => asClient(OTHER_CLIENT), () => markPurchasePaid(paidInput({ smsPhotoPath: proof(OTHER_CLIENT, REQ, "sms") }))],
+      [() => asClient(OTHER_CLIENT), () => reportPurchaseRequestAsClient(reportInput())],
+    ]
+    for (const [who, call] of calls) {
+      seedPending()
+      db.tables.purchase_requests[0].status = "paid"
+      db.tables.purchase_requests[0].paid_at = "2026-10-17T09:00:00.000Z"
+      who()
+      const res = await call()
+      expect(res).toEqual({ error: PURCHASE_ERR.notFound })
+      db.tables.purchase_requests.length = 0
+      db.objects.clear()
+    }
+    expect(db.writes).toHaveLength(0)
+    expect(db.tables.reports).toHaveLength(0)
+  })
+})
+
+describe("signalement : demande annulée entre-temps et rattrapage", () => {
+  it("annulée entre la lecture et le passage à Signalé : le signalement est enregistré, aucune ligne système ni notification", async () => {
+    seedPending()
+    asStudent()
+    db.faults["reports.insert"] = () => {
+      Object.assign(db.tables.purchase_requests[0], { status: "cancelled", cancelled_at: "2026-10-17T09:00:00.000Z" })
+      return null
+    }
+    const res = await reportPurchaseRequestAsStudent(reportInput())
+    expect(res.success).toBe(true)
+    expect(db.tables.reports).toHaveLength(1)
+    expect(db.tables.purchase_requests[0].status).toBe("cancelled")
+    expect(written("purchase_requests").filter((w) => w.op === "update" && w.count > 0)).toHaveLength(0)
+    expect(db.tables.messages).toHaveLength(0)
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it("passage à Signalé en échec : ni ligne système ni notification ; le rejeu rattrape et les envoie", async () => {
+    seedPending()
+    asStudent()
+    let first = true
+    db.faults["purchase_requests.update"] = () => {
+      if (!first) return null
+      first = false
+      return { code: "XX000", message: "boom" }
+    }
+    expect((await reportPurchaseRequestAsStudent(reportInput())).success).toBe(true)
+    expect(db.tables.messages).toHaveLength(0)
+    expect(notify).not.toHaveBeenCalled()
+
+    const again = await reportPurchaseRequestAsStudent(reportInput())
+    expect(again.already).toBe(true)
+    expect(db.tables.purchase_requests[0].status).toBe("reported")
+    expect(db.tables.messages).toHaveLength(1)
+    expect(db.tables.messages[0]).toMatchObject({ type: "purchase_event", content: "La demande N° 1 a été signalée." })
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ recipientId: CLIENT, type: "purchase_reported" }))
+
+    // Un troisième appel ne réémet rien.
+    await reportPurchaseRequestAsStudent(reportInput())
+    expect(db.tables.messages).toHaveLength(1)
+    expect(notify).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("lecteurs : entrée nulle et demandes annulées sans carte", () => {
+  it("entrée nulle ou absente : introuvable, sans exception ; rôle refusé avant toute lecture de l'entrée", async () => {
+    asClient()
+    expect(await getClientPurchaseRequests(null)).toEqual({ notFound: true })
+    expect(await getClientPurchaseRequests(undefined)).toEqual({ notFound: true })
+    expect(await getClientPurchaseRequests("x")).toEqual({ notFound: true })
+    asStudent()
+    expect(await getStudentPurchaseRequests(null)).toEqual({ notFound: true })
+    requireRole.mockResolvedValue({ error: "Vous n'avez pas les droits pour effectuer cette action." })
+    expect((await getStudentPurchaseRequests(null)).error).toBeTruthy()
+    expect((await getClientPurchaseRequests(null)).error).toBeTruthy()
+    expect(createServiceClient).not.toHaveBeenCalled()
+  })
+
+  it("une demande annulée sans carte est écartée, une annulée avec carte reste, le numéro d'ordre suivant tient compte des deux", async () => {
+    asStudent()
+    const orphan = requestRow({ id: IDS.request2, seq: 2, status: "cancelled", cancelled_at: "2026-10-17T09:00:00.000Z" })
+    const kept = requestRow({ id: IDS.foreignRequest, seq: 3, status: "cancelled", cancelled_at: "2026-10-17T09:00:00.000Z" })
+    db.tables.purchase_requests.push(requestRow({ seq: 1 }), orphan, kept)
+    db.tables.messages.push({ id: "m-card", type: "purchase_request", purchase_request_id: IDS.foreignRequest, mission_id: MISSION })
+    const res = await getStudentPurchaseRequests({ missionId: MISSION })
+    expect(res.requests.map((r) => r.seq)).toEqual([1, 3])
+    expect(res.totals.count).toBe(1)
+
+    withProofs(IDS.request2)
+    withProofs()
+    db.tables.purchase_requests.length = 0
+    db.tables.purchase_requests.push(orphan)
+    const created = await createPurchaseRequest(createInput())
+    expect(created.request.seq).toBe(3)
+  })
+
+  it("lecture des cartes en erreur : message neutre ; messages absents : indisponible", async () => {
+    asClient()
+    db.tables.purchase_requests.push(requestRow({ status: "cancelled", cancelled_at: "2026-10-17T09:00:00.000Z" }))
+    db.faults["messages.select"] = { code: "XX000", message: "secret" }
+    expect(await getClientPurchaseRequests({ missionId: MISSION })).toEqual({ error: PURCHASE_ERR.load })
+    db.faults["messages.select"] = { code: "42703", message: "column does not exist" }
+    expect(await getClientPurchaseRequests({ missionId: MISSION })).toEqual({ available: false })
   })
 })

@@ -114,6 +114,14 @@ describe("insertPurchaseMessage : règles refaites pour le service role", () => 
     await refused(card({ actorId: CLIENT }))
   })
 
+  it("aucune carte n'est écrite pour un autre expéditeur que l'étudiant de la demande, même avec un texte valide", async () => {
+    for (const actorId of [CLIENT, OTHER, OTHER_CLIENT, IDS.admin]) {
+      await refused(card({ actorId }))
+    }
+    // La même carte, envoyée par l'étudiant, est acceptée : le refus ci-dessus tient bien à l'expéditeur.
+    expect((await insertPurchaseMessage(service, card())).ok).toBe(true)
+  })
+
   it("refuse si expéditeur et destinataire sont la même personne (étudiant égal au client)", async () => {
     const same = { ...request(), client_id: STUDENT }
     await refused(card({ request: same }))

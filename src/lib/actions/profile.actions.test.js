@@ -779,9 +779,10 @@ const SERVER_ALLOWLIST = [
   "lib/actions/admin-verifications.actions.js",
   "lib/actions/admin-dashboard.actions.js",
   "lib/actions/admin-users.actions.js",
-  // RD-ACHATS-01 : lit le SEUL téléphone privé de l'ÉTUDIANT, par le client service role, après contrôle d'identité,
-  // de rôle et de propriété, pour refuser un « numéro à payer » égal à son propre téléphone. Jamais renvoyé.
-  "lib/actions/purchase-request.actions.js",
+  // RD-ACHATS-01 : ce petit module lit le SEUL téléphone privé de l'ÉTUDIANT, par le client service role passé par
+  // l'action après contrôle d'identité, de rôle et de propriété, pour refuser un « numéro à payer » égal à son propre
+  // téléphone. Jamais renvoyé. Les actions d'achats elles-mêmes ne figurent PAS dans la liste.
+  "lib/purchases/payee-phone.js",
 ]
 
 const SELECT_ARG = /\.select\(\s*(`[^`]*`|"[^"]*"|'[^']*')/g

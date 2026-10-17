@@ -156,6 +156,28 @@ export async function readRequestReports(service, requestIds) {
   return { available: true, rows: data ?? [] }
 }
 
+/**
+ * Parmi ces demandes, lesquelles ont une carte `purchase_request` dans la conversation ? Sert à écarter des listes les
+ * demandes annulées SANS carte (annulation de repli d'une 21e demande en course, ou carte jamais écrite).
+ * @returns {Promise<{ available: false } | { error: true } | { available: true, ids: Set<string> }>}
+ */
+export async function readCardRequestIds(service, requestIds) {
+  const ids = [...new Set((Array.isArray(requestIds) ? requestIds : []).filter(isUuid))]
+  if (ids.length === 0) return { available: true, ids: new Set() }
+  const { data, error } = await service
+    .from("messages")
+    .select("purchase_request_id")
+    .eq("type", "purchase_request")
+    .in("purchase_request_id", ids)
+    .limit(MAX_ROWS)
+  if (isMissingPurchaseSchema(error)) return { available: false }
+  if (error) {
+    console.error("[purchase-requests] cartes", error.code ?? "erreur")
+    return { error: true }
+  }
+  return { available: true, ids: new Set((data ?? []).map((r) => r.purchase_request_id)) }
+}
+
 // ─── Preuves (compartiment privé) ────────────────────────────────────────────────────────────
 
 /**

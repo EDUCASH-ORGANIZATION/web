@@ -260,6 +260,33 @@ describe("numéro à payer", () => {
       expect(isProfilePhone("+2290197123456", "00229 0197123456")).toBe(true)
     })
 
+    it("reconnaît l'ancien format à 8 chiffres, côté profil comme côté numéro, perso comme marchand", () => {
+      // Profil à l'ancien format face à un numéro perso normalisé.
+      expect(isProfilePhone("+2290197000001", "+22997000001")).toBe(true)
+      expect(isProfilePhone("+2290197000001", "97000001")).toBe(true)
+      expect(isProfilePhone("+2290197000001", "97 00 00 01")).toBe(true)
+      expect(isProfilePhone("+2290197000001", "229 97000001")).toBe(true)
+      expect(isProfilePhone("+2290197000001", "00229 97000001")).toBe(true)
+      // Code marchand de 8 chiffres égal au téléphone de profil, tous formats.
+      for (const profile of ["+2290197000001", "0197000001", "01 97 00 00 01", "+22997000001", "97000001", "00229 0197000001"]) {
+        expect(isProfilePhone("97000001", profile), profile).toBe(true)
+      }
+      // Les deux côtés à l'ancien format.
+      expect(isProfilePhone("97000001", "+22997000001")).toBe(true)
+    })
+
+    it("pas de faux positif : un code marchand différent ou plus court n'est pas un téléphone de profil", () => {
+      for (const profile of ["+2290197000001", "0197000001", "+22997000001", "97000001"]) {
+        expect(isProfilePhone("970000", profile), profile).toBe(false)
+        expect(isProfilePhone("000001", profile), profile).toBe(false)
+        expect(isProfilePhone("123456", profile), profile).toBe(false)
+        expect(isProfilePhone("97000002", profile), profile).toBe(false)
+        expect(isProfilePhone("1970000010", profile), profile).toBe(false)
+      }
+      expect(isProfilePhone("+2290197000002", "+22997000001")).toBe(false)
+      expect(isProfilePhone("97000001", "+22997000002")).toBe(false)
+    })
+
     it("refuse un autre numéro, un téléphone absent ou invalide", () => {
       expect(isProfilePhone("+2290197123456", "+2290197123457")).toBe(false)
       expect(isProfilePhone("123456", "+2290197123456")).toBe(false)

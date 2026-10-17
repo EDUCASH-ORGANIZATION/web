@@ -25,6 +25,11 @@
 //   son rang dans les demandes non annulées dépasse 20. Des créations simultanées ne dépassent donc jamais 20 de façon
 //   durable ; au pire, deux créations en course s'annulent toutes les deux (côté prudent). Le numéro d'ordre (maximum
 //   plus un) est protégé par l'unicité (mission, seq) : sur 23505, une seule nouvelle tentative ;
+// - une demande annulée de repli (21e demande en course, ou carte non écrite) reste en base mais SANS carte dans la
+//   conversation : les lecteurs écartent les demandes annulées qui n'ont pas de carte `purchase_request` (leur numéro
+//   d'ordre reste pris pour le calcul du suivant) ;
+// - un rejeu du même requestId encore en attente écrit la carte si elle manque (arrêt entre l'INSERT et la carte) puis
+//   notifie avec la même clé d'idempotence ; deux appels strictement simultanés peuvent écrire deux cartes ;
 // - les plafonds (5 écritures par 10 minutes, 10 signalements par 24 h) sont comptés en base par lecture puis écriture,
 //   non atomiques : des envois simultanés peuvent les dépasser de quelques unités ;
 // - le téléversement des preuves se fait côté navigateur avec `upsert: false` (le script 94 refuse l'écrasement) ; une
@@ -40,6 +45,7 @@ import { requireRole } from "@/lib/auth/require-role"
 import { createServiceClient } from "@/lib/supabase/service"
 import { isUuid } from "@/lib/vitrine/ids"
 import { insertPurchaseMessage } from "@/lib/purchases/purchase-messages"
+import { payeeIsProfilePhone } from "@/lib/purchases/payee-phone"
 import { notifyPurchaseEvent } from "@/lib/purchases/purchase-notify"
 import { reportReference } from "@/lib/messaging/moderation-rules"
 import { isOwnedProofPath } from "@/lib/purchases/proofs"
@@ -50,7 +56,6 @@ import {
   canCreateRequest,
   createPurchaseSchema,
   editPurchaseSchema,
-  isProfilePhone,
   markPaidSchema,
   nextSeq,
   purchaseMessageContent,
@@ -69,6 +74,7 @@ import {
   loadMission,
   loadOwnRequest,
   proofsExist,
+  readCardRequestIds,
   readMissionPurchaseRequests,
   readRequestReports,
   reportLimitReached,
@@ -202,18 +208,6 @@ async function announce({ service, updated, mission, auth, event }) {
   revalidateMission(mission.id)
 }
 
-// Téléphone de profil de l'étudiant (colonne privée), lu par le client SERVICE ROLE passé par l'action, après ses
-// contrôles, pour la seule comparaison avec le numéro à payer. Il n'est jamais renvoyé ni journalisé. Le fichier figure dans
-// SERVER_ALLOWLIST du garde « colonnes privées » (profile.actions.test.js).
-async function payeeIsProfilePhone(service, userId, payeeNumber) {
-  const { data, error } = await service.from("profiles").select("user_id, phone").eq("user_id", userId).maybeSingle()
-  if (error) {
-    console.error("[purchase-request.actions] profil", error.code ?? "erreur")
-    return { error: true }
-  }
-  return { same: isProfilePhone(payeeNumber, data?.phone) }
-}
-
 function proofsOfStudent(data, userId) {
   return (
     isOwnedProofPath(data.payeePhotoPath, { ownerId: userId, requestId: data.requestId, kind: "payee" }) &&
@@ -235,6 +229,34 @@ async function cancelOwn(service, row, userId) {
     .eq("status", "pending")
     .eq("version", row.version)
   if (error) console.error("[purchase-request.actions] annulation de repli", error.code ?? "erreur")
+}
+
+// Carte `purchase_request` de la conversation, écrite si elle manque (deux essais). Utilisée à la création et au rejeu
+// d'un `requestId` encore en attente : un arrêt entre l'INSERT de la demande et celui de la carte est ainsi rattrapé.
+// Limite : la présence est lue puis la carte écrite, deux appels simultanés du même `requestId` peuvent écrire deux cartes.
+async function ensureCard({ service, request, userId }) {
+  const found = await service
+    .from("messages")
+    .select("id")
+    .eq("purchase_request_id", request.id)
+    .eq("type", "purchase_request")
+    .limit(1)
+  if (isMissingPurchaseSchema(found.error)) return { ok: false, reason: "unavailable" }
+  if (found.error) {
+    console.error("[purchase-request.actions] carte", found.error.code ?? "erreur")
+    return { ok: false, reason: "failed" }
+  }
+  if ((found.data?.length ?? 0) > 0) return { ok: true, created: false }
+  let card = { ok: false, reason: "failed" }
+  for (let attempt = 0; attempt < 2 && card.reason === "failed"; attempt += 1) {
+    card = await insertPurchaseMessage(service, {
+      request,
+      type: "purchase_request",
+      actorId: userId,
+      content: purchaseMessageContent("purchase_request", request.seq),
+    })
+  }
+  return card.ok ? { ok: true, created: true } : card
 }
 
 /**
@@ -286,10 +308,36 @@ export async function createPurchaseRequest(input) {
     console.error("[createPurchaseRequest] liste", listed.error.code ?? "erreur")
     return { error: PURCHASE_ERR.generic }
   }
-  const replayOf = (existing) =>
-    existing.student_id === user.id && existing.mission_id === mission.id && existing.status !== "cancelled"
-      ? { success: true, replay: true, request: summary(existing) }
-      : { error: PURCHASE_ERR.generic }
+  // Rejeu du même requestId : succès sans seconde ligne. Une demande encore en attente dont la carte manque (arrêt entre
+  // l'INSERT et la carte) reçoit sa carte et sa notification, avec la même clé d'idempotence que la création.
+  const replayOf = async (existing) => {
+    if (existing.student_id !== user.id || existing.mission_id !== mission.id || existing.status === "cancelled") {
+      return { error: PURCHASE_ERR.generic }
+    }
+    if (existing.status === "pending") {
+      const request = {
+        id: existing.id,
+        mission_id: existing.mission_id,
+        student_id: existing.student_id,
+        client_id: mission.clientId,
+        seq: existing.seq,
+      }
+      const card = await ensureCard({ service, request, userId: user.id })
+      if (!card.ok) return card.reason === "unavailable" ? unavailableResponse() : { error: PURCHASE_ERR.generic }
+      if (card.created) {
+        await notifyPurchaseEvent({
+          event: "requested",
+          request,
+          mission,
+          actorId: user.id,
+          actorName: profile?.full_name,
+          version: existing.version,
+        })
+        revalidateMission(mission.id)
+      }
+    }
+    return { success: true, replay: true, request: summary(existing) }
+  }
   const rows = listed.data ?? []
   const already = rows.find((r) => r.id === data.requestId)
   if (already) return replayOf(already)
@@ -375,16 +423,7 @@ export async function createPurchaseRequest(input) {
   }
 
   // Carte de la conversation : sans elle la demande serait invisible, elle est donc annulée si la carte n'a pas pu être écrite.
-  let card = { ok: false, reason: "failed" }
-  for (let attempt = 0; attempt < 2 && card.reason === "failed"; attempt += 1) {
-    card = await insertPurchaseMessage(service, {
-      request: row,
-      type: "purchase_request",
-      actorId: user.id,
-      content: purchaseMessageContent("purchase_request", row.seq),
-    })
-    if (card.ok) break
-  }
+  const card = await ensureCard({ service, request: row, userId: user.id })
   if (!card.ok) {
     await cancelOwn(service, row, user.id)
     return card.reason === "unavailable" ? unavailableResponse() : { error: PURCHASE_ERR.generic }
@@ -607,6 +646,7 @@ async function findOwnReport(service, requestId, reporterId) {
 
 // Passage conditionnel à « Signalé » (rien si la demande l'est déjà ou si elle est annulée). Le trigger SQL exige
 // qu'une ligne `reports` existe déjà : le signalement est donc écrit avant. Meilleur effort, journalisé.
+// `changed` : la ligne vient réellement de passer à « Signalé » ; sinon `row` est l'état relu (annulée, déjà signalée).
 async function flagReported(service, row) {
   const { data, error } = await service
     .from("purchase_requests")
@@ -616,9 +656,25 @@ async function flagReported(service, row) {
     .select(REQUEST_COLUMNS)
   if (error) {
     console.error("[purchase-request.actions] passage à signalé", error.code ?? "erreur")
-    return row
+    return { row, changed: false, failed: true }
   }
-  return data?.[0] ?? row
+  if (data?.[0]) return { row: data[0], changed: true }
+  const current = await service.from("purchase_requests").select(REQUEST_COLUMNS).eq("id", row.id).maybeSingle()
+  return { row: current.data ?? row, changed: false }
+}
+
+// Ligne système et notification d'un signalement, une fois la demande réellement « Signalée ».
+async function announceReport({ service, flagged, mission, auth }) {
+  await emitEvent(service, flagged, auth.user.id, "reported")
+  await notifyPurchaseEvent({
+    event: "reported",
+    request: flagged,
+    mission,
+    actorId: auth.user.id,
+    actorName: auth.profile?.full_name,
+    version: flagged.version,
+  })
+  revalidateMission(mission.id)
 }
 
 async function reportPurchase(role, input) {
@@ -640,7 +696,11 @@ async function reportPurchase(role, input) {
   if (existing.unavailable) return unavailableResponse()
   if (existing.error) return { error: PURCHASE_ERR.reportFailed }
   if (existing.reference) {
-    if (row.status !== "reported") await flagReported(service, row)
+    // Rattrapage d'un passage à « Signalé » qui avait échoué : la ligne système et la notification partent alors.
+    if (row.status !== "reported") {
+      const flag = await flagReported(service, row)
+      if (flag.changed) await announceReport({ service, flagged: flag.row, mission, auth })
+    }
     return { success: true, already: true, reference: existing.reference }
   }
 
@@ -679,17 +739,11 @@ async function reportPurchase(role, input) {
   const reference = reportReference(Number(report?.number))
   if (!reference) return { error: PURCHASE_ERR.reportFailed }
 
-  const flagged = await flagReported(service, row)
-  await emitEvent(service, flagged, user.id, "reported")
-  await notifyPurchaseEvent({
-    event: "reported",
-    request: flagged,
-    mission,
-    actorId: user.id,
-    actorName: auth.profile?.full_name,
-    version: flagged.version,
-  })
-  revalidateMission(mission.id)
+  // Ligne système et notification seulement si la demande est « Signalée » : annulée entre-temps, elle n'a plus rien à
+  // annoncer ; si le passage a échoué, le rejeu du signalement le rattrape et annonce alors l'événement.
+  const flag = await flagReported(service, row)
+  if (flag.row.status === "reported") await announceReport({ service, flagged: flag.row, mission, auth })
+  else revalidateMission(mission.id)
   return { success: true, reference }
 }
 
@@ -737,7 +791,11 @@ async function readPurchases(role, auth, missionId) {
   const listed = await readMissionPurchaseRequests(service, { missionId: mission.id, role, userId: user.id })
   if (listed.available === false) return { available: false }
   if (listed.error) return { error: PURCHASE_ERR.load }
-  const { rows } = listed
+  // Une demande annulée sans carte dans la conversation (annulation de repli) n'est jamais affichée.
+  const cards = await readCardRequestIds(service, listed.rows.filter((r) => r.status === "cancelled").map((r) => r.id))
+  if (cards.available === false) return { available: false }
+  if (cards.error) return { error: PURCHASE_ERR.load }
+  const rows = listed.rows.filter((r) => r.status !== "cancelled" || cards.ids.has(r.id))
 
   const reports = await readRequestReports(service, rows.map((r) => r.id))
   if (reports.available === false) return { available: false }
@@ -754,7 +812,7 @@ async function readPurchases(role, auth, missionId) {
       missionStatus: mission.status,
       purchasesEstimate: mission.purchasesEstimate,
       activeCount: rows.filter((r) => r.status !== "cancelled").length,
-      nextSeq: nextSeq(rows),
+      nextSeq: nextSeq(listed.rows),
     }).ok
   return { ...base, requests, totals, canCreate }
 }
@@ -762,14 +820,14 @@ async function readPurchases(role, auth, missionId) {
 /**
  * Demandes d'une mission vues par l'étudiant retenu, avec des adresses de photos signées pour 120 s (chemins jamais
  * renvoyés, sauf ceux de ses propres photos pour la modification). Vide pour un étudiant non retenu.
- * @param {{ missionId: string }} input
+ * @param {{ missionId: string }} [input]
  * @returns {Promise<{ available: true, missionId: string, missionStatus: string, purchasesEstimate: number|null,
  *   requests: object[], totals: object, canCreate: boolean } | { available: false } | { notFound: true } | { error: string }>}
  */
-export async function getStudentPurchaseRequests({ missionId } = {}) {
+export async function getStudentPurchaseRequests(input) {
   const auth = await requireRole(["student"])
   if (auth.error) return { error: auth.error }
-  return readPurchases("student", auth, missionId)
+  return readPurchases("student", auth, isObject(input) ? input.missionId : undefined)
 }
 
 /**
@@ -777,8 +835,8 @@ export async function getStudentPurchaseRequests({ missionId } = {}) {
  * (chemins jamais renvoyés). Mission d'un autre client : `{ notFound: true }`.
  * @param {{ missionId: string }} input
  */
-export async function getClientPurchaseRequests({ missionId } = {}) {
+export async function getClientPurchaseRequests(input) {
   const auth = await requireRole(["client"])
   if (auth.error) return { error: auth.error }
-  return readPurchases("client", auth, missionId)
+  return readPurchases("client", auth, isObject(input) ? input.missionId : undefined)
 }

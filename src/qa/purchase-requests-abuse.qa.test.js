@@ -258,10 +258,26 @@ describe("structure du code des actions", () => {
     }
   })
 
-  it("aucune lecture de colonne privée de profils au-delà du téléphone de l'appelant, jamais de renvoi", () => {
-    expect(source).toMatch(/service\.from\("profiles"\)\.select\("user_id, phone"\)\.eq\("user_id", userId\)/)
-    const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1")
-    expect(code.match(/\bphone\b/g)).toHaveLength(2)
-    expect(code).toMatch(/return \{ same: isProfilePhone\(payeeNumber, data\?\.phone\) \}/)
+  it("aucune colonne privée de profils dans les actions ni dans le cœur : seul payee-phone.js lit `phone`", () => {
+    const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1")
+    const privateColumns = ["phone", "fcm_token", "rejection_reason", "verification_submitted_at", "card_url"]
+    for (const file of [ACTIONS_FILE, "src/lib/actions/purchase-request-core.js", "src/lib/purchases/purchase-messages.js", "src/lib/purchases/purchase-notify.js"]) {
+      const code = strip(read(file)).replace(/^import .*$/gm, "")
+      for (const column of privateColumns) expect(code, `${file} : ${column}`).not.toMatch(new RegExp(`\\b${column}\\b`))
+    }
+    const phoneModule = strip(read("src/lib/purchases/payee-phone.js"))
+    expect(phoneModule).toMatch(/service\.from\("profiles"\)\.select\("user_id, phone"\)\.eq\("user_id", userId\)/)
+    for (const column of privateColumns.filter((c) => c !== "phone")) {
+      expect(phoneModule, column).not.toMatch(new RegExp(`\\b${column}\\b`))
+    }
+    expect(phoneModule.match(/\bphone\b/g)).toHaveLength(2)
+    expect(phoneModule).toMatch(/return \{ same: isProfilePhone\(payeeNumber, data\?\.phone\) \}/)
+  })
+
+  it("seul payee-phone.js figure dans la liste d'autorisation du garde des colonnes privées", () => {
+    const guard = read("src/lib/actions/profile.actions.test.js")
+    const list = guard.slice(guard.indexOf("const SERVER_ALLOWLIST = ["), guard.indexOf("]", guard.indexOf("const SERVER_ALLOWLIST = [")))
+    expect(list).toContain('"lib/purchases/payee-phone.js"')
+    expect(list).not.toContain("purchase-request")
   })
 })
