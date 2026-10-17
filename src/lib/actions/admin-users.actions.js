@@ -580,7 +580,7 @@ export async function closeAccount(id, { reasonCode, confirmation } = {}) {
       adminId: admin.userId,
       action: "user.close",
       targetId: userId,
-      before: { state: "active" },
+      before: { state: result.alreadyClosed === true ? "closed" : "active" },
       after: { state: "closed" },
       reason: reasonCode,
     })
@@ -639,7 +639,7 @@ export async function reopenAccount(id, { reasonCode } = {}) {
       adminId: admin.userId,
       action: "user.reopen",
       targetId: userId,
-      before: { state: "closed" },
+      before: { state: result.alreadyActive === true ? "active" : "closed" },
       after: { state: "active" },
       reason: reasonCode,
     })

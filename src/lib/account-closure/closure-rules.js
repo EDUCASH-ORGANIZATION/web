@@ -24,6 +24,9 @@ export const RECENT_WITHDRAWAL_DAYS = 7
 /** Libellé affiché à la place du nom d'un compte pseudonymisé (sert aussi de marqueur de fin). */
 export const CLOSED_ACCOUNT_LABEL = "Compte clôturé"
 
+/** Libellé affiché dans les écrans admin à la place d'une adresse pseudonyme. */
+export const ERASED_EMAIL_LABEL = "Adresse effacée (compte clôturé)"
+
 /** Domaine réservé (RFC 2606) des adresses pseudonymes. */
 export const CLOSED_EMAIL_DOMAIN = "comptes-clotures.invalid"
 
