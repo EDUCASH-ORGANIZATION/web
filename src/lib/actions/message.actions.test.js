@@ -3,6 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: vi.fn() }))
+// Lecteurs de demandes d'achats (ST-04) : leurs propres tests couvrent leurs règles, ici on contrôle leur réponse.
+vi.mock("@/lib/actions/purchase-request.actions", () => ({
+  getClientPurchaseRequests: vi.fn(),
+  getStudentPurchaseRequests: vi.fn(),
+}))
 // Les vraies fonctions, enveloppées : un test peut forcer UNE réponse pour atteindre un contrôle redondant de l'action.
 vi.mock("@/lib/messaging/contact-filter", async (importOriginal) => {
   const actual = await importOriginal()
@@ -17,6 +22,7 @@ import { requireRole } from "@/lib/auth/require-role"
 import { createServiceClient } from "@/lib/supabase/service"
 import { maskContacts, maskDigitRuns, detectSplitPhone } from "@/lib/messaging/contact-filter"
 import { coordsValid } from "@/lib/client-space/conversations"
+import { getClientPurchaseRequests, getStudentPurchaseRequests } from "@/lib/actions/purchase-request.actions"
 import { netAmount } from "@/lib/constants/missions"
 import {
   getClientConversations,
@@ -216,6 +222,8 @@ beforeEach(() => {
   requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: CLIENT }, role: "client", profile: {} })
   createServiceClient.mockReset()
   createServiceClient.mockImplementation(() => makeSupabase("service"))
+  getClientPurchaseRequests.mockReset()
+  getStudentPurchaseRequests.mockReset()
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
 
@@ -2031,5 +2039,412 @@ describe.each(SIDES)("robustesse de l'envoi ($name)", (side) => {
       expect(await side.send()).toEqual({ error: "Cette conversation n'est pas disponible." })
     }
     expect(messageInsertsOf()).toHaveLength(0)
+  })
+})
+
+// ─── Messages d'achats (RD-ACHATS-01 ST-09) ─────────────────────────────────────────────────────────────────
+// La carte `purchase_request` et la ligne système `purchase_event` sont écrites par le serveur seul. Ici : jamais
+// envoyables par un utilisateur, jamais filtrées, lues comme des éléments à part entière, tolérantes au script 94.
+
+const REQ1 = "66666666-6666-4666-8666-666666666661"
+const REQ2 = "66666666-6666-4666-8666-666666666662"
+const CARD_TEXT = "Demande de paiement d'achats N° 1"
+const EVENT_TEXT = "La demande N° 1 est marquée « Payé »."
+const PURCHASE_TYPES = ["purchase_request", "purchase_event"]
+const MISSING_COLUMN = { code: "42703", message: "column messages.purchase_request_id does not exist" }
+
+const purchaseRow = (over) =>
+  row({ id: "pc1", type: "purchase_request", content: CARD_TEXT, purchase_request_id: REQ1, ...over })
+
+const readerOk = (over) => ({
+  available: true,
+  missionId: M2,
+  missionStatus: "in_progress",
+  purchasesEstimate: 20000,
+  requests: [{ id: REQ1, seq: 1, status: "pending", amount: 5000 }],
+  totals: { count: 1, requested: 5000, paid: 0, pending: 5000, reported: 0 },
+  canCreate: true,
+  ...over,
+})
+
+const threadReads = () => log.filter((q) => q.table === "messages" && q.op === "select" && q.limit === 200)
+
+describe.each(SIDES)("types d'achat refusés à l'envoi ($name)", (side) => {
+  beforeEach(() => side.setup())
+
+  it.each(PURCHASE_TYPES)("refuse le type %s venant d'un utilisateur : aucune insertion, aucun service role", async (type) => {
+    const invalid = { error: "Votre message n'est pas valide. Vérifiez son contenu et sa longueur." }
+    expect(await side.send({ type, content: CARD_TEXT })).toEqual(invalid)
+    expect(await side.send({ type, content: EVENT_TEXT, purchaseRequestId: REQ1, purchase_request_id: REQ1 })).toEqual(invalid)
+    expect(await side.send({ type })).toEqual(invalid)
+    expect(messageInsertsOf()).toHaveLength(0)
+    expect(createServiceClient).not.toHaveBeenCalled()
+    expect(maskContacts).not.toHaveBeenCalled()
+  })
+
+  it("refuse aussi un type d'achat mal écrit ou forgé (casse, espaces, tableau)", async () => {
+    for (const type of ["Purchase_Request", " purchase_event", "purchase_event ", ["purchase_event"], { type: "purchase_event" }, null]) {
+      expect(await side.send({ type, content: CARD_TEXT })).toMatchObject({ error: expect.any(String) })
+    }
+    expect(messageInsertsOf()).toHaveLength(0)
+    expect(createServiceClient).not.toHaveBeenCalled()
+  })
+
+  it("un texte ordinaire ne porte jamais de lien d'achat, même si l'entrée en fournit un", async () => {
+    const result = await side.send({ content: CARD_TEXT, purchaseRequestId: REQ1, purchase_request_id: REQ1, type: "text" })
+    expect(result.success).toBe(true)
+    const payload = messageInsertsOf()[0].payload
+    expect(payload.type).toBe("text")
+    expect(Object.keys(payload)).not.toContain("purchase_request_id")
+    expect(Object.keys(payload)).not.toContain("purchaseRequestId")
+    expect(result.message).toMatchObject({ type: "text", purchaseRequestId: null })
+  })
+
+  it("le texte qui imite une carte passe par le masquage comme tout texte (le filtre ne dépend pas du contenu)", async () => {
+    const result = await side.send({ content: `${CARD_TEXT} - payez au ${NUMBER}` })
+    expect(result.contactMasked).toEqual({ kinds: ["phone"] })
+    expect(messageInsertsOf()[0].payload.content).toContain(MASK)
+    expect(messageInsertsOf()[0].payload.type).toBe("text")
+  })
+
+  it("le débit ne compte que les messages envoyables : les lignes système de l'expéditeur n'y entrent pas", async () => {
+    const mine = (type, i) =>
+      purchaseRow({ id: `sys-${type}-${i}`, type, sender_id: side.sender, receiver_id: side.receiver, mission_id: side.missionId, created_at: new Date().toISOString() })
+    for (let i = 0; i < 25; i += 1) db.messages.push(mine("purchase_event", i))
+    expect((await side.send()).success).toBe(true)
+    const count = log.find((q) => q.table === "messages" && q.head)
+    expect(count.filters).toEqual(expect.arrayContaining([["in", "type", ["text", "image", "voice", "location"]]]))
+  })
+
+  it("la limite de 20 messages par minute reste appliquée aux messages envoyables", async () => {
+    for (let i = 0; i < 20; i += 1) {
+      db.messages.push(row({ id: `r${i}`, sender_id: side.sender, receiver_id: side.receiver, mission_id: side.missionId, created_at: new Date().toISOString() }))
+    }
+    expect(await side.send()).toEqual({ error: "Vous envoyez des messages trop vite. Patientez un instant avant de réessayer." })
+    expect(messageInsertsOf()).toHaveLength(0)
+  })
+})
+
+describe("fil de conversation : messages d'achat (client)", () => {
+  const thread = () => getClientConversation({ missionId: M2, studentId: S2 })
+  const inM2 = (over) => ({ mission_id: M2, sender_id: S2, receiver_id: CLIENT, ...over })
+
+  beforeEach(() => {
+    getClientPurchaseRequests.mockResolvedValue(readerOk())
+    db.messages.push(
+      purchaseRow(inM2({ id: "pc1", created_at: "2026-10-13T07:10:00Z" })),
+      purchaseRow(inM2({ id: "pe1", type: "purchase_event", content: EVENT_TEXT, created_at: "2026-10-13T07:20:00Z" })),
+    )
+  })
+
+  it("expose la carte et la ligne système avec type, contenu et identifiant de la demande, dans l'ordre", async () => {
+    const { conversation } = await thread()
+    expect(conversation.messages.map((m) => m.id)).toEqual(["c1", "pc1", "pe1"])
+    expect(conversation.messages[1]).toMatchObject({ type: "purchase_request", content: CARD_TEXT, purchaseRequestId: REQ1, mine: false })
+    expect(conversation.messages[2]).toMatchObject({ type: "purchase_event", content: EVENT_TEXT, purchaseRequestId: REQ1 })
+    expect(conversation.messages[0]).toMatchObject({ type: "text", purchaseRequestId: null })
+  })
+
+  it("lit la colonne de lien d'achat avec le client de session", async () => {
+    await thread()
+    expect(threadReads()).toHaveLength(1)
+    expect(threadReads()[0].columns).toContain("purchase_request_id")
+    expect(threadReads()[0].kind).toBe("session")
+  })
+
+  it("joint les demandes, les totaux et la disponibilité renvoyés par le lecteur du client", async () => {
+    const { conversation } = await thread()
+    expect(getClientPurchaseRequests).toHaveBeenCalledWith({ missionId: M2 })
+    expect(getStudentPurchaseRequests).not.toHaveBeenCalled()
+    expect(conversation.purchasesAvailable).toBe(true)
+    expect(conversation.purchaseRequests).toEqual([{ id: REQ1, seq: 1, status: "pending", amount: 5000 }])
+    expect(conversation.purchaseTotals).toMatchObject({ count: 1, requested: 5000, pending: 5000 })
+    expect(conversation.purchaseCanCreate).toBe(false)
+  })
+
+  it("le client ne peut jamais créer de demande, même si le lecteur répondait canCreate", async () => {
+    getClientPurchaseRequests.mockResolvedValue(readerOk({ canCreate: true }))
+    expect((await thread()).conversation.purchaseCanCreate).toBe(false)
+  })
+
+  it("n'applique aucun masquage à la lecture : le contenu d'une ligne d'achat est rendu tel quel", async () => {
+    db.messages.push(purchaseRow(inM2({ id: "pe2", type: "purchase_event", content: `La demande N° 1 ${NUMBER}`, created_at: "2026-10-13T07:30:00Z" })))
+    const { conversation } = await thread()
+    expect(conversation.messages.find((m) => m.id === "pe2").content).toBe(`La demande N° 1 ${NUMBER}`)
+    expect(maskContacts).not.toHaveBeenCalled()
+    expect(maskDigitRuns).not.toHaveBeenCalled()
+    expect(detectSplitPhone).not.toHaveBeenCalled()
+  })
+
+  it("n'ajoute aucune URL signée pour une carte ou une ligne d'achat", async () => {
+    await thread()
+    expect(signCalls).toEqual([])
+  })
+
+  it("écarte les messages d'achat d'une autre paire ou d'une autre mission", async () => {
+    db.messages.push(
+      purchaseRow({ id: "px1", mission_id: M2, sender_id: STRANGER, receiver_id: CLIENT }),
+      purchaseRow({ id: "px2", mission_id: M1, sender_id: S2, receiver_id: CLIENT }),
+    )
+    const { conversation } = await thread()
+    expect(conversation.messages.map((m) => m.id)).toEqual(["c1", "pc1", "pe1"])
+  })
+
+  it("ignore une ligne d'achat sans identifiant de demande valide, sans casser le fil", async () => {
+    db.messages.push(purchaseRow(inM2({ id: "pbad", purchase_request_id: null, created_at: "2026-10-13T07:40:00Z" })))
+    const { conversation } = await thread()
+    expect(conversation.messages.map((m) => m.id)).toEqual(["c1", "pc1", "pe1"])
+  })
+
+  it("mission sans achats et sans message d'achat : aucune lecture des demandes, rendu d'avant", async () => {
+    db.messages = db.messages.filter((m) => !PURCHASE_TYPES.includes(m.type))
+    const { conversation } = await thread()
+    expect(getClientPurchaseRequests).not.toHaveBeenCalled()
+    expect(conversation).toMatchObject({ purchasesAvailable: false, purchaseRequests: [], purchaseCanCreate: false })
+    expect(conversation.purchaseTotals).toEqual({ count: 0, requested: 0, paid: 0, pending: 0, reported: 0 })
+    expect(conversation.messages.map((m) => m.id)).toEqual(["c1"])
+  })
+
+  it("mission avec achats prévus : lit les demandes même sans message d'achat", async () => {
+    db.messages = db.messages.filter((m) => !PURCHASE_TYPES.includes(m.type))
+    db.missions.find((m) => m.id === M2).purchases_estimate = 20000
+    const { conversation } = await thread()
+    expect(getClientPurchaseRequests).toHaveBeenCalledTimes(1)
+    expect(conversation.purchasesAvailable).toBe(true)
+  })
+
+  it("colonne de lien absente et lecture qui échoue encore : une relecture sans elle, puis une erreur neutre", async () => {
+    db.messages = db.messages.filter((m) => !PURCHASE_TYPES.includes(m.type))
+    failures["messages.select"] = MISSING_COLUMN
+    const first = await thread()
+    // Le faux client échoue toute lecture de messages : la seconde tentative échoue aussi.
+    expect(first).toEqual({ error: "Impossible de charger vos messages. Veuillez réessayer." })
+    expect(threadReads()).toHaveLength(2)
+    expect(threadReads()[0].columns).toContain("purchase_request_id")
+    expect(threadReads()[1].columns).not.toContain("purchase_request_id")
+    expect(JSON.stringify(first)).not.toContain("42703")
+  })
+
+  it("colonne de lien absente : le fil se charge avec les colonnes d'avant", async () => {
+    db.messages = db.messages.filter((m) => !PURCHASE_TYPES.includes(m.type))
+    const supabase = makeSupabase()
+    const from = supabase.from
+    supabase.from = (table) => {
+      const b = from(table)
+      if (table !== "messages") return b
+      const select = b.select
+      b.select = (columns, opts) => {
+        const chain = select(columns, opts)
+        if (typeof columns === "string" && columns.includes("purchase_request_id")) {
+          chain.then = (ok, ko) => Promise.resolve({ data: null, error: MISSING_COLUMN }).then(ok, ko)
+        }
+        return chain
+      }
+      return b
+    }
+    requireRole.mockResolvedValue({ supabase, user: { id: CLIENT }, role: "client", profile: {} })
+    const { conversation } = await thread()
+    expect(conversation.messages.map((m) => m.id)).toEqual(["c1"])
+    expect(conversation.messages[0]).toMatchObject({ type: "text", purchaseRequestId: null })
+    expect(threadReads().map((q) => q.columns.includes("purchase_request_id"))).toEqual([true, false])
+  })
+
+  it("une autre erreur de lecture ne déclenche pas de relecture et reste neutre", async () => {
+    failures["messages.select"] = { code: "42501", message: "permission denied for table messages" }
+    const result = await thread()
+    expect(result).toEqual({ error: "Impossible de charger vos messages. Veuillez réessayer." })
+    expect(threadReads()).toHaveLength(1)
+  })
+
+  it("fonction indisponible, refus ou erreur du lecteur : le fil se charge, sans demande", async () => {
+    for (const reply of [{ available: false }, { error: "Impossible de charger les demandes de paiement." }, { notFound: true }, undefined, null]) {
+      getClientPurchaseRequests.mockResolvedValueOnce(reply)
+      const { conversation } = await thread()
+      expect(conversation.messages.map((m) => m.id)).toEqual(["c1", "pc1", "pe1"])
+      expect(conversation).toMatchObject({ purchasesAvailable: false, purchaseRequests: [], purchaseCanCreate: false })
+    }
+  })
+
+  it("un lecteur qui lève une exception ne fait pas échouer le fil", async () => {
+    getClientPurchaseRequests.mockRejectedValue(new Error("boom"))
+    const { conversation } = await thread()
+    expect(conversation.messages).toHaveLength(3)
+    expect(conversation.purchasesAvailable).toBe(false)
+  })
+
+  it("paire interdite : toujours { notFound: true }, sans lecture de demande", async () => {
+    expect(await getClientConversation({ missionId: M_OTHER, studentId: S1 })).toEqual({ notFound: true })
+    expect(await getClientConversation({ missionId: M2, studentId: STRANGER })).toEqual({ notFound: true })
+    expect(getClientPurchaseRequests).not.toHaveBeenCalled()
+  })
+
+  it("les demandes d'un fil ne sont lues que pour la mission de ce fil", async () => {
+    await getClientConversation({ missionId: M2, studentId: S2 })
+    expect(getClientPurchaseRequests.mock.calls).toEqual([[{ missionId: M2 }]])
+  })
+})
+
+describe("fil de conversation : messages d'achat (étudiant)", () => {
+  const thread = () => getStudentConversation({ missionId: MB })
+  const inMB = (over) => ({ mission_id: MB, sender_id: STUDENT, receiver_id: CLIENT, ...over })
+
+  beforeEach(() => {
+    seedStudent()
+    requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: STUDENT }, role: "student", profile: {} })
+    getStudentPurchaseRequests.mockResolvedValue(readerOk({ missionId: MB }))
+    db.missions.find((m) => m.id === MB).purchases_estimate = 20000
+    db.messages.push(
+      purchaseRow(inMB({ id: "pc1", created_at: "2026-10-13T09:20:00Z" })),
+      purchaseRow(inMB({ id: "pe1", type: "purchase_event", content: EVENT_TEXT, sender_id: CLIENT, receiver_id: STUDENT, created_at: "2026-10-13T09:30:00Z" })),
+    )
+  })
+
+  it("expose la carte et la ligne système, et joint les demandes du lecteur étudiant", async () => {
+    const { conversation } = await thread()
+    expect(conversation.messages.map((m) => m.id)).toEqual(["s3", "s3b", "pc1", "pe1"])
+    expect(conversation.messages[2]).toMatchObject({ type: "purchase_request", purchaseRequestId: REQ1, mine: true })
+    expect(conversation.messages[3]).toMatchObject({ type: "purchase_event", purchaseRequestId: REQ1, mine: false })
+    expect(getStudentPurchaseRequests.mock.calls).toEqual([[{ missionId: MB }]])
+    expect(getClientPurchaseRequests).not.toHaveBeenCalled()
+    expect(conversation).toMatchObject({ purchasesAvailable: true, purchaseCanCreate: true })
+    expect(conversation.purchaseRequests).toHaveLength(1)
+  })
+
+  it("transmet canCreate=false du lecteur (limite atteinte, mission terminée)", async () => {
+    getStudentPurchaseRequests.mockResolvedValue(readerOk({ canCreate: false }))
+    expect((await thread()).conversation.purchaseCanCreate).toBe(false)
+  })
+
+  it("lit la colonne de lien et retombe sur les colonnes d'avant si elle est absente", async () => {
+    db.messages = db.messages.filter((m) => !PURCHASE_TYPES.includes(m.type))
+    await thread()
+    expect(threadReads()[0].columns).toContain("purchase_request_id")
+    failures["messages.select"] = MISSING_COLUMN
+    log.length = 0
+    expect(await thread()).toEqual({ error: "Impossible de charger vos messages. Veuillez réessayer." })
+    expect(threadReads().map((q) => q.columns.includes("purchase_request_id"))).toEqual([true, false])
+  })
+
+  it("mission sans achats ni message d'achat : aucune lecture des demandes", async () => {
+    db.messages = db.messages.filter((m) => !PURCHASE_TYPES.includes(m.type))
+    db.missions.find((m) => m.id === MB).purchases_estimate = null
+    const { conversation } = await thread()
+    expect(getStudentPurchaseRequests).not.toHaveBeenCalled()
+    expect(conversation).toMatchObject({ purchasesAvailable: false, purchaseRequests: [], purchaseCanCreate: false })
+  })
+
+  it("candidat non retenu : la liste du lecteur est vide et rien ne fuit", async () => {
+    getStudentPurchaseRequests.mockResolvedValue(readerOk({ requests: [], canCreate: false }))
+    const { conversation } = await thread()
+    expect(conversation.purchaseRequests).toEqual([])
+    expect(conversation.purchaseCanCreate).toBe(false)
+  })
+
+  it("paire interdite : { notFound: true }, sans lecture de demande", async () => {
+    expect(await getStudentConversation({ missionId: MC })).toEqual({ notFound: true })
+    expect(getStudentPurchaseRequests).not.toHaveBeenCalled()
+  })
+
+  it("fonction indisponible : le fil se charge sans demande", async () => {
+    getStudentPurchaseRequests.mockResolvedValue({ available: false })
+    const { conversation } = await thread()
+    expect(conversation.messages).toHaveLength(4)
+    expect(conversation.purchasesAvailable).toBe(false)
+  })
+})
+
+describe("boîte de réception : messages d'achat", () => {
+  const SECRET = "Chez Mama Bénin 15 000 FCFA 0197000000"
+
+  it("client : aperçu fixe, non lus comptés, aucun numéro, vendeur ni montant", async () => {
+    db.messages.push(
+      purchaseRow({ id: "pc9", mission_id: M2, sender_id: S2, receiver_id: CLIENT, content: `${CARD_TEXT} ${SECRET}`, created_at: "2026-10-13T12:00:00Z" }),
+    )
+    const { conversations } = await getClientConversations()
+    const conv = conversations.find((c) => c.missionId === M2)
+    expect(conv.preview).toBe("Demande de paiement d'achats")
+    expect(conv.unreadCount).toBe(2)
+    expect(JSON.stringify(conversations)).not.toContain("Mama")
+    expect(JSON.stringify(conversations)).not.toContain("FCFA")
+    expect(JSON.stringify(conversations)).not.toContain("0197000000")
+    expect(signCalls).toEqual([])
+  })
+
+  it("client : une ligne système est l'aperçu sans préfixe, et la lecture ne demande pas de demande d'achats", async () => {
+    db.messages.push(
+      purchaseRow({ id: "pe9", type: "purchase_event", mission_id: M2, sender_id: S2, receiver_id: CLIENT, content: `La demande ${SECRET}`, created_at: "2026-10-13T12:00:00Z" }),
+    )
+    const { conversations } = await getClientConversations()
+    expect(conversations.find((c) => c.missionId === M2).preview).toBe("Mise à jour d'une demande de paiement")
+    expect(getClientPurchaseRequests).not.toHaveBeenCalled()
+    expect(reads("purchase_requests")).toHaveLength(0)
+  })
+
+  it("client : les messages d'achat d'une paire interdite sont ignorés comme les autres", async () => {
+    db.messages.push(purchaseRow({ id: "pz", mission_id: M2, sender_id: STRANGER, receiver_id: CLIENT, created_at: "2026-10-13T13:00:00Z" }))
+    const { conversations } = await getClientConversations()
+    expect(conversations.find((c) => c.missionId === M2).preview).not.toContain("Demande")
+    expect(conversations.find((c) => c.missionId === M2).unreadCount).toBe(1)
+  })
+
+  it("étudiant : carte envoyée préfixée, ligne système reçue sans préfixe, non lus comptés", async () => {
+    seedStudent()
+    requireRole.mockResolvedValue({ supabase: makeSupabase(), user: { id: STUDENT }, role: "student", profile: {} })
+    db.messages.push(
+      purchaseRow({ id: "pc8", mission_id: MB, sender_id: STUDENT, receiver_id: CLIENT, content: `${CARD_TEXT} ${SECRET}`, read: false, created_at: "2026-10-13T12:00:00Z" }),
+    )
+    let conv = (await getStudentConversations()).conversations.find((c) => c.missionId === MB)
+    expect(conv.preview).toBe("Vous : Demande de paiement d'achats")
+    expect(conv.unreadCount).toBe(2)
+    db.messages.push(
+      purchaseRow({ id: "pe8", type: "purchase_event", mission_id: MB, sender_id: CLIENT, receiver_id: STUDENT, content: EVENT_TEXT, created_at: "2026-10-13T12:30:00Z" }),
+    )
+    conv = (await getStudentConversations()).conversations.find((c) => c.missionId === MB)
+    expect(conv.preview).toBe("Mise à jour d'une demande de paiement")
+    expect(conv.unreadCount).toBe(3)
+    expect(conv.lastUnreadAt).toBe("2026-10-13T12:30:00Z")
+    expect(JSON.stringify(conv)).not.toMatch(/Mama|FCFA|0197000000|N° 1/)
+  })
+
+  it("la boîte de réception ne lit pas la colonne de lien d'achat (tolérante par construction)", async () => {
+    await getClientConversations()
+    expect(reads("messages")[0].columns).not.toContain("purchase_request_id")
+  })
+
+  it("marquer la conversation lue marque aussi les messages d'achat reçus, rien d'autre", async () => {
+    db.messages.push(
+      purchaseRow({ id: "pc7", mission_id: M2, sender_id: S2, receiver_id: CLIENT }),
+      purchaseRow({ id: "pe7", type: "purchase_event", mission_id: M2, sender_id: S2, receiver_id: CLIENT }),
+      purchaseRow({ id: "pe6", type: "purchase_event", mission_id: M2, sender_id: CLIENT, receiver_id: S2, read: false }),
+    )
+    expect(await markClientConversationRead({ missionId: M2, studentId: S2 })).toEqual({ success: true })
+    const read = (id) => db.messages.find((m) => m.id === id).read
+    expect([read("pc7"), read("pe7"), read("c1")]).toEqual([true, true, true])
+    expect(read("pe6")).toBe(false)
+    const update = log.find((q) => q.op === "update")
+    expect(update.payload).toEqual({ read: true })
+  })
+})
+
+describe("tolérance sans le script 94", () => {
+  it("aucun message d'achat : boîte de réception et fil client identiques à l'existant", async () => {
+    const { conversations } = await getClientConversations()
+    expect(conversations.map((c) => c.preview)).toEqual(
+      expect.not.arrayContaining(["Demande de paiement d'achats", "Mise à jour d'une demande de paiement"]),
+    )
+    const { conversation } = await getClientConversation({ missionId: M1, studentId: S1 })
+    expect(conversation.messages.map((m) => m.id)).toEqual(["a1", "a2"])
+    expect(conversation.messages.every((m) => m.purchaseRequestId === null && !PURCHASE_TYPES.includes(m.type))).toBe(true)
+    expect(getClientPurchaseRequests).not.toHaveBeenCalled()
+    expect(reads("purchase_requests")).toHaveLength(0)
+  })
+
+  it("une mission avec achats mais une table absente : fil lisible, aucune erreur visible", async () => {
+    db.missions.find((m) => m.id === M2).purchases_estimate = 20000
+    getClientPurchaseRequests.mockResolvedValue({ available: false })
+    const { conversation } = await getClientConversation({ missionId: M2, studentId: S2 })
+    expect(conversation.messages.map((m) => m.id)).toEqual(["c1"])
+    expect(conversation.purchasesAvailable).toBe(false)
+    expect(console.error).not.toHaveBeenCalled()
   })
 })
