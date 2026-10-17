@@ -188,9 +188,9 @@ describe("schéma de référence : table purchase_requests (script 94)", () => {
     expect(constraintDef("purchase_requests_parties_check")).toBe("CHECK ((student_id <> client_id));")
   })
 
-  it("la suppression d'une mission emporte les demandes (cascade) ; celle d'un compte est refusée (RESTRICT, script 96)", () => {
+  it("la suppression d'une mission ayant une demande est refusée (RESTRICT, script 97), comme celle d'un compte (RESTRICT, script 96)", () => {
     expect(constraintDef("purchase_requests_mission_id_fkey")).toBe(
-      "FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;"
+      "FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE RESTRICT;"
     )
     expect(constraintDef("purchase_requests_student_id_fkey")).toBe(
       "FOREIGN KEY (student_id) REFERENCES public.profiles(user_id) ON DELETE RESTRICT;"

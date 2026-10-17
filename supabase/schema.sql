@@ -10,7 +10,7 @@
 -- public.purchase_requests, extension de messages, de reports et de notifications,
 -- compartiment purchase-proofs), puis script 96 de RD-CLOSE-01 (fermeture de compte :
 -- colonnes de cycle de vie de public.profiles, garde, journal account_closure_events,
--- six clés étrangères financières et d'achats en ON DELETE RESTRICT).
+-- six clés étrangères financières et d'achats en ON DELETE RESTRICT), puis script 97 de RD-SQL-97.
 -- Script 70 appliqué en production le 2026-10-15.
 -- Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.
 -- Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.
@@ -19,9 +19,10 @@
 -- Script 93 de RD-MSG-01 appliqué en production le 2026-10-16.
 -- Script 94 de RD-ACHATS-01 appliqué en production le 2026-10-17.
 -- Script 96 de RD-CLOSE-01 appliqué en production le 2026-10-17.
+-- Script 97 de RD-SQL-97 appliqué en production le 2026-10-17.
 -- Le script 94 se lance strictement après le script 93, le script 96 après le script 94.
--- Ce fichier décrit l'état APRÈS le script 96 : les objets du 94 sont repérés par « Script 94 »
--- dans chaque section (3 à 10), ceux du 96 par « Script 96 » ; les définitions d'origine de
+-- Ce fichier décrit l'état APRÈS le script 97 : les objets du 94 sont repérés par « Script 94 »
+-- dans chaque section (3 à 10), ceux du 96 par « Script 96 » et ceux du 97 par « Script 97 » ; les définitions d'origine de
 -- messages, reports, notifications et profiles y sont déjà remplacées.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
@@ -326,6 +327,12 @@ alter table public.wallets add constraint wallets_user_id_key UNIQUE (user_id);
 alter table public.reviews add constraint reviews_mission_id_reviewer_id_key UNIQUE (mission_id, reviewer_id);
 alter table public.applications add constraint applications_mission_id_student_id_key UNIQUE (mission_id, student_id);
 alter table public.profiles add constraint profiles_closure_order_check CHECK (((pseudonymized_at IS NULL) OR (closed_at IS NOT NULL)));
+-- Script 97 de RD-SQL-97 : le libellé « Compte clôturé » (casse, accents, espaces et caractères invisibles ignorés) n'est écrivable dans full_name que si pseudonymized_at est renseigné.
+alter table public.profiles add constraint profiles_closed_label_check CHECK (
+    pseudonymized_at is not null or full_name is null or
+    lower(btrim(regexp_replace(regexp_replace(regexp_replace(normalize(full_name, NFKD),
+      '[\u0300-\u036f]', '', 'g'), '[\u200b-\u200d\u2060\ufeff]', '', 'g'),
+      '[[:space:]\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ' ', 'g'))) <> 'compte cloture');
 alter table public.profiles add constraint profiles_role_check CHECK ((role = ANY (ARRAY['student'::text, 'client'::text, 'admin'::text])));
 alter table public.wallets add constraint wallets_balance_check CHECK ((balance >= (0)::numeric));
 alter table public.wallets add constraint wallets_reserved_check CHECK ((reserved >= (0)::numeric));
@@ -358,7 +365,8 @@ alter table public.reviews add constraint reviews_reviewed_id_fkey FOREIGN KEY (
 alter table public.reviews add constraint reviews_reviewer_id_fkey FOREIGN KEY (reviewer_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.reviews add constraint reviews_reviewer_id_profiles_fkey FOREIGN KEY (reviewer_id) REFERENCES profiles(user_id) ON DELETE CASCADE;
 alter table public.transactions add constraint transactions_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
-alter table public.transactions add constraint transactions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE;
+-- Script 97 de RD-SQL-97 : une mission ayant une transaction ne peut plus être supprimée.
+alter table public.transactions add constraint transactions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE RESTRICT;
 alter table public.transactions add constraint transactions_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
 alter table public.wallet_transactions add constraint wallet_transactions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE SET NULL;
 alter table public.wallet_transactions add constraint wallet_transactions_reverses_id_fkey FOREIGN KEY (reverses_id) REFERENCES wallet_transactions(id);
@@ -432,7 +440,8 @@ alter table public.purchase_requests add constraint purchase_requests_ticket_pho
 alter table public.purchase_requests add constraint purchase_requests_vendor_name_check CHECK (((char_length(vendor_name) >= 2) AND (char_length(vendor_name) <= 80)));
 alter table public.purchase_requests add constraint purchase_requests_version_check CHECK (((version >= 1) AND ((version = 1) = (edited_at IS NULL))));
 alter table public.purchase_requests add constraint purchase_requests_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.profiles(user_id) ON DELETE RESTRICT;
-alter table public.purchase_requests add constraint purchase_requests_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;
+-- Script 97 de RD-SQL-97 : une mission ayant une demande d'achats ne peut plus être supprimée.
+alter table public.purchase_requests add constraint purchase_requests_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE RESTRICT;
 alter table public.purchase_requests add constraint purchase_requests_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.profiles(user_id) ON DELETE RESTRICT;
 alter table public.messages add constraint messages_purchase_request_fkey FOREIGN KEY (purchase_request_id, mission_id) REFERENCES public.purchase_requests(id, mission_id) ON DELETE CASCADE;
 alter table public.reports add constraint reports_purchase_request_id_fkey FOREIGN KEY (purchase_request_id) REFERENCES public.purchase_requests(id) ON DELETE CASCADE;
@@ -2514,6 +2523,8 @@ alter publication supabase_realtime add table public.messages;
 --   PL/pgSQL : SQL standard. Propres à Supabase : les noms de rôles des GRANT / REVOKE et les
 --   clés étrangères vers auth.users(id) des tables transactions et wallet_transactions, passées
 --   en ON DELETE RESTRICT.
+-- - Script 97 (RD-SQL-97) : deux clés étrangères mission_id en ON DELETE RESTRICT et CHECK
+--   profiles_closed_label_check (normalize() exige une base UTF8) : SQL standard, rien de propre à Supabase.
 -- - rôles API : anon, authenticated, service_role et leurs GRANT/REVOKE.
 -- - extensions : pg_cron (schéma pg_catalog), pg_net (public), supabase_vault
 --   (vault), pg_stat_statements, uuid-ossp et pgcrypto (extensions).
