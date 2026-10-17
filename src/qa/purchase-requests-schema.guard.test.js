@@ -29,6 +29,16 @@ function constraintLine(name) {
   return found[0]
 }
 
+// Définition complète d'une contrainte : tout ce qui suit `add constraint <name> `, « ; » compris. Comparée avec toBe :
+// aucune borne, aucun opérateur ni aucun nombre ne passe par une recherche de sous-chaîne.
+const constraintDef = (name) => constraintLine(name).replace(/^alter table \S+ add constraint \S+ /, "")
+
+// Ligne complète d'une colonne dans le corps d'une table (indentation et virgule comprises, comparée par égalité).
+const columnLines = (table) => tableBody(table).split("\n").map((l) => l.trim())
+
+// `(<col> = ANY (ARRAY['a'::text, 'b'::text]))` : liste fermée de valeurs telle que l'écrit pg_dump.
+const anyOf = (col, values) => `(${col} = ANY (ARRAY[${values.map((v) => `'${v}'::text`).join(", ")}]))`
+
 // Texte d'une instruction multi-lignes : de son premier motif jusqu'au « ; » de fin de ligne.
 function statement(startPattern) {
   const match = SCHEMA.match(startPattern)
@@ -107,72 +117,83 @@ describe("schéma de référence : table purchase_requests (script 94)", () => {
       "reported",
       "cancelled",
     ])
-    expect(tableBody("purchase_requests")).toContain("status text default 'pending'::text not null,")
+    expect(constraintDef("purchase_requests_status_check")).toBe(
+      `CHECK (${anyOf("status", ["pending", "paid", "received", "reported", "cancelled"])});`
+    )
+    expect(columnLines("purchase_requests")).toContain("status text default 'pending'::text not null,")
   })
 
   it("le montant est un entier de 100 à 500 000, le numéro de demande de 1 à 99", () => {
-    expect(tableBody("purchase_requests")).toContain("amount integer not null,")
-    expect(constraintLine("purchase_requests_amount_check")).toContain("((amount >= 100) AND (amount <= 500000))")
-    expect(tableBody("purchase_requests")).toContain("seq integer not null,")
-    expect(constraintLine("purchase_requests_seq_check")).toContain("((seq >= 1) AND (seq <= 99))")
+    expect(columnLines("purchase_requests")).toContain("amount integer not null,")
+    expect(constraintDef("purchase_requests_amount_check")).toBe("CHECK (((amount >= 100) AND (amount <= 500000)));")
+    expect(columnLines("purchase_requests")).toContain("seq integer not null,")
+    expect(constraintDef("purchase_requests_seq_check")).toBe("CHECK (((seq >= 1) AND (seq <= 99)));")
   })
 
   it("un numéro par mission et la paire (id, mission_id) sont uniques, la version démarre à 1", () => {
-    expect(constraintLine("purchase_requests_pkey")).toContain("PRIMARY KEY (id)")
-    expect(constraintLine("purchase_requests_mission_seq_key")).toContain("UNIQUE (mission_id, seq)")
-    expect(constraintLine("purchase_requests_id_mission_key")).toContain("UNIQUE (id, mission_id)")
-    expect(tableBody("purchase_requests")).toContain("version integer default 1 not null,")
-    expect(constraintLine("purchase_requests_version_check")).toContain("((version = 1) = (edited_at IS NULL))")
+    expect(constraintDef("purchase_requests_pkey")).toBe("PRIMARY KEY (id);")
+    expect(constraintDef("purchase_requests_mission_seq_key")).toBe("UNIQUE (mission_id, seq);")
+    expect(constraintDef("purchase_requests_id_mission_key")).toBe("UNIQUE (id, mission_id);")
+    expect(columnLines("purchase_requests")).toContain("version integer default 1 not null,")
+    expect(constraintDef("purchase_requests_version_check")).toBe(
+      "CHECK (((version >= 1) AND ((version = 1) = (edited_at IS NULL))));"
+    )
   })
 
   it("les formats du numéro à payer, du vendeur et des photos sont bornés par la base", () => {
     expect(listOf(constraintLine("purchase_requests_payee_kind_check"))).toEqual(["merchant", "personal"])
-    const payee = constraintLine("purchase_requests_payee_number_check")
-    expect(payee).toContain("'^[0-9]{4,10}$'::text")
-    expect(payee).toContain("'^\\+22901[0-9]{8}$'::text")
-    expect(constraintLine("purchase_requests_vendor_name_check")).toContain(
-      "((char_length(vendor_name) >= 2) AND (char_length(vendor_name) <= 80))"
+    expect(constraintDef("purchase_requests_payee_kind_check")).toBe(
+      `CHECK (${anyOf("payee_kind", ["merchant", "personal"])});`
     )
-    expect(constraintLine("purchase_requests_items_check")).toContain(
-      "((char_length(items) >= 1) AND (char_length(items) <= 120))"
+    expect(constraintDef("purchase_requests_payee_number_check")).toBe(
+      "CHECK ((((payee_kind = 'merchant'::text) AND (payee_number ~ '^[0-9]{4,10}$'::text)) OR ((payee_kind = 'personal'::text) AND (payee_number ~ '^\\+22901[0-9]{8}$'::text))));"
     )
-    for (const name of ["payee_photo", "ticket_photo", "sms_photo"]) {
-      const photo = constraintLine(`purchase_requests_${name}_check`)
-      expect(photo, name).toContain(`(char_length(${name}_path) <= 200)`)
-      expect(photo, name).toContain(`strpos(${name}_path, '..'::text) = 0`)
-      expect(photo, name).toContain(`starts_with(${name}_path,`)
-    }
-    expect(constraintLine("purchase_requests_payee_photo_check")).toContain("(student_id)::text")
-    expect(constraintLine("purchase_requests_ticket_photo_check")).toContain("(student_id)::text")
-    expect(constraintLine("purchase_requests_sms_photo_check")).toContain("(client_id)::text")
-    expect(constraintLine("purchase_requests_paid_reference_check")).toContain("'^[A-Za-z0-9-]{1,40}$'::text")
+    expect(constraintDef("purchase_requests_vendor_name_check")).toBe(
+      "CHECK (((char_length(vendor_name) >= 2) AND (char_length(vendor_name) <= 80)));"
+    )
+    expect(constraintDef("purchase_requests_items_check")).toBe(
+      "CHECK (((items IS NULL) OR ((char_length(items) >= 1) AND (char_length(items) <= 120))));"
+    )
+    // chemin d'une photo : 200 caractères au plus, pas de « .. », dossier <propriétaire>/<id de la demande>/
+    const photoPath = (name, owner) =>
+      `(char_length(${name}_path) <= 200) AND (strpos(${name}_path, '..'::text) = 0) AND starts_with(${name}_path, ((((${owner})::text || '/'::text) || (id)::text) || '/'::text))`
+    expect(constraintDef("purchase_requests_payee_photo_check")).toBe(`CHECK ((${photoPath("payee_photo", "student_id")}));`)
+    expect(constraintDef("purchase_requests_ticket_photo_check")).toBe(`CHECK ((${photoPath("ticket_photo", "student_id")}));`)
+    expect(constraintDef("purchase_requests_sms_photo_check")).toBe(
+      `CHECK (((sms_photo_path IS NULL) OR (${photoPath("sms_photo", "client_id")})));`
+    )
+    expect(constraintDef("purchase_requests_paid_reference_check")).toBe(
+      "CHECK (((paid_reference IS NULL) OR (paid_reference ~ '^[A-Za-z0-9-]{1,40}$'::text)));"
+    )
   })
 
   it("les CHECK de cohérence lient chaque statut à ses colonnes", () => {
-    expect(constraintLine("purchase_requests_paid_fields_check")).toContain(
-      "(paid_at IS NOT NULL) AND (sms_photo_path IS NOT NULL) AND beneficiary_confirmed"
+    expect(constraintDef("purchase_requests_paid_fields_check")).toBe(
+      "CHECK (((status <> 'paid'::text) OR ((paid_at IS NOT NULL) AND (sms_photo_path IS NOT NULL) AND beneficiary_confirmed)));"
     )
-    expect(constraintLine("purchase_requests_received_fields_check")).toContain(
-      "(paid_at IS NOT NULL) AND (received_at IS NOT NULL)"
+    expect(constraintDef("purchase_requests_received_fields_check")).toBe(
+      "CHECK (((status <> 'received'::text) OR ((paid_at IS NOT NULL) AND (received_at IS NOT NULL))));"
     )
-    expect(constraintLine("purchase_requests_cancelled_fields_check")).toContain(
-      "(cancelled_at IS NOT NULL) AND (paid_at IS NULL)"
+    expect(constraintDef("purchase_requests_cancelled_fields_check")).toBe(
+      "CHECK (((status <> 'cancelled'::text) OR ((cancelled_at IS NOT NULL) AND (paid_at IS NULL))));"
     )
-    expect(constraintLine("purchase_requests_reported_fields_check")).toContain("reported_at IS NOT NULL")
-    expect(constraintLine("purchase_requests_end_check")).toContain(
-      "((reported_at IS NOT NULL) = (status = 'reported'::text))"
+    expect(constraintDef("purchase_requests_reported_fields_check")).toBe(
+      "CHECK (((status <> 'reported'::text) OR (reported_at IS NOT NULL)));"
     )
-    expect(constraintLine("purchase_requests_parties_check")).toContain("(student_id <> client_id)")
+    expect(constraintDef("purchase_requests_end_check")).toBe(
+      "CHECK ((((cancelled_at IS NOT NULL) = (status = 'cancelled'::text)) AND ((reported_at IS NOT NULL) = (status = 'reported'::text)) AND ((received_at IS NULL) OR ((paid_at IS NOT NULL) AND (status = ANY (ARRAY['received'::text, 'reported'::text]))))));"
+    )
+    expect(constraintDef("purchase_requests_parties_check")).toBe("CHECK ((student_id <> client_id));")
   })
 
   it("la suppression d'une mission ou d'un compte emporte les demandes (cascade), jamais un DELETE direct", () => {
-    expect(constraintLine("purchase_requests_mission_id_fkey")).toContain(
+    expect(constraintDef("purchase_requests_mission_id_fkey")).toBe(
       "FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;"
     )
-    expect(constraintLine("purchase_requests_student_id_fkey")).toContain(
+    expect(constraintDef("purchase_requests_student_id_fkey")).toBe(
       "FOREIGN KEY (student_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;"
     )
-    expect(constraintLine("purchase_requests_client_id_fkey")).toContain(
+    expect(constraintDef("purchase_requests_client_id_fkey")).toBe(
       "FOREIGN KEY (client_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;"
     )
     expect(onPurchaseRequests.some((l) => l.includes("auth.users"))).toBe(false)
@@ -180,7 +201,7 @@ describe("schéma de référence : table purchase_requests (script 94)", () => {
   })
 
   it("la RLS est activée sans aucune politique sur la table", () => {
-    expect(SCHEMA).toContain("alter table public.purchase_requests enable row level security;")
+    expect(lines).toContain("alter table public.purchase_requests enable row level security;")
     expect(
       lines.filter((l) => /^create policy/i.test(l) && l.includes("on public.purchase_requests")),
       "politique sur purchase_requests"
@@ -188,9 +209,7 @@ describe("schéma de référence : table purchase_requests (script 94)", () => {
   })
 
   it("aucun droit pour anon, authenticated ni public : service_role INSERT, SELECT, UPDATE seulement", () => {
-    expect(SCHEMA).toContain(
-      "revoke all on table public.purchase_requests from public, anon, authenticated, service_role;"
-    )
+    expect(lines).toContain("revoke all on table public.purchase_requests from public, anon, authenticated, service_role;")
     const grants = lines.filter((l) => /^grant /i.test(l) && l.includes("public.purchase_requests"))
     expect(grants).toEqual(["grant INSERT, SELECT, UPDATE on table public.purchase_requests to service_role;"])
     expect(grants.some((l) => /\b(anon|authenticated|public)\b/.test(l.replace("public.purchase_requests", "")))).toBe(false)
@@ -203,10 +222,10 @@ describe("schéma de référence : table purchase_requests (script 94)", () => {
   })
 
   it("les index des deux parties existent", () => {
-    expect(SCHEMA).toContain(
+    expect(lines).toContain(
       "CREATE INDEX purchase_requests_student_id_idx ON public.purchase_requests USING btree (student_id);"
     )
-    expect(SCHEMA).toContain(
+    expect(lines).toContain(
       "CREATE INDEX purchase_requests_client_id_idx ON public.purchase_requests USING btree (client_id);"
     )
   })
@@ -219,7 +238,7 @@ describe("schéma de référence : trigger de la machine à états (script 94)",
     expect(header).toContain("RETURNS trigger")
     expect(header).toContain("SET search_path TO ''")
     expect(header).not.toMatch(/SECURITY DEFINER/i)
-    expect(SCHEMA).toContain(
+    expect(lines).toContain(
       "revoke all on function public.guard_purchase_requests() from public, anon, authenticated, service_role;"
     )
     const grants = lines.filter((l) => /^grant /i.test(l) && l.includes("function public.guard_purchase_requests()"))
@@ -227,10 +246,10 @@ describe("schéma de référence : trigger de la machine à états (script 94)",
   })
 
   it("le trigger garde INSERT, UPDATE et DELETE, l'horodatage est posé par update_updated_at", () => {
-    expect(SCHEMA).toContain(
+    expect(lines).toContain(
       "CREATE TRIGGER guard_purchase_requests BEFORE INSERT OR DELETE OR UPDATE ON public.purchase_requests FOR EACH ROW EXECUTE FUNCTION public.guard_purchase_requests();"
     )
-    expect(SCHEMA).toContain(
+    expect(lines).toContain(
       "CREATE TRIGGER trg_purchase_requests_updated_at BEFORE UPDATE ON public.purchase_requests FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();"
     )
     const triggers = lines.filter((l) => /^CREATE TRIGGER/.test(l) && l.includes("ON public.purchase_requests "))
@@ -247,7 +266,7 @@ describe("schéma de référence : trigger de la machine à états (script 94)",
     expect(fn).toContain("transition interdite")
     expect(fn).toContain("v_mission_status is distinct from 'in_progress'")
     expect(fn).toContain("v_estimate is null")
-    expect(fn).toContain("new.version is distinct from old.version + 1")
+    expect(fn).toMatch(/new\.version is distinct from old\.version \+ 1\b/)
     expect(fn.match(/errcode = '42501'/g).length).toBeGreaterThanOrEqual(10)
   })
 })
@@ -262,8 +281,11 @@ describe("schéma de référence : messages d'achat (script 94)", () => {
       "purchase_request",
       "purchase_event",
     ])
-    expect(constraintLine("messages_purchase_link_check")).toContain(
-      "((type = ANY (ARRAY['purchase_request'::text, 'purchase_event'::text])) = (purchase_request_id IS NOT NULL))"
+    expect(constraintDef("messages_type_check")).toBe(
+      `CHECK (${anyOf("type", ["text", "voice", "image", "location", "purchase_request", "purchase_event"])});`
+    )
+    expect(constraintDef("messages_purchase_link_check")).toBe(
+      "CHECK (((type = ANY (ARRAY['purchase_request'::text, 'purchase_event'::text])) = (purchase_request_id IS NOT NULL)));"
     )
   })
 
@@ -271,8 +293,8 @@ describe("schéma de référence : messages d'achat (script 94)", () => {
     expect(constraintLine("messages_purchase_request_fkey")).toBe(
       "alter table public.messages add constraint messages_purchase_request_fkey FOREIGN KEY (purchase_request_id, mission_id) REFERENCES public.purchase_requests(id, mission_id) ON DELETE CASCADE;"
     )
-    expect(tableBody("messages")).toContain("purchase_request_id uuid")
-    expect(SCHEMA).toContain(
+    expect(columnLines("messages")).toContain("purchase_request_id uuid")
+    expect(lines).toContain(
       "CREATE INDEX messages_purchase_request_idx ON public.messages USING btree (purchase_request_id) WHERE (purchase_request_id IS NOT NULL);"
     )
   })
@@ -299,8 +321,12 @@ describe("schéma de référence : messages d'achat (script 94)", () => {
 
 describe("schéma de référence : signalements d'achats (script 94)", () => {
   it("reports gagne une colonne, une cible, 4 motifs d'achats et une clé étrangère", () => {
-    expect(tableBody("reports")).toContain("purchase_request_id uuid")
+    expect(columnLines("reports")).toContain("purchase_request_id uuid")
     expect(listOf(constraintLine("reports_target_type_check"))).toEqual(["message", "purchase_request"])
+    expect(constraintDef("reports_target_type_check")).toBe(
+      `CHECK (${anyOf("target_type", ["message", "purchase_request"])});`
+    )
+    expect(constraintDef("reports_details_check")).toBe("CHECK ((char_length(details) <= 1000));")
     expect(listOf(constraintLine("reports_reason_check"))).toEqual([
       "harassment",
       "scam",
@@ -312,18 +338,30 @@ describe("schéma de référence : signalements d'achats (script 94)", () => {
       "purchase_vendor_not_paid",
       "purchase_items_not_delivered",
     ])
+    expect(constraintDef("reports_reason_check")).toBe(
+      `CHECK (${anyOf("reason", [
+        "harassment",
+        "scam",
+        "contact_details",
+        "inappropriate",
+        "other",
+        "purchase_amount_mismatch",
+        "purchase_payee_mismatch",
+        "purchase_vendor_not_paid",
+        "purchase_items_not_delivered",
+      ])});`
+    )
     expect(constraintLine("reports_purchase_request_id_fkey")).toBe(
       "alter table public.reports add constraint reports_purchase_request_id_fkey FOREIGN KEY (purchase_request_id) REFERENCES public.purchase_requests(id) ON DELETE CASCADE;"
     )
   })
 
   it("la cible est exclusive et les motifs d'achats ne recoupent ceux de messages que sur « other »", () => {
-    const target = constraintLine("reports_target_check")
-    expect(target).toContain(
-      "((target_type = 'message'::text) AND (message_id IS NOT NULL) AND (purchase_request_id IS NULL))"
+    expect(constraintDef("reports_target_check")).toBe(
+      "CHECK ((((target_type = 'message'::text) AND (message_id IS NOT NULL) AND (purchase_request_id IS NULL)) OR ((target_type = 'purchase_request'::text) AND (purchase_request_id IS NOT NULL) AND (message_id IS NULL) AND (source = 'user'::text))));"
     )
-    expect(target).toContain(
-      "((target_type = 'purchase_request'::text) AND (purchase_request_id IS NOT NULL) AND (message_id IS NULL) AND (source = 'user'::text))"
+    expect(constraintDef("reports_reason_target_check")).toBe(
+      `CHECK ((((target_type = 'message'::text) AND (reason = ANY (ARRAY['harassment'::text, 'scam'::text, 'contact_details'::text, 'inappropriate'::text, 'other'::text]))) OR ((target_type = 'purchase_request'::text) AND (reason = ANY (ARRAY['purchase_amount_mismatch'::text, 'purchase_payee_mismatch'::text, 'purchase_vendor_not_paid'::text, 'purchase_items_not_delivered'::text, 'other'::text])))));`
     )
     const byTarget = constraintLine("reports_reason_target_check")
     const [messageSide, purchaseSide] = byTarget.split("(target_type = 'purchase_request'::text)")
@@ -344,7 +382,7 @@ describe("schéma de référence : signalements d'achats (script 94)", () => {
   })
 
   it("une partie ne signale une demande qu'une fois, l'autre partie peut le faire aussi", () => {
-    expect(SCHEMA).toContain(
+    expect(lines).toContain(
       "CREATE UNIQUE INDEX reports_purchase_reporter_idx ON public.reports USING btree (purchase_request_id, reporter_id) WHERE (purchase_request_id IS NOT NULL);"
     )
   })
@@ -392,6 +430,7 @@ describe("schéma de référence : notifications d'achats (script 94)", () => {
       "purchase_report_closed",
     ])
     expect(new Set(after).size).toBe(21)
+    expect(constraintDef("notifications_type_check")).toBe(`CHECK (${anyOf("type", after)});`)
   })
 
   it("aucun type de notification pour les administrateurs", () => {
@@ -404,7 +443,7 @@ describe("schéma de référence : compartiment purchase-proofs (script 94, part
     const insert = statement(
       /insert into storage\.buckets \(id, name, public, file_size_limit, allowed_mime_types\)\nvalues \('purchase-proofs'/
     )
-    expect(insert).toContain("values ('purchase-proofs', 'purchase-proofs', false, 10485760,")
+    expect(insert).toMatch(/^values \('purchase-proofs', 'purchase-proofs', false, 10485760,/m)
     expect([...insert.matchAll(/'(image\/[a-z]+)'/g)].map((m) => m[1])).toEqual([
       "image/jpeg",
       "image/png",
