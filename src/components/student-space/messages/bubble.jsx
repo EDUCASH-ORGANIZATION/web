@@ -1,7 +1,10 @@
 // @ds-screen RD-STUDENT-01
 import { Icon } from "@/components/design/icon"
 import { PlaceLinks } from "@/components/messaging/place-links"
-import { formatClock } from "@/lib/client-space/conversations"
+import { PURCHASE_PREVIEW, formatClock, isPurchaseMessageType } from "@/lib/client-space/conversations"
+import { PURCHASE_EVENTS, purchaseMessageContent } from "@/lib/purchases/requests"
+import { PurchaseCard } from "./purchase/purchase-card"
+import { PurchaseEventLine } from "./purchase/purchase-event-line"
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
 
@@ -47,12 +50,59 @@ function Meta({ message, status, error }) {
   )
 }
 
+/** Identifiant d'ancre de la carte d'une demande (drapeau d'URL `?demande=<id>`). */
+export const purchaseAnchorId = (requestId) => `demande-${requestId}`
+
+// Ligne neutre quand la demande d'un message d'achat n'est pas (ou plus) lisible : jamais le contenu de la ligne.
+function PurchaseFallback({ event = false }) {
+  return (
+    <div className="msg-system">
+      <Icon name="i-receipt" />
+      {event ? PURCHASE_PREVIEW.purchase_event : `${PURCHASE_PREVIEW.purchase_request} : détails momentanément indisponibles.`}
+    </div>
+  )
+}
+
+// Événement d'une ligne système : celui dont le texte fixe du serveur est le contenu reçu, pour le numéro de la demande.
+const eventOf = (request, content) =>
+  PURCHASE_EVENTS.find((event) => purchaseMessageContent("purchase_event", request.seq, event) === content) ?? null
+
+/**
+ * Message d'achat : la carte `purchase_request` (PurchaseCard) ou la ligne système `purchase_event`. Aucun
+ * « Signaler ce message » : le signalement se fait sur la carte. `purchase` : { request (la demande du message, ou
+ * absente), clientName, missionStatus, busy, onEdit, onCancel, onConfirmReceived, onReport }.
+ */
+function PurchaseMessage({ message, purchase }) {
+  const request = purchase?.request
+  if (!request) return <PurchaseFallback event={message.type === "purchase_event"} />
+  if (message.type === "purchase_event") {
+    const event = eventOf(request, message.content)
+    return event ? <PurchaseEventLine event={event} seq={request.seq} /> : <PurchaseFallback event={message.type === "purchase_event"} />
+  }
+  return (
+    <div id={purchaseAnchorId(request.id)} className="e2-07-card">
+      <PurchaseCard
+        request={request}
+        clientName={purchase.clientName}
+        missionStatus={purchase.missionStatus}
+        alreadyReportedByMe={request.alreadyReportedByMe === true}
+        busy={purchase.busy === true}
+        onEdit={purchase.onEdit}
+        onCancel={purchase.onCancel}
+        onConfirmReceived={purchase.onConfirmReceived}
+        onReport={purchase.onReport}
+      />
+    </div>
+  )
+}
+
 /**
  * Bulle de message. `status` : "sent" (défaut), "sending" ou "failed" (message de l'étudiant pas encore
  * livré : `error` en méta, « Réessayer » et « Supprimer » sous la bulle). `onReport(message)` facultative : le bouton
- * « Signaler » n'apparaît que sur un message reçu et livré, jamais sur ceux de l'étudiant.
+ * « Signaler » n'apparaît que sur un message reçu et livré, jamais sur ceux de l'étudiant, ni sur un message d'achat.
  */
-export function Bubble({ message, senderName, status = "sent", error, onRetry, onDismiss, onMediaError, onReport }) {
+export function Bubble({ message, senderName, status = "sent", error, onRetry, onDismiss, onMediaError, onReport, purchase }) {
+  if (isPurchaseMessageType(message.type)) return <PurchaseMessage message={message} purchase={purchase} />
   return (
     <>
       <div

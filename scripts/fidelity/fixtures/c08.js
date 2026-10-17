@@ -1,6 +1,7 @@
 // Données de la planche C08 (mission en cours avec achats, cadre bureau 1 et mobile 1) : service 5 000 FCFA
 // en séquestre, estimation d'achats 15 000 FCFA, étudiant Ulrich Zinsou. Vouvoiement, noms « Prénom N. » (A7).
-// Aucune demande de paiement (décision 24 révisée) : seule l'estimation est une donnée réelle.
+// Deux demandes de paiement d'achats (décision 24 rétablie, RD-ACHATS-01) : 7 450 FCFA reçus, 6 200 FCFA à payer.
+// L'estimation de 15 000 FCFA n'est jamais additionnée aux demandes.
 export const student = {
   id: "22222222-2222-4222-8222-222222222221",
   fullName: "Ulrich Zinsou",
@@ -14,6 +15,35 @@ export const student = {
   level: "Licence 3 Anglais",
   skills: [],
 }
+
+const purchaseRequests = [
+  {
+    id: "33333333-3333-4333-8333-333333333331",
+    seq: 1,
+    status: "received",
+    version: 3,
+    amount: 7450,
+    vendorName: "Ets Chez Maman Bénédicte",
+    items: "légumes, piment, poisson fumé",
+    payeeKind: "merchant",
+    payeeNumber: "482913",
+    alreadyReportedByMe: false,
+    reviewed: false,
+  },
+  {
+    id: "33333333-3333-4333-8333-333333333332",
+    seq: 2,
+    status: "pending",
+    version: 1,
+    amount: 6200,
+    vendorName: "Boutique Sœur Odile",
+    items: "riz 5 kg, huile, savon",
+    payeeKind: "merchant",
+    payeeNumber: "571204",
+    alreadyReportedByMe: false,
+    reviewed: false,
+  },
+]
 
 export const detail = {
   mission: {
@@ -35,6 +65,14 @@ export const detail = {
   ledger: [{ type: "reserve", amount: 5000, createdAt: "2026-10-09T07:40:00+01:00" }],
   review: null,
   completion: { available: true, declaredAt: null },
+  purchases: {
+    available: true,
+    requests: purchaseRequests,
+    totals: { count: 2, requested: 13650, paid: 7450, pending: 6200, reported: 0 },
+    exceedsEstimate: false,
+    confirmWarning: { show: true, pending: 1, reported: 0 },
+    costTotal: null,
+  },
 }
 
 // Planche C09 (modale « Confirmer la fin », cadre bureau 0 et mobile 0) : mission sans achats, 15 000 FCFA bloqués

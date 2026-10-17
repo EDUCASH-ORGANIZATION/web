@@ -55,6 +55,12 @@
   .e2-05-meta { font-size: var(--t-caption); gap: 6px 12px; padding: 0 4px; }
   .e2-05-meta > span:not(.badge) .ic { width: 14px; height: 14px; }
   .e2-05-req__amount { font-size: var(--t-caption); }
+  /* Ligne d'une demande d'achats : montant en haut à droite, statut et « Voir » sur la ligne du dessous, ligne de détail masquée comme dans la planche (la règle générale de base.css range chaque colonne au-delà de la 3e sur sa propre ligne) */
+  .e2 .e2-05-req.item2 > .item2__meta { grid-column: 2; grid-row: 2; }
+  .e2 .e2-05-req.item2 > .e2-05-req__amount { grid-column: 3; grid-row: 1; }
+  .e2 .e2-05-req.item2 > .item2__action { grid-column: 3; grid-row: 2; justify-self: end; }
+  .e2 .e2-05-req.item2 > .item2__ic { grid-row: 1 / span 2; align-self: start; }
+  .e2 .e2-05-req .item2__sub { display: none; }
   .e2-05-aside { position: static; }
   /* « J'ai terminé » : sous 1024 px le bouton vit dans la barre fixe (.e2-mbar), un seul bouton encre par cadre */
   .e2-05-end__btn { display: none; }

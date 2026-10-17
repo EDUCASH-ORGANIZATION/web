@@ -22,6 +22,8 @@ vi.mock("@/lib/actions/application.actions", () => ({ apply: vi.fn() }))
 vi.mock("@/lib/actions/mission.actions", () => ({ confirmMission: vi.fn() }))
 vi.mock("@/lib/actions/mission-completion.actions", () => ({ declareMissionCompletion: vi.fn() }))
 vi.mock("@/lib/actions/message-report.actions", () => ({ reportClientMessage: vi.fn(), reportStudentMessage: vi.fn() }))
+vi.mock("@/lib/actions/purchase-request.actions", () => ({ markPurchasePaid: vi.fn(), reportPurchaseRequestAsClient: vi.fn(), getClientPurchaseRequests: vi.fn() }))
+vi.mock("@/hooks/use-purchase-proof-upload", () => ({ usePurchaseProofUpload: () => vi.fn() }))
 vi.mock("@/components/app-ui/toast", () => ({ useAppToast: () => ({ success: vi.fn(), error: vi.fn() }) }))
 vi.mock("@/lib/actions/message.actions", () => ({
   sendClientMessage: vi.fn(),
@@ -32,6 +34,14 @@ vi.mock("@/lib/actions/message.actions", () => ({
   getStudentConversation: vi.fn(),
   getStudentMessageMedia: vi.fn(async () => ({ media: {} })),
 }))
+vi.mock("@/lib/actions/purchase-request.actions", () => ({
+  createPurchaseRequest: vi.fn(),
+  editPurchaseRequest: vi.fn(),
+  cancelPurchaseRequest: vi.fn(),
+  confirmPurchaseReceived: vi.fn(),
+  reportPurchaseRequestAsStudent: vi.fn(),
+}))
+vi.mock("@/hooks/use-purchase-proof-upload", () => ({ usePurchaseProofUpload: () => vi.fn() }))
 vi.mock("@/hooks/use-realtime-messages", () => ({
   useRealtimeMessages: ({ initialMessages }) => ({ messages: initialMessages, append: vi.fn(), refreshMedia: vi.fn() }),
   useMessageMediaUpload: () => vi.fn(),

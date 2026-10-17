@@ -1,6 +1,11 @@
 import { Icon } from "@/components/design/icon"
 import { PlaceLinks } from "@/components/messaging/place-links"
 import { coordsValid, formatClock } from "@/lib/client-space/conversations"
+import { PurchaseCard } from "./purchase/purchase-card"
+import { PurchaseEventLine } from "./purchase/purchase-event-line"
+
+// Carte d'une demande dont la lecture a échoué ou n'est pas encore revenue : jamais de carte vide ni de faux montant.
+export const PURCHASE_FALLBACK_TEXT = "Demande de paiement d'achats : le détail n'est pas disponible pour le moment."
 
 const cx = (...parts) => parts.filter(Boolean).join(" ")
 
@@ -49,12 +54,46 @@ function Meta({ message, status, error }) {
   )
 }
 
+// Messages d'achats : la ligne système `purchase_event` (texte fixe du serveur) et la carte `purchase_request`, dont les
+// données viennent de la demande lue par la vue (`purchase.request`). Sans demande : ligne neutre de secours.
+function PurchaseMessage({ message, purchase }) {
+  if (message.type === "purchase_event") return <PurchaseEventLine content={message.content} />
+  const request = purchase?.request
+  if (!request) {
+    return (
+      <div className="msg-system">
+        <Icon name="i-receipt" />
+        {PURCHASE_FALLBACK_TEXT}
+      </div>
+    )
+  }
+  return (
+    <>
+      <span id={`demande-${request.id}`} className="sr-only" aria-hidden="true" />
+      <PurchaseCard
+        request={request}
+        studentName={purchase.studentName}
+        missionStatus={purchase.missionStatus}
+        estimateExceeded={purchase.estimateExceeded}
+        onMarkPaid={purchase.onMarkPaid}
+        onReport={purchase.onReport}
+        onPhotoError={purchase.onPhotoError}
+      />
+    </>
+  )
+}
+
 /**
  * Bulle de message. `status` : "sent" (défaut), "sending" ou "failed" (message de l'utilisateur pas encore
  * livré : `error` en méta, « Réessayer » et « Supprimer » sous la bulle). `onReport(message)` (facultatif) ajoute
  * « Signaler » sur un message reçu et livré ; `maskedNote` est la note de masquage sous la bulle de l'expéditeur.
+ * Les messages `purchase_request` et `purchase_event` ne sont pas des bulles : `purchase` ({ request, studentName,
+ * missionStatus, estimateExceeded, onMarkPaid, onReport, onPhotoError }) alimente la carte de la demande.
  */
-export function Bubble({ message, senderName, status = "sent", error, onRetry, onDismiss, onMediaError, onReport, maskedNote }) {
+export function Bubble({ message, senderName, status = "sent", error, onRetry, onDismiss, onMediaError, onReport, maskedNote, purchase }) {
+  if (message.type === "purchase_request" || message.type === "purchase_event") {
+    return <PurchaseMessage message={message} purchase={purchase} />
+  }
   const reportable = Boolean(onReport) && !message.mine && status === "sent"
   return (
     <div

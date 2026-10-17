@@ -22,7 +22,9 @@ const firstNameOf = (name) => (typeof name === "string" ? (name.trim().split(/\s
 
 // Action du bandeau : candidat -> « Accepter <prénom> » (ouvre le tiroir de la candidature, rien n'est accepté par
 // l'adresse), en cours -> confirmer la fin (ouvre la fenêtre de confirmation), sinon la mission en lecture.
-function actionOf(state, missionId, studentId, studentName) {
+// Une demande de paiement d'achats qui attend le client (`purchaseWaiting`) donne le bouton encre à « Payé » de la carte :
+// « Confirmer la fin » passe en contour pendant l'attente (un seul bouton encre par cadre).
+function actionOf(state, missionId, studentId, studentName, purchaseWaiting) {
   if (state === "candidate") {
     const firstName = firstNameOf(studentName)
     return {
@@ -32,7 +34,11 @@ function actionOf(state, missionId, studentId, studentName) {
     }
   }
   if (state === "in_progress") {
-    return { label: "Confirmer la fin", href: clientMissionHref(missionId, { confirmer: true }), className: "btn btn--dark btn--sm" }
+    return {
+      label: "Confirmer la fin",
+      href: clientMissionHref(missionId, { confirmer: true }),
+      className: purchaseWaiting ? "btn btn--secondary btn--sm" : "btn btn--dark btn--sm",
+    }
   }
   return { label: "Voir la mission", href: clientMissionHref(missionId), className: "btn btn--soft btn--sm" }
 }
@@ -40,7 +46,8 @@ function actionOf(state, missionId, studentId, studentName) {
 // Montants du bandeau : le budget du client (retenu en séquestre quand les paiements sont ouverts) et l'estimation
 // des achats qu'il paiera lui-même. Aucun montant tant que le budget n'est pas strictement positif et fini ;
 // jamais le gain de l'étudiant. Paiements fermés : formulation indicative, jamais une promesse de séquestre.
-function amountsOf({ state, budget, purchasesEstimate, paymentsEnabled }) {
+// Achats déjà payés en direct (`purchasesPaid` > 0) : ce total remplace l'estimation, jamais additionné au service.
+function amountsOf({ state, budget, purchasesEstimate, purchasesPaid, paymentsEnabled }) {
   if (state !== "in_progress" && state !== "candidate") return null
   if (!(Number.isFinite(budget) && budget > 0)) return null
   const service = <b className="conv2__amount">{formatFcfa(budget)}</b>
@@ -50,10 +57,12 @@ function amountsOf({ state, budget, purchasesEstimate, paymentsEnabled }) {
       short: paymentsEnabled ? <>{service} en séquestre</> : <>Budget : {service}</>,
     }
   }
-  const estimate =
-    Number.isFinite(purchasesEstimate) && purchasesEstimate > 0 ? (
-      <> · achats estimés : environ <b className="conv2__amount">{formatFcfa(purchasesEstimate)}</b></>
-    ) : null
+  let estimate = null
+  if (Number.isFinite(purchasesPaid) && purchasesPaid > 0) {
+    estimate = <> · achats payés en direct : <b className="conv2__amount">{formatFcfa(purchasesPaid)}</b></>
+  } else if (Number.isFinite(purchasesEstimate) && purchasesEstimate > 0) {
+    estimate = <> · achats estimés : environ <b className="conv2__amount">{formatFcfa(purchasesEstimate)}</b></>
+  }
   return {
     long: paymentsEnabled ? (
       <>
@@ -87,7 +96,9 @@ function declaredOf({ state, studentName, completionDeclaredAt, completionAvaila
  * Bandeau de statut de la conversation, toujours visible sous l'en-tête. `mission` : { budget, purchasesEstimate }
  * de getClientConversation ; `paymentsEnabled` est lu côté serveur par la page. `completionDeclaredAt` et
  * `completionAvailable` : fin déclarée par l'étudiant (conversation.completionDeclaredAt / completionAvailable).
- * @param {{ state: string, missionId: string, studentId: string, studentName?: string, mission?: object, paymentsEnabled?: boolean, completionDeclaredAt?: string|null, completionAvailable?: boolean }} props
+ * `purchasesPaid` : total des achats payés en direct (demandes Payé et Reçu) ; `purchaseWaiting` : au moins une
+ * demande de paiement attend le client.
+ * @param {{ state: string, missionId: string, studentId: string, studentName?: string, mission?: object, paymentsEnabled?: boolean, completionDeclaredAt?: string|null, completionAvailable?: boolean, purchasesPaid?: number, purchaseWaiting?: boolean }} props
  */
 export function StatusBanner({
   state,
@@ -98,16 +109,18 @@ export function StatusBanner({
   paymentsEnabled = false,
   completionDeclaredAt = null,
   completionAvailable = false,
+  purchasesPaid = 0,
+  purchaseWaiting = false,
 }) {
   const base = BANNERS[state]
   if (!base) return null
   const declared = declaredOf({ state, studentName, completionDeclaredAt, completionAvailable, paymentsEnabled })
   const banner = declared ? { ...base, badge: declared.badge } : base
-  const action = actionOf(state, missionId, studentId, studentName)
+  const action = actionOf(state, missionId, studentId, studentName, purchaseWaiting)
   // Le même gabarit « long / court » sert aux montants et à l'état déclaré (classe chat-status--amounts).
   const amounts =
     declared ??
-    amountsOf({ state, budget: mission?.budget, purchasesEstimate: mission?.purchasesEstimate, paymentsEnabled })
+    amountsOf({ state, budget: mission?.budget, purchasesEstimate: mission?.purchasesEstimate, purchasesPaid, paymentsEnabled })
   return (
     <div className={amounts ? "chat-status chat-status--amounts" : "chat-status"}>
       <StatusBadge {...banner.badge} />

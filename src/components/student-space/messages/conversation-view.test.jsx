@@ -18,6 +18,14 @@ vi.mock("@/lib/actions/message.actions", () => ({
   getStudentMessageMedia: vi.fn(async () => ({ media: {} })),
 }))
 const realtime = vi.fn(({ initialMessages }) => ({ messages: initialMessages, append: vi.fn(), refreshMedia: vi.fn() }))
+vi.mock("@/lib/actions/purchase-request.actions", () => ({
+  createPurchaseRequest: vi.fn(),
+  editPurchaseRequest: vi.fn(),
+  cancelPurchaseRequest: vi.fn(),
+  confirmPurchaseReceived: vi.fn(),
+  reportPurchaseRequestAsStudent: vi.fn(),
+}))
+vi.mock("@/hooks/use-purchase-proof-upload", () => ({ usePurchaseProofUpload: () => vi.fn() }))
 vi.mock("@/hooks/use-realtime-messages", () => ({
   useRealtimeMessages: (options) => realtime(options),
   useMessageMediaUpload: () => vi.fn(),
@@ -499,7 +507,9 @@ describe("structure et sécurité", () => {
   it("la page appelle notFound() hors de tout <Suspense> et ne lit jamais l'autre partie dans l'adresse", () => {
     expect(page).toContain("notFound()")
     expect(page).not.toMatch(/<Suspense[\s>]/)
-    expect(page).not.toContain("searchParams")
+    // Seuls les deux drapeaux d'achats (sans action) sont lus ; l'interlocuteur vient de l'action, jamais de l'adresse.
+    expect([...new Set([...page.matchAll(/query\.(\w+)/g)].map((m) => m[1]))].sort()).toEqual(["achat", "demande"])
+    expect(page).not.toMatch(/query\.(client|clientId|studentId|userId|other|receiver)/)
     expect(page).toContain("getStudentConversation({ missionId })")
   })
 })

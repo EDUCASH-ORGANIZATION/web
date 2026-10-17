@@ -11,6 +11,7 @@
 .done2 .actions2 { justify-content: center; margin-top: 8px; }
 .sub2 { font-size: var(--t-caption); font-weight: var(--fw-bold); color: var(--c-ardoise); display: flex; justify-content: space-between; align-items: center; }
 .modal .buy2 { padding: 8px 0; }
+.modal .buy2 .buy2__title, .modal .buy2 .buy2__sub { overflow-wrap: anywhere; }
 .modal .lines2 { font-size: var(--t-body-s); }
 .c2 .modal__body .check { align-items: flex-start; }
 
@@ -21,6 +22,8 @@
 
 @media (max-width: 1023.98px) {
   .done2 { margin-top: 0; }
+  .modal .buy2 { grid-template-columns: 36px minmax(0, 1fr); }
+  .modal .buy2 .badge { grid-column: 2; justify-self: start; }
   /* Case à cocher : toute la ligne du libellé fait 44 px de haut ; lien « Signaler un problème » de la note */
   .c2 .modal__body .check { min-height: 44px; align-items: flex-start; }
   .c2 .modal__body .note2 .link2 { display: inline-flex; min-height: 44px; }

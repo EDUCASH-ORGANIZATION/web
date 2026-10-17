@@ -31,3 +31,25 @@ describe("Composer étudiant : micro et envoi", () => {
     expect(html).not.toContain('aria-label="Envoyer"')
   })
 })
+
+describe("Composer étudiant : bouton ticket (demande de paiement d'achats)", () => {
+  it("absent sans `onRequestPurchase` : outils inchangés (image, position)", () => {
+    const html = renderToStaticMarkup(<Composer onSend={vi.fn()} />)
+    expect(html).not.toContain("Demander un paiement d&#x27;achats")
+    expect(html).not.toContain("i-receipt")
+  })
+
+  it("présent avec `onRequestPurchase`, après la position et avant le champ, icône ticket", () => {
+    const html = renderToStaticMarkup(<Composer onSend={vi.fn()} onRequestPurchase={vi.fn()} />)
+    expect(html).toContain('aria-label="Demander un paiement d&#x27;achats"')
+    expect(html).toContain("i-receipt")
+    expect(html.indexOf("Partager une position")).toBeLessThan(html.indexOf("Demander un paiement"))
+    expect(html.indexOf("Demander un paiement")).toBeLessThan(html.indexOf("Votre message"))
+  })
+
+  it("est un bouton hors envoi (type button), jamais le bouton de soumission du formulaire", () => {
+    const html = renderToStaticMarkup(<Composer onSend={vi.fn()} onRequestPurchase={vi.fn()} />)
+    const button = /<button[^>]*aria-label="Demander un paiement d&#x27;achats"[^>]*>/.exec(html)[0]
+    expect(button).toContain('type="button"')
+  })
+})

@@ -105,9 +105,9 @@
           "code": ".e2-05-purchases",
           "assume": {
             "y": "X1:36",
-            "h": "A8:297"
+            "h": "X1:129"
           },
-          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : les demandes de paiement d'achats de la planche sont omises par la décision 24, bloc réduit « Achats de la mission » (D3)"
+          "note": "y : Cascade de l'en-tête mobile : la planche a le titre à 30 px (app-shell.css, coquille hors lot) et un espacement différent entre titre et méta ; décalage vertical de tout ce qui suit ; h : la liste des demandes est maintenant codée ; le code ajoute la ligne « Payés en direct par le client » (+42 px, absente de la planche), range le statut et « Voir » sur une seconde ligne par demande (la planche met le statut sous le titre sans lien) et passe les textes à 13 et 14 px (A2)"
         },
         {
           "id": "MI-25",

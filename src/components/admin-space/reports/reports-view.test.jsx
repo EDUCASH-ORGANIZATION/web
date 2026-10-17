@@ -59,7 +59,8 @@ describe("ReportsView : liste", () => {
 
   it("tableau avec légende, en-têtes de colonne et lignes vers le détail", () => {
     expect(html).toContain("<caption")
-    expect(html.match(/<th scope="col"/g)).toHaveLength(7)
+    expect(html.match(/<th scope="col"/g)).toHaveLength(8)
+    expect(html).toContain('<th scope="col">Type</th>')
     expect(html).toContain(`href="/admin/reports/${R1}"`)
     expect(html).toContain(`href="/admin/reports/${R2}"`)
     expect(html).toContain("SIG-0001")
@@ -90,6 +91,72 @@ describe("ReportsView : liste", () => {
     expect(html).not.toMatch(/style=|#[0-9a-f]{6}\b|rgba?\(/i)
     expect(html).not.toMatch(/\b(tu|toi|ton|ta|tes)\b/i)
     expect(html).not.toMatch(/livraison|coursier|saisie|bientôt|\u2014/i)
+  })
+})
+
+const PURCHASE_ROW = {
+  targetType: "purchase_request",
+  typeLabel: "Demande de paiement d'achats",
+  targetDetail: "N° 2 · Librairie Notre-Dame · 12 500 FCFA",
+  reason: "purchase_amount_mismatch",
+  reasonLabel: "Montant différent du ticket",
+}
+
+describe("ReportsView : demandes de paiement d'achats", () => {
+  const mixed = data({
+    items: [
+      item({ id: R2, reference: "SIG-0094", ...PURCHASE_ROW }),
+      item({ targetType: "message", typeLabel: "Message", targetDetail: "" }),
+    ],
+  })
+  const html = render({ data: mixed })
+
+  it("colonne Type : une demande d'achats et un message dans la même file", () => {
+    expect(html).toContain('data-label="Type"')
+    expect(html).toContain("Demande de paiement d&#x27;achats")
+    expect(html).toContain(">Message<")
+    expect(html).toContain("Montant différent du ticket")
+  })
+
+  it("la cible de la demande (numéro, vendeur, montant) est sous la référence et mène au détail", () => {
+    expect(html).toContain("N° 2 · Librairie Notre-Dame · 12")
+    expect(html).toContain("FCFA")
+    expect(html).toContain(`href="/admin/reports/${R2}"`)
+  })
+
+  it("filtre de type en puces-liens : tous, messages, demandes d'achats ; le choix courant est coché", () => {
+    expect(html).toContain('aria-label="Filtrer par type de signalement"')
+    expect(html).toContain('href="/admin/reports"')
+    expect(html).toContain('href="/admin/reports?type=messages"')
+    expect(html).toContain('href="/admin/reports?type=demande-paiement-achats"')
+    expect(html).toMatch(/aria-checked="true"[^>]*class="chip is-selected" href="\/admin\/reports">Tous les types</)
+  })
+
+  it("filtre actif : le type est conservé dans les onglets, le tri et la pagination, avec la note hors EduCash", () => {
+    const filtered = render({ data: { ...mixed, type: "demande-paiement-achats", tab: "resolus", sort: "recents", page: 2, total: 45 } })
+    expect(filtered).toContain('href="/admin/reports?type=demande-paiement-achats"')
+    expect(filtered).toContain('href="/admin/reports?statut=resolus&amp;type=demande-paiement-achats"')
+    expect(filtered).toMatch(/aria-checked="true"[^>]*class="chip is-selected" href="[^"]*type=demande-paiement-achats">Demandes de paiement/)
+    expect(filtered).toContain("hors EduCash")
+    expect(filtered).toContain("ni les rembourser ni les compenser")
+    expect(filtered).toContain("45 résultats")
+    expect(filtered).toContain("statut=resolus&amp;tri=recents&amp;page=3&amp;type=demande-paiement-achats")
+    expect(filtered).toContain("Voir les plus anciens d&#x27;abord")
+  })
+
+  it("sans filtre : ni note hors EduCash ni compteur de résultats", () => {
+    expect(html).not.toContain("hors EduCash")
+    expect(html).not.toContain("résultats")
+  })
+
+  it("l'argent d'abord : le tri annonce que les demandes d'achats passent en premier", () => {
+    expect(html).toContain("passent toujours en premier")
+  })
+
+  it("aucun style en ligne, vouvoiement, pas de tiret cadratin", () => {
+    expect(html).not.toMatch(/style=|#[0-9a-f]{6}\b|rgba?\(/i)
+    expect(html).not.toMatch(/\b(tu|toi|ton|ta|tes)\b/i)
+    expect(html).not.toMatch(/\u2014/)
   })
 })
 

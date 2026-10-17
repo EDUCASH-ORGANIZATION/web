@@ -6,13 +6,21 @@
 -- missions.completion_declared_at), puis script 91 de RD-ACCEPT-01 (colonne
 -- applications.accepted_at), puis scripts 92 et 93 de RD-MSG-01 (tables
 -- public.message_contact_events et public.reports, retrait du droit INSERT de
--- authenticated sur public.messages).
+-- authenticated sur public.messages), puis script 94 de RD-ACHATS-01 (table
+-- public.purchase_requests, extension de messages, de reports et de notifications,
+-- compartiment purchase-proofs), non appliqué en production.
 -- Script 70 appliqué en production le 2026-10-15.
 -- Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.
 -- Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.
 -- Script 91 de RD-ACCEPT-01 appliqué en production le 2026-10-16.
 -- Script 92 de RD-MSG-01 appliqué en production le 2026-10-16.
 -- Script 93 de RD-MSG-01 appliqué en production le 2026-10-16.
+-- Script 94 de RD-ACHATS-01 NON appliqué en production (table purchase_requests,
+-- extension de messages, de reports et de notifications, compartiment purchase-proofs) :
+-- à retirer de cet en-tête après application. Il se lance strictement après le script 93.
+-- Ce fichier décrit l'état APRÈS le script 94 : ses objets sont repérés par « Script 94 »
+-- dans chaque section (3 à 10), les définitions d'origine de messages, reports et
+-- notifications y sont déjà remplacées.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
@@ -195,7 +203,8 @@ create table public.messages (
   type text default 'text'::text not null,
   media_url text,
   location_lat double precision,
-  location_lng double precision
+  location_lng double precision,
+  purchase_request_id uuid
 );
 
 create table public.mission_completions (
@@ -246,7 +255,38 @@ create table public.reports (
   handled_at timestamp with time zone,
   resolution_note text,
   created_at timestamp with time zone default now() not null,
-  updated_at timestamp with time zone default now() not null
+  updated_at timestamp with time zone default now() not null,
+  purchase_request_id uuid
+);
+
+-- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17) : demandes de paiement d'achats (écrites par le
+-- serveur seulement, machine à états imposée par le trigger guard_purchase_requests). Les colonnes
+-- purchase_request_id de messages et de reports ci-dessus appartiennent aussi au script 94.
+create table public.purchase_requests (
+  id uuid default gen_random_uuid() not null,
+  mission_id uuid not null,
+  seq integer not null,
+  student_id uuid not null,
+  client_id uuid not null,
+  status text default 'pending'::text not null,
+  payee_kind text not null,
+  payee_number text not null,
+  payee_photo_path text not null,
+  ticket_photo_path text not null,
+  vendor_name text not null,
+  items text,
+  amount integer not null,
+  version integer default 1 not null,
+  paid_at timestamp with time zone,
+  sms_photo_path text,
+  paid_reference text,
+  beneficiary_confirmed boolean default false not null,
+  received_at timestamp with time zone,
+  cancelled_at timestamp with time zone,
+  reported_at timestamp with time zone,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone default now() not null,
+  edited_at timestamp with time zone
 );
 
 -- 4. CONTRAINTES (clés primaires, uniques, checks, puis clés étrangères)
@@ -285,7 +325,8 @@ alter table public.wallet_transactions add constraint wallet_transactions_amount
 alter table public.wallet_transactions add constraint wallet_transactions_type_check CHECK ((type = ANY (ARRAY['deposit'::text, 'reserve'::text, 'release'::text, 'commission'::text, 'refund'::text, 'withdrawal'::text])));
 alter table public.applications add constraint applications_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text])));
 alter table public.applications add constraint applications_accepted_at_check CHECK (((accepted_at IS NULL) OR (status = 'accepted'::text)));
-alter table public.messages add constraint messages_type_check CHECK ((type = ANY (ARRAY['text'::text, 'voice'::text, 'image'::text, 'location'::text])));
+alter table public.messages add constraint messages_type_check CHECK ((type = ANY (ARRAY['text'::text, 'voice'::text, 'image'::text, 'location'::text, 'purchase_request'::text, 'purchase_event'::text])));
+alter table public.messages add constraint messages_purchase_link_check CHECK (((type = ANY (ARRAY['purchase_request'::text, 'purchase_event'::text])) = (purchase_request_id IS NOT NULL)));
 alter table public.profiles add constraint profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.student_profiles add constraint fk_student_profiles_profile FOREIGN KEY (user_id) REFERENCES profiles(user_id) ON DELETE CASCADE;
 alter table public.student_profiles add constraint student_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
@@ -314,7 +355,7 @@ alter table public.messages add constraint messages_sender_id_profiles_fkey FORE
 alter table public.mission_completions add constraint mission_completions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE;
 
 alter table public.notifications add constraint notifications_pkey PRIMARY KEY (id);
-alter table public.notifications add constraint notifications_type_check CHECK ((type = ANY (ARRAY['application_received'::text, 'application_accepted'::text, 'application_rejected'::text, 'mission_cancelled'::text, 'payment_released'::text, 'review_received'::text, 'verification_approved'::text, 'verification_rejected'::text, 'verification_reset'::text, 'badge_revoked'::text, 'account_reactivated'::text, 'card_submitted'::text, 'message_received'::text, 'completion_declared'::text])));
+alter table public.notifications add constraint notifications_type_check CHECK ((type = ANY (ARRAY['application_received'::text, 'application_accepted'::text, 'application_rejected'::text, 'mission_cancelled'::text, 'payment_released'::text, 'review_received'::text, 'verification_approved'::text, 'verification_rejected'::text, 'verification_reset'::text, 'badge_revoked'::text, 'account_reactivated'::text, 'card_submitted'::text, 'message_received'::text, 'completion_declared'::text, 'purchase_requested'::text, 'purchase_updated'::text, 'purchase_cancelled'::text, 'purchase_paid'::text, 'purchase_received'::text, 'purchase_reported'::text, 'purchase_report_closed'::text])));
 alter table public.notifications add constraint notifications_title_check CHECK (((char_length(title) >= 1) AND (char_length(title) <= 120)));
 alter table public.notifications add constraint notifications_body_check CHECK ((char_length(body) <= 280));
 alter table public.notifications add constraint notifications_dedupe_key_check CHECK (((char_length(dedupe_key) >= 1) AND (char_length(dedupe_key) <= 200)));
@@ -333,11 +374,12 @@ alter table public.message_contact_events add constraint message_contact_events_
 alter table public.reports add constraint reports_pkey PRIMARY KEY (id);
 alter table public.reports add constraint reports_number_key UNIQUE (number);
 alter table public.reports add constraint reports_source_check CHECK ((source = ANY (ARRAY['user'::text, 'auto'::text])));
-alter table public.reports add constraint reports_target_type_check CHECK ((target_type = 'message'::text));
-alter table public.reports add constraint reports_message_target_check CHECK (((target_type <> 'message'::text) OR (message_id IS NOT NULL)));
+alter table public.reports add constraint reports_target_type_check CHECK ((target_type = ANY (ARRAY['message'::text, 'purchase_request'::text])));
+alter table public.reports add constraint reports_target_check CHECK ((((target_type = 'message'::text) AND (message_id IS NOT NULL) AND (purchase_request_id IS NULL)) OR ((target_type = 'purchase_request'::text) AND (purchase_request_id IS NOT NULL) AND (message_id IS NULL) AND (source = 'user'::text))));
 alter table public.reports add constraint reports_reporter_source_check CHECK ((((source = 'user'::text) AND (reporter_id IS NOT NULL)) OR ((source = 'auto'::text) AND (reporter_id IS NULL))));
 alter table public.reports add constraint reports_not_self_check CHECK ((reporter_id <> reported_user_id));
-alter table public.reports add constraint reports_reason_check CHECK ((reason = ANY (ARRAY['harassment'::text, 'scam'::text, 'contact_details'::text, 'inappropriate'::text, 'other'::text])));
+alter table public.reports add constraint reports_reason_check CHECK ((reason = ANY (ARRAY['harassment'::text, 'scam'::text, 'contact_details'::text, 'inappropriate'::text, 'other'::text, 'purchase_amount_mismatch'::text, 'purchase_payee_mismatch'::text, 'purchase_vendor_not_paid'::text, 'purchase_items_not_delivered'::text])));
+alter table public.reports add constraint reports_reason_target_check CHECK ((((target_type = 'message'::text) AND (reason = ANY (ARRAY['harassment'::text, 'scam'::text, 'contact_details'::text, 'inappropriate'::text, 'other'::text]))) OR ((target_type = 'purchase_request'::text) AND (reason = ANY (ARRAY['purchase_amount_mismatch'::text, 'purchase_payee_mismatch'::text, 'purchase_vendor_not_paid'::text, 'purchase_items_not_delivered'::text, 'other'::text])))));
 alter table public.reports add constraint reports_details_check CHECK ((char_length(details) <= 1000));
 alter table public.reports add constraint reports_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'resolved'::text, 'dismissed'::text])));
 alter table public.reports add constraint reports_resolution_note_check CHECK ((char_length(resolution_note) <= 500));
@@ -347,6 +389,35 @@ alter table public.reports add constraint reports_mission_id_fkey FOREIGN KEY (m
 alter table public.reports add constraint reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
 alter table public.reports add constraint reports_reported_user_id_fkey FOREIGN KEY (reported_user_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
 alter table public.reports add constraint reports_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.profiles(user_id) ON DELETE SET NULL;
+
+-- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17) : contraintes de purchase_requests, puis clés étrangères qui en dépendent.
+alter table public.purchase_requests add constraint purchase_requests_pkey PRIMARY KEY (id);
+alter table public.purchase_requests add constraint purchase_requests_id_mission_key UNIQUE (id, mission_id);
+alter table public.purchase_requests add constraint purchase_requests_mission_seq_key UNIQUE (mission_id, seq);
+alter table public.purchase_requests add constraint purchase_requests_amount_check CHECK (((amount >= 100) AND (amount <= 500000)));
+alter table public.purchase_requests add constraint purchase_requests_cancelled_fields_check CHECK (((status <> 'cancelled'::text) OR ((cancelled_at IS NOT NULL) AND (paid_at IS NULL))));
+alter table public.purchase_requests add constraint purchase_requests_end_check CHECK ((((cancelled_at IS NOT NULL) = (status = 'cancelled'::text)) AND ((reported_at IS NOT NULL) = (status = 'reported'::text)) AND ((received_at IS NULL) OR ((paid_at IS NOT NULL) AND (status = ANY (ARRAY['received'::text, 'reported'::text]))))));
+alter table public.purchase_requests add constraint purchase_requests_items_check CHECK (((items IS NULL) OR ((char_length(items) >= 1) AND (char_length(items) <= 120))));
+alter table public.purchase_requests add constraint purchase_requests_paid_fields_check CHECK (((status <> 'paid'::text) OR ((paid_at IS NOT NULL) AND (sms_photo_path IS NOT NULL) AND beneficiary_confirmed)));
+alter table public.purchase_requests add constraint purchase_requests_paid_reference_check CHECK (((paid_reference IS NULL) OR (paid_reference ~ '^[A-Za-z0-9-]{1,40}$'::text)));
+alter table public.purchase_requests add constraint purchase_requests_parties_check CHECK ((student_id <> client_id));
+alter table public.purchase_requests add constraint purchase_requests_payee_kind_check CHECK ((payee_kind = ANY (ARRAY['merchant'::text, 'personal'::text])));
+alter table public.purchase_requests add constraint purchase_requests_payee_number_check CHECK ((((payee_kind = 'merchant'::text) AND (payee_number ~ '^[0-9]{4,10}$'::text)) OR ((payee_kind = 'personal'::text) AND (payee_number ~ '^\+22901[0-9]{8}$'::text))));
+alter table public.purchase_requests add constraint purchase_requests_payee_photo_check CHECK (((char_length(payee_photo_path) <= 200) AND (strpos(payee_photo_path, '..'::text) = 0) AND starts_with(payee_photo_path, ((((student_id)::text || '/'::text) || (id)::text) || '/'::text))));
+alter table public.purchase_requests add constraint purchase_requests_payment_check CHECK ((((paid_at IS NOT NULL) = (sms_photo_path IS NOT NULL)) AND (beneficiary_confirmed = (paid_at IS NOT NULL)) AND ((paid_reference IS NULL) OR (paid_at IS NOT NULL)) AND ((paid_at IS NULL) OR (status = ANY (ARRAY['paid'::text, 'received'::text, 'reported'::text])))));
+alter table public.purchase_requests add constraint purchase_requests_received_fields_check CHECK (((status <> 'received'::text) OR ((paid_at IS NOT NULL) AND (received_at IS NOT NULL))));
+alter table public.purchase_requests add constraint purchase_requests_reported_fields_check CHECK (((status <> 'reported'::text) OR (reported_at IS NOT NULL)));
+alter table public.purchase_requests add constraint purchase_requests_seq_check CHECK (((seq >= 1) AND (seq <= 99)));
+alter table public.purchase_requests add constraint purchase_requests_sms_photo_check CHECK (((sms_photo_path IS NULL) OR ((char_length(sms_photo_path) <= 200) AND (strpos(sms_photo_path, '..'::text) = 0) AND starts_with(sms_photo_path, ((((client_id)::text || '/'::text) || (id)::text) || '/'::text)))));
+alter table public.purchase_requests add constraint purchase_requests_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'received'::text, 'reported'::text, 'cancelled'::text])));
+alter table public.purchase_requests add constraint purchase_requests_ticket_photo_check CHECK (((char_length(ticket_photo_path) <= 200) AND (strpos(ticket_photo_path, '..'::text) = 0) AND starts_with(ticket_photo_path, ((((student_id)::text || '/'::text) || (id)::text) || '/'::text))));
+alter table public.purchase_requests add constraint purchase_requests_vendor_name_check CHECK (((char_length(vendor_name) >= 2) AND (char_length(vendor_name) <= 80)));
+alter table public.purchase_requests add constraint purchase_requests_version_check CHECK (((version >= 1) AND ((version = 1) = (edited_at IS NULL))));
+alter table public.purchase_requests add constraint purchase_requests_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+alter table public.purchase_requests add constraint purchase_requests_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;
+alter table public.purchase_requests add constraint purchase_requests_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+alter table public.messages add constraint messages_purchase_request_fkey FOREIGN KEY (purchase_request_id, mission_id) REFERENCES public.purchase_requests(id, mission_id) ON DELETE CASCADE;
+alter table public.reports add constraint reports_purchase_request_id_fkey FOREIGN KEY (purchase_request_id) REFERENCES public.purchase_requests(id) ON DELETE CASCADE;
 
 -- 5. INDEX (hors index portés par une contrainte)
 
@@ -383,6 +454,12 @@ CREATE INDEX reports_reporter_created_idx ON public.reports USING btree (reporte
 CREATE INDEX reports_reported_created_idx ON public.reports USING btree (reported_user_id, created_at DESC);
 CREATE INDEX reports_status_created_idx ON public.reports USING btree (status, created_at DESC);
 CREATE UNIQUE INDEX reports_auto_open_per_user_idx ON public.reports USING btree (reported_user_id) WHERE ((source = 'auto'::text) AND (status = ANY (ARRAY['open'::text, 'in_progress'::text])));
+
+-- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17)
+CREATE INDEX purchase_requests_student_id_idx ON public.purchase_requests USING btree (student_id);
+CREATE INDEX purchase_requests_client_id_idx ON public.purchase_requests USING btree (client_id);
+CREATE UNIQUE INDEX reports_purchase_reporter_idx ON public.reports USING btree (purchase_request_id, reporter_id) WHERE (purchase_request_id IS NOT NULL);
+CREATE INDEX messages_purchase_request_idx ON public.messages USING btree (purchase_request_id) WHERE (purchase_request_id IS NOT NULL);
 
 -- 6. FONCTIONS (propriétaire postgres ; SECURITY DEFINER et search_path dans la définition)
 
@@ -956,6 +1033,136 @@ $function$;
 
 revoke all on function public.guard_profile_sensitive_columns() from public, anon, authenticated, service_role;
 grant execute on function public.guard_profile_sensitive_columns() to service_role;
+
+-- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17)
+CREATE OR REPLACE FUNCTION public.guard_purchase_requests()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare
+  v_mission_client   uuid;
+  v_mission_selected uuid;
+  v_mission_status   text;
+  v_estimate         numeric;
+  v_content          boolean;
+  v_pay              boolean;
+  v_end              boolean;
+begin
+  -- Suppression : jamais directement. Seule la suppression en cascade d'un compte ou d'une mission passe
+  -- (au moment ou la cascade supprime la demande, la mission ou l'un des deux profils n'existe deja plus).
+  if tg_op = 'DELETE' then
+    if exists (select 1 from public.profiles p where p.user_id = old.student_id)
+       and exists (select 1 from public.profiles p where p.user_id = old.client_id)
+       and exists (select 1 from public.missions m where m.id = old.mission_id) then
+      raise exception 'Demande d''achats : suppression interdite.' using errcode = '42501';
+    end if;
+    return old;
+  end if;
+
+  if tg_op = 'INSERT' then
+    if new.status is distinct from 'pending' or new.version is distinct from 1
+       or new.paid_at is not null or new.sms_photo_path is not null or new.paid_reference is not null
+       or new.beneficiary_confirmed is distinct from false
+       or new.received_at is not null or new.cancelled_at is not null or new.reported_at is not null
+       or new.edited_at is not null then
+      raise exception 'Demande d''achats : une demande se cree en attente, sans paiement ni cloture.' using errcode = '42501';
+    end if;
+    select m.client_id, m.selected_student_id, m.status, m.purchases_estimate
+      into v_mission_client, v_mission_selected, v_mission_status, v_estimate
+    from public.missions m
+    where m.id = new.mission_id
+    for share;
+    if not found then
+      raise exception 'Demande d''achats : mission introuvable.' using errcode = '42501';
+    end if;
+    if v_mission_status is distinct from 'in_progress'
+       or v_mission_selected is distinct from new.student_id
+       or v_mission_client is distinct from new.client_id
+       or v_estimate is null then
+      raise exception 'Demande d''achats : la mission doit etre en cours, avec achats, entre son client et son etudiant retenu.' using errcode = '42501';
+    end if;
+    return new;
+  end if;
+
+  -- UPDATE
+  if (new.id, new.mission_id, new.seq, new.student_id, new.client_id, new.created_at)
+     is distinct from (old.id, old.mission_id, old.seq, old.student_id, old.client_id, old.created_at) then
+    raise exception 'Demande d''achats : identite, mission, numero, parties et creation ne se modifient pas.' using errcode = '42501';
+  end if;
+
+  v_content := (new.payee_kind, new.payee_number, new.payee_photo_path, new.ticket_photo_path,
+                new.vendor_name, new.items, new.amount)
+               is distinct from (old.payee_kind, old.payee_number, old.payee_photo_path, old.ticket_photo_path,
+                                 old.vendor_name, old.items, old.amount);
+  v_pay := (new.paid_at, new.sms_photo_path, new.paid_reference, new.beneficiary_confirmed)
+           is distinct from (old.paid_at, old.sms_photo_path, old.paid_reference, old.beneficiary_confirmed);
+  v_end := (new.received_at, new.cancelled_at, new.reported_at)
+           is distinct from (old.received_at, old.cancelled_at, old.reported_at);
+
+  if new.status = old.status then
+    -- Modification du contenu : seulement en attente, mission en cours, version incrementee.
+    if old.status = 'pending' and v_content then
+      if v_pay or v_end then
+        raise exception 'Demande d''achats : une modification ne touche ni le paiement ni la cloture.' using errcode = '42501';
+      end if;
+      if new.version is distinct from old.version + 1 or new.edited_at is null then
+        raise exception 'Demande d''achats : une modification incremente la version et date la modification.' using errcode = '42501';
+      end if;
+      select m.status into v_mission_status from public.missions m where m.id = old.mission_id for share;
+      if v_mission_status is distinct from 'in_progress' then
+        raise exception 'Demande d''achats : la mission n''est plus en cours.' using errcode = '42501';
+      end if;
+      return new;
+    end if;
+    if v_content or v_pay or v_end or new.version is distinct from old.version
+       or new.edited_at is distinct from old.edited_at then
+      raise exception 'Demande d''achats : cette demande n''est plus modifiable.' using errcode = '42501';
+    end if;
+    return new;
+  end if;
+
+  -- Transition d'etat : le contenu et la version ne bougent pas.
+  if v_content or new.version is distinct from old.version or new.edited_at is distinct from old.edited_at then
+    raise exception 'Demande d''achats : une transition ne modifie ni le contenu ni la version.' using errcode = '42501';
+  end if;
+
+  if old.status = 'pending' and new.status = 'cancelled' then
+    select m.status into v_mission_status from public.missions m where m.id = old.mission_id for share;
+    if v_mission_status is distinct from 'in_progress' then
+      raise exception 'Demande d''achats : la mission n''est plus en cours.' using errcode = '42501';
+    end if;
+    if v_pay or (new.received_at, new.reported_at) is distinct from (old.received_at, old.reported_at) then
+      raise exception 'Demande d''achats : une annulation ne touche que sa date.' using errcode = '42501';
+    end if;
+  elsif old.status = 'pending' and new.status = 'paid' then
+    if (new.received_at, new.cancelled_at, new.reported_at) is distinct from (old.received_at, old.cancelled_at, old.reported_at) then
+      raise exception 'Demande d''achats : un paiement ne touche pas la cloture.' using errcode = '42501';
+    end if;
+  elsif old.status = 'paid' and new.status = 'received' then
+    if v_pay or (new.cancelled_at, new.reported_at) is distinct from (old.cancelled_at, old.reported_at) then
+      raise exception 'Demande d''achats : une reception ne touche que sa date.' using errcode = '42501';
+    end if;
+  elsif old.status in ('pending', 'paid', 'received') and new.status = 'reported' then
+    if v_pay or (new.received_at, new.cancelled_at) is distinct from (old.received_at, old.cancelled_at) then
+      raise exception 'Demande d''achats : un signalement ne touche que sa date.' using errcode = '42501';
+    end if;
+    if not exists (
+      select 1 from public.reports r
+      where r.target_type = 'purchase_request' and r.purchase_request_id = new.id
+    ) then
+      raise exception 'Demande d''achats : aucun signalement enregistre pour cette demande.' using errcode = '42501';
+    end if;
+  else
+    raise exception 'Demande d''achats : transition interdite (% vers %).', old.status, new.status using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$function$;
+
+revoke all on function public.guard_purchase_requests() from public, anon, authenticated, service_role;
+grant execute on function public.guard_purchase_requests() to service_role;
 
 CREATE OR REPLACE FUNCTION public.handle_mission_done()
  RETURNS trigger
@@ -1946,6 +2153,8 @@ CREATE TRIGGER guard_profile_sensitive_columns BEFORE UPDATE ON public.profiles 
 CREATE TRIGGER on_profile_role_changed AFTER UPDATE OF role ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.sync_role_to_auth();
 CREATE TRIGGER trg_create_wallet_on_signup AFTER INSERT ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_new_wallet();
 CREATE TRIGGER trg_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+CREATE TRIGGER guard_purchase_requests BEFORE INSERT OR DELETE OR UPDATE ON public.purchase_requests FOR EACH ROW EXECUTE FUNCTION public.guard_purchase_requests();
+CREATE TRIGGER trg_purchase_requests_updated_at BEFORE UPDATE ON public.purchase_requests FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER recompute_profile_rating AFTER INSERT OR DELETE OR UPDATE OF rating, reviewed_id ON public.reviews FOR EACH ROW EXECUTE FUNCTION public.recompute_profile_rating();
 CREATE TRIGGER reviews_rules BEFORE INSERT OR UPDATE OF mission_id, reviewer_id, reviewed_id, rating, comment ON public.reviews FOR EACH ROW EXECUTE FUNCTION public.reviews_rules();
 CREATE TRIGGER student_profiles_card_guard BEFORE INSERT OR UPDATE OF card_url ON public.student_profiles FOR EACH ROW EXECUTE FUNCTION public.student_profiles_card_guard();
@@ -2058,6 +2267,11 @@ create policy "Upload avatar" on storage.objects as permissive for insert to pub
 create policy "Upload message media" on storage.objects as permissive for insert to authenticated
   with check (((bucket_id = 'message-media'::text) AND ((auth.uid())::text = (storage.foldername(name))[1])));
 
+-- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17) : une seule politique sur le compartiment purchase-proofs (insertion dans
+-- son dossier ; aucune lecture, aucun écrasement, aucune suppression pour authenticated).
+create policy purchase_proofs_insert_own on storage.objects as permissive for insert to authenticated
+  with check (((bucket_id = 'purchase-proofs'::text) AND ((auth.uid())::text = (storage.foldername(name))[1])));
+
 create policy avatars_public_read on storage.objects as permissive for select to public
   using ((bucket_id = 'avatars'::text));
 
@@ -2076,6 +2290,7 @@ create policy "Étudiant gère sa carte" on storage.objects as permissive for al
 alter table public.notifications enable row level security;
 alter table public.message_contact_events enable row level security;
 alter table public.reports enable row level security;
+alter table public.purchase_requests enable row level security;
 
 create policy notifications_select_own on public.notifications as permissive for select to authenticated
   using ((recipient_id = ( SELECT auth.uid() AS uid)));
@@ -2191,6 +2406,9 @@ revoke all on table public.reports from public, anon, authenticated, service_rol
 grant DELETE, INSERT, SELECT, UPDATE on table public.reports to service_role;
 revoke all on sequence public.reports_number_seq from public, anon, authenticated, service_role;
 grant USAGE, SELECT on sequence public.reports_number_seq to service_role;
+-- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17) : purchase_requests, service_role seulement.
+revoke all on table public.purchase_requests from public, anon, authenticated, service_role;
+grant INSERT, SELECT, UPDATE on table public.purchase_requests to service_role;
 
 -- 10. BUCKETS (storage.buckets ; les politiques storage.objects sont en section 8)
 
@@ -2204,6 +2422,11 @@ on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('student-cards', 'student-cards', false, 10485760, array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+on conflict (id) do nothing;
+
+-- Script 94 de RD-ACHATS-01 (NON appliqué en production au 2026-10-17) : photos de numéros, de tickets et captures de SMS.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('purchase-proofs', 'purchase-proofs', false, 10485760, array['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
 on conflict (id) do nothing;
 
 -- 11. REALTIME
@@ -2226,15 +2449,19 @@ alter publication supabase_realtime add table public.messages;
 --   Supabase : le littéral 'service_role' de guard_application_accepted_at (script 91), à regrouper
 --   avec le premier dans une seule fonction à terme.
 -- - storage.* : tables storage.buckets et storage.objects, politiques sur
---   storage.objects (avatars, message-media, student-cards, utilisent
---   storage.foldername()), triggers storage
---   gérés par Supabase (non repris ici).
+--   storage.objects (avatars, message-media, student-cards, purchase-proofs ; elles
+--   utilisent storage.foldername()), triggers storage gérés par Supabase (non repris ici).
 -- - realtime : publication supabase_realtime (table public.messages ; notifications,
 --   message_contact_events et reports n'y sont pas).
 -- - Tables message_contact_events et reports (script 92) : SQL standard, gen_random_uuid()
 --   natif (PostgreSQL 13+), clés étrangères vers public.profiles(user_id), aucune dépendance à
 --   auth.uid(). Seuls les noms de rôles du GRANT (service_role) sont propres à Supabase.
 -- - Script 93 : revoke insert standard ; seul le nom du rôle authenticated est propre à Supabase.
+-- - Script 94 (RD-ACHATS-01) : table purchase_requests, colonnes et CHECK de messages et de reports,
+--   trigger PL/pgSQL en SECURITY INVOKER : SQL standard. Propres à Supabase : les noms de rôles des
+--   GRANT / REVOKE, et seulement le compartiment purchase-proofs avec sa politique d'insertion sur
+--   storage.objects (auth.uid(), storage.foldername()), repérés par « Script 94 » aux sections
+--   8 (politique) et 10 (compartiment).
 -- - rôles API : anon, authenticated, service_role et leurs GRANT/REVOKE.
 -- - extensions : pg_cron (schéma pg_catalog), pg_net (public), supabase_vault
 --   (vault), pg_stat_statements, uuid-ossp et pgcrypto (extensions).

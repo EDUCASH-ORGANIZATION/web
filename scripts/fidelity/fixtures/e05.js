@@ -1,5 +1,21 @@
 // Données de la planche E05 (mission retenue, suivi, état « avec achats »). Service 8 000 FCFA, net 7 040 FCFA,
-// achats estimés 45 000 FCFA. Vouvoiement (A6), noms « Prénom N. » (A7).
+// achats estimés 45 000 FCFA, trois demandes de paiement d'achats (reçue, payée, en attente) payées en direct par le
+// client, hors séquestre (lecteur de RD-ACHATS-01, `detail.purchases`). Vouvoiement (A6), noms « Prénom N. » (A7).
+const request = (n, over) => ({
+  id: `00000000-0000-4000-8000-00000000000${n}`, seq: n, status: "pending", version: 1, items: null, actions: {}, ...over,
+})
+const purchases = {
+  available: true,
+  requests: [
+    request(1, { status: "received", vendorName: "Tantie Awa", items: "céréales", amount: 21500, sentAt: "2026-10-08T09:10:00Z", paidAt: "2026-10-08T09:20:00Z", receivedAt: "2026-10-08T09:24:00Z" }),
+    request(2, { status: "paid", vendorName: "Boutique Chez Codjo", amount: 12750, sentAt: "2026-10-08T09:41:00Z", paidAt: "2026-10-08T10:02:00Z", actions: { confirmReceived: true } }),
+    request(3, { status: "pending", vendorName: "Poissonnerie Dossa", amount: 6000, sentAt: "2026-10-08T10:05:00Z" }),
+  ],
+  totals: { count: 3, requested: 40250, paid: 34250, pending: 6000, reported: 0 },
+  exceedsEstimate: false,
+  canCreate: true,
+}
+
 const detail = {
   state: "selected",
   mission: {
@@ -24,6 +40,7 @@ const detail = {
   similar: [],
   // Colonne de déclaration disponible, fin non déclarée (RD-DONE-01 : carte « Vous avez fini ? », barre mobile).
   completion: { available: true, declaredAt: null },
+  purchases,
 }
 
 // Titre de la planche mobile (cadre 1) : plus court que celui du bureau.
@@ -42,6 +59,7 @@ const plain = {
     purchasesEstimate: null,
     deadline: "2999-10-22",
   },
+  purchases: { available: false },
   client: { name: "Rosine H.", avatarUrl: null, city: "Akpakpa", rating: 4.8, missionsPublished: 3, isVerified: true },
 }
 const plainMobile = { ...plain, mission: { ...plain.mission, title: "Cours de maths niveau 3e" } }

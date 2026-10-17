@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { formatAmount } from "../app/format.js"
 import { OTHER_REASON } from "../admin-space/decision-schemas.js"
+import { PAYMENT_WARNING } from "../purchases/requests.js"
 import {
   NOTIFICATION_TYPES,
   TITLE_MAX,
@@ -20,6 +21,13 @@ import {
   accountReactivated,
   cardSubmitted,
   completionDeclared,
+  purchaseRequested,
+  purchaseUpdated,
+  purchaseCancelled,
+  purchasePaid,
+  purchaseReceived,
+  purchaseReported,
+  purchaseReportClosed,
   isValidNotification,
   notificationHref,
   isInternalPath,
@@ -36,6 +44,31 @@ const DASHES = String.fromCharCode(0x2014, 0x2013)
 const M = "0b8f1c1e-2c1b-4b53-9a52-9d6b6a6f3a10"
 const A = "1c9f2d2e-3d2c-4c64-8b63-0e7c7b7a4b21"
 const S = "2d0a3e3f-4e3d-4d75-9c74-1f8d8c8b5c32"
+const R = "3e1b4f40-5f4e-4e86-8d85-209e9d9c6d43"
+
+const PURCHASE_TYPES = [
+  "purchase_requested",
+  "purchase_updated",
+  "purchase_cancelled",
+  "purchase_paid",
+  "purchase_received",
+  "purchase_reported",
+  "purchase_report_closed",
+]
+
+// Les 7 constructeurs d'achats, avec des champs hostiles que le catalogue ne doit jamais recopier.
+function purchaseBuilt(extra = {}) {
+  const base = { requestId: R, missionId: M, missionTitle: "Courses du marché", version: 1, ...extra }
+  return [
+    purchaseRequested({ ...base, studentId: S, studentName: "Sèna Kpadonou" }),
+    purchaseUpdated({ ...base, studentId: S, studentName: "Sèna Kpadonou", version: 2 }),
+    purchaseCancelled({ ...base, studentId: S, studentName: "Sèna Kpadonou", version: 3 }),
+    purchasePaid({ ...base, clientId: A, clientName: "Rosine Hounkpatin" }),
+    purchaseReceived({ ...base, studentId: S, studentName: "Sèna Kpadonou" }),
+    purchaseReported({ ...base, actorId: S }),
+    purchaseReportClosed({ ...base, actorId: A }),
+  ]
+}
 
 function allBuilt() {
   return [
@@ -52,6 +85,7 @@ function allBuilt() {
     accountReactivated({ at: new Date("2026-10-15T10:00:00Z") }),
     cardSubmitted({ studentId: S, studentName: "Codjo Agbo", at: new Date("2026-10-15T10:00:00Z") }),
     completionDeclared({ missionId: M, missionTitle: "Traduction d'un flyer", studentId: S, studentName: "Sèna Kpadonou" }),
+    ...purchaseBuilt(),
   ]
 }
 
@@ -72,7 +106,10 @@ describe("catalogue des notifications", () => {
       "card_submitted",
       "message_received",
       "completion_declared",
+      ...PURCHASE_TYPES,
     ])
+    expect(NOTIFICATION_TYPES).toHaveLength(21)
+    expect(new Set(NOTIFICATION_TYPES).size).toBe(21)
   })
 
   it("produit les textes exacts du tableau des producteurs", () => {
@@ -125,6 +162,126 @@ describe("catalogue des notifications", () => {
     expect(completionDeclared({ missionId: A, missionTitle: "T", studentId: S, studentName: "" }).body).toMatch(/^L'étudiant indique/)
     const long = completionDeclared({ missionId: M, missionTitle: "x".repeat(300), studentId: S, studentName: "Sèna Kpadonou" })
     expect(isValidNotification(long)).toBe(true)
+  })
+
+  it("achats : les 7 constructeurs produisent les textes exacts et les clés purchase:<demande>:<événement>:<version>", () => {
+    const [requested, updated, cancelled, paid, received, reported, closed] = purchaseBuilt()
+    expect(requested).toEqual({
+      type: "purchase_requested",
+      title: "Nouvelle demande de paiement d'achats",
+      body: `Sèna K. vous envoie une demande de paiement d'achats pour « Courses du marché ». ${PAYMENT_WARNING}`,
+      dedupeKey: `purchase:${R}:requested:1`,
+      missionId: M,
+      actorId: S,
+    })
+    expect(updated).toMatchObject({
+      type: "purchase_updated",
+      title: "Demande de paiement modifiée",
+      body: "Sèna K. a modifié sa demande de paiement d'achats pour « Courses du marché ». Consultez-la avant de payer.",
+      dedupeKey: `purchase:${R}:updated:2`,
+      actorId: S,
+    })
+    expect(cancelled).toMatchObject({
+      type: "purchase_cancelled",
+      title: "Demande de paiement annulée",
+      body: "Sèna K. a annulé sa demande de paiement d'achats pour « Courses du marché ». Vous n'avez plus rien à payer pour cette demande.",
+      dedupeKey: `purchase:${R}:cancelled:3`,
+      actorId: S,
+    })
+    expect(paid).toMatchObject({
+      type: "purchase_paid",
+      title: "Paiement indiqué par le client",
+      body: "Rosine H. indique avoir payé votre demande d'achats pour « Courses du marché ». Confirmez la réception dès que le vendeur a reçu l'argent.",
+      dedupeKey: `purchase:${R}:paid:1`,
+      actorId: A,
+    })
+    expect(received).toMatchObject({
+      type: "purchase_received",
+      title: "Paiement reçu par le vendeur",
+      body: "Sèna K. confirme que le vendeur a reçu votre paiement pour « Courses du marché ».",
+      dedupeKey: `purchase:${R}:received:1`,
+      actorId: S,
+    })
+    expect(reported).toMatchObject({
+      type: "purchase_reported",
+      title: "Demande de paiement signalée",
+      body: "Une demande de paiement d'achats a été signalée pour « Courses du marché ». L'équipe EduCash examine le signalement.",
+      dedupeKey: `purchase:${R}:reported:1`,
+      actorId: S,
+    })
+    expect(closed).toMatchObject({
+      type: "purchase_report_closed",
+      title: "Signalement examiné",
+      body: "L'équipe EduCash a examiné le signalement d'une demande de paiement d'achats pour « Courses du marché ». Consultez la conversation.",
+      dedupeKey: `purchase:${R}:report_closed:1`,
+      actorId: A,
+    })
+    for (const n of [requested, updated, cancelled, paid, received, reported, closed]) {
+      expect(n.missionId).toBe(M)
+      expect(isValidNotification(n), n.type).toBe(true)
+    }
+  })
+
+  it("achats : le corps de purchase_requested reprend PAYMENT_WARNING, aucun autre type ne le porte seul", () => {
+    const [requested, ...others] = purchaseBuilt()
+    expect(requested.body).toContain(PAYMENT_WARNING)
+    for (const n of others) expect(n.body, n.type).not.toContain(PAYMENT_WARNING)
+  })
+
+  it("achats : jamais de numéro, de nom de vendeur ni de montant, même si l'appelant les passe", () => {
+    const hostile = {
+      payeeNumber: "+2290197000000",
+      payee_number: "0197000000",
+      vendorName: "Boutique Chez Mama",
+      vendor_name: "Boutique Chez Mama",
+      items: "pagnes",
+      amount: 12500,
+      seq: 7,
+      paidReference: "REF123456",
+    }
+    for (const n of purchaseBuilt(hostile)) {
+      const text = `${n.title} ${n.body}`
+      expect(text, n.type).not.toMatch(/\d/)
+      expect(text, n.type).not.toMatch(/Mama|pagnes|REF|FCFA|\bn°|numéro/i)
+      expect(text, n.type).not.toContain("12")
+    }
+  })
+
+  it("achats : jamais « vous touchez », ni tutoiement, ni tiret cadratin, ni nom de prestataire", () => {
+    const banned = new RegExp(`vous touchez|[${DASHES}]|fedapay|momo pay|\\btu\\b|\\btoi\\b|\\bton\\b|\\bta\\b|\\btes\\b|commission|remboursement`, "i")
+    for (const n of purchaseBuilt()) {
+      expect(`${n.title} ${n.body}`, n.type).not.toMatch(banned)
+      expect(Array.from(n.title).length, n.type).toBeLessThanOrEqual(TITLE_MAX)
+      expect(Array.from(n.body).length, n.type).toBeLessThanOrEqual(BODY_MAX)
+    }
+  })
+
+  it("achats : une version différente donne une autre clé, une version invalide retombe sur 1", () => {
+    const base = { requestId: R, missionId: M, missionTitle: "T", studentId: S, studentName: "A B" }
+    const v2 = purchaseUpdated({ ...base, version: 2 })
+    const v3 = purchaseUpdated({ ...base, version: 3 })
+    expect(v2.dedupeKey).not.toBe(v3.dedupeKey)
+    expect(purchaseUpdated({ ...base, version: 2 }).dedupeKey).toBe(v2.dedupeKey)
+    for (const bad of [undefined, null, 0, -1, 1.5, "2", NaN]) {
+      expect(purchaseUpdated({ ...base, version: bad }).dedupeKey).toBe(`purchase:${R}:updated:1`)
+    }
+    // la clé distingue aussi les événements d'une même demande
+    const keys = new Set(purchaseBuilt().map((n) => n.dedupeKey))
+    expect(keys.size).toBe(7)
+  })
+
+  it("achats : titre de mission long ou hostile, nom absent : texte borné, repli neutre", () => {
+    const long = purchaseRequested({
+      requestId: R, missionId: M, missionTitle: "x".repeat(400), studentId: S, studentName: "", version: 1,
+    })
+    expect(isValidNotification(long)).toBe(true)
+    expect(Array.from(long.body).length).toBeLessThanOrEqual(BODY_MAX)
+    expect(long.body.startsWith("L'étudiant vous envoie")).toBe(true)
+    const noClient = purchasePaid({ requestId: R, missionId: M, missionTitle: "T", clientId: A, clientName: null, version: 1 })
+    expect(noClient.body.startsWith("Le client indique")).toBe(true)
+    const hostile = purchaseReported({ requestId: R, missionId: M, missionTitle: "<b>x</b>\nsuite\u0000", actorId: "pas-un-uuid" })
+    expect(hostile.body).not.toMatch(/[\u0000-\u001f]/)
+    expect(hostile.actorId).toBeNull()
   })
 
   it("payment_released : montant inconnu, nul ou négatif => titre générique, jamais « + 0 FCFA »", () => {
@@ -247,6 +404,32 @@ describe("liens recalculés à la lecture", () => {
     }
   })
 
+  it("achats, client : lien vers la conversation du couple mission et étudiant", () => {
+    for (const type of ["purchase_requested", "purchase_updated", "purchase_cancelled", "purchase_received", "purchase_reported", "purchase_report_closed"]) {
+      expect(notificationHref({ type, mission_id: M, actor_id: S }, "client"), type).toBe(`/client/messages/${M}?studentId=${S}`)
+    }
+    expect(notificationHref({ type: "purchase_requested", mission_id: M }, "client")).toBe(`/client/messages/${M}`)
+    expect(notificationHref({ type: "purchase_requested" }, "client")).toBe("/client/messages")
+  })
+
+  it("achats, étudiant : lien vers la conversation de la mission", () => {
+    for (const type of ["purchase_paid", "purchase_reported", "purchase_report_closed"]) {
+      expect(notificationHref({ type, mission_id: M, actor_id: A }, "student"), type).toBe(`/messages/${M}`)
+    }
+    expect(notificationHref({ type: "purchase_paid" }, "student")).toBe("/messages")
+  })
+
+  it("achats : chaque type n'a de lien que dans l'espace de son destinataire, jamais pour l'administrateur", () => {
+    const clientOnly = ["purchase_requested", "purchase_updated", "purchase_cancelled", "purchase_received"]
+    for (const type of clientOnly) {
+      expect(notificationHref({ type, mission_id: M, actor_id: S }, "student"), `${type} étudiant`).toBeNull()
+    }
+    expect(notificationHref({ type: "purchase_paid", mission_id: M, actor_id: A }, "client")).toBeNull()
+    for (const type of PURCHASE_TYPES) {
+      expect(notificationHref({ type, mission_id: M, actor_id: S }, "admin"), `${type} admin`).toBeNull()
+    }
+  })
+
   it("admin : dossiers", () => {
     expect(notificationHref({ type: "card_submitted", actor_id: S }, "admin")).toBe("/admin/verifications")
   })
@@ -286,6 +469,19 @@ describe("présentation", () => {
     for (const type of NOTIFICATION_TYPES) expect(notificationIcon(type)).toMatch(/^i-[a-z-]+$/)
     expect(notificationIcon("inconnu")).toBe("i-bell")
     expect(notificationTone()).toBe("neutre")
+  })
+
+  it("achats : icônes existantes du sprite et libellés d'action", () => {
+    expect(PURCHASE_TYPES.map((type) => notificationIcon(type))).toEqual([
+      "i-receipt", "i-pencil", "i-ban", "i-banknote", "i-check-circle", "i-flag", "i-scale",
+    ])
+    expect(notificationActionLabel("purchase_requested")).toBe("Voir la demande")
+    expect(notificationActionLabel("purchase_updated")).toBe("Voir la demande")
+    expect(notificationActionLabel("purchase_paid")).toBe("Confirmer la réception")
+    expect(notificationActionLabel("purchase_received")).toBe("Voir la demande")
+    expect(notificationActionLabel("purchase_reported")).toBe("Voir la demande")
+    expect(notificationActionLabel("purchase_report_closed")).toBe("Voir la demande")
+    expect(notificationActionLabel("purchase_cancelled")).toBeNull()
   })
 
   it("libellés d'action", () => {

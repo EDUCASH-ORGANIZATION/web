@@ -15,7 +15,7 @@ async function render(file, props = {}) {
 }
 
 describe("rendu HTML des gabarits migres", () => {
-  it("13 gabarits migres", () => expect(files).toHaveLength(13))
+  it("16 gabarits migres", () => expect(files).toHaveLength(16))
 
   for (const f of files) {
     describe(f, () => {

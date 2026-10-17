@@ -7,10 +7,10 @@ export const commissionLabel = () => `Commission EduCash ${Math.round(COMMISSION
 
 /**
  * Carte « Séquestre » d'une mission en cours : budget bloqué, commission, part de l'étudiant et bouton
- * « Confirmer la fin » (encre). Les montants viennent de escrowSplit (`split`). Avec achats, la note rappelle que
+ * « Confirmer la fin » (encre, ou en contour avec `confirmTone="soft"` quand un autre bouton encre prime, jamais désactivé). Les montants viennent de escrowSplit (`split`). Avec achats, la note rappelle que
  * seul le service est bloqué (`since` : date du blocage, déjà mise en forme, ou vide).
  */
-export function EscrowCard({ split, studentName, onConfirm, withPurchases = false, since = "" }) {
+export function EscrowCard({ split, studentName, onConfirm, withPurchases = false, since = "", confirmTone = "dark" }) {
   return (
     <section className="card2 fup2__money" aria-label="Séquestre">
       <div className="sec2">
@@ -25,7 +25,7 @@ export function EscrowCard({ split, studentName, onConfirm, withPurchases = fals
         total={{ label: `Versé à ${studentName}`, value: split.student }}
       />
       {onConfirm ? (
-        <button type="button" className="btn btn--dark btn--block fup2__desk" onClick={onConfirm}>
+        <button type="button" className={`btn btn--${confirmTone === "soft" ? "soft" : "dark"} btn--block fup2__desk`} onClick={onConfirm}>
           <Icon name="i-check-circle" />
           Confirmer la fin
         </button>

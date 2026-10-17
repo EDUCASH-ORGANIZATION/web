@@ -303,3 +303,153 @@ describe("ReportDecisionDialog", () => {
     expect(screen.getByText("La note ne peut pas dépasser 500 caractères.")).toBeTruthy()
   })
 })
+
+const STUDENT = "00000000-0000-4000-8000-0000000000a1"
+const CLIENT = "00000000-0000-4000-8000-0000000000a2"
+const SIGNED = (name) => `https://proj.supabase.co/storage/v1/object/sign/purchase-proofs/${name}?token=t`
+
+const purchaseReport = (over = {}) =>
+  report({
+    reference: "SIG-0094",
+    reason: "purchase_amount_mismatch",
+    reasonLabel: "Montant différent du ticket",
+    targetType: "purchase_request",
+    typeLabel: "Demande de paiement d'achats",
+    targetDetail: "N° 2 · Librairie Notre-Dame · 12 500 FCFA",
+    reporter: { id: CLIENT, name: "Edwige S." },
+    reported: { id: STUDENT, name: "Afiavi D." },
+    details: "J'ai payé 12 500 comme demandé, mais le ticket dit 9 500.",
+    ...over,
+  })
+
+const purchase = (over = {}) => ({
+  id: "40000000-0000-4000-8000-000000000001",
+  seq: 2,
+  number: "N° 2",
+  status: "reported",
+  statusLabel: "Signalé",
+  statusTone: "erreur",
+  amount: 12500,
+  vendorName: "Librairie Notre-Dame",
+  items: "2 cahiers",
+  payeeKindLabel: "Numéro marchand MoMo",
+  payeeNumber: "123456",
+  createdAt: "2026-10-09T10:12:00Z",
+  paidAt: "2026-10-09T10:31:00Z",
+  paidReference: "MP2610",
+  beneficiaryConfirmed: true,
+  receivedAt: null,
+  reportedAt: "2026-10-10T08:00:00Z",
+  student: { id: STUDENT, name: "Afiavi D." },
+  client: { id: CLIENT, name: "Edwige S." },
+  proofs: [
+    { kind: "payee", label: "Photo du numéro marchand", url: SIGNED("payee"), at: "2026-10-09T10:12:00Z" },
+    { kind: "ticket", label: "Ticket", url: SIGNED("ticket"), at: "2026-10-09T10:12:00Z" },
+    { kind: "sms", label: "Capture du SMS", url: SIGNED("sms"), at: "2026-10-09T10:31:00Z" },
+  ],
+  ...over,
+})
+
+describe("détail : demande de paiement d'achats", () => {
+  it("bloc de la demande : montant, vendeur, numéro à payer, statut, référence, parties et lien vers la mission", () => {
+    view({ report: purchaseReport(), message: null, events: null, purchase: purchase() })
+    expect(screen.getByRole("heading", { level: 1, name: "SIG-0094" })).toBeTruthy()
+    expect(screen.getByRole("heading", { level: 2, name: "Demande de paiement d'achats" })).toBeTruthy()
+    const card = screen.getByRole("article", { name: "Détail de la demande N° 2" })
+    expect(card.textContent).toContain("N° 2 · Librairie Notre-Dame")
+    expect(card.textContent).toContain("Numéro marchand MoMo : 123456")
+    expect(card.textContent).toMatch(/12\s*500\s*FCFA/)
+    expect(card.textContent).toContain("Montant demandé")
+    expect(within(card).getByText("Signalé")).toBeTruthy()
+    expect(card.className).toContain("is-flagged")
+    expect(screen.getByText("MP2610")).toBeTruthy()
+    expect(screen.getByText("2 cahiers")).toBeTruthy()
+    expect(screen.getByText("Bénéficiaire vérifié par le client").nextElementSibling.textContent).toBe("Oui")
+    expect(screen.getByText("Étudiant").nextElementSibling.querySelector("a").getAttribute("href")).toBe(`/admin/users/${STUDENT}`)
+    expect(screen.getByText("Client").nextElementSibling.querySelector("a").getAttribute("href")).toBe(`/admin/users/${CLIENT}`)
+    expect(screen.getByRole("link", { name: "Voir la mission et ses achats" }).getAttribute("href")).toBe(`/admin/missions/${MISSION}`)
+  })
+
+  it("le message signalé n'est pas affiché : la demande le remplace", () => {
+    view({ report: purchaseReport(), message: null, events: null, purchase: purchase() })
+    expect(screen.queryByText("Message signalé")).toBeNull()
+    expect(screen.queryByText(/n'est plus disponible/)).toBeNull()
+    expect(screen.getByText(/J'ai payé 12 500 comme demandé/)).toBeTruthy()
+  })
+
+  it("trois preuves en images à adresse signée, ouvrables dans un nouvel onglet, jamais de chemin brut", () => {
+    const { container } = view({ report: purchaseReport(), message: null, events: null, purchase: purchase() })
+    const images = container.querySelectorAll("img")
+    expect([...images].map((i) => i.getAttribute("alt"))).toEqual(["Photo du numéro marchand", "Ticket", "Capture du SMS"])
+    expect([...images].map((i) => i.getAttribute("src"))).toEqual([SIGNED("payee"), SIGNED("ticket"), SIGNED("sms")])
+    for (const link of container.querySelectorAll(".ad-payreq a")) {
+      expect(link.getAttribute("target")).toBe("_blank")
+      expect(link.getAttribute("rel")).toBe("noopener noreferrer")
+    }
+    expect(container.innerHTML).not.toMatch(/payee_photo_path|ticket_photo_path|sms_photo_path|media_url/)
+  })
+
+  it("preuve absente ou non signée : vignette « Non disponible », jamais d'image cassée", () => {
+    const proofs = purchase().proofs.map((p) => (p.kind === "ticket" ? { ...p, url: null } : p))
+    const { container } = view({ report: purchaseReport(), message: null, events: null, purchase: purchase({ proofs }) })
+    expect(container.querySelectorAll("img")).toHaveLength(2)
+    const missing = screen.getByRole("img", { name: "Ticket : non disponible" })
+    expect(missing.className).toContain("is-missing")
+    expect(missing.textContent).toContain("Non disponible")
+  })
+
+  it("demande non payée : pas de capture du SMS, seulement les deux preuves de l'étudiant", () => {
+    const proofs = purchase().proofs.filter((p) => p.kind !== "sms")
+    const { container } = view({
+      report: purchaseReport(),
+      message: null,
+      events: null,
+      purchase: purchase({ status: "pending", statusLabel: "En attente de paiement", paidAt: null, paidReference: null, beneficiaryConfirmed: false, proofs }),
+    })
+    expect(container.querySelectorAll("img")).toHaveLength(2)
+    expect(screen.queryByText("Payée le")).toBeNull()
+    expect(screen.queryByText("Référence de paiement")).toBeNull()
+  })
+
+  it("note « hors EduCash », aucun bouton de remboursement, de compensation ni de suspension", () => {
+    view({ report: purchaseReport({ status: "in_progress" }), message: null, events: null, purchase: purchase() })
+    expect(screen.getByText(/non remboursable par EduCash/)).toBeTruthy()
+    expect(screen.getByText(/La clôture prévient les deux parties/)).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /rembours|compens|suspendre|avertir/i })).toBeNull()
+    expect(screen.queryByRole("link", { name: /rembours|compens/i })).toBeNull()
+    expect(document.body.textContent).not.toMatch(/AD08/)
+    expect(screen.getByRole("link", { name: "Voir la fiche" }).getAttribute("href")).toBe(`/admin/users/${STUDENT}`)
+  })
+
+  it("clôture : « Résoudre » seul bouton encre, comme pour un message", () => {
+    view({ report: purchaseReport({ status: "in_progress" }), message: null, events: null, purchase: purchase() })
+    expect(document.querySelectorAll(".btn--dark")).toHaveLength(1)
+    expect(screen.getByRole("button", { name: "Résoudre" }).hasAttribute("disabled")).toBe(false)
+  })
+
+  it("signalement clos : la carte n'est plus marquée comme à traiter", () => {
+    view({ report: purchaseReport({ status: "resolved" }), message: null, events: null, purchase: purchase() })
+    expect(screen.getByRole("article", { name: "Détail de la demande N° 2" }).className).not.toContain("is-flagged")
+  })
+
+  it("demande introuvable (supprimée, autre mission ou script 94 absent) : texte de repli, le détail reste rendu", () => {
+    view({ report: purchaseReport(), message: null, events: null, purchase: null })
+    expect(screen.getByText("La demande signalée n'est plus disponible.")).toBeTruthy()
+    expect(screen.queryByRole("article")).toBeNull()
+    expect(screen.getByText(/J'ai payé 12 500 comme demandé/)).toBeTruthy()
+  })
+
+  it("un signalement de message n'affiche aucun bloc d'achats, même avec des données d'achats par erreur", () => {
+    view({ report: report(), message: textMessage, events: null, purchase: purchase() })
+    expect(screen.queryByRole("article")).toBeNull()
+    expect(screen.queryByText("La clôture prévient les deux parties", { exact: false })).toBeNull()
+    expect(screen.getByText("Message signalé")).toBeTruthy()
+  })
+
+  it("aucun délai promis, vouvoiement, aucun style en ligne", () => {
+    const { container } = view({ report: purchaseReport(), message: null, events: null, purchase: purchase() })
+    expect(container.innerHTML).not.toMatch(new RegExp(`style=|${String.fromCharCode(0x2014)}`))
+    expect(container.textContent).not.toMatch(/\b(tu|toi|ton|ta|tes)\b/i)
+    expect(container.textContent).not.toMatch(/sous \d+ ?(h|heures|jours)|24 ?h|48 ?h|délai/i)
+  })
+})

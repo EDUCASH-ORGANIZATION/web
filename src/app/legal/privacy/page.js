@@ -13,11 +13,12 @@ const SECTIONS = {
   base_legale: { id: "base-legale", title: "4. Base légale" },
   partage_des_donnees: { id: "partage-des-donnees", title: "5. Partage des données" },
   conservation_des_donnees: { id: "conservation-des-donnees", title: "6. Conservation des données" },
-  analyse_des_messages: { id: "analyse-des-messages", title: "7. Analyse des messages" },
-  vos_droits: { id: "vos-droits", title: "8. Vos droits" },
-  cookies: { id: "cookies", title: "9. Cookies" },
-  securite: { id: "securite", title: "10. Sécurité" },
-  contact: { id: "contact", title: "11. Contact" },
+  demandes_d_achats: { id: "demandes-d-achats", title: "7. Demandes d’achats" },
+  analyse_des_messages: { id: "analyse-des-messages", title: "8. Analyse des messages" },
+  vos_droits: { id: "vos-droits", title: "9. Vos droits" },
+  cookies: { id: "cookies", title: "10. Cookies" },
+  securite: { id: "securite", title: "11. Sécurité" },
+  contact: { id: "contact", title: "12. Contact" },
 }
 
 export default function PrivacyPage() {
@@ -25,7 +26,7 @@ export default function PrivacyPage() {
     <LegalLayout
       current="privacy"
       title="Politique de confidentialité"
-      updatedAt="16 octobre 2026"
+      updatedAt="17 octobre 2026"
       sections={Object.values(SECTIONS)}
     >
       <LegalSection {...SECTIONS.responsable_du_traitement}>
@@ -87,6 +88,41 @@ export default function PrivacyPage() {
           et supprimées dans un délai de <strong>30 jours</strong> suivant la clôture de votre compte,
           sauf obligations légales contraires (données comptables : 10 ans).
         </p>
+      </LegalSection>
+
+      <LegalSection {...SECTIONS.demandes_d_achats}>
+        <p>
+          Lorsqu’une mission comprend des achats, l’étudiant retenu peut envoyer au client une
+          demande d’achats à payer, et le client y joint la preuve de son paiement. Ces
+          échanges reposent sur les données suivantes : le numéro à payer, le nom du vendeur, le
+          montant, les articles s’ils sont indiqués, la photo du numéro marchand ou du panneau du
+          vendeur, la photo du ticket et la capture du SMS de paiement. Ces éléments peuvent
+          concerner des tiers, notamment des vendeurs : leur numéro, leur nom et leur panneau.
+        </p>
+        <ul>
+          <li>
+            <strong>Finalité :</strong> permettre le paiement direct des achats au vendeur, hors
+            EduCash, en gardant une trace des échanges entre les deux parties, et traiter les
+            signalements.
+          </li>
+          <li>
+            <strong>Accès :</strong> les deux parties de la mission et l’équipe d’administration
+            d’EduCash, pour le suivi des missions et le traitement des signalements.
+          </li>
+          <li>
+            <strong>Stockage :</strong> les photos et captures sont conservées dans un espace de
+            stockage privé, jamais accessible publiquement.
+          </li>
+          <li>
+            <strong>Durée de conservation :</strong> elle sera précisée dans une prochaine mise à
+            jour de cette politique.
+          </li>
+          <li>
+            <strong>Droits :</strong> vous disposez des droits décrits à la section « Vos droits »,
+            y compris si vous êtes un vendeur dont les données figurent dans une demande. Pour les
+            exercer : contact@educash.bj
+          </li>
+        </ul>
       </LegalSection>
 
       <LegalSection {...SECTIONS.analyse_des_messages}>
