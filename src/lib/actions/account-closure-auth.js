@@ -12,12 +12,42 @@ const BAN_FOREVER = "876000h"
 const UNBAN = "none"
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const PASSWORD_BYTES = 32
+// GoTrue fusionne les métadonnées : une clé n'est effacée que si elle vaut null. Liste fermée des clés connues,
+// toujours envoyées à null, en plus des clés réellement présentes.
+const KNOWN_METADATA_KEYS = [
+  "email",
+  "email_verified",
+  "phone_verified",
+  "sub",
+  "full_name",
+  "name",
+  "phone",
+  "avatar_url",
+  "client_type",
+  "role",
+]
+
+/** Objet { clé: null } pour les clés présentes et la liste fermée ; aucune valeur existante n'est conservée. */
+function nullMetadata(existing) {
+  const keys = existing && typeof existing === "object" && !Array.isArray(existing) ? Object.keys(existing) : []
+  return Object.fromEntries([...new Set([...keys, ...KNOWN_METADATA_KEYS])].map((key) => [key, null]))
+}
+
+/** Lit l'utilisateur auth juste avant l'écriture ; en cas d'échec, la liste fermée seule suffit (jamais bloquant). */
+async function readAuthUser(service, userId) {
+  try {
+    const result = await service.auth.admin.getUserById(userId)
+    return result?.error ? null : result
+  } catch {
+    return null
+  }
+}
 
 /**
  * @param {string} label
  * @param {import("@supabase/supabase-js").SupabaseClient} service
  * @param {string} userId
- * @param {() => object} buildAttributes
+ * @param {() => object | Promise<object>} buildAttributes
  * @returns {Promise<{ ok: true } | { ok: false, code: string }>}
  */
 async function updateAuthUser(label, service, userId, buildAttributes) {
@@ -25,7 +55,7 @@ async function updateAuthUser(label, service, userId, buildAttributes) {
     return { ok: false, code: "invalid_user_id" }
   }
   try {
-    const { error } = await service.auth.admin.updateUserById(userId, buildAttributes())
+    const { error } = await service.auth.admin.updateUserById(userId, await buildAttributes())
     if (error) {
       const code = String(error.code ?? error.status ?? "erreur")
       console.error(`[account-closure-auth] ${label}`, code)
@@ -57,17 +87,20 @@ export function unbanAuthUser(service, userId) {
 }
 
 /**
- * Remplace l'adresse par l'adresse pseudonyme, le mot de passe par une valeur aléatoire et vide les métadonnées
- * utilisateur. Le compte reste banni (idempotent : la reprise réécrit les mêmes valeurs, mot de passe renouvelé).
+ * Remplace l'adresse par l'adresse pseudonyme, le mot de passe par une valeur aléatoire et met à null toutes les clés
+ * des métadonnées utilisateur (lues juste avant, plus une liste fermée). Le compte reste banni (idempotent : la reprise réécrit les mêmes valeurs, mot de passe renouvelé).
  * @param {import("@supabase/supabase-js").SupabaseClient} service
  * @param {string} userId
  */
 export function pseudonymizeAuthUser(service, userId) {
-  return updateAuthUser("pseudonymize", service, userId, () => ({
-    email: pseudonymousEmail(userId),
-    email_confirm: true,
-    password: randomBytes(PASSWORD_BYTES).toString("hex"),
-    user_metadata: {},
-    ban_duration: BAN_FOREVER,
-  }))
+  return updateAuthUser("pseudonymize", service, userId, async () => {
+    const existing = await readAuthUser(service, userId)
+    return {
+      email: pseudonymousEmail(userId),
+      email_confirm: true,
+      password: randomBytes(PASSWORD_BYTES).toString("hex"),
+      user_metadata: nullMetadata(existing?.data?.user?.user_metadata),
+      ban_duration: BAN_FOREVER,
+    }
+  })
 }

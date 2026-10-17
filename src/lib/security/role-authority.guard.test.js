@@ -13,9 +13,11 @@ const ROOT = process.cwd()
 const ALLOWED_CODE = []
 const DISPLAY_ONLY = { "src/hooks/use-vitrine-session.js": "full_name" }
 
-// Seule écriture permise : vider les métadonnées d'un compte à la pseudonymisation (RD-CLOSE-01). Ce n'est jamais
-// une autorisation : rien n'est lu. Une seule occurrence exacte, dans ce seul fichier ; tout le reste y reste refusé.
-const WRITE_ONLY = { "src/lib/actions/account-closure-auth.js": "user_metadata: {}" }
+// Seule écriture permise : mettre à null les clés des métadonnées d'un compte à la pseudonymisation (RD-CLOSE-01).
+// Les clés existantes sont passées à nullMetadata, qui n'en conserve que les noms (jamais une valeur, jamais une
+// autorisation). Une seule occurrence exacte, dans ce seul fichier ; tout le reste y reste refusé.
+const ADAPTER_WRITE = "user_metadata: nullMetadata(existing?.data?.user?.user_metadata)"
+const WRITE_ONLY = { "src/lib/actions/account-closure-auth.js": ADAPTER_WRITE }
 
 const FIXED_FILES = ["middleware.js", "src/app/(student)/layout.js", "src/app/(client)/layout.js"]
 
@@ -136,15 +138,18 @@ describe("garde-fou role-authority", () => {
     expect(offenders).toEqual([])
   })
 
-  it("l'écriture user_metadata: {} n'est permise que dans l'adaptateur auth de fermeture (fixtures en mémoire)", () => {
+  it("l'écriture de remise à null n'est permise que dans l'adaptateur auth de fermeture (fixtures en mémoire)", () => {
     const adapter = "src/lib/actions/account-closure-auth.js"
-    expect(readsUserMetadata("const a = { user_metadata: {} }", adapter)).toBe(false)
-    expect(readsUserMetadata("const a = { user_metadata: {} }", "src/lib/actions/other.actions.js")).toBe(true)
-    expect(readsUserMetadata("const a = { user_metadata: {} }")).toBe(true)
+    const write = `const a = { ${ADAPTER_WRITE} }`
+    expect(readsUserMetadata(write, adapter)).toBe(false)
+    expect(readsUserMetadata(write, "src/lib/actions/other.actions.js")).toBe(true)
+    expect(readsUserMetadata(write)).toBe(true)
     expect(readsUserMetadata("const r = user.user_metadata.role", adapter)).toBe(true)
-    expect(readsUserMetadata("const a = { user_metadata: {} }\nconst r = u?.user_metadata?.role", adapter)).toBe(true)
+    expect(readsUserMetadata(`${write}\nconst r = u?.user_metadata?.role`, adapter)).toBe(true)
     expect(readsUserMetadata("const a = { user_metadata: { role: 'admin' } }", adapter)).toBe(true)
-    expect(readsUserMetadata("const a = { user_metadata: {} }\nconst b = { user_metadata: {} }", adapter)).toBe(true)
+    expect(readsUserMetadata("const a = { user_metadata: {} }", adapter)).toBe(true)
+    expect(readsUserMetadata("const a = { user_metadata: nullMetadata(other) }", adapter)).toBe(true)
+    expect(readsUserMetadata(`${write}\nconst b = { ${ADAPTER_WRITE} }`, adapter)).toBe(true)
   })
 
   it("server-role.js ne lit jamais user_metadata (aucun repli sans profil)", () => {

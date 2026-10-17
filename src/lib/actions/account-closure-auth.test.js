@@ -6,9 +6,18 @@ import { banAuthUser, unbanAuthUser, pseudonymizeAuthUser } from "./account-clos
 
 const ID = "123e4567-e89b-42d3-a456-426614174000"
 
-function makeService(result = { error: null }) {
+const KNOWN_KEYS = [
+  "email", "email_verified", "phone_verified", "sub", "full_name", "name", "phone", "avatar_url", "client_type", "role",
+]
+
+function makeService(result = { error: null }, getResult = { data: { user: { user_metadata: {} } }, error: null }) {
   const updateUserById = vi.fn().mockResolvedValue(result)
-  return { service: { auth: { admin: { updateUserById, deleteUser: vi.fn() } } }, updateUserById }
+  const getUserById = vi.fn().mockResolvedValue(getResult)
+  return {
+    service: { auth: { admin: { updateUserById, getUserById, deleteUser: vi.fn() } } },
+    updateUserById,
+    getUserById,
+  }
 }
 
 let errorSpy
@@ -45,10 +54,38 @@ describe("pseudonymizeAuthUser", () => {
     )
     expect(attrs.email).toBe(`${ID}@comptes-clotures.invalid`)
     expect(attrs.email_confirm).toBe(true)
-    expect(attrs.user_metadata).toEqual({})
+    expect(Object.keys(attrs.user_metadata).sort()).toEqual([...KNOWN_KEYS].sort())
     expect(attrs.ban_duration).toBe("876000h")
     expect(attrs.password).toMatch(/^[0-9a-f]{64}$/)
     expect(service.auth.admin.deleteUser).not.toHaveBeenCalled()
+  })
+
+  it("met à null les clés existantes et la liste fermée, sans aucune valeur non nulle", async () => {
+    const meta = { full_name: "Awa K", custom_note: "x", nested: { a: 1 }, role: "admin" }
+    const { service, updateUserById, getUserById } = makeService(undefined, {
+      data: { user: { user_metadata: meta } },
+      error: null,
+    })
+    expect(await pseudonymizeAuthUser(service, ID)).toEqual({ ok: true })
+    expect(getUserById).toHaveBeenCalledWith(ID)
+    const sent = updateUserById.mock.calls[0][1].user_metadata
+    expect(Object.keys(sent).sort()).toEqual([...new Set([...Object.keys(meta), ...KNOWN_KEYS])].sort())
+    expect(Object.values(sent).every((v) => v === null)).toBe(true)
+  })
+
+  it("utilise la liste fermée seule si la lecture échoue (erreur, exception ou réponse vide)", async () => {
+    const failures = [
+      makeService(undefined, { data: null, error: { code: "x" } }),
+      makeService(undefined, undefined),
+      makeService(undefined, { data: { user: null }, error: null }),
+    ]
+    failures[1].getUserById.mockRejectedValue(new Error("boom"))
+    for (const { service, updateUserById } of failures) {
+      expect(await pseudonymizeAuthUser(service, ID)).toEqual({ ok: true })
+      const sent = updateUserById.mock.calls[0][1].user_metadata
+      expect(Object.keys(sent).sort()).toEqual([...KNOWN_KEYS].sort())
+      expect(Object.values(sent).every((v) => v === null)).toBe(true)
+    }
   })
 
   it("utilise un mot de passe différent à chaque appel", async () => {
