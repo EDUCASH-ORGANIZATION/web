@@ -337,6 +337,20 @@ describe("getAdminMissionDetail : achats", () => {
     spy.mockRestore()
   })
 
+  it("un chemin hors du dossier de son déposant ou de la demande n'est ni signé ni renvoyé", async () => {
+    const OTHER = "99999999-9999-4999-8999-999999999999"
+    const row = requestRow({
+      payee_photo_path: `${OTHER}/${REQ1}/payee-aaaaaaaa.jpg`,
+      ticket_photo_path: `${STUDENT}/${REQ2}/ticket-bbbbbbbb.jpg`,
+      sms_photo_path: `${STUDENT}/${REQ1}/sms-cccccccc.jpg`,
+    })
+    const service = withStorage(makeService(resolver({ purchase_requests: [row], missions: { ...MISSION, purchases_estimate: 15000 } })))
+    createServiceClient.mockReturnValue(service)
+    const { purchases } = await getAdminMissionDetail(MISSION_ID)
+    expect(service.storage.calls).toHaveLength(0)
+    expect(purchases.items[0]).toMatchObject({ payeePhotoUrl: null, ticketPhotoUrl: null, smsPhotoUrl: null })
+  })
+
   it("deux demandes : preuves en URL signées de 120 s, jamais de chemin brut, totaux hors EduCash", async () => {
     const second = requestRow({
       id: REQ2,

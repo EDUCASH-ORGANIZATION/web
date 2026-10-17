@@ -5,6 +5,7 @@ import { isUuid } from "@/lib/vitrine/ids"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
 import { reportReference } from "@/lib/messaging/moderation-rules"
 import { requestNumber } from "@/lib/purchases/requests"
+import { isOwnedProofPath } from "@/lib/purchases/proofs"
 import { purchasesSummary } from "@/lib/admin-space/mission-detail"
 import { inChunks, requireAdminService } from "./admin-context"
 import { readCompletionDeclared } from "./mission-completion-core"
@@ -22,6 +23,23 @@ const APPLICATIONS_LIMIT = 100
 const LEDGER_LIMIT = 100
 const REVIEWS_LIMIT = 10
 const PURCHASES_LIMIT = 200
+// Preuves : le dossier de chaque chemin est celui de son déposant (étudiant : photos du vendeur et du ticket ; client :
+// capture du SMS) et de la demande. Un autre chemin n'est ni signé ni renvoyé.
+const PROOF_SLOTS = [
+  { kind: "payee", column: "payee_photo_path", owner: "student_id" },
+  { kind: "ticket", column: "ticket_photo_path", owner: "student_id" },
+  { kind: "sms", column: "sms_photo_path", owner: "client_id" },
+]
+
+function ownedProofs(row) {
+  const owned = {}
+  for (const slot of PROOF_SLOTS) {
+    const path = row[slot.column]
+    owned[slot.column] = isOwnedProofPath(path, { ownerId: row[slot.owner], requestId: row.id, kind: slot.kind }) ? path : null
+  }
+  return owned
+}
+
 const PURCHASE_REPORT_COLUMNS = "id, number, purchase_request_id, reporter_id, reason, status, created_at"
 
 async function readNames(service, ids) {
@@ -79,9 +97,10 @@ async function readPurchases(service, mission) {
     }
   }
 
-  const urls = await signProofs(service, rows)
+  const proofs = rows.map(ownedProofs)
+  const urls = await signProofs(service, proofs)
   const roleOf = (userId) => (userId === mission.client_id ? "client" : userId === mission.selected_student_id ? "student" : null)
-  const items = rows.map((row) => ({
+  const items = rows.map((row, index) => ({
     id: row.id,
     seq: row.seq,
     number: requestNumber(row.seq),
@@ -91,9 +110,9 @@ async function readPurchases(service, mission) {
     amount: Number(row.amount) || 0,
     payeeKind: row.payee_kind,
     payeeNumber: row.payee_number ?? "",
-    payeePhotoUrl: urls[row.payee_photo_path] ?? null,
-    ticketPhotoUrl: urls[row.ticket_photo_path] ?? null,
-    smsPhotoUrl: row.sms_photo_path ? (urls[row.sms_photo_path] ?? null) : null,
+    payeePhotoUrl: urls[proofs[index].payee_photo_path] ?? null,
+    ticketPhotoUrl: urls[proofs[index].ticket_photo_path] ?? null,
+    smsPhotoUrl: proofs[index].sms_photo_path ? (urls[proofs[index].sms_photo_path] ?? null) : null,
     paidReference: row.paid_reference ?? null,
     createdAt: row.created_at ?? null,
     editedAt: row.edited_at ?? null,
