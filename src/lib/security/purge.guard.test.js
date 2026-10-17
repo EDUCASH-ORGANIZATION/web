@@ -212,7 +212,7 @@ describe("garde statique des modules de purge", () => {
 
   it.each(purgeModules.map((f) => [rel(f), readFileSync(f, "utf8")]))("%s : aucun use server", (_n, src) => {
     // Directive seule sur sa ligne : une mention dans un commentaire n'est pas une directive.
-    expect(src).not.toMatch(/^\s*["']use server["']/m)
+    expect(src).not.toMatch(/(^|[{;]\s*)["']use server["']/m)
   })
 
   it.each(purgeModules.filter((f) => !f.endsWith("purge-rules.js")).map((f) => [rel(f), readFileSync(f, "utf8")]))(
@@ -232,6 +232,22 @@ describe("garde statique des modules de purge", () => {
   it(".delete( n'apparaît que dans purge-rows.js", () => {
     const withDelete = purgeModules.filter((f) => readFileSync(f, "utf8").includes(".delete(")).map(rel)
     expect(withDelete.every((f) => f === "src/lib/actions/purge-rows.js")).toBe(true)
+  })
+
+  it("purge-rows.js ne touche que message_contact_events et reports", () => {
+    const src = readFileSync(join(ROOT, "src/lib/actions/purge-rows.js"), "utf8")
+    const tables = [...src.matchAll(/\.from\(\s*["']([^"']+)["']\s*\)/g)].map((m) => m[1])
+    expect(tables.length).toBeGreaterThan(0)
+    for (const table of tables) expect(["message_contact_events", "reports"]).toContain(table)
+  })
+
+  it.each(purgeModules.map((f) => [rel(f), readFileSync(f, "utf8")]))("%s : aucun appel rpc", (_n, src) => {
+    expect(src).not.toMatch(/\.rpc\(/)
+  })
+
+  it(".remove( n'apparaît que dans storage-walk.js", () => {
+    const withRemove = purgeModules.filter((f) => readFileSync(f, "utf8").includes(".remove(")).map(rel)
+    expect(withRemove).toEqual(["src/lib/purge/storage-walk.js"])
   })
 
   it("aucun module client n'importe un module de purge", () => {
