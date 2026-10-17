@@ -94,9 +94,9 @@ export function PurchaseCard({
         </div>
 
         <div className={showSms ? "e-achat__photos e-achat__photos--3" : "e-achat__photos"}>
-          <Thumb url={request.payeePhotoUrl} icon="i-smartphone" caption={payeeKind?.label ?? "Numéro MoMo"} />
-          <Thumb url={request.ticketPhotoUrl} icon="i-receipt" variant="ticket" caption="Ticket ou articles" />
-          {showSms ? <Thumb url={request.smsPhotoUrl} icon="i-message" variant="sms" tag="Client" caption="Capture du SMS" /> : null}
+          <Thumb url={request.payeePhotoUrl} icon="i-smartphone" caption={payeeKind?.label ?? "Numéro MoMo"} noun="du numéro de paiement" />
+          <Thumb url={request.ticketPhotoUrl} icon="i-receipt" variant="ticket" caption="Ticket ou articles" noun="du ticket" />
+          {showSms ? <Thumb url={request.smsPhotoUrl} icon="i-message" variant="sms" tag="Client" caption="Capture du SMS" noun="de la capture du SMS" /> : null}
         </div>
 
         <dl className="e-achat__rows">
