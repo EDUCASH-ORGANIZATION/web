@@ -34,6 +34,19 @@ describe("schéma de référence : fermeture de compte (script 96)", () => {
     for (const col of ["closed_at", "pseudonymized_at", "closure_prev_suspended"]) {
       expect(body).toContain(`new.${col} is distinct from old.${col}`)
     }
+    // contrôles d'origine, toujours présents
+    for (const control of [
+      "new.role is distinct from old.role",
+      "new.user_id is distinct from old.user_id",
+      "new.is_suspended is distinct from old.is_suspended",
+      "new.rating is distinct from old.rating",
+      "new.missions_done is distinct from old.missions_done",
+      "new.is_verified is distinct from old.is_verified",
+      "new.rejection_reason is distinct from old.rejection_reason",
+      "new.verified_until is distinct from old.verified_until",
+    ]) {
+      expect(body).toContain(control)
+    }
   })
 
   it("le journal n'a ni politique ni droit pour anon et authenticated, service_role lit et insère seulement", () => {
@@ -50,17 +63,17 @@ describe("schéma de référence : fermeture de compte (script 96)", () => {
     expect(SCHEMA).not.toMatch(/grant select \((pseudonymized_at|closure_prev_suspended)\)/)
   })
 
-  it("six clés étrangères financières et d'achats sont en RESTRICT", () => {
-    for (const name of [
-      "transactions_client_id_fkey",
-      "transactions_student_id_fkey",
-      "wallet_transactions_user_id_fkey",
-      "wallet_transactions_user_id_profiles_fkey",
-      "purchase_requests_client_id_fkey",
-      "purchase_requests_student_id_fkey",
-    ]) {
-      expect(lineOf(`alter table public.${name.startsWith("wallet") ? "wallet_transactions" : name.startsWith("transactions") ? "transactions" : "purchase_requests"} add constraint ${name} `)).toMatch(/ ON DELETE RESTRICT;$/)
-    }
-    expect(lineOf("alter table public.account_closure_events add constraint account_closure_events_user_id_fkey ")).toMatch(/ ON DELETE RESTRICT;$/)
+  it("six clés étrangères financières et d'achats sont en RESTRICT, ligne de contrainte complète", () => {
+    const fk = (table, name, column, target) =>
+      expect(lineOf(`alter table public.${table} add constraint ${name} `)).toBe(
+        `alter table public.${table} add constraint ${name} FOREIGN KEY (${column}) REFERENCES ${target} ON DELETE RESTRICT;`
+      )
+    fk("transactions", "transactions_client_id_fkey", "client_id", "auth.users(id)")
+    fk("transactions", "transactions_student_id_fkey", "student_id", "auth.users(id)")
+    fk("wallet_transactions", "wallet_transactions_user_id_fkey", "user_id", "auth.users(id)")
+    fk("wallet_transactions", "wallet_transactions_user_id_profiles_fkey", "user_id", "profiles(user_id)")
+    fk("purchase_requests", "purchase_requests_client_id_fkey", "client_id", "public.profiles(user_id)")
+    fk("purchase_requests", "purchase_requests_student_id_fkey", "student_id", "public.profiles(user_id)")
+    fk("account_closure_events", "account_closure_events_user_id_fkey", "user_id", "public.profiles(user_id)")
   })
 })
