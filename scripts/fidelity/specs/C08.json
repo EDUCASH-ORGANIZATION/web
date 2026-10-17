@@ -93,6 +93,74 @@
           "lot": "ST-09"
         },
         {
+          "id": "MI-08",
+          "label": "carte « À faire » (demande de paiement)",
+          "board": "section.card2[aria-label=\"À faire\"]",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "pad"
+          ],
+          "lot": "ST-13",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
+          "id": "MI-08",
+          "label": "« À faire » : drapeau citron",
+          "board": "section.card2[aria-label=\"À faire\"] .flag2",
+          "props": [
+            "x",
+            "y",
+            "h",
+            "bg"
+          ],
+          "lot": "ST-13",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). Citron de la charte (A1)."
+        },
+        {
+          "id": "MI-08",
+          "label": "« À faire » : titre",
+          "board": "section.card2[aria-label=\"À faire\"] .status2__title",
+          "props": [
+            "x",
+            "y",
+            "h",
+            "fontSize"
+          ],
+          "lot": "ST-13",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
+          "id": "MI-08",
+          "label": "« À faire » : Ouvrir la demande",
+          "board": "section.card2[aria-label=\"À faire\"] .btn",
+          "props": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-13",
+          "assume": {
+            "y": "A3:3"
+          },
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi)."
+        },
+        {
           "id": "MI-07",
           "label": "carte achats",
           "board": "section.card2[aria-label=\"Achats pour votre compte\"]",
@@ -107,10 +175,10 @@
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "A3+A8:13",
-            "h": "A8:214"
+            "y": "A3:3",
+            "h": "A8:45"
           },
-          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). Ligne « À faire » de la planche (Ulrich vous demande de payer 6 200 FCFA) absente : aucune demande de paiement n'existe (décision 24 révisée), la carte de statut « Mission en cours » prend sa place (211 px contre 227 px). A8 : lignes de vendeurs, statuts de demandes et lignes « Payé en direct » / « En attente » absentes de la carte achats (décision 24 révisée, seule l'estimation est une donnée) : -214 px. "
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : chaque ligne de vendeur porte en plus « N° k » et la ligne « Numéro à payer : ... » (champ obligatoire D4, absent de la planche) : +45 px sur les deux lignes. La ligne « À faire » de la planche est rendue (carte « À faire » à la place de « Mission en cours », même hauteur)."
         },
         {
           "id": "MI-07",
@@ -123,9 +191,9 @@
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "A3+A8:13"
+            "y": "A3:3"
           },
-          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). Ligne « À faire » de la planche (Ulrich vous demande de payer 6 200 FCFA) absente : aucune demande de paiement n'existe (décision 24 révisée), la carte de statut « Mission en cours » prend sa place (211 px contre 227 px). "
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). "
         },
         {
           "id": "MI-07",
@@ -179,10 +247,10 @@
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "A3+A8:226",
-            "h": "A8:25"
+            "y": "A3+A8:49",
+            "h": "A8:10"
           },
-          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). Ligne « À faire » de la planche (Ulrich vous demande de payer 6 200 FCFA) absente : aucune demande de paiement n'existe (décision 24 révisée), la carte de statut « Mission en cours » prend sa place (211 px contre 227 px). A8 : lignes de vendeurs, statuts de demandes et lignes « Payé en direct » / « En attente » absentes de la carte achats (décision 24 révisée, seule l'estimation est une donnée) : -214 px. Chronologie : l'étape « retenu » n'a pas de date (non connue) et l'étape en cours n'a pas la ligne « 1 demande payée, 1 en attente » (A8 : demandes de paiement) : -25 px"
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : chaque ligne de vendeur porte en plus « N° k » et la ligne « Numéro à payer : ... » (champ obligatoire D4, absent de la planche) : +45 px sur les deux lignes. Chronologie : l'étape « retenu » n'a pas de date (non connue) et l'étape en cours « Achats en cours » porte le résumé « 1 demande payée, 1 en attente » : -10 px."
         },
         {
           "id": "MI-08",
@@ -195,9 +263,9 @@
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "A3+A8:227"
+            "y": "A3+A8:48"
           },
-          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). Ligne « À faire » de la planche (Ulrich vous demande de payer 6 200 FCFA) absente : aucune demande de paiement n'existe (décision 24 révisée), la carte de statut « Mission en cours » prend sa place (211 px contre 227 px). A8 : lignes de vendeurs, statuts de demandes et lignes « Payé en direct » / « En attente » absentes de la carte achats (décision 24 révisée, seule l'estimation est une donnée) : -214 px. "
+          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : chaque ligne de vendeur porte en plus « N° k » et la ligne « Numéro à payer : ... » (champ obligatoire D4, absent de la planche) : +45 px sur les deux lignes. "
         },
         {
           "id": "MI-08",
@@ -381,10 +449,8 @@
             "bg"
           ],
           "lot": "ST-09",
-          "assume": {
-            "y": "A3+A8:19"
-          },
-          "note": "A3 : titre de page à 1.14 d'interligne (43,32 px au lieu de 39,90 px), tout ce qui suit descend de 3,42 px réels (+3 ou +4 après arrondi). A8 : carte étudiant au-dessus (-23 px). ÉCHEC conservé sur le fond, écart permanent (D2 de RD-DONE-01) : la planche désactive le bouton (btn--soft is-disabled) tant que l'étudiant n'a pas déclaré la fin ; « Confirmer la fin » reste actif et encre dans le code (le client paie ; un étudiant qui oublie de déclarer ne doit pas bloquer son paiement)"
+          "note": "ÉCHEC conservé, écart permanent (D2 de RD-DONE-01 et arbitrage de RD-ACHATS-01) : la planche place « Confirmer la fin » en contour et désactivé dans la carte Séquestre, sous « Disponible quand Ulrich aura déclaré la mission terminée ». Dans le code il reste ACTIF (le client paie ; un étudiant qui oublie de déclarer ne doit pas bloquer son paiement) et, tant qu'une demande attend, il est rendu en contour (un seul bouton encre par cadre : « Ouvrir la demande ») dans la carte « À faire », la carte Séquestre (escrow-card.jsx, inchangée) n'affichant alors aucun bouton. Le sélecteur du code vise donc ce bouton, d'où les écarts de position.",
+          "code": "section.card2[aria-label=\"À faire\"] .btn.btn--soft"
         }
       ]
     },
@@ -401,19 +467,20 @@
           "id": "MI-08",
           "label": "carte de statut",
           "board": "section.card2[aria-label=\"À faire\"]",
-          "code": "section.card2[aria-label=\"Mission en cours\"]",
           "props": [
             "x",
             "y",
             "w",
+            "h",
             "radius",
             "pad"
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "X1:73"
+            "y": "X1:73",
+            "h": "A8:54"
           },
-          "note": "X1 : l'en-tête mobile du code est plus haut que celui de la planche (titre 26 px contre 30 px sur 1 ligne, ligne « Signaler un problème » sous le titre, méta sur 3 lignes) : +73 px sur toute la page. Lot : ST-03 (en-tête mobile des missions)"
+          "note": "X1 : l'en-tête mobile du code est plus haut que celui de la planche (titre 26 px contre 30 px sur 1 ligne, ligne « Signaler un problème » sous le titre, méta sur 3 lignes) : +73 px sur toute la page. Lot : ST-03 (en-tête mobile des missions). A8 : la carte « À faire » de la planche mobile raccourcit le titre (« 6 200 FCFA à payer à Boutique Sœur Odile ») et le texte (« Par MoMo, en direct. Vérifiez le nom du bénéficiaire avant de payer. ») ; le code garde le titre « <Prénom> vous demande de payer ... » et l'avertissement unique PAYMENT_WARNING comme sur bureau (une seule source de texte) : +54 px. "
         },
         {
           "id": "MI-08",
@@ -429,10 +496,10 @@
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "X1+A8:113",
+            "y": "X1+A8:127",
             "h": "A2:1"
           },
-          "note": "A2 : sous-titre de 12 à 13 px, +1 px de hauteur. y+113 = 73 px d'en-tête mobile (X1, lot ST-03) + 39 px de carte de statut plus haute (256 px contre 217 px : A8, la carte « À faire » de demande de paiement est remplacée par la carte de statut, décision 24 révisée) + 1 px d'arrondi"
+          "note": "A2 : sous-titre de 12 à 13 px, +1 px de hauteur. y+127 = 73 px d'en-tête mobile (X1, lot ST-03) + 54 px de carte « À faire » plus haute (A8, texte mobile raccourci en planche) + 1 px d'arrondi"
         },
         {
           "id": "MI-07",
@@ -448,9 +515,9 @@
           ],
           "lot": "ST-09",
           "assume": {
-            "y": "X1+A8:114"
+            "y": "X1+A8:128"
           },
-          "note": "y+114 = 73 px d'en-tête mobile (X1, lot ST-03) + 39 px de carte de statut plus haute (A8, carte « À faire » remplacée) + 1 px d'arrondi. L'ordre statut, étudiant, achats est celui de la planche ; le Séquestre vient après les achats dans le code, hors du cadre de la planche"
+          "note": "y+128 = 73 px d'en-tête mobile (X1, lot ST-03) + 54 px de carte « À faire » plus haute (A8) + 1 px d'arrondi. L'ordre À faire, étudiant, achats est celui de la planche ; le Séquestre vient après les achats dans le code, hors du cadre de la planche"
         },
         {
           "id": "MI-08",

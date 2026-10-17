@@ -252,3 +252,48 @@ describe("ST-09 zones intactes", () => {
     expect(readFileSync("src/components/client-space/mission-detail/followup/confirm-end-dialog.jsx", "utf8")).toContain("Libérer le paiement")
   })
 })
+
+describe("ST-13 demandes de paiement : chronologie, bouton et séquestre inchangés", () => {
+  const PENDING = {
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1", seq: 1, status: "pending", version: 1, amount: 6200,
+    vendorName: "Boutique Sœur Odile", items: null, payeeKind: "merchant", payeeNumber: "123456",
+  }
+  const withRequests = (requests, extra = {}) => ({
+    ...detailOf("in_progress", {}, extra),
+    purchases: {
+      available: true, requests,
+      totals: { count: requests.length, requested: 6200, paid: 0, pending: 6200, reported: 0 },
+      exceedsEstimate: false, confirmWarning: { show: true, pending: 1, reported: 0 }, costTotal: null,
+    },
+  })
+  const titles = (d) => buildTimeline(d, missionView(d), "Sèna").map((i) => i.title)
+
+  it("sans demande : la chronologie reste celle de RD-DONE-01", () => {
+    expect(titles(detailOf("in_progress"))).toContain("Mission en cours")
+    expect(titles({ ...detailOf("in_progress"), purchases: { available: false } })).toContain("Mission en cours")
+  })
+
+  it("avec une demande : l'étape en cours devient Achats en cours avec le résumé", () => {
+    const d = withRequests([PENDING])
+    expect(titles(d)).toContain("Achats en cours")
+    expect(titles(d)).not.toContain("Mission en cours")
+    const item = buildTimeline(d, missionView(d), "Sèna").find((i) => i.title === "Achats en cours")
+    expect(item.meta).toBe("1 en attente")
+  })
+
+  it("le séquestre n'affiche aucun montant de demande, avec ou sans paiements ouverts", () => {
+    for (const flags of [OPEN, CLOSED]) {
+      const html = render(withRequests([PENDING]), flags)
+      expect(plain(section(html, "Séquestre"))).not.toMatch(/6\s200/)
+      expect(plain(section(html, "Séquestre"))).toMatch(/8\s000/)
+    }
+  })
+
+  it("l'unique bouton encre est Ouvrir la demande ; la barre du bas garde Confirmer la fin en contour actif", () => {
+    const html = render(withRequests([PENDING]))
+    expect(html.match(/class="btn btn--dark[^"]*"/g)).toHaveLength(1)
+    const bar = html.slice(html.indexOf('class="mbar2"'))
+    expect(bar).toMatch(/<button[^>]*btn--soft[^>]*>[^]*Confirmer la fin/)
+    expect(bar).not.toMatch(/disabled/)
+  })
+})
