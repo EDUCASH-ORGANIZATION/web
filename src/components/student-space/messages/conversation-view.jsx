@@ -2,23 +2,30 @@
 
 // @ds-screen RD-STUDENT-01
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Icon } from "@/components/design/icon"
 import { Avatar } from "@/components/app-ui/avatar"
 import { MessagingNotice } from "@/components/messaging/messaging-notice"
 import { REPORT_FALLBACK_ERROR, ReportDialog } from "@/components/messaging/report-dialog"
+import { usePurchaseProofUpload } from "@/hooks/use-purchase-proof-upload"
 import { useMessageMediaUpload, useRealtimeMessages } from "@/hooks/use-realtime-messages"
 import { getStudentMessageMedia, markStudentConversationRead, sendStudentMessage } from "@/lib/actions/message.actions"
 import { reportStudentMessage } from "@/lib/actions/message-report.actions"
 import { studentMessagesHref, studentMissionHref } from "@/lib/app/student-routes"
-import { MEDIA_CONTENT, dayOf, formatDayLabel } from "@/lib/client-space/conversations"
+import { MEDIA_CONTENT, dayOf, formatDayLabel, isPurchaseMessageType } from "@/lib/client-space/conversations"
 import { MASKED_SENDER_NOTE } from "@/lib/messaging/contact-copy"
-import { Bubble } from "./bubble"
+import { nextSeq } from "@/lib/purchases/requests"
+import { Bubble, purchaseAnchorId } from "./bubble"
 import { Composer, LockedComposer } from "./composer"
+import { PurchaseDialogs, newRequestId } from "./purchase-flow"
 import { StatusBanner } from "./status-banner"
 
 const ERR_SEND = "Non envoyé. Votre message n'a pas pu être envoyé."
 const ERR_UPLOAD = "Non envoyé. Votre fichier n'a pas pu être téléversé."
+
+// Délai pendant lequel les relectures des demandes sont regroupées (une action et son message temps réel arrivent ensemble).
+const REFRESH_WINDOW_MS = 400
 
 const LOCKED_TEXT = {
   done: "Mission terminée : cette conversation est en lecture seule.",
@@ -75,10 +82,17 @@ function pendingMessage(item) {
  * Conversation (mission, client) de l'étudiant : en-tête, bandeau de statut, journal des messages (annoncé
  * poliment), zone d'écriture. Les messages arrivent par le temps réel du hook (l'autre partie est le client),
  * l'envoi et le marquage « lu » passent par les actions serveur : aucune écriture depuis le navigateur.
- * @param {{ conversation: object, now?: string, paymentsEnabled?: boolean }} props `conversation` : réponse de
- *   getStudentConversation ; `paymentsEnabled` : lu côté serveur par la page (formulation du bandeau)
+ * Demandes de paiement d'achats (RD-ACHATS-01) : le bouton ticket du composeur n'existe que si la conversation le
+ * permet (`purchasesAvailable` et `purchaseCanCreate`, mission en cours) ; les messages `purchase_request` sont rendus par
+ * la carte de leur demande (`conversation.purchaseRequests`), les `purchase_event` par une ligne système. Toute action de
+ * la carte passe par les actions serveur (fenêtres de `purchase-flow.jsx`) puis relit la page ; un message d'achat reçu
+ * en direct la relit aussi.
+ * @param {{ conversation: object, now?: string, paymentsEnabled?: boolean, initialAction?: "new"|null, focusRequestId?: string|null }} props
+ *   `conversation` : réponse de getStudentConversation ; `paymentsEnabled` : lu côté serveur par la page (formulation du
+ *   bandeau) ; `initialAction` : drapeau `?achat=nouveau` (ouvre le formulaire, sans rien envoyer) ; `focusRequestId` :
+ *   drapeau `?demande=<id>` (fait défiler jusqu'à la carte)
  */
-export function StudentConversationView({ conversation, now, paymentsEnabled = false }) {
+export function StudentConversationView({ conversation, now, paymentsEnabled = false, initialAction = null, focusRequestId = null }) {
   const { userId, missionId, clientId, client, mission, state, canWrite, completionDeclaredAt, completionAvailable } =
     conversation
   const nowDate = useMemo(() => (now ? new Date(now) : new Date()), [now])
@@ -89,18 +103,41 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
     (messageIds) => getStudentMessageMedia({ missionId, messageIds }),
     [missionId],
   )
+  const router = useRouter()
+  const refreshTimer = useRef(null)
+  const refreshQueued = useRef(false)
+  // Relit la page : la première demande part tout de suite, les suivantes de la fenêtre n'en font qu'une, après elle.
+  const refreshPurchases = useCallback(() => {
+    if (refreshTimer.current) {
+      refreshQueued.current = true
+      return
+    }
+    router.refresh()
+    refreshTimer.current = setTimeout(() => {
+      refreshTimer.current = null
+      if (refreshQueued.current) {
+        refreshQueued.current = false
+        refreshPurchases()
+      }
+    }, REFRESH_WINDOW_MS)
+  }, [router])
+  useEffect(() => () => clearTimeout(refreshTimer.current), [])
   const { messages, append, refreshMedia } = useRealtimeMessages({
     missionId,
     studentId: clientId,
     userId,
     initialMessages: conversation.messages,
     onIncoming: markRead,
+    onPurchaseMessage: refreshPurchases,
     resolveMedia,
   })
   const upload = useMessageMediaUpload(userId)
+  const uploadProof = usePurchaseProofUpload(userId)
   const [pending, setPending] = useState([])
   const [reporting, setReporting] = useState(null)
   const [maskedNote, setMaskedNote] = useState(false)
+  const [dialog, setDialog] = useState(null)
+  const [purchaseNote, setPurchaseNote] = useState(null)
   const counter = useRef(0)
   const inFlight = useRef(new Set())
   const chatRef = useRef(null)
@@ -161,6 +198,47 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
     return { reference: result.reference }
   }
 
+  const requests = Array.isArray(conversation.purchaseRequests) ? conversation.purchaseRequests : []
+  const canRequestPurchase = canWrite && conversation.purchasesAvailable === true && conversation.purchaseCanCreate === true
+  const editingId = dialog?.kind === "form" && dialog.mode === "edit" ? dialog.request.id : null
+  const otherRequested = requests
+    .filter((r) => r.status !== "cancelled" && r.id !== editingId)
+    .reduce((sum, r) => sum + (Number.isFinite(r.amount) ? r.amount : 0), 0)
+
+  // Une seule fenêtre à la fois ; un second appui sur le bouton ticket ne remplace pas le formulaire ouvert.
+  const openDialog = (next) => {
+    setPurchaseNote(null)
+    setDialog((current) => current ?? next)
+  }
+  const openNewRequest = () =>
+    openDialog({ kind: "form", mode: "create", requestId: newRequestId(), seq: nextSeq(requests) })
+  const cardActions = {
+    onEdit: (request) => openDialog({ kind: "form", mode: "edit", request }),
+    onCancel: (request) => openDialog({ kind: "cancel", request }),
+    onConfirmReceived: (request) => openDialog({ kind: "received", request }),
+    onReport: (request) => openDialog({ kind: "report", request }),
+  }
+  const purchaseFor = (message) => {
+    if (!isPurchaseMessageType(message.type)) return undefined
+    const request = requests.find((r) => r.id === message.purchaseRequestId)
+    return {
+      request,
+      clientName: client.name,
+      missionStatus: mission.status,
+      busy: Boolean(request) && dialog?.request?.id === request.id,
+      ...cardActions,
+    }
+  }
+
+  // Drapeaux d'URL : ils n'ouvrent qu'une fenêtre ou ne font que défiler, sans rien envoyer.
+  useEffect(() => {
+    if (initialAction === "new" && canRequestPurchase) openNewRequest()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    if (focusRequestId) document.getElementById(purchaseAnchorId(focusRequestId))?.scrollIntoView?.({ block: "center" })
+  }, [focusRequestId])
+
   const empty = messages.length === 0 && pending.length === 0
 
   return (
@@ -213,7 +291,13 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
             {index === 0 || dayOf(message.createdAt) !== dayOf(messages[index - 1].createdAt) ? (
               <span className="chat__day">{formatDayLabel(message.createdAt, nowDate)}</span>
             ) : null}
-            <Bubble message={message} onMediaError={refreshMedia} senderName={client.name} onReport={setReporting} />
+            <Bubble
+              message={message}
+              onMediaError={refreshMedia}
+              senderName={client.name}
+              onReport={setReporting}
+              purchase={purchaseFor(message)}
+            />
           </Fragment>
         ))}
         {pending.map((item) => (
@@ -236,8 +320,33 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
         </div>
       ) : null}
 
-      {canWrite ? <Composer onSend={onSend} /> : <LockedComposer text={LOCKED_TEXT[state] ?? LOCKED_TEXT.closed} />}
+      {purchaseNote ? (
+        <div className="banner banner--info" role="status">
+          <Icon name="i-info" />
+          <div className="banner__body">{purchaseNote}</div>
+        </div>
+      ) : null}
+
+      {canWrite ? (
+        <Composer onSend={onSend} onRequestPurchase={canRequestPurchase ? openNewRequest : undefined} />
+      ) : (
+        <LockedComposer text={LOCKED_TEXT[state] ?? LOCKED_TEXT.closed} />
+      )}
       {reporting ? <ReportDialog senderName={client.name} onSubmit={submitReport} onClose={() => setReporting(null)} /> : null}
+      <PurchaseDialogs
+        dialog={dialog}
+        missionId={missionId}
+        clientName={client.name}
+        estimate={mission.purchasesEstimate}
+        otherRequested={otherRequested}
+        upload={uploadProof}
+        onChanged={(text) => {
+          if (text) setPurchaseNote(text)
+          refreshPurchases()
+        }}
+        onClose={() => setDialog(null)}
+        onReport={(request) => setDialog({ kind: "report", request })}
+      />
     </section>
   )
 }

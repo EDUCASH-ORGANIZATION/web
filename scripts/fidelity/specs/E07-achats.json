@@ -1,0 +1,194 @@
+{
+  "id": "E07-achats",
+  "title": "Conversation étudiante (cartes de demande de paiement d'achats, mobile)",
+  "planche": "etudiant/E07-conversation.v2.html",
+  "screen": "e07-achats",
+  "tolerance": 1,
+  "assume": {
+    "color": "A1",
+    "bg": "A1",
+    "fontSize": "A2:1"
+  },
+  "views": [
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        844
+      ],
+      "frame": "phone",
+      "frameIndex": 1,
+      "selectors": [
+        {
+          "id": "ME-17",
+          "label": "carte Reçu par le vendeur",
+          "board": ".e2-07-achat",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius",
+            "bg"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "h": "A2+A5+X1:65"
+          },
+          "note": "A2 : texte 13 px minimal ; A5 : lien « Signaler » à 44 px de haut (+24) ; X1 : la planche a 3 lignes (Vendeur, Montant total, Payé par) ; le code ajoute la ligne « Numéro à payer » (champ structuré obligatoire, décision D4 de RD-ACHATS-01, absent de la planche) : +30 mesuré (une ligne de 24 px et son interstice de 6 px)"
+        },
+        {
+          "id": "ME-17",
+          "label": "bandeau de la carte",
+          "board": ".e-achat__band",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-10"
+        },
+        {
+          "id": "ME-17",
+          "label": "badge de statut",
+          "board": ".e-achat__band .badge",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "radius",
+            "fontSize"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "w": "A2:9"
+          },
+          "note": "A2 : texte 12 -> 13 px, +9 mesuré (planche 151 px, code 160 px)"
+        },
+        {
+          "id": "ME-17",
+          "label": "vignettes des photos",
+          "board": ".e-achat__photos",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "gap",
+            "cols"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "h": "A2:5"
+          },
+          "note": "A2 : légendes 12 -> 13 px, +5 mesuré (planche 130 px, code 135 px)"
+        },
+        {
+          "id": "ME-17",
+          "label": "lignes Vendeur, Montant, Payé par",
+          "board": ".e-achat__rows",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "gap"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "h": "X1:30"
+          },
+          "note": "X1 : la planche a 3 lignes (Vendeur, Montant total, Payé par) ; le code ajoute la ligne « Numéro à payer » (champ structuré obligatoire, décision D4 de RD-ACHATS-01, absent de la planche) : +30 mesuré (une ligne de 24 px et son interstice de 6 px)"
+        },
+        {
+          "id": "ME-17",
+          "label": "pied de carte",
+          "board": ".e-achat__foot",
+          "props": [
+            "x",
+            "w",
+            "h",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "h": "A5:24"
+          },
+          "note": "A5 : le lien « Signaler » est une cible tactile de 44 px sous 1024 (planche 20 px), +24 mesuré"
+        },
+        {
+          "id": "ME-17",
+          "label": "lien Signaler",
+          "board": ".e-achat__foot .e2-link",
+          "code": ".e-achat__foot .e2-link",
+          "props": [
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "w": "A2:4",
+            "h": "A5:24"
+          },
+          "note": "A2 : texte 12 -> 13 px, +4 de largeur ; A5 : cible tactile 44 px sous 1024, +24 de hauteur"
+        },
+        {
+          "id": "ME-18",
+          "label": "ligne système",
+          "board": ".msg-system",
+          "props": [
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "h": "A2:3"
+          },
+          "note": "A2 : texte 13 px minimal, +3 mesuré. x et w non comparés : la ligne est centrée et sa largeur suit son texte ; le texte est celui que le serveur écrit (« Le vendeur a bien reçu le paiement de la demande N° 1. », contenu FIXE sans nom de vendeur ni montant), différent de celui de la planche (« Tu as confirmé : Tantie Awa a reçu 21 500 FCFA. »)"
+        },
+        {
+          "id": "ME-19",
+          "label": "saisie sur une ligne",
+          "board": ".composer",
+          "props": [
+            "x",
+            "w"
+          ],
+          "lot": "ST-10"
+        },
+        {
+          "id": "ME-19",
+          "label": "outils du composeur",
+          "board": ".composer__tools",
+          "props": [
+            "x",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "w": "A5:12",
+            "h": "A5:4"
+          },
+          "note": "A5 : outils et micro à 44 px sous 1024 au lieu de 40 (trois outils : photo, position, ticket)"
+        },
+        {
+          "id": "ME-19",
+          "label": "champ de saisie",
+          "board": ".composer__field",
+          "props": [
+            "x",
+            "w",
+            "h"
+          ],
+          "lot": "ST-10",
+          "assume": {
+            "x": "A5:12",
+            "w": "A5:16"
+          },
+          "note": "A5 : outils (3 x 4 px) et micro à 44 px sous 1024 au lieu de 40 : le champ commence 12 px plus à droite et est 16 px plus étroit (planche x144 w186, code x156 w170). Les trois outils de la planche sont tous codés"
+        }
+      ]
+    }
+  ],
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)"
+}

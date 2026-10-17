@@ -56,6 +56,9 @@
 .e2-07-achat .e-achat__band { background: var(--c-blanc); color: var(--c-encre); border-bottom: 1px solid var(--c-ligne-2); padding: 10px 14px; }
 .e2-07-achat .e-thumb__img, .e2-07-shot .e-thumb__img { border: 1px solid var(--c-ligne); background: var(--c-givre); color: var(--c-ardoise); }
 .e2-07-achat .e-thumb__img--ticket, .e2-07-shot .e-thumb__img--ticket { background: repeating-linear-gradient(0deg, var(--c-blanc) 0 8px, var(--c-ligne-2) 8px 10px); }
+/* Ancre de la carte dans le fil (drapeau ?demande=) : à droite, à la largeur de la carte de la planche (320 px) */
+.e2-07-chat > .e2-07-card { align-self: flex-end; width: 320px; max-width: 100%; }
+.e2-07-card .e-achat--full { width: 100%; }
 .e2-07-achat .e2-link { margin-left: auto; font-size: var(--t-caption); }
 .e2-07-pic { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .e2-07-ic { width: 28px; height: 28px; border-radius: var(--r-xs); display: inline-grid; place-items: center; flex: none; background: var(--c-givre); color: var(--c-ardoise); }
