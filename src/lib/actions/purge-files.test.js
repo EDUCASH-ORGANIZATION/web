@@ -470,12 +470,29 @@ describe("disjoncteur", () => {
   it("échéance en cours de parcours : aucun remove, motif deadline", async () => {
     const files = { ...many(5, U1), ...many(5, U2) }
     const { service, state } = fakeService({ tables: { profiles: [] }, buckets: { avatars: files } })
-    // Les deux dossiers sont lus, l'échéance tombe avant la fin du parcours
-    const spy = vi.spyOn(Date, "now")
-    let calls = 0
-    spy.mockImplementation(() => (++calls < 6 ? 1000 : 99999))
-    const res = await purgeAvatars(service, { ...real, deadline: 5000 })
-    spy.mockRestore()
+    // L'échéance tombe depuis le faux service, juste après le listing du premier dossier
+    vi.useFakeTimers()
+    vi.setSystemTime(1000)
+    const bucket = service.storage.from("avatars")
+    let filesSeen = 0
+    service.storage.from = () => ({
+      ...bucket,
+      list: async (prefix, opts) => {
+        const out = await bucket.list(prefix, opts)
+        if (prefix) {
+          filesSeen += out.data.length
+          vi.setSystemTime(99999)
+        }
+        return out
+      },
+    })
+    let res
+    try {
+      res = await purgeAvatars(service, { ...real, deadline: 5000 })
+    } finally {
+      vi.useRealTimers()
+    }
+    expect(filesSeen).toBeGreaterThan(0)
     expect(res.stops).toContain("deadline")
     expect(state.removeCalls).toBe(0)
   })

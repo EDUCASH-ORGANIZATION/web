@@ -212,7 +212,7 @@ describe("garde statique des modules de purge", () => {
 
   it.each(purgeModules.map((f) => [rel(f), readFileSync(f, "utf8")]))("%s : aucun use server", (_n, src) => {
     // Directive seule sur sa ligne : une mention dans un commentaire n'est pas une directive.
-    expect(src).not.toMatch(/(^|[{;]\s*)["']use server["']/m)
+    expect(src).not.toMatch(/(^\s*|[{;]\s*)["']use server["']/m)
   })
 
   it.each(purgeModules.filter((f) => !f.endsWith("purge-rules.js")).map((f) => [rel(f), readFileSync(f, "utf8")]))(
@@ -239,6 +239,8 @@ describe("garde statique des modules de purge", () => {
     const tables = [...src.matchAll(/\.from\(\s*["']([^"']+)["']\s*\)/g)].map((m) => m[1])
     expect(tables.length).toBeGreaterThan(0)
     for (const table of tables) expect(["message_contact_events", "reports"]).toContain(table)
+    // Aucun .from( dont l'argument n'est pas un littéral
+    expect(src).not.toMatch(/\.from\(\s*[^"'\s]/)
   })
 
   it.each(purgeModules.map((f) => [rel(f), readFileSync(f, "utf8")]))("%s : aucun appel rpc", (_n, src) => {
