@@ -154,14 +154,48 @@ describe("closeMyAccount", () => {
     expect(revokeSession).not.toHaveBeenCalled()
   })
 
-  it("renvoie une erreur si la fermeture est incomplète ou échoue", async () => {
+  it("renvoie une erreur générique si la fermeture échoue (success:false ou vide)", async () => {
     requireRole.mockResolvedValue(session)
     signIn.mockResolvedValue({ data: {}, error: null })
     closeAccountCore.mockResolvedValueOnce({ error: "interne" })
     expect((await closeMyAccount(null, form("FERMER", "ok"))).error).toMatch(/Réessayez/)
-    closeAccountCore.mockResolvedValueOnce({ success: true, complete: false, dueAt: "2026-11-01T00:00:00.000Z" })
-    expect((await closeMyAccount(null, form("FERMER", "ok"))).error).toMatch(/Réessayez/)
     expect(revokeSession).not.toHaveBeenCalled()
+  })
+
+  it("complete:false : compte déjà fermé, révocation globale, journal sans donnée personnelle, redirection", async () => {
+    requireRole.mockResolvedValue(session)
+    signIn.mockResolvedValue({ data: {}, error: null })
+    closeAccountCore.mockResolvedValueOnce({ success: true, complete: false, dueAt: "2026-11-01T00:00:00.000Z" })
+    await expect(closeMyAccount(null, form("FERMER", "ok"))).rejects.toThrow(
+      "REDIRECT:/compte-ferme?jusquau=2026-11-01T00%3A00%3A00.000Z",
+    )
+    expect(revokeSession).toHaveBeenCalledWith(session.supabase, { scope: "global" })
+    expect(console.error).toHaveBeenCalledWith("[account-closure] self incomplete")
+    const logged = JSON.stringify(console.error.mock.calls)
+    expect(logged).not.toContain(USER_ID)
+    expect(logged).not.toContain("a@b.bj")
+  })
+
+  it("une erreur Supabase autre que mot de passe faux (400, 500) : message générique, aucune tentative consommée", async () => {
+    const other = { ...session, user: { id: "44444444-4444-4444-8444-444444444444", email: "e@f.bj" } }
+    requireRole.mockResolvedValue(other)
+    signIn.mockResolvedValue({ error: { status: 400, code: "validation_failed" } })
+    for (let i = 0; i < 6; i++) {
+      expect((await closeMyAccount(null, form("FERMER", "x"))).error).toMatch(/n'a pas pu aboutir/)
+    }
+    signIn.mockResolvedValue({ error: { status: 500 } })
+    expect((await closeMyAccount(null, form("FERMER", "x"))).error).toMatch(/n'a pas pu aboutir/)
+    expect(signIn).toHaveBeenCalledTimes(7)
+    expect(closeAccountCore).not.toHaveBeenCalled()
+  })
+
+  it("compte sans e-mail : message générique, aucun appel à Supabase Auth", async () => {
+    requireRole.mockResolvedValue({ ...session, user: { id: USER_ID } })
+    const res = await closeMyAccount(null, form("FERMER", "x"))
+    expect(res.error).toMatch(/n'a pas pu aboutir/)
+    expect(res.error).not.toMatch(/réseau/)
+    expect(signIn).not.toHaveBeenCalled()
+    expect(closeAccountCore).not.toHaveBeenCalled()
   })
 
   it("succès : ferme en acteur self, révoque toutes les sessions puis redirige", async () => {

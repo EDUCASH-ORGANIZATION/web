@@ -136,21 +136,40 @@ describe("closeMyAccount : cas limites", () => {
     expect(revokeSession).toHaveBeenCalledWith(s.supabase, { scope: "global" })
   })
 
-  it("complete:false ou dueAt absent : ni révocation ni redirection", async () => {
+  it("success:false ou résultat vide : erreur générique, ni révocation ni redirection", async () => {
     requireRole.mockResolvedValue(mkSession("u-incomplete"))
     signIn.mockResolvedValue(OK)
-    for (const result of [
-      { success: true, complete: false, dueAt: "2026-11-01T10:00:00.000Z" },
-      { success: true, complete: true },
-      { success: false, complete: true, dueAt: "2026-11-01T10:00:00.000Z" },
-      {},
-    ]) {
+    for (const result of [{ success: false, complete: true, dueAt: "2026-11-01T10:00:00.000Z" }, {}]) {
       closeAccountCore.mockResolvedValueOnce(result)
       const res = await closeMyAccount(null, form("FERMER", "bon"))
       expect(res.error).toMatch(/Réessayez/)
     }
     expect(revokeSession).not.toHaveBeenCalled()
     expect(redirect).not.toHaveBeenCalled()
+  })
+
+  it("success:true et complete:false : révocation globale puis redirection, journal sans donnée personnelle", async () => {
+    const s = mkSession("u-incomplete-ok")
+    requireRole.mockResolvedValue(s)
+    signIn.mockResolvedValue(OK)
+    closeAccountCore.mockResolvedValueOnce({ success: true, complete: false, dueAt: "2026-11-01T10:00:00.000Z" })
+    await expect(closeMyAccount(null, form("FERMER", "bon"))).rejects.toThrow(/^REDIRECT:\/compte-ferme\?jusquau=/)
+    expect(revokeSession).toHaveBeenCalledTimes(1)
+    expect(revokeSession).toHaveBeenCalledWith(s.supabase, { scope: "global" })
+    expect(console.error).toHaveBeenCalledWith("[account-closure] self incomplete")
+    const logged = JSON.stringify(console.error.mock.calls)
+    expect(logged).not.toContain("u-incomplete-ok")
+    expect(logged).not.toContain("a@b.bj")
+  })
+
+  it.each([undefined, "pas une date", ""])("success:true avec dueAt invalide %j : redirection sans paramètre", async (dueAt) => {
+    const s = mkSession("u-nodue")
+    requireRole.mockResolvedValue(s)
+    signIn.mockResolvedValue(OK)
+    closeAccountCore.mockResolvedValueOnce({ success: true, complete: true, dueAt })
+    await expect(closeMyAccount(null, form("FERMER", "bon"))).rejects.toThrow("REDIRECT:/compte-ferme")
+    expect(redirect).toHaveBeenCalledWith("/compte-ferme")
+    expect(revokeSession).toHaveBeenCalledWith(s.supabase, { scope: "global" })
   })
 
   it("exception du coeur de fermeture : erreur générique, ni révocation ni redirection, aucun détail renvoyé", async () => {

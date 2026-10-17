@@ -19,7 +19,7 @@ export function CloseAccountForm({ closeAction, cancelHref }) {
   const [state, formAction, pending] = useActionState(closeAction, null)
   const [confirmation, setConfirmation] = useState("")
   const [password, setPassword] = useState("")
-  const ready = confirmation.trim() === CONFIRMATION_WORD && password.length > 0
+  const ready = confirmation === CONFIRMATION_WORD && password.length > 0
   const blockers = Array.isArray(state?.blockers) ? state.blockers : []
 
   return (

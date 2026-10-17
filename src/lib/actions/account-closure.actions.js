@@ -75,12 +75,15 @@ function toBlockers(codes) {
 
 /**
  * Contrôle le mot de passe sans toucher à la session courante.
- * @returns {Promise<"ok" | "invalid" | "rate_limited" | "error">}
+ * "network" : panne ou configuration absente ; "unavailable" : contrôle impossible ou erreur Supabase autre qu'un
+ * mot de passe faux (aucune tentative consommée).
+ * @returns {Promise<"ok" | "invalid" | "rate_limited" | "network" | "unavailable">}
  */
 async function checkPassword(email, password) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key || typeof email !== "string" || !email) return "error"
+  if (!url || !key) return "network"
+  if (typeof email !== "string" || !email) return "unavailable"
   try {
     const probe = createEphemeralClient(url, key, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -88,13 +91,13 @@ async function checkPassword(email, password) {
     const { error } = await probe.auth.signInWithPassword({ email, password })
     if (error) {
       if (error.status === 429 || error.code === "over_request_rate_limit") return "rate_limited"
-      if (error.code === "invalid_credentials" || error.status === 400) return "invalid"
-      return "error"
+      if (error.code === "invalid_credentials") return "invalid"
+      return "unavailable"
     }
     await probe.auth.signOut({ scope: "local" }).catch(() => {})
     return "ok"
   } catch {
-    return "error"
+    return "network"
   }
 }
 
@@ -144,7 +147,8 @@ export async function closeMyAccount(_prev, formData) {
     return { error: ERR_PASSWORD }
   }
   if (check === "rate_limited") return { error: ERR_TOO_MANY }
-  if (check !== "ok") return { error: ERR_NETWORK }
+  if (check === "network") return { error: ERR_NETWORK }
+  if (check !== "ok") return { error: ERR_GENERIC }
   failures.delete(user.id)
 
   let result
@@ -155,13 +159,19 @@ export async function closeMyAccount(_prev, formData) {
       reasonCode: CLOSURE_REASONS.USER_REQUEST,
     })
   } catch {
+    // Rare : le compte peut avoir été fermé avant l'exception. L'utilisateur ne pourra alors plus réessayer ; l'admin
+    // voit l'état sur la fiche et peut relancer la fermeture.
     console.error("[account-closure] close", "exception")
     return { error: ERR_GENERIC }
   }
 
   if (result.blocked) return { error: ERR_BLOCKED, blockers: toBlockers(result.blocked) }
-  if (!result.success || !result.complete || !result.dueAt) return { error: ERR_GENERIC }
+  if (result.success !== true) return { error: ERR_GENERIC }
 
+  // Le compte est déjà fermé (closed_at et is_suspended posés) : il n'y a plus de nouvel essai possible, donc on
+  // révoque toujours. Si la fermeture est incomplète, l'admin la relance via « Relancer la fermeture ».
+  if (!result.complete) console.error("[account-closure] self incomplete")
   await revokeSession(supabase, { scope: "global" })
-  redirect(`/compte-ferme?jusquau=${encodeURIComponent(result.dueAt)}`)
+  const validDueAt = typeof result.dueAt === "string" && !Number.isNaN(Date.parse(result.dueAt))
+  redirect(validDueAt ? `/compte-ferme?jusquau=${encodeURIComponent(result.dueAt)}` : "/compte-ferme")
 }
