@@ -108,16 +108,11 @@ async function readBlockerSnapshot(service, userId) {
   }
 }
 
-/** Lit une colonne d'un compte par le client service role (colonne passée en argument, comme dans purge-files). */
-function readColumn(service, table, column, userId) {
-  return service.from(table).select(column).eq("user_id", userId)
-}
-
 /** Références de fichiers du compte : chemins valides dans son dossier, ou null si une lecture échoue. */
 async function readFileRefs(service, userId) {
   const [profile, student] = await Promise.all([
-    readColumn(service, "profiles", "avatar_url", userId),
-    readColumn(service, "student_profiles", "card_url", userId),
+    service.from("profiles").select("avatar_url").eq("user_id", userId),
+    service.from("student_profiles").select("card_url").eq("user_id", userId),
   ])
   if (profile.error || student.error || !Array.isArray(profile.data) || !Array.isArray(student.data)) return null
   const pick = (rows, column, bucket) => {

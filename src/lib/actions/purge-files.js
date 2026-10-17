@@ -200,8 +200,9 @@ function simpleEvaluator(service, bucket, category, readReferences, { now, deadl
   }
 }
 
-async function readColumn(service, table, column, filter) {
-  const rows = await readAll((from, to) => filter(service.from(table).select(`id, ${column}`)).order("id", { ascending: true }).range(from, to))
+/** Pagine une requête déjà filtrée (tri par id) et renvoie la colonne demandée de chaque ligne, ou null en cas d'erreur. */
+async function readPaged(build, column) {
+  const rows = await readAll((from, to) => build().order("id", { ascending: true }).range(from, to))
   return rows === null ? null : rows.map((row) => row[column])
 }
 
@@ -219,7 +220,7 @@ export function purgeMessageMedia(service, options) {
   return purgeSimple(service, options, {
     bucket: MEDIA_BUCKET,
     category: "message_media",
-    read: (s, ownerId) => readColumn(s, "messages", "media_url", (q) => q.eq("sender_id", ownerId).not("media_url", "is", null)),
+    read: (s, ownerId) => readPaged(() => s.from("messages").select("id, media_url").eq("sender_id", ownerId).not("media_url", "is", null), "media_url"),
   })
 }
 
@@ -228,7 +229,7 @@ export function purgeAvatars(service, options) {
   return purgeSimple(service, options, {
     bucket: AVATAR_BUCKET,
     category: "avatars",
-    read: (s, ownerId) => readColumn(s, "profiles", "avatar_url", (q) => q.eq("user_id", ownerId)),
+    read: (s, ownerId) => readPaged(() => s.from("profiles").select("id, avatar_url").eq("user_id", ownerId), "avatar_url"),
   })
 }
 
@@ -237,7 +238,7 @@ export function purgeStudentCards(service, options) {
   return purgeSimple(service, options, {
     bucket: CARD_BUCKET,
     category: "student_cards",
-    read: (s, ownerId) => readColumn(s, "student_profiles", "card_url", (q) => q.eq("user_id", ownerId)),
+    read: (s, ownerId) => readPaged(() => s.from("student_profiles").select("id, card_url").eq("user_id", ownerId), "card_url"),
   })
 }
 
