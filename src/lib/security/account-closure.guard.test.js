@@ -16,6 +16,7 @@ const CLOSURE_MODULES = [
 const PSEUDONYMIZE = "src/lib/actions/account-closure-pseudonymize.js"
 const AUTH = "src/lib/actions/account-closure-auth.js"
 const ADMIN_ACTIONS = "src/lib/actions/admin-users.actions.js"
+const SELF_ACTIONS = "src/lib/actions/account-closure.actions.js"
 const UPDATE_ALLOWED = ["profiles", "student_profiles"]
 const DELETE_ALLOWED = ["notifications", "applications"]
 const PROTECTED_TABLES = [
@@ -94,6 +95,13 @@ function startsWithAdminCheck(source, name) {
   return Boolean(match) && /^const\s+\w+\s*=\s*await\s+requireAdminService\(\)/.test(match[1])
 }
 
+/** Vrai si la fonction exportée commence par `await requireRole(["client", "student"])`. */
+function startsWithSelfRoleCheck(source, name) {
+  const code = stripComments(source)
+  const match = new RegExp(`export\\s+async\\s+function\\s+${name}\\s*\\([^)]*\\)\\s*\\{\\s*(.*)`).exec(code)
+  return Boolean(match) && /^const\s+\w+\s*=\s*await\s+requireRole\(\s*\[\s*["']client["']\s*,\s*["']student["']\s*\]\s*\)/.test(match[1])
+}
+
 function importsClosureModule(source) {
   return /from\s+["'][^"']*account-closure-(core|auth|pseudonymize)["']/.test(stripComments(source))
 }
@@ -157,6 +165,16 @@ describe("règles du garde de fermeture sur des fixtures en mémoire", () => {
     expect(startsWithAdminCheck(ok, "reopenAccount")).toBe(false)
   })
 
+  it("exige requireRole client et student en première instruction", () => {
+    const ok = 'export async function closeMyAccount(_prev, formData) {\n  const auth = await requireRole(["client", "student"])\n}'
+    const late = 'export async function closeMyAccount(_prev, formData) {\n  const x = 1\n  const auth = await requireRole(["client", "student"])\n}'
+    const wide = 'export async function closeMyAccount() {\n  const auth = await requireRole(["client", "student", "admin"])\n}'
+    expect(startsWithSelfRoleCheck(ok, "closeMyAccount")).toBe(true)
+    expect(startsWithSelfRoleCheck(late, "closeMyAccount")).toBe(false)
+    expect(startsWithSelfRoleCheck(wide, "closeMyAccount")).toBe(false)
+    expect(startsWithSelfRoleCheck(ok, "getMyClosurePreview")).toBe(false)
+  })
+
   it("repère un module client qui importe un module de fermeture", () => {
     const client = '"use client"\nimport { closeAccountCore } from "@/lib/actions/account-closure-core"'
     expect(isClientModule(client)).toBe(true)
@@ -208,6 +226,10 @@ describe("code livré de la fermeture de compte", () => {
 
   it.each(["closeAccount", "reopenAccount"])("%s appelle requireAdminService en première instruction", (name) => {
     expect(startsWithAdminCheck(read(ADMIN_ACTIONS), name)).toBe(true)
+  })
+
+  it.each(["getMyClosurePreview", "closeMyAccount"])("%s appelle requireRole en première instruction", (name) => {
+    expect(startsWithSelfRoleCheck(read(SELF_ACTIONS), name)).toBe(true)
   })
 
   it("n'importe aucun module de fermeture depuis un module client", () => {
