@@ -27,6 +27,7 @@ function makeDb(seed = {}) {
     wallets: [],
     purchase_requests: [],
     reports: [],
+    missions: [],
     transactions: [],
     notifications: [],
     applications: [],
@@ -292,6 +293,9 @@ describe("pseudonymizeClosedAccounts : blocages du temps 3", () => {
     solde: { wallets: [{ user_id: uid(1), balance: 100, reserved: 0 }] },
     reserve: { wallets: [{ user_id: uid(1), balance: 0, reserved: 5 }] },
     achat: { purchase_requests: [{ student_id: uid(9), client_id: uid(1), status: "paid" }] },
+    "mission cliente ouverte": { missions: [{ client_id: uid(1), selected_student_id: null, status: "open" }] },
+    "mission cliente en cours": { missions: [{ client_id: uid(1), selected_student_id: uid(9), status: "in_progress" }] },
+    "mission étudiante en cours": { missions: [{ client_id: uid(9), selected_student_id: uid(1), status: "in_progress" }] },
     signalement: { reports: [{ reporter_id: uid(9), reported_user_id: uid(1), status: "open" }] },
     "signalement en cours": { reports: [{ reporter_id: uid(1), reported_user_id: uid(9), status: "in_progress" }] },
     transaction: { transactions: [{ client_id: uid(9), student_id: uid(1), status: "pending" }] },
@@ -401,6 +405,56 @@ describe("pseudonymizeClosedAccounts : interruption et reprise", () => {
     expect(counters(r)).toMatchObject({ supprimes: 1, ignores: 0 })
     expect(db.tables.profiles[0].pseudonymized_at).toBe(iso(NOW.getTime() - DAY))
     expect(db.tables.profiles[0].full_name).toBe(CLOSED_ACCOUNT_LABEL)
+  })
+
+  it("une reprise ne réévalue pas les missions, mais revérifie les signalements ouverts", async () => {
+    const db = makeDb({
+      profiles: [closedProfile(1, 20, { pseudonymized_at: iso(NOW.getTime() - DAY) })],
+      missions: [{ client_id: uid(1), selected_student_id: null, status: "open" }],
+      reports: [{ reporter_id: uid(9), reported_user_id: uid(1), status: "open" }],
+    })
+    const r = await pseudonymizeClosedAccounts(db.service, real)
+    expect(counters(r)).toMatchObject({ ignores: 1, supprimes: 0, erreurs: 0 })
+    expect(db.writes).toEqual([])
+    expect(db.tables.profiles[0].full_name).toBe("Nom 1")
+    db.tables.reports[0].status = "resolved"
+    const again = await pseudonymizeClosedAccounts(db.service, real)
+    expect(counters(again)).toMatchObject({ supprimes: 1, ignores: 0 })
+    expect(db.tables.profiles[0].full_name).toBe(CLOSED_ACCOUNT_LABEL)
+  })
+
+  it("un signalement ouvert après la revendication suspend l'effacement et laisse le compte en reprise", async () => {
+    const db = makeDb({
+      profiles: [closedProfile(1, 20)],
+      student_profiles: [{ user_id: uid(1), card_url: `${uid(1)}/card.jpg`, skills: ["x"] }],
+      notifications: [{ recipient_id: uid(1) }],
+    })
+    db.hooks.beforeWrite = ({ table, op, rows }) => {
+      if (table === "profiles" && op === "update" && rows.reports.length === 0) {
+        rows.reports.push({ reporter_id: uid(9), reported_user_id: uid(1), status: "open" })
+      }
+    }
+    const r = await pseudonymizeClosedAccounts(db.service, real)
+    expect(counters(r)).toMatchObject({ ignores: 1, supprimes: 0, erreurs: 0 })
+    expect(db.tables.profiles[0].pseudonymized_at).toBe(NOW.toISOString())
+    expect(db.tables.profiles[0].full_name).toBe("Nom 1")
+    expect(db.writes.filter((w) => w.op === "delete")).toEqual([])
+    expect(db.removed).toEqual([])
+    expect(db.updateUserById).not.toHaveBeenCalled()
+    expect(db.tables.notifications).toHaveLength(1)
+
+    db.tables.reports[0].status = "resolved"
+    const again = await pseudonymizeClosedAccounts(db.service, real)
+    expect(counters(again)).toMatchObject({ supprimes: 1, ignores: 0 })
+    expect(db.tables.profiles[0].full_name).toBe(CLOSED_ACCOUNT_LABEL)
+  })
+
+  it("compte une erreur et n'efface rien si la relecture des signalements échoue", async () => {
+    const db = makeDb({ profiles: [closedProfile(1, 20, { pseudonymized_at: iso(NOW.getTime() - DAY) })] })
+    db.fail.set("reports.select", "XX")
+    const r = await pseudonymizeClosedAccounts(db.service, real)
+    expect(counters(r)).toMatchObject({ erreurs: 1, supprimes: 0 })
+    expect(db.writes).toEqual([])
   })
 
   it("une reprise est examinée même en simulation sans écrire", async () => {

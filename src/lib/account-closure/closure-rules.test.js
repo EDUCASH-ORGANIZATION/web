@@ -195,16 +195,26 @@ describe("blocages", () => {
     expect(closureBlockers({ ...HEALTHY, activeStudentMissions: -1 })).toEqual(["READ_ERROR"])
     expect(closureBlockers({ ...HEALTHY, role: undefined })).toEqual(["READ_ERROR"])
   })
-  it("pseudonymizationBlockers ignore missions, rôle et retraits récents", () => {
-    const busy = {
-      ...HEALTHY,
-      role: "admin",
-      activeClientMissions: 3,
-      activeStudentMissions: 3,
-      recentWithdrawals: 2,
-    }
+  it("pseudonymizationBlockers ignore le rôle et les retraits récents", () => {
+    const busy = { ...HEALTHY, role: "admin", recentWithdrawals: 2 }
     expect(pseudonymizationBlockers(busy)).toEqual([])
-    expect(pseudonymizationBlockers({ role: undefined, walletBalance: 0, walletReserved: 0, openPurchases: 0, openReports: 0, pendingTransactions: 0 })).toEqual([])
+    expect(
+      pseudonymizationBlockers({
+        role: undefined,
+        walletBalance: 0,
+        walletReserved: 0,
+        activeClientMissions: 0,
+        activeStudentMissions: 0,
+        openPurchases: 0,
+        openReports: 0,
+        pendingTransactions: 0,
+      }),
+    ).toEqual([])
+  })
+  it("pseudonymizationBlockers bloque sur une mission active (filet de sécurité)", () => {
+    expect(pseudonymizationBlockers({ ...HEALTHY, activeClientMissions: 1 })).toEqual(["MISSION_CLIENT_ACTIVE"])
+    expect(pseudonymizationBlockers({ ...HEALTHY, activeStudentMissions: 1 })).toEqual(["MISSION_STUDENT_ACTIVE"])
+    expect(pseudonymizationBlockers({ ...HEALTHY, activeStudentMissions: undefined })).toEqual(["READ_ERROR"])
   })
   it("pseudonymizationBlockers garde les quatre blocages du temps 3", () => {
     expect(pseudonymizationBlockers({ ...HEALTHY, walletReserved: 1 })).toEqual(["WALLET_NOT_EMPTY"])

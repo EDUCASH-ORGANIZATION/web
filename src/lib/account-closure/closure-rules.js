@@ -255,7 +255,13 @@ const CLOSURE_FIELD_CODES = [
   "TRANSACTION_PENDING",
 ]
 
-const PSEUDONYMIZATION_FIELD_CODES = ["PURCHASE_OPEN", "REPORT_OPEN", "TRANSACTION_PENDING"]
+const PSEUDONYMIZATION_FIELD_CODES = [
+  "MISSION_CLIENT_ACTIVE",
+  "MISSION_STUDENT_ACTIVE",
+  "PURCHASE_OPEN",
+  "REPORT_OPEN",
+  "TRANSACTION_PENDING",
+]
 
 /**
  * Blocages à la FERMETURE. Toute lecture manquante ou échouée donne ["READ_ERROR"] (fail-closed).
@@ -269,8 +275,8 @@ export function closureBlockers(snapshot) {
 }
 
 /**
- * Blocages à la PSEUDONYMISATION (temps 3) : portefeuille, signalements, achats, transactions en attente et
- * erreurs de lecture. Les missions, le rôle et les retraits récents ne sont pas réévalués.
+ * Blocages à la PSEUDONYMISATION (temps 3) : portefeuille, signalements, achats, transactions en attente, missions
+ * actives (filet de sécurité) et erreurs de lecture. Le rôle et les retraits récents ne sont pas réévalués.
  * @param {object} snapshot
  * @returns {string[]}
  */

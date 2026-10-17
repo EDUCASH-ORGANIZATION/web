@@ -61,12 +61,32 @@ async function countRows(query) {
   return error || !Number.isInteger(count) ? null : count
 }
 
+/** Nombre de signalements ouverts concernant le compte ; null à la moindre erreur de lecture (fail-closed). */
+async function countOpenReports(service, userId) {
+  try {
+    return await countRows(
+      service
+        .from("reports")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["open", "in_progress"])
+        .or(`reporter_id.eq.${userId},reported_user_id.eq.${userId}`),
+    )
+  } catch {
+    return null
+  }
+}
+
 /** Instantané des blocages du temps 3 pour un compte ; `readError` à la moindre lecture douteuse. */
 async function readBlockerSnapshot(service, userId) {
   const mine = (a, b) => `${a}.eq.${userId},${b}.eq.${userId}`
   try {
-    const [wallet, purchases, reports, pending] = await Promise.all([
+    const head = { count: "exact", head: true }
+    const [wallet, clientMissions, studentMissions, purchases, reports, pending] = await Promise.all([
       service.from("wallets").select("balance, reserved").eq("user_id", userId),
+      countRows(service.from("missions").select("id", head).eq("client_id", userId).in("status", ["open", "in_progress"])),
+      countRows(
+        service.from("missions").select("id", head).eq("selected_student_id", userId).eq("status", "in_progress"),
+      ),
       countRows(
         service
           .from("purchase_requests")
@@ -93,12 +113,22 @@ async function readBlockerSnapshot(service, userId) {
     const row = wallet.data[0] ?? { balance: 0, reserved: 0 }
     const balance = amount(row.balance ?? 0)
     const reserved = amount(row.reserved ?? 0)
-    if (balance === null || reserved === null || purchases === null || reports === null || pending === null) {
+    if (
+      balance === null ||
+      reserved === null ||
+      clientMissions === null ||
+      studentMissions === null ||
+      purchases === null ||
+      reports === null ||
+      pending === null
+    ) {
       return { readError: true }
     }
     return {
       walletBalance: balance,
       walletReserved: reserved,
+      activeClientMissions: clientMissions,
+      activeStudentMissions: studentMissions,
       openPurchases: purchases,
       openReports: reports,
       pendingTransactions: pending,
@@ -285,6 +315,18 @@ export async function pseudonymizeClosedAccounts(service, { now, mode, deadline,
           counters.ignores += 1
           continue
         }
+      }
+
+      // Un signalement ouvert apparu après la revendication (ou pendant une reprise) suspend tout effacement : le
+      // compte reste en reprise et sera réexaminé au passage suivant.
+      const openReports = await countOpenReports(service, userId)
+      if (openReports === null) {
+        counters.erreurs += 1
+        continue
+      }
+      if (openReports > 0) {
+        counters.ignores += 1
+        continue
       }
 
       const outcome = await erase(service, userId, deadline)
