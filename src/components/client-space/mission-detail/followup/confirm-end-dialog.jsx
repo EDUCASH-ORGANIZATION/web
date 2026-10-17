@@ -9,7 +9,9 @@ import { Lines } from "@/components/app-ui/lines"
 import { confirmMission } from "@/lib/actions/mission.actions"
 import { formatAmount } from "@/lib/app/format"
 import { clientReviewHref } from "@/lib/app/client-routes"
+import { StatusBadge } from "@/components/app-ui/status-badge"
 import { commissionLabel } from "./escrow-card"
+import { PaidPurchaseRow, paidRequests } from "./receipt"
 
 const FALLBACK_ERROR = "Une erreur est survenue. Réessayez dans un instant."
 const REPORT_HREF = "/contact?sujet=question"
@@ -43,6 +45,59 @@ function PaidNotice({ code }) {
     <>
       <div className="banner__title">Paiement déjà effectué</div>
       {DONE_MESSAGE}
+    </>
+  )
+}
+
+const count = (n) => (Number.isInteger(n) && n > 0 ? n : 0)
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
+
+/**
+ * Avertissement NON BLOQUANT des demandes d'achats en attente ou signalées (`detail.purchases.confirmWarning`). Il
+ * informe seulement : la confirmation de fin n'en dépend jamais et le séquestre ne bouge que sur « Libérer le paiement ».
+ * Rien n'est affiché si `show` n'est pas vrai (mission sans achats, script 94 absent, rien en attente).
+ */
+export function PurchasesWarning({ warning }) {
+  if (warning?.show !== true) return null
+  const pending = count(warning.pending)
+  const reported = count(warning.reported)
+  const parts = []
+  if (pending > 0) parts.push(`${plural(pending, "demande", "demandes")} de paiement d'achats en attente`)
+  if (reported > 0) parts.push(`${plural(reported, "demande", "demandes")} d'achats ${reported === 1 ? "signalée" : "signalées"}`)
+  const title = parts.length > 0 ? parts.join(" et ") : "Une demande d'achats n'est pas réglée"
+  return (
+    <div className="banner banner--alerte" role="status">
+      <Icon name={pending === 0 && reported > 0 ? "i-flag" : "i-clock"} />
+      <div className="banner__body">
+        <div className="banner__title">{title}</div>
+        Vous pouvez confirmer la fin : ces achats restent hors EduCash.
+        {reported > 0
+          ? " Confirmer la fin libère le service mais ne clôt pas le signalement : l'équipe EduCash continue de l'examiner."
+          : ""}
+      </div>
+    </div>
+  )
+}
+
+/** Achats payés en direct, listés à part, hors séquestre : le service seul est libéré. Aucun achat payé : rien. */
+function PaidPurchasesList({ purchases }) {
+  const rows = paidRequests(purchases)
+  if (rows.length === 0) return null
+  return (
+    <>
+      <div className="sub2">
+        <span>Achats payés en direct</span>
+        <StatusBadge label="Hors séquestre" icon="i-banknote" />
+      </div>
+      <div>
+        {rows.map((request) => (
+          <PaidPurchaseRow key={request.id} request={request} />
+        ))}
+      </div>
+      <p className="note2">
+        <Icon name="i-info" />
+        <span>Ces montants ne sont ni libérés ni remboursés par EduCash : ils sont déjà chez les vendeurs.</span>
+      </p>
     </>
   )
 }
@@ -89,6 +144,7 @@ export function ConfirmEndDialogView({
   onSubmit,
   onCancel,
   checkRef,
+  purchases,
 }) {
   const alreadyPaid = Boolean(error) && isAlreadyPaid(errorCode)
   return (
@@ -162,6 +218,8 @@ export function ConfirmEndDialogView({
           <b>Aucun nouveau paiement.</b> Ces fonds sont déjà bloqués : vous ne payez rien de plus.
         </span>
       </p>
+      <PaidPurchasesList purchases={purchases} />
+      <PurchasesWarning warning={purchases?.available === true ? purchases.confirmWarning : null} />
       <label className="check">
         <input ref={checkRef} type="checkbox" checked={checked} onChange={(e) => onCheck(e.target.checked)} disabled={pending} />
         <span>J&apos;ai reçu le travail et il me convient</span>
@@ -176,7 +234,7 @@ export function ConfirmEndDialogView({
   )
 }
 
-function ConfirmEndDialogOpen({ missionId, title, studentName, split, since, onClose, onPaid }) {
+function ConfirmEndDialogOpen({ missionId, title, studentName, split, since, purchases, onClose, onPaid }) {
   const [checked, setChecked] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState(null)
@@ -212,6 +270,7 @@ function ConfirmEndDialogOpen({ missionId, title, studentName, split, since, onC
       pending={pending}
       error={error}
       errorCode={errorCode}
+      purchases={purchases}
       onRefresh={() => refreshAndClose(router.refresh, onClose)}
       checkRef={checkRef}
       onCheck={setChecked}

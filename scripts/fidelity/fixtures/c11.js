@@ -1,8 +1,19 @@
 // Données de la planche C11 (mission terminée avec achats, non notée, cadre bureau 1 et mobile 1) : service
 // 5 000 FCFA libéré (commission 600, versé 4 400), estimation d'achats 15 000 FCFA, étudiant Ulrich Zinsou.
-// Vouvoiement, noms « Prénom N. » (A7). Les achats payés en direct (13 650 FCFA) ne sont pas une donnée : seule
-// l'estimation est lue.
+// Vouvoiement, noms « Prénom N. » (A7). Les achats payés en direct (2 demandes reçues, 13 650 FCFA) viennent de
+// `detail.purchases` (lecteur de RD-ACHATS-01) : ils ne sont ni libérés ni remboursés par EduCash, hors séquestre.
 import { student } from "./c08.js"
+
+const requests = [
+  {
+    id: "p1", seq: 1, status: "received", amount: 7450, vendorName: "Ets Chez Maman Bénédicte",
+    items: "Légumes, piment, poisson fumé", payeeKind: "merchant", payeeNumber: "452187",
+  },
+  {
+    id: "p2", seq: 2, status: "received", amount: 6200, vendorName: "Boutique Sœur Odile",
+    items: "Riz 5 kg, huile, savon", payeeKind: "phone", payeeNumber: "+22901964218",
+  },
+]
 
 export const detail = {
   mission: {
@@ -27,6 +38,14 @@ export const detail = {
     { type: "commission", amount: 600, createdAt: "2026-10-10T13:05:00+01:00" },
   ],
   review: null,
+  purchases: {
+    available: true,
+    requests,
+    totals: { count: 2, requested: 13650, paid: 13650, pending: 0, reported: 0 },
+    exceedsEstimate: false,
+    confirmWarning: { show: false, pending: 0, reported: 0 },
+    costTotal: { service: 5000, purchasesPaid: 13650, total: 18650 },
+  },
 }
 
 export const screens = [
