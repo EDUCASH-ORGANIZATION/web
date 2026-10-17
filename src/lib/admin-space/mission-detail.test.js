@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest"
-import { applicationStatusLabel, buildMissionTimeline, moneySummary } from "./mission-detail"
+import {
+  applicationStatusLabel,
+  buildMissionTimeline,
+  moneySummary,
+  purchaseReasonLabel,
+  purchaseTimeline,
+  purchasesSummary,
+  reporterLabel,
+} from "./mission-detail"
 
 const CLIENT = "c1"
 const STUDENT = "s1"
@@ -116,5 +124,74 @@ describe("applicationStatusLabel", () => {
     expect(applicationStatusLabel("accepted")).toBe("Retenue")
     expect(applicationStatusLabel("rejected")).toBe("Non retenue")
     expect(applicationStatusLabel("zzz")).toBe("Statut inconnu")
+  })
+})
+
+describe("purchasesSummary", () => {
+  it("regroupe Payé et Reçu, compte les signalées à part, ignore les annulées", () => {
+    const totals = purchasesSummary(
+      [
+        { status: "received", amount: 8750 },
+        { status: "paid", amount: 1000 },
+        { status: "pending", amount: 7500 },
+        { status: "reported", amount: 500 },
+        { status: "cancelled", amount: 9999 },
+      ],
+      15000,
+    )
+    expect(totals).toEqual({ count: 4, requested: 17750, paid: 9750, pending: 7500, reported: 500, estimate: 15000 })
+  })
+
+  it("l'estimation n'est jamais additionnée aux demandes", () => {
+    expect(purchasesSummary([{ status: "pending", amount: 100 }], 15000).requested).toBe(100)
+    expect(purchasesSummary([], 15000)).toMatchObject({ count: 0, requested: 0, paid: 0, estimate: 15000 })
+  })
+
+  it.each([[null], [undefined], [0], [-5], [NaN]])("estimation %j : absente", (estimate) => {
+    expect(purchasesSummary([], estimate).estimate).toBeNull()
+  })
+
+  it("liste invalide ou lignes invalides : totaux à zéro", () => {
+    expect(purchasesSummary(null, null)).toMatchObject({ count: 0, requested: 0 })
+    expect(purchasesSummary([{ status: "pending", amount: 12.5 }, { status: "zzz", amount: 100 }, null], null).count).toBe(0)
+  })
+})
+
+describe("purchaseTimeline", () => {
+  it("ne garde que les dates connues, dans l'ordre des événements", () => {
+    const steps = purchaseTimeline({
+      createdAt: "2026-10-12T12:10:00Z",
+      paidAt: "2026-10-12T12:24:00Z",
+      receivedAt: "2026-10-12T12:31:00Z",
+    })
+    expect(steps.map((s) => s.label)).toEqual(["Envoyée", "payée", "reçue par le vendeur"])
+    expect(steps[1].at).toBe("2026-10-12T12:24:00Z")
+  })
+
+  it("demande signalée ou annulée : l'événement est ajouté", () => {
+    expect(purchaseTimeline({ createdAt: "a", reportedAt: "b" }).map((s) => s.label)).toEqual(["Envoyée", "signalée"])
+    expect(purchaseTimeline({ createdAt: "a", editedAt: "b", cancelledAt: "c" }).map((s) => s.label)).toEqual([
+      "Envoyée",
+      "modifiée",
+      "annulée",
+    ])
+  })
+
+  it("entrée absente : aucune étape", () => {
+    expect(purchaseTimeline(null)).toEqual([])
+  })
+})
+
+describe("libellés d'achats", () => {
+  it("motifs connus et inconnu neutre", () => {
+    expect(purchaseReasonLabel("purchase_vendor_not_paid")).toBe("Le vendeur n'a pas reçu l'argent")
+    expect(purchaseReasonLabel("other")).toBe("Autre")
+    expect(purchaseReasonLabel("spam")).toBe("Motif inconnu")
+  })
+
+  it("auteur d'un signalement", () => {
+    expect(reporterLabel("client")).toBe("le client")
+    expect(reporterLabel("student")).toBe("l'étudiant")
+    expect(reporterLabel(null)).toBe("un participant")
   })
 })
