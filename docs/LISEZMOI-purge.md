@@ -21,14 +21,14 @@ Précisions :
 - Si la lecture des références d'un dossier échoue ou est illisible (URL d'une autre origine, format inconnu), tout le dossier est ignoré et compté dans `ignores`. Rien n'est supprimé dans le doute.
 - Les lignes d'achats (`purchase_requests`) sont conservées : seuls les fichiers de preuves peuvent être supprimés (P4).
 - Les transactions (`transactions`, `wallet_transactions`) ne sont jamais supprimées : conservation comptable de 10 ans (OHADA). Un garde-fou de tests interdit aux modules de purge de les toucher.
-- Ordre d'exécution : P1, P2, puis P3, P5, P6, P7, P4. Une erreur dans une catégorie n'arrête pas les suivantes.
+- Ordre d'exécution : P1, P2, puis les preuves d'achats (P3 et P4 traitées en un seul parcours, comptées `proof_orphans` et `proof_expired`), puis P5, P6 et P7. Une erreur dans une catégorie n'arrête pas les suivantes.
 
 ## La route et le planificateur
 
 - Route : `GET /api/cron/purge`, appelée chaque jour à 03:00 UTC (04:00 au Bénin) par le cron Vercel déclaré dans `vercel.json` (`0 3 * * *`).
 - Un cron Vercel ne tourne que sur le déploiement de production, jamais sur le staging.
 - La route est autorisée à passer en mode attente (`PASSTHROUGH_PATHS` dans `src/lib/site/waiting-mode.js`), car elle est protégée par secret.
-- Réponses : 503 si `CRON_SECRET` n'est pas défini, 401 si l'en-tête `Authorization` est absent ou faux, 200 avec le résumé sinon.
+- Réponses : 503 si `CRON_SECRET` n'est pas défini, 401 si l'en-tête `Authorization` est absent ou faux, 200 avec le résumé sinon. Toute autre méthode que GET reçoit 405.
 - Deux appels simultanés sont sans danger : tout est recalculé à chaque passage.
 
 ## Variables Vercel (à poser par vous, jamais par un agent)
