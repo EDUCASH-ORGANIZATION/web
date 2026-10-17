@@ -2,6 +2,7 @@
 // Logique pure du détail d'une mission admin (AD07) : argent, frise, libellés de candidature. Lecture seule.
 import { escrowSplit } from "@/lib/app/money"
 import { formatAmount } from "@/lib/app/format"
+import { purchaseReportReasonLabel, purchaseTotals } from "@/lib/purchases/requests"
 
 export const APPLICATION_STATUS_LABELS = {
   pending: "En attente",
@@ -85,4 +86,45 @@ export function buildMissionTimeline({ mission, studentName, completion, ledger,
   }
   items.push({ state: "current", icon: "i-clock", title: "En attente d'un étudiant", at: null })
   return items
+}
+
+const REPORTER_LABELS = { client: "le client", student: "l'étudiant" }
+
+/** Auteur d'un signalement, d'après son rôle dans la mission ; « un participant » si le compte est inconnu. */
+export function reporterLabel(role) {
+  return REPORTER_LABELS[role] ?? "un participant"
+}
+
+/** Motif d'un signalement lié à une demande d'achats ; « Motif inconnu » si la valeur n'est pas répertoriée. */
+export function purchaseReasonLabel(reason) {
+  return purchaseReportReasonLabel(reason) || "Motif inconnu"
+}
+
+/**
+ * Totaux des achats d'une mission, payés en direct par le client, HORS EduCash : jamais additionnés au séquestre, à
+ * la commission ni au net. `paid` regroupe les statuts Payé et Reçu ; une demande signalée est comptée à part
+ * (`reported`) et une demande annulée nulle part. L'estimation de départ reste séparée : elle n'est jamais additionnée.
+ * @param {Array<{ status?: string, amount?: number }>} requests
+ * @param {number|null} estimate
+ * @returns {{ count: number, requested: number, paid: number, pending: number, reported: number, estimate: number|null }}
+ */
+export function purchasesSummary(requests, estimate) {
+  return { ...purchaseTotals(requests), estimate: Number.isFinite(estimate) && estimate > 0 ? estimate : null }
+}
+
+/**
+ * Chronologie d'une demande d'après ses seules dates connues, dans l'ordre des événements.
+ * @param {{ createdAt?: string|null, editedAt?: string|null, paidAt?: string|null, receivedAt?: string|null, reportedAt?: string|null, cancelledAt?: string|null }} request
+ * @returns {Array<{ label: string, at: string }>}
+ */
+export function purchaseTimeline(request) {
+  const steps = [
+    ["Envoyée", request?.createdAt],
+    ["modifiée", request?.editedAt],
+    ["payée", request?.paidAt],
+    ["reçue par le vendeur", request?.receivedAt],
+    ["signalée", request?.reportedAt],
+    ["annulée", request?.cancelledAt],
+  ]
+  return steps.filter(([, at]) => Boolean(at)).map(([label, at]) => ({ label, at }))
 }

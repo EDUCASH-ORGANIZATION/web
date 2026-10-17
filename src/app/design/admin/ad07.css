@@ -14,6 +14,10 @@
 .a2 .tl-item.is-done .tl-item__dot { background: var(--c-givre); border: 1px solid var(--c-ligne); color: var(--c-ardoise); }
 .a2 .tl-item.is-current .tl-item__dot { background: var(--c-blanc); border: 1.5px solid var(--c-encre); color: var(--c-encre); }
 .a2 .tl-item.is-error .tl-item__dot { border-width: 1px; }
+/* Preuves : l'image remplit la tuile, le libellé et l'icône restent au-dessus */
+.a2 .ad07-payreq .ad-proof__lab { position: relative; }
+.a2 .a2-07-proof { position: absolute; inset: 0; display: block; }
+.a2 .a2-07-proof__img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* Vignettes de pièces réduites dans la colonne principale */
 .a2 .ad07-payreq .ad-payreq__proofs { grid-template-columns: repeat(3, 128px); }
 
