@@ -83,11 +83,40 @@ export default function PrivacyPage() {
       </LegalSection>
 
       <LegalSection {...SECTIONS.conservation_des_donnees}>
-        <p>
-          Vos données sont conservées pendant toute la durée de votre inscription
-          et supprimées dans un délai de <strong>30 jours</strong> suivant la clôture de votre compte,
-          sauf obligations légales contraires (données comptables : 10 ans).
-        </p>
+        <ul>
+          <li>
+            <strong>Compte :</strong> vos données sont conservées pendant toute la durée de votre
+            inscription.
+          </li>
+          <li>
+            <strong>Clôture du compte :</strong> vous pouvez demander la clôture de votre compte à
+            contact@educash.bj. La demande est traitée dans un délai de <strong>30 jours</strong>.
+            Les fichiers associés au compte (photo de profil, carte étudiante, photos et messages
+            vocaux envoyés, preuves d’achats) qui ne sont plus utilisés sont ensuite supprimés
+            automatiquement dans un délai de <strong>7 jours</strong>.
+          </li>
+          <li>
+            <strong>Données comptables :</strong> les transactions et les mouvements du portefeuille
+            sont conservés pendant <strong>10 ans</strong>, conformément aux obligations comptables
+            (OHADA). Tant que ces données doivent être conservées, la clôture de votre compte ne les
+            efface pas.
+          </li>
+          <li>
+            <strong>Fichiers qui ne sont plus utilisés :</strong> une photo remplacée, une carte
+            refusée, un envoi abandonné ou une preuve remplacée sont supprimés automatiquement
+            après un délai de <strong>7 jours</strong>.
+          </li>
+          <li>
+            <strong>Journal de détection et signalements :</strong> supprimés automatiquement
+            selon les durées indiquées à la section « Analyse des messages » : 180 jours pour le
+            journal, 12 mois après clôture pour les signalements.
+          </li>
+          <li>
+            <strong>Messages vocaux, photos et autres médias de messagerie :</strong> aucune durée
+            de conservation n’est fixée pour ces fichiers tant qu’ils restent utilisés ; ils sont
+            supprimés automatiquement après 7 jours une fois qu’ils ne sont plus utilisés.
+          </li>
+        </ul>
       </LegalSection>
 
       <LegalSection {...SECTIONS.demandes_d_achats}>
@@ -114,8 +143,10 @@ export default function PrivacyPage() {
             stockage privé, jamais accessible publiquement.
           </li>
           <li>
-            <strong>Durée de conservation :</strong> elle sera précisée dans une prochaine mise à
-            jour de cette politique.
+            <strong>Durée de conservation :</strong> les photos et captures sont supprimées
+            automatiquement 12 mois après la fin de la mission, et jamais tant qu’un signalement est
+            ouvert. Le numéro à payer, le nom du vendeur et le montant restent attachés à la mission
+            tant que la mission et les comptes concernés existent.
           </li>
           <li>
             <strong>Droits :</strong> vous disposez des droits décrits à la section « Vos droits »,
@@ -165,8 +196,9 @@ export default function PrivacyPage() {
             répétées peuvent conduire à un examen de la situation par cette équipe.
           </li>
           <li>
-            <strong>Durée de conservation :</strong> 180 jours pour le journal de détection et
-            12 mois après clôture pour les signalements.
+            <strong>Durée de conservation :</strong> le journal de détection est supprimé
+            automatiquement après 180 jours, et les signalements clôturés sont supprimés
+            automatiquement 12 mois après leur clôture.
           </li>
           <li>
             <strong>Recherche de lieu :</strong> lorsque vous recherchez un lieu pour l’envoyer
