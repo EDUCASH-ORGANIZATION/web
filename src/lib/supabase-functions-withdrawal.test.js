@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { describe, it, expect } from "vitest"
 import {
   extractBearerToken,
@@ -83,5 +84,25 @@ describe("corsOrigin", () => {
   it("omet Access-Control-Allow-Origin sans APP_URL", () => {
     expect(corsHeaders(undefined)).not.toHaveProperty("Access-Control-Allow-Origin")
     expect(corsHeaders("https://educash.bj")["Access-Control-Allow-Origin"]).toBe("https://educash.bj")
+  })
+})
+
+describe("process-withdrawal : rattachement du fedapay_id", () => {
+  const src = readFileSync(
+    new URL("../../supabase/functions/process-withdrawal/index.ts", import.meta.url),
+    "utf8"
+  )
+  const block = src.slice(src.indexOf("Enregistre le fedapay_id"))
+
+  it("lit l'erreur et le nombre de lignes mises a jour", () => {
+    expect(block).toMatch(/error: linkError/)
+    expect(block).toMatch(/\.select\("id"\)/)
+    expect(block).toMatch(/linkError \|\| !linked\?\.length/)
+  })
+  it("journalise l'identifiant interne seul et repond 500 sans relancer de paiement", () => {
+    expect(block).toMatch(/wallet_transaction id:/)
+    expect(block).toMatch(/json\(\{ error: "Erreur interne" \}, 500\)/)
+    expect(block).not.toMatch(/phone|amount/)
+    expect(block).not.toMatch(/fetch\(/)
   })
 })

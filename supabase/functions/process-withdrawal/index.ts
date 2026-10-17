@@ -152,11 +152,21 @@ serve(async (req) => {
     }
 
     // Enregistre le fedapay_id sur la transaction de retrait
+    // Le payout est deja lance : pas de second paiement ni de remboursement automatique en cas d'echec
     if (latestTx?.id) {
-      await supabase
+      const { data: linked, error: linkError } = await supabase
         .from("wallet_transactions")
         .update({ fedapay_id: String(payoutId) })
         .eq("id", latestTx.id)
+        .select("id")
+
+      if (linkError || !linked?.length) {
+        console.error(
+          "[process-withdrawal] INCIDENT payout started but fedapay_id not recorded, wallet_transaction id:",
+          latestTx.id
+        )
+        return json({ error: "Erreur interne" }, 500)
+      }
     }
 
     return json({ success: true, message: "Virement en cours" })
