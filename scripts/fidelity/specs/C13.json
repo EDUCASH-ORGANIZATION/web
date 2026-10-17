@@ -131,7 +131,7 @@
             "bg"
           ],
           "lot": "ST-07",
-          "note": "ÉCHEC conservé : la planche place un lien « Voir la mission » (link2, 21 px) dans un bandeau de 43 px ; le code garde le bouton encre « Confirmer la fin » (btn--sm 36 px, C09 par ?confirmer=1, décision du plan, confirmation de fin relevant de RD-DONE-01) et le texte « 5 000 FCFA en séquestre pour le service · achats estimés : environ 7 450 FCFA » passe sur deux lignes à côté du bouton : h59 contre h43 (+16)"
+          "note": "ÉCHEC conservé : la planche place un lien « Voir la mission » (link2, 21 px) dans un bandeau de 43 px ; le code garde l'action « Confirmer la fin » (btn--sm 36 px, C09 par ?confirmer=1, confirmation de fin relevant de RD-DONE-01), en contour tant qu'une demande de paiement attend (un seul bouton encre : « Payé »), et le texte « 5 000 FCFA en séquestre pour le service · achats payés en direct : 7 450 FCFA » passe sur deux lignes à côté du bouton : h59 contre h43 (+16)"
         },
         {
           "id": "MC-07",
@@ -152,7 +152,7 @@
             "h"
           ],
           "lot": "ST-07",
-          "note": "ÉCHEC conservé : lien « Voir la mission » absent, remplacé par le bouton encre « Confirmer la fin » (décision du plan, RD-DONE-01) ; la mission reste atteignable par « Confirmer la fin » (ouvre la mission) et par Mes missions"
+          "note": "ÉCHEC conservé : lien « Voir la mission » absent, remplacé par « Confirmer la fin » (contour, RD-DONE-01) ; la mission reste atteignable par « Confirmer la fin » (ouvre la mission) et par Mes missions"
         },
         {
           "id": "MC-11",
@@ -177,6 +177,96 @@
             "bg"
           ],
           "lot": ""
+        },
+        {
+          "id": "MC-13",
+          "label": "carte « Reçu par le vendeur »",
+          "board": "article.c-payreq:nth-of-type(1)",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "bg",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MC-13",
+          "label": "badge « Reçu par le vendeur »",
+          "board": "article.c-payreq:nth-of-type(1) .badge",
+          "props": [
+            "h",
+            "radius",
+            "bg",
+            "color"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MC-13",
+          "label": "carte « En attente »",
+          "board": "article.c-payreq:nth-of-type(2)",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "bg",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MC-13",
+          "label": "badge « En attente »",
+          "board": "article.c-payreq:nth-of-type(2) .badge",
+          "props": [
+            "h",
+            "radius",
+            "bg",
+            "color"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MC-13",
+          "label": "avertissement avant paiement",
+          "board": "article.c-payreq:nth-of-type(2) .c-payreq__warn",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "bg",
+            "pad"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MC-13",
+          "label": "total de la demande",
+          "board": "article.c-payreq:nth-of-type(2) .c-payreq__total",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "bg",
+            "pad"
+          ],
+          "lot": "ST-11"
+        },
+        {
+          "id": "MC-13",
+          "label": "bouton « Payé »",
+          "board": "article.c-payreq:nth-of-type(2) .btn--dark",
+          "props": [
+            "h",
+            "radius",
+            "bg",
+            "color"
+          ],
+          "lot": "ST-11"
         },
         {
           "id": "MC-12",
@@ -213,7 +303,7 @@
           "assume": {
             "y": "A5:22"
           },
-          "note": "A5 : le bandeau est 22 px plus haut (bouton « Confirmer la fin » de 44 px contre un lien de 22 px), le fil descend d'autant (planche y103, code y125)"
+          "note": "A5 : le bandeau est 22 px plus haut (action « Confirmer la fin » de 44 px contre un lien de 22 px), le fil descend d'autant (planche y103, code y125)"
         },
         {
           "id": "MC-09",
@@ -230,7 +320,39 @@
           "assume": {
             "h": "A5:22"
           },
-          "note": "A5 : action de 44 px (« Confirmer la fin ») contre un lien « Mission » de 22 px en planche : h65 contre h43, +22 mesuré"
+          "note": "A5 : action de 44 px (« Confirmer la fin », en contour tant qu'une demande attend) contre un lien « Mission » de 22 px en planche : h65 contre h43, +22 mesuré"
+        },
+        {
+          "id": "MC-13",
+          "label": "carte « En attente »",
+          "board": "article.c-payreq:nth-of-type(1)",
+          "props": [
+            "x",
+            "w",
+            "radius",
+            "bg",
+            "pad",
+            "gap"
+          ],
+          "lot": "ST-11",
+          "code": "article.c-payreq:nth-of-type(2)"
+        },
+        {
+          "id": "MC-13",
+          "label": "bouton « Payé »",
+          "board": "article.c-payreq:nth-of-type(1) .btn--dark",
+          "props": [
+            "h",
+            "radius",
+            "bg",
+            "color"
+          ],
+          "lot": "ST-11",
+          "code": "article.c-payreq:nth-of-type(2) .btn--dark",
+          "assume": {
+            "h": "A5:8"
+          },
+          "note": "A5 : cible tactile de 44 px contre 36 px en planche (h+8 mesuré)"
         },
         {
           "id": "MC-11",
@@ -250,5 +372,5 @@
       ]
     }
   ],
-  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1)"
+  "assumeNote": "A1 : couleurs de la charte (correspondance exacte) ; A2 : taille minimale 13 px, texte de 13 à 14 px (fontSize +1). Cartes de demande de paiement (MC-13), écarts assumés non mesurables : y et h des cartes non comparés (la planche dessine des vignettes stylisées, le code affiche les photos signées ou « Photo indisponible » faute d'adresse dans le banc ; la carte du code est plus haute) ; badge « Payé » NEUTRE au lieu du bleu clair de la planche (les variantes de statusBadge n'incluent pas le bleu ; absent des deux cadres mesurés) ; l'avertissement « EduCash n'intervient pas dans ce paiement » n'est affiché que sur la carte en attente, absent de « Reçu par le vendeur » (la planche l'y affiche aussi, décision ST-06) ; lien « Voir la capture » de la planche non implémenté (aucun visualiseur) ; lignes système du fil (« Vous avez retenu... », « ... a reçu ... ») non reprises à l'identique : seule la ligne purchase_event du serveur est affichée ; bandeau : « Confirmer la fin » en contour tant qu'une demande attend, à la place du lien « Voir la mission »"
 }
