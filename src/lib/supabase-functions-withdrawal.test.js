@@ -92,16 +92,20 @@ describe("process-withdrawal : rattachement du fedapay_id", () => {
     new URL("../../supabase/functions/process-withdrawal/index.ts", import.meta.url),
     "utf8"
   )
-  const block = src.slice(src.indexOf("Enregistre le fedapay_id"))
+  const start = src.indexOf("Le payout est deja lance")
+  const block = src.slice(start, src.indexOf("return json({ success: true", start))
 
   it("lit l'erreur et le nombre de lignes mises a jour", () => {
+    expect(start).toBeGreaterThan(-1)
     expect(block).toMatch(/error: linkError/)
     expect(block).toMatch(/\.select\("id"\)/)
-    expect(block).toMatch(/linkError \|\| !linked\?\.length/)
+    expect(block).toMatch(/linkError/)
+    expect(block).toMatch(/linked\?\.length/)
   })
-  it("journalise l'identifiant interne seul et repond 500 sans relancer de paiement", () => {
+  it("journalise transaction et payout sans donnee personnelle, sans erreur ni nouvel appel", () => {
     expect(block).toMatch(/wallet_transaction id:/)
-    expect(block).toMatch(/json\(\{ error: "Erreur interne" \}, 500\)/)
+    expect(block).toMatch(/"payout id:"/)
+    expect(block).not.toMatch(/return json\(/)
     expect(block).not.toMatch(/phone|amount/)
     expect(block).not.toMatch(/fetch\(/)
   })
