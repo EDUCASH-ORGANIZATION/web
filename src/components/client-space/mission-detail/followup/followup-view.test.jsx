@@ -378,7 +378,7 @@ describe("le séquestre reste le budget seul (estimation d'achats jamais ajouté
   })
 })
 
-describe("achats pour votre compte (C08, C11), estimation seule", () => {
+describe("achats pour votre compte (C08, C11), sans demande de paiement lue", () => {
   const withEstimate = (status, over = {}, estimate = 15000) => {
     const base = detailOf(status, over)
     return { ...base, mission: { ...base.mission, budget: 8000, purchasesEstimate: estimate } }
@@ -403,12 +403,27 @@ describe("achats pour votre compte (C08, C11), estimation seule", () => {
     expect(card).toMatch(/Estimation donnée à la publication/)
     expect(card).toMatch(/15\s000/)
     expect(card).toContain("directement par MoMo")
-    expect(card).not.toMatch(/Demande de paiement|Payé en direct|vendeur\s:/)
+    // Colonne ou table absente, ou mission sans achats : `purchases` indisponible, rendu strictement inchangé (estimation seule).
+    expect(card).not.toMatch(/Demande de paiement|Payé en direct|En attente de votre paiement|Numéro à payer|vendeur\s:/)
+    expect(out).not.toContain("vous demande de payer")
+    expect(out).not.toContain("Ouvrir la demande")
     expect(at(out, "Mission en cours")).toBeLessThan(at(out, "Achats pour votre compte"))
     expect(at(out, "Achats pour votre compte")).toBeLessThan(at(out, "Chronologie"))
     expect(at(out, "Chronologie")).toBeLessThan(at(out, "Étudiant retenu"))
     expect(at(out, "Étudiant retenu")).toBeLessThan(at(out, "Séquestre"))
     expect(out.match(/Hors EduCash/g)).toHaveLength(1)
+  })
+
+  it("C08 : `purchases` indisponible (colonne absente) ou sans demande, rendu identique à l'absence de la clé", () => {
+    const base = render(withEstimate("in_progress", { ledger: RESERVE }), PAYS)
+    for (const purchases of [{ available: false }, undefined, null]) {
+      expect(render(withEstimate("in_progress", { ledger: RESERVE, purchases }), PAYS)).toBe(base)
+    }
+    const empty = {
+      available: true, requests: [], totals: { count: 0, requested: 0, paid: 0, pending: 0, reported: 0 },
+      exceedsEstimate: false, confirmWarning: { show: false, pending: 0, reported: 0 }, costTotal: null,
+    }
+    expect(render(withEstimate("in_progress", { ledger: RESERVE, purchases: empty }), PAYS)).toBe(base)
   })
 
   it("C08 : le séquestre reste le budget seul, ni 23 000 ni 15 000 dans la carte Séquestre", () => {
@@ -616,3 +631,159 @@ describe("accessibilité de la carte compacte et texte d'état sans réserve", (
   })
 })
 
+
+describe("C08 avec demandes de paiement d'achats (ST-13)", () => {
+  const U1 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1"
+  const U2 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2"
+  const U3 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3"
+  const RESERVE = [{ type: "reserve", amount: 8000, createdAt: "2026-10-02T10:14:00Z" }]
+  const req = (over) => ({
+    id: U1, seq: 1, status: "pending", version: 1, amount: 6200, vendorName: "Boutique Sœur Odile", items: "riz 5 kg",
+    payeeKind: "merchant", payeeNumber: "123456", alreadyReportedByMe: false, reviewed: false, ...over,
+  })
+  const withPurchases = (requests, { exceeds = false, status = "in_progress", extra = {} } = {}) => {
+    const live = requests.filter((r) => r.status !== "cancelled")
+    const totals = { count: live.length, requested: 0, paid: 0, pending: 0, reported: 0 }
+    for (const r of live) {
+      totals.requested += r.amount
+      if (r.status === "pending") totals.pending += r.amount
+      else if (r.status === "reported") totals.reported += r.amount
+      else totals.paid += r.amount
+    }
+    const base = detailOf(status, { ledger: RESERVE, ...extra })
+    return {
+      ...base,
+      mission: { ...base.mission, budget: 8000, purchasesEstimate: 15000 },
+      purchases: {
+        available: true, requests, totals, exceedsEstimate: exceeds,
+        confirmWarning: { show: false, pending: 0, reported: 0 }, costTotal: null,
+      },
+    }
+  }
+  const section = (out, label) => {
+    const from = out.slice(out.indexOf(`aria-label="${label}"`))
+    return from.slice(0, from.indexOf("</section>"))
+  }
+  const at = (out, label) => out.indexOf(`aria-label="${label}"`)
+  const PAYS = { ...FLAGS, paymentsEnabled: true }
+  const dark = (html) => html.match(/class="btn btn--dark[^"]*"/g) ?? []
+
+  it("une demande en attente : ligne À faire, bouton Ouvrir la demande vers la conversation, avertissement", () => {
+    const out = render(withPurchases([req()]), PAYS)
+    const todo = section(out, "À faire")
+    expect(todo).toMatch(/Sèna vous demande de payer 6\s200\sFCFA à Boutique Sœur Odile/)
+    expect(todo).toContain("Vérifiez le nom du bénéficiaire affiché par MoMo avant de payer. EduCash n'intervient pas dans ce paiement.")
+    expect(todo).toContain(`href="/client/messages/m1?studentId=s1&amp;demande=${U1}"`)
+    expect(todo).toContain("Ouvrir la demande")
+    expect(out).not.toContain("Mission en cours avec")
+    expect(at(out, "À faire")).toBeLessThan(at(out, "Achats pour votre compte"))
+  })
+
+  it("la carte achats liste statut, montant, vendeur et numéro à payer, et les totaux hors séquestre", () => {
+    const out = render(
+      withPurchases([
+        req({ id: U2, seq: 1, status: "received", amount: 7450, vendorName: "Ets Chez Maman Bénédicte", items: "légumes", payeeNumber: "+2290197121208" }),
+        req({ id: U1, seq: 2 }),
+      ]),
+      PAYS,
+    )
+    const card = section(out, "Achats pour votre compte")
+    expect(card).toContain("Ets Chez Maman Bénédicte")
+    expect(card).toMatch(/7\s450\sFCFA · légumes/)
+    expect(card).toContain("Reçu par le vendeur")
+    expect(card).toContain("À payer")
+    expect(card).toMatch(/Numéro à payer : \+229\s01\s97\s12\s12\s08/)
+    expect(card).toContain("Numéro à payer : 123456")
+    expect(card).toMatch(/Estimation donnée à la publication[^]*15\s000/)
+    expect(card).toMatch(/Payé en direct par MoMo[^]*7\s450/)
+    expect(card).toMatch(/En attente de votre paiement[^]*6\s200/)
+    expect(card).toContain("Hors EduCash")
+    expect(card).toContain("EduCash ne peut pas les rembourser")
+    // L'estimation n'est jamais additionnée aux demandes, le séquestre reste le service seul.
+    expect(card).not.toMatch(/21\s000|13\s650/)
+    expect(section(out, "Séquestre")).not.toMatch(/6\s200|7\s450|15\s000/)
+  })
+
+  it("un seul bouton encre par cadre : Ouvrir la demande, Confirmer la fin en contour et jamais désactivé", () => {
+    const out = render(withPurchases([req()]), PAYS)
+    expect(dark(out)).toHaveLength(1)
+    expect(dark(section(out, "À faire"))).toHaveLength(1)
+    const confirms = out.match(/<button[^>]*>(?:(?!<\/button>)[^])*Confirmer la fin<\/button>/g) ?? []
+    expect(confirms.length).toBeGreaterThanOrEqual(2)
+    for (const b of confirms) {
+      expect(b).toContain("btn--soft")
+      expect(b).not.toMatch(/disabled|aria-disabled|is-disabled/)
+    }
+    // Le bouton reste dans la carte Séquestre (contour), pas dans la carte « À faire ».
+    expect(section(out, "Séquestre")).toMatch(/<button[^>]*btn--soft[^>]*>[^]*Confirmer la fin/)
+    expect(section(out, "À faire")).not.toContain("Confirmer la fin")
+  })
+
+  it("sans demande en attente, Confirmer la fin reste le bouton encre et la carte Mission en cours est conservée", () => {
+    const out = render(withPurchases([req({ status: "received" })]), PAYS)
+    expect(out).toContain('aria-label="Mission en cours"')
+    expect(out).not.toContain("vous demande de payer")
+    expect(section(out, "Séquestre")).toMatch(/<button[^>]*btn--dark[^>]*>/)
+    expect(dark(out).length).toBeGreaterThanOrEqual(2)
+  })
+
+  it("deux demandes en attente : la première (numéro le plus bas) ouvre, l'autre est mentionnée", () => {
+    const out = render(withPurchases([req({ id: U3, seq: 2, vendorName: "Chez Odile" }), req({ id: U1, seq: 1 })]), PAYS)
+    const todo = section(out, "À faire")
+    expect(todo).toContain("Boutique Sœur Odile")
+    expect(todo).toContain(`demande=${U1}`)
+    expect(todo).toContain("Une autre demande attend aussi votre paiement")
+    expect(dark(out)).toHaveLength(1)
+  })
+
+  it("fin déclarée avec une demande en attente : À faire de paiement puis À confirmer, un seul bouton encre", () => {
+    const out = render(withPurchases([req()], { extra: { completion: { available: true, declaredAt: "2026-10-07T10:00:00Z" } } }), PAYS)
+    expect(at(out, "À faire")).toBeLessThan(at(out, "À confirmer"))
+    expect(section(out, "À confirmer")).toContain("Confirmer la fin")
+    expect(dark(out)).toHaveLength(1)
+    expect(section(out, "À confirmer")).toMatch(/<button[^>]*btn--soft[^>]*>/)
+  })
+
+  it("fin déclarée sans demande en attente : la carte À confirmer garde son bouton encre", () => {
+    const out = render(withPurchases([req({ status: "paid" })], { extra: { completion: { available: true, declaredAt: "2026-10-07T10:00:00Z" } } }), PAYS)
+    expect(out).not.toContain("vous demande de payer")
+    expect(section(out, "À confirmer")).toMatch(/<button[^>]*btn--dark[^>]*>/)
+  })
+
+  it("dépassement de l'estimation : simple avertissement, rien n'est bloqué", () => {
+    const out = render(withPurchases([req({ amount: 40000 })], { exceeds: true }), PAYS)
+    expect(section(out, "Achats pour votre compte")).toContain("dépasse largement l'estimation de départ")
+    expect(out).toContain("Ouvrir la demande")
+    const calm = render(withPurchases([req()]), PAYS)
+    expect(calm).not.toContain("dépasse largement")
+  })
+
+  it("demande signalée examinée : mention de l'équipe, aucune action d'argent", () => {
+    const out = render(withPurchases([req({ status: "reported", reviewed: true })]), PAYS)
+    const card = section(out, "Achats pour votre compte")
+    expect(card).toContain("Signalé")
+    expect(card).toContain("Examiné par l'équipe EduCash")
+    expect(out).not.toContain("vous demande de payer")
+    expect(out).not.toMatch(/Rembourser|Compenser|Confirmer et payer/)
+  })
+
+  it("chronologie : étape Achats en cours avec le résumé des demandes", () => {
+    const out = render(withPurchases([req({ id: U2, seq: 1, status: "received" }), req()]), PAYS)
+    const tl = section(out, "Chronologie")
+    expect(tl).toContain("Achats en cours")
+    expect(tl).toContain("1 demande payée, 1 en attente")
+  })
+
+  it("vouvoiement, jamais « vous touchez », aucun net de l'étudiant dans la carte achats", () => {
+    const out = render(withPurchases([req()]), PAYS)
+    expect(out).not.toMatch(/vous touchez/i)
+    expect(section(out, "Achats pour votre compte")).not.toMatch(/Versé à|net/i)
+    expect(out).not.toMatch(/\btu\b|\bton\b|\bta\b/i)
+  })
+
+  it("mission terminée : la liste des demandes n'apparaît pas encore (C11 appartient à une autre tâche)", () => {
+    const done = withPurchases([req({ status: "received" })], { status: "done", extra: { ledger: DONE_LEDGER } })
+    const out = render(done, PAYS)
+    expect(section(out, "Achats pour votre compte")).not.toContain("Boutique Sœur Odile")
+  })
+})
