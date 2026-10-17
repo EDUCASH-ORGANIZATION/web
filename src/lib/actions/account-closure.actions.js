@@ -129,7 +129,7 @@ export async function closeMyAccount(_prev, formData) {
 
   const confirmation = formData?.get?.("confirmation")
   const password = formData?.get?.("password")
-  if (typeof confirmation !== "string" || confirmation.trim() !== CONFIRMATION_WORD) {
+  if (confirmation !== CONFIRMATION_WORD) {
     return { error: ERR_CONFIRMATION }
   }
   if (typeof password !== "string" || password === "") return { error: ERR_PASSWORD_REQUIRED }
