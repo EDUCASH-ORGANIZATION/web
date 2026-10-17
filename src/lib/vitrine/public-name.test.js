@@ -30,6 +30,22 @@ describe("publicDisplayName", () => {
   })
 })
 
+describe("libellé de compte clôturé", () => {
+  it("publicDisplayName renvoie le libellé intact", () => {
+    expect(publicDisplayName("Compte clôturé")).toBe("Compte clôturé")
+    expect(publicDisplayName("  Compte   clôturé ")).toBe("Compte clôturé")
+    expect(publicDisplayName("Compte clôturé", { full: true })).toBe("Compte clôturé")
+  })
+  it("firstName renvoie le libellé intact", () => {
+    expect(firstName("Compte clôturé")).toBe("Compte clôturé")
+    expect(firstName("Compte clôturé", { fallback: "Autre" })).toBe("Compte clôturé")
+  })
+  it("laisse les autres noms inchangés", () => {
+    expect(publicDisplayName("Compte Kossi")).toBe("Compte K.")
+    expect(firstName("Compte Kossi")).toBe("Compte")
+  })
+})
+
 describe("firstName", () => {
   it("renvoie le premier mot", () => {
     expect(firstName("Awa  Dossou")).toBe("Awa")
