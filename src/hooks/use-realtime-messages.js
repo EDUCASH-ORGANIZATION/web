@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { MEDIA_BUCKET, createMediaRefresher, isPairRow, mergeMessages, toMessage } from "@/lib/client-space/conversations"
+import { MEDIA_BUCKET, createMediaRefresher, isPairRow, isPurchaseMessageType, mergeMessages, toMessage } from "@/lib/client-space/conversations"
 
 // Une adresse signée pour un message : null si l'action échoue ou ne connaît pas le message.
 async function fetchMediaUrl(resolve, messageId) {
@@ -26,12 +26,16 @@ async function fetchMediaUrl(resolve, messageId) {
  * signe pas lui-même : il appelle `resolveMedia(messageIds)` (action serveur) pour un média reçu, et
  * `refreshMedia(messageId)` re-signe UNE fois un média dont le chargement a échoué (adresse expirée) ; au second
  * échec le média est déclaré indisponible (adresse null), sans boucle.
+ * Messages d'achat (RD-ACHATS-01) : la carte `purchase_request` et la ligne système `purchase_event` arrivent par le même
+ * abonnement, sans autre filtre. La ligne est exposée avec `type`, `content` et `purchaseRequestId`. Le contenu de la
+ * demande (statut, version, montants) n'est pas dans la ligne : `onPurchaseMessage(message)` est appelé pour chaque
+ * message d'achat reçu (le vôtre comme celui de l'autre partie) afin que la vue relise les demandes côté serveur.
  * Seul endroit client autorisé à importer `@/lib/supabase/client` pour la messagerie.
  *
- * @param {{ missionId: string, studentId: string, userId: string, initialMessages: object[], onIncoming?: (message: object) => void, resolveMedia?: (messageIds: string[]) => Promise<{ media?: Record<string, string|null>, error?: string }> }} options
+ * @param {{ missionId: string, studentId: string, userId: string, initialMessages: object[], onIncoming?: (message: object) => void, onPurchaseMessage?: (message: object) => void, resolveMedia?: (messageIds: string[]) => Promise<{ media?: Record<string, string|null>, error?: string }> }} options
  * @returns {{ messages: object[], append: (message: object) => void, refreshMedia: (messageId: string) => Promise<void> }}
  */
-export function useRealtimeMessages({ missionId, studentId, userId, initialMessages, onIncoming, resolveMedia }) {
+export function useRealtimeMessages({ missionId, studentId, userId, initialMessages, onIncoming, onPurchaseMessage, resolveMedia }) {
   const [supabase] = useState(() => createClient())
   // Messages reçus ou envoyés depuis le chargement ; fusionnés avec ceux du serveur à chaque rendu,
   // donc un rafraîchissement serveur ne fait rien perdre.
@@ -44,10 +48,12 @@ export function useRealtimeMessages({ missionId, studentId, userId, initialMessa
     [merged, urls],
   )
   const incomingRef = useRef(onIncoming)
+  const purchaseRef = useRef(onPurchaseMessage)
   const resolveRef = useRef(resolveMedia)
 
   useEffect(() => {
     incomingRef.current = onIncoming
+    purchaseRef.current = onPurchaseMessage
     resolveRef.current = resolveMedia
   })
 
@@ -70,6 +76,7 @@ export function useRealtimeMessages({ missionId, studentId, userId, initialMessa
           }
           setLive((prev) => mergeMessages(prev, [message]))
           if (!message.mine) incomingRef.current?.(message)
+          if (isPurchaseMessageType(message.type)) purchaseRef.current?.(message)
         },
       )
       .subscribe()

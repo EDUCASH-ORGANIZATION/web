@@ -3,12 +3,17 @@
 // Importable côté serveur (actions), navigateur (vues, hook temps réel) et tests.
 
 import { toOwnedStoragePath } from "@/lib/storage/owned-paths"
+import { isUuid } from "@/lib/vitrine/ids"
+import { PURCHASE_MESSAGE_TYPES } from "@/lib/purchases/requests"
 
 const BENIN_TZ = "Africa/Porto-Novo"
 
 export const MESSAGE_MAX_LENGTH = 2000
 export const MEDIA_MAX_BYTES = 10 * 1024 * 1024
-export const MESSAGE_TYPES = ["text", "image", "voice", "location"]
+/** Types qu'un utilisateur peut envoyer. Les types d'achat ne le sont JAMAIS : le serveur seul les écrit (ST-04). */
+export const SENDABLE_MESSAGE_TYPES = ["text", "image", "voice", "location"]
+/** Types lus par les vues : les 4 types envoyables, la carte `purchase_request` et la ligne système `purchase_event`. */
+export const MESSAGE_TYPES = [...SENDABLE_MESSAGE_TYPES, ...PURCHASE_MESSAGE_TYPES]
 export const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"]
 export const AUDIO_EXTENSIONS = ["webm", "ogg", "oga", "mp3", "mpeg", "m4a", "mp4", "aac", "wav"]
 export const MEDIA_BUCKET = "message-media"
@@ -20,6 +25,20 @@ export const MEDIA_CONTENT = {
   image: "Image",
   voice: "Message vocal",
   location: "Position partagée",
+}
+
+/**
+ * Aperçu fixe d'un message d'achat dans la boîte de réception : jamais le contenu de la ligne, donc ni numéro
+ * d'ordre, ni vendeur, ni montant.
+ */
+export const PURCHASE_PREVIEW = {
+  purchase_request: "Demande de paiement d'achats",
+  purchase_event: "Mise à jour d'une demande de paiement",
+}
+
+/** Vrai pour la carte `purchase_request` et la ligne système `purchase_event`. */
+export function isPurchaseMessageType(type) {
+  return PURCHASE_MESSAGE_TYPES.includes(type)
 }
 
 export function conversationKey(missionId, studentId) {
@@ -172,11 +191,18 @@ export function coordsValid(lat, lng) {
  * @param {object} row
  * @param {string} userId
  * @param {Record<string, string>} [signedByPath] adresses signées par chemin
- * @returns {{ id: string, mine: boolean, type: string, content: string, mediaPath: string|null, mediaUrl: string|null, lat: number|null, lng: number|null, createdAt: string, read: boolean }|null}
+ * Messages d'achat (`purchase_request`, `purchase_event`) : `purchaseRequestId` est l'identifiant de la demande, `content`
+ * le texte fixe écrit par le serveur ; aucun média ni position. Une ligne d'un type d'achat sans identifiant de demande
+ * valide est ignorée (null) : elle ne s'affiche jamais comme un message texte. `purchaseRequestId` vaut null pour
+ * tous les autres types (la colonne est absente avant le script 94).
+ * @returns {{ id: string, mine: boolean, type: string, content: string, purchaseRequestId: string|null, mediaPath: string|null, mediaUrl: string|null, lat: number|null, lng: number|null, createdAt: string, read: boolean }|null}
  */
 export function toMessage(row, userId, signedByPath) {
   if (!row || typeof row.id !== "string" || typeof row.created_at !== "string") return null
   const type = MESSAGE_TYPES.includes(row.type) ? row.type : "text"
+  const purchase = isPurchaseMessageType(type)
+  const purchaseRequestId = purchase && isUuid(row.purchase_request_id) ? row.purchase_request_id.toLowerCase() : null
+  if (purchase && !purchaseRequestId) return null
   const hasMedia = type === "image" || type === "voice"
   const located = type === "location" && coordsValid(row.location_lat, row.location_lng)
   const mediaPath = hasMedia ? mediaPathOf(row.media_url, row.sender_id) : null
@@ -186,6 +212,7 @@ export function toMessage(row, userId, signedByPath) {
     mine: row.sender_id === userId,
     type,
     content: typeof row.content === "string" ? row.content : "",
+    purchaseRequestId,
     mediaPath,
     mediaUrl: safeSignedMediaUrl(signed),
     lat: located ? row.location_lat : null,
@@ -298,10 +325,16 @@ export function buildConversations(rows, userId) {
   return [...byKey.values()].sort((a, b) => (a.last.createdAt < b.last.createdAt ? 1 : a.last.createdAt > b.last.createdAt ? -1 : 0))
 }
 
-/** Aperçu d'un dernier message : le texte, ou le nom du média, précédé de « Vous : » pour un message envoyé. */
+/**
+ * Aperçu d'un dernier message : le texte, ou le nom du média, précédé de « Vous : » pour un message envoyé. Un message
+ * d'achat a un texte fixe (`PURCHASE_PREVIEW`), jamais son contenu ; la ligne système n'a pas de préfixe (elle n'est
+ * écrite par personne en particulier).
+ */
 export function previewOf(last) {
   if (!last) return ""
   const type = MESSAGE_TYPES.includes(last.type) ? last.type : "text"
+  if (type === "purchase_event") return PURCHASE_PREVIEW.purchase_event
+  if (type === "purchase_request") return last.mine ? `Vous : ${PURCHASE_PREVIEW.purchase_request}` : PURCHASE_PREVIEW.purchase_request
   const body = type === "text" ? (typeof last.content === "string" ? last.content.trim() : "") : MEDIA_CONTENT[type]
   return last.mine ? `Vous : ${body}` : body
 }

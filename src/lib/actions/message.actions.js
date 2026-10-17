@@ -19,6 +19,13 @@
 // L'expéditeur est toujours l'identifiant de la session. Aucune lecture ne renvoie de colonne privée de
 // profils : nom public ("Prénom I."), avatar et initiales seulement.
 //
+// Messages d'achats (RD-ACHATS-01) : la carte `purchase_request` et la ligne système `purchase_event` sont écrites par le
+// serveur seul (`src/lib/purchases/purchase-messages.js`). Aucun envoi utilisateur ne peut produire ces types
+// (SENDABLE_MESSAGE_TYPES), ils ne passent jamais par le masquage des coordonnées et ne comptent pas dans le débit.
+// Les lectures de conversation les exposent avec `purchaseRequestId`, et joignent les demandes (vues de
+// purchase-request.actions.js) quand la mission prévoit des achats ou que le fil contient un message d'achat. Avant le
+// script 94 (colonne et table absentes) les lectures retombent sur le rendu d'avant : aucune demande, aucune erreur.
+//
 // Limites documentées :
 // - la boîte de réception lit les 1000 messages les plus récents de l'utilisateur ; une conversation dont
 //   tous les messages sont plus anciens n'y figure pas ;
@@ -43,6 +50,8 @@ import { MASKABLE_KINDS, SPLIT_LOOKBACK, SPLIT_WINDOW_MINUTES } from "@/lib/mess
 import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
 import { toOwnedStoragePath, toProjectAvatarUrl } from "@/lib/storage/owned-paths"
 import { purchasesEstimateOf } from "@/lib/app/purchases"
+import { getClientPurchaseRequests, getStudentPurchaseRequests } from "@/lib/actions/purchase-request.actions"
+import { purchaseTotals } from "@/lib/purchases/requests"
 import { netAmount } from "@/lib/constants/missions"
 import { isUuid } from "@/lib/vitrine/ids"
 import { publicDisplayName } from "@/lib/vitrine/public-name"
@@ -51,11 +60,13 @@ import {
   MEDIA_CONTENT,
   MEDIA_SIGNED_URL_TTL,
   MESSAGE_MAX_LENGTH,
+  SENDABLE_MESSAGE_TYPES,
   buildConversations,
   conversationAccess,
   withCompletionDeclared,
   coordsValid,
   isPairRow,
+  isPurchaseMessageType,
   mediaKindOfPath,
   mediaPathOf,
   mergeMessages,
@@ -81,6 +92,8 @@ const INBOX_COLUMNS = "id, mission_id, sender_id, receiver_id, content, type, re
 const MEDIA_IDS_MAX = 50
 const MESSAGE_COLUMNS =
   "id, mission_id, sender_id, receiver_id, content, type, media_url, location_lat, location_lng, read, created_at"
+// Lecture d'un fil : ajoute le lien vers la demande d'achats (colonne créée par le script 94).
+const THREAD_COLUMNS = `${MESSAGE_COLUMNS}, purchase_request_id`
 const MISSION_COLUMNS = "id, title, status, selected_student_id, type, budget, purchases_estimate"
 // Colonnes publiques seulement : jamais de select("*") sur profiles.
 const PUBLIC_PROFILE_COLUMNS = "user_id, full_name, avatar_url"
@@ -90,7 +103,7 @@ const uuid = z.string().refine(isUuid).transform((value) => value.toLowerCase())
 const sendSchema = z.object({
   missionId: uuid,
   studentId: uuid,
-  type: z.enum(["text", "image", "voice", "location"]),
+  type: z.enum(SENDABLE_MESSAGE_TYPES),
   content: z.string().max(MESSAGE_MAX_LENGTH).optional(),
   mediaPath: z.string().max(300).optional(),
   lat: z.number().optional(),
@@ -244,6 +257,59 @@ async function resolvePairMedia(supabase, userId, otherId, missionId, messageIds
   return { media }
 }
 
+// Colonne de lien d'achat absente (script 94 non appliqué) : PostgREST répond 42703 ou PGRST204.
+const isMissingLinkColumn = (error) =>
+  Boolean(error) && ["42703", "PGRST204"].includes(error.code) && /purchase_request_id/.test(error.message ?? "")
+
+/**
+ * Derniers messages d'une paire dans une mission, avec le lien d'achat. Colonne absente : relecture à l'identique
+ * sans elle (le rendu d'avant le script 94 : aucun message d'achat n'existe).
+ */
+async function readThreadRows(supabase, { missionId, userId, otherId }) {
+  const read = (columns) =>
+    supabase
+      .from("messages")
+      .select(columns)
+      .eq("mission_id", missionId)
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${userId})`)
+      .order("created_at", { ascending: false })
+      .limit(THREAD_ROWS_LIMIT)
+  const first = await read(THREAD_COLUMNS)
+  return isMissingLinkColumn(first.error) ? read(MESSAGE_COLUMNS) : first
+}
+
+const noPurchases = () => ({
+  purchasesAvailable: false,
+  purchaseRequests: [],
+  purchaseTotals: purchaseTotals([]),
+  purchaseCanCreate: false,
+})
+
+/**
+ * Demandes d'achats d'une conversation, lues par les lecteurs de purchase-request.actions.js (rôle et propriété
+ * revérifiés par eux, jamais de demande d'autrui). Lecture seulement quand la mission prévoit des achats ou que le fil
+ * contient un message d'achat. Fonction indisponible (script 94 non appliqué), erreur ou refus : aucune demande et
+ * `purchasesAvailable: false` - la conversation se charge toujours.
+ * @returns {Promise<{ purchasesAvailable: boolean, purchaseRequests: object[], purchaseTotals: object, purchaseCanCreate: boolean }>}
+ */
+async function readConversationPurchases(role, mission, messages) {
+  const hasPurchaseMessage = messages.some((m) => isPurchaseMessageType(m.type))
+  if (!hasPurchaseMessage && mission.purchasesEstimate === null) return noPurchases()
+  try {
+    const read = await (role === "student" ? getStudentPurchaseRequests : getClientPurchaseRequests)({ missionId: mission.id })
+    if (read?.available !== true || !Array.isArray(read.requests)) return noPurchases()
+    return {
+      purchasesAvailable: true,
+      purchaseRequests: read.requests,
+      purchaseTotals: read.totals ?? purchaseTotals([]),
+      purchaseCanCreate: role === "student" && read.canCreate === true,
+    }
+  } catch (e) {
+    console.error("[message.actions] achats", e?.code ?? "erreur")
+    return noPurchases()
+  }
+}
+
 /**
  * Conversations du client, une par (mission, étudiant), les plus récentes d'abord. Seules les paires
  * légitimes apparaissent : un message d'un compte sans candidature à la mission est ignoré.
@@ -340,13 +406,7 @@ export async function getClientConversation({ missionId, studentId } = {}) {
   const other = pair.studentId
 
   const [messagesRes, profileRes, completionAccess] = await Promise.all([
-    supabase
-      .from("messages")
-      .select(MESSAGE_COLUMNS)
-      .eq("mission_id", missionId)
-      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${other}),and(sender_id.eq.${other},receiver_id.eq.${user.id})`)
-      .order("created_at", { ascending: false })
-      .limit(THREAD_ROWS_LIMIT),
+    readThreadRows(supabase, { missionId, userId: user.id, otherId: other }),
     supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("user_id", other).maybeSingle(),
     readPairCompletion(supabase, pair.access, missionId).catch((e) => ({ failure: e })),
   ])
@@ -366,6 +426,7 @@ export async function getClientConversation({ missionId, studentId } = {}) {
   )
   // Du plus ancien au plus récent, sans doublon.
   const messages = mergeMessages([], pairMessages)
+  const purchases = await readConversationPurchases("client", pair.mission, messages)
 
   return {
     conversation: {
@@ -380,6 +441,7 @@ export async function getClientConversation({ missionId, studentId } = {}) {
       completionAvailable: completionAccess.completionAvailable,
       canWrite: completionAccess.canWrite,
       messages,
+      ...purchases,
     },
   }
 }
@@ -395,6 +457,8 @@ const MESSAGE_DB_MAX = 4000
  * @returns {{ draft: { missionId: string, type: string, text: string, mediaUrl: string|null, latitude: number|null, longitude: number|null } } | { error: string }}
  */
 function buildDraft(supabase, userId, { missionId, type, content, mediaPath, lat, lng }) {
+  // Les types d'achat ne s'envoient jamais : même hors du schéma, ce contrôle les refuse avant toute écriture.
+  if (!SENDABLE_MESSAGE_TYPES.includes(type)) return { error: ERR_INVALID }
   let text
   let mediaUrl = null
   let latitude = null
@@ -524,6 +588,7 @@ async function deliverMessage({ tag, auth, pair, receiverId, draft }) {
     .from("messages")
     .select("id", { count: "exact", head: true })
     .eq("sender_id", user.id)
+    .in("type", SENDABLE_MESSAGE_TYPES)
     .gte("created_at", since)
   if (countError) {
     console.error(`[${tag}] débit`, countError.code ?? "erreur")
@@ -684,7 +749,7 @@ const STUDENT_MISSION_COLUMNS =
 
 const studentSendSchema = z.object({
   missionId: uuid,
-  type: z.enum(["text", "image", "voice", "location"]),
+  type: z.enum(SENDABLE_MESSAGE_TYPES),
   content: z.string().max(MESSAGE_MAX_LENGTH).optional(),
   mediaPath: z.string().max(300).optional(),
   lat: z.number().optional(),
@@ -836,13 +901,7 @@ export async function getStudentConversation({ missionId } = {}) {
   const other = pair.clientId
 
   const [messagesRes, profileRes, completionAccess] = await Promise.all([
-    supabase
-      .from("messages")
-      .select(MESSAGE_COLUMNS)
-      .eq("mission_id", missionId)
-      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${other}),and(sender_id.eq.${other},receiver_id.eq.${user.id})`)
-      .order("created_at", { ascending: false })
-      .limit(THREAD_ROWS_LIMIT),
+    readThreadRows(supabase, { missionId, userId: user.id, otherId: other }),
     supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("user_id", other).maybeSingle(),
     readPairCompletion(supabase, pair.access, missionId).catch((e) => ({ failure: e })),
   ])
@@ -861,6 +920,7 @@ export async function getStudentConversation({ missionId } = {}) {
     user.id,
   )
   const messages = mergeMessages([], pairMessages)
+  const purchases = await readConversationPurchases("student", pair.mission, messages)
 
   return {
     conversation: {
@@ -874,6 +934,7 @@ export async function getStudentConversation({ missionId } = {}) {
       completionAvailable: completionAccess.completionAvailable,
       canWrite: completionAccess.canWrite,
       messages,
+      ...purchases,
     },
   }
 }
