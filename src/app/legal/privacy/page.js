@@ -106,8 +106,8 @@ export default function PrivacyPage() {
             signalements.
           </li>
           <li>
-            <strong>Accès :</strong> les deux parties de la mission et, en cas de signalement,
-            l’équipe d’administration d’EduCash.
+            <strong>Accès :</strong> les deux parties de la mission et l’équipe d’administration
+            d’EduCash, pour le suivi des missions et le traitement des signalements.
           </li>
           <li>
             <strong>Stockage :</strong> les photos et captures sont conservées dans un espace de
