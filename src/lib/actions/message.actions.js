@@ -46,6 +46,7 @@ import { requireRole } from "@/lib/auth/require-role"
 import { createServiceClient } from "@/lib/supabase/service"
 import { detectSplitPhone, maskContacts, maskDigitRuns } from "@/lib/messaging/contact-filter"
 import { maybeOpenAutoReport, recordContactEvent } from "@/lib/messaging/moderation-log"
+import { readReceiverClosure } from "@/lib/messaging/receiver-status"
 import { MASKABLE_KINDS, SPLIT_LOOKBACK, SPLIT_WINDOW_MINUTES } from "@/lib/messaging/moderation-rules"
 import { readCompletionDeclared } from "@/lib/actions/mission-completion-core"
 import { toOwnedStoragePath, toProjectAvatarUrl } from "@/lib/storage/owned-paths"
@@ -618,16 +619,12 @@ async function deliverMessage({ tag, auth, pair, receiverId, draft }) {
   }
   // Destinataire dont le compte est fermé (colonne closed_at du script 96) : aucun message n'est écrit. Lecture en
   // erreur : refus aussi (fail-closed).
-  const { data: receiver, error: receiverError } = await service
-    .from("profiles")
-    .select("closed_at")
-    .eq("user_id", receiverId)
-    .maybeSingle()
-  if (receiverError) {
-    console.error(`[${tag}] destinataire`, receiverError.code ?? "erreur")
+  const receiver = await readReceiverClosure(receiverId)
+  if (receiver.error) {
+    console.error(`[${tag}] destinataire`, receiver.error.code ?? "erreur")
     return { error: ERR_SEND }
   }
-  if (receiver?.closed_at != null) return { error: ERR_UNAVAILABLE }
+  if (receiver.closed) return { error: ERR_UNAVAILABLE }
 
   const { data: row, error } = await service
     .from("messages")
