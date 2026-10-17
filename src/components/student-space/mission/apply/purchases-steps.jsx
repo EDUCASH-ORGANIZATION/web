@@ -2,8 +2,10 @@
 import { clientFirstName } from "@/lib/student-space/mission-view"
 
 /**
- * Déroulé d'une mission avec achats, vu de l'étudiant (décision 24 : les achats passent par des photos dans la
- * conversation, jamais par une demande de paiement). Le mot « séquestre » n'apparaît que si les paiements sont ouverts.
+ * Déroulé d'une mission avec achats, vu de l'étudiant : chez le vendeur, une demande de paiement dans la conversation ;
+ * le client paie le vendeur directement par MoMo, hors EduCash ; l'étudiant confirme la réception. L'estimation
+ * d'achats reste hors séquestre, hors total et hors net. Le mot « séquestre » n'apparaît que si les paiements sont
+ * ouverts.
  * @param {{ clientName: string, paymentsEnabled?: boolean }} props
  * @returns {Array<{ title: string, sub: string }>}
  */
@@ -11,22 +13,19 @@ export function purchaseSteps({ clientName, paymentsEnabled = false }) {
   const who = clientFirstName(clientName) ?? "Le client"
   return [
     {
-      title: "Au marché, vous envoyez une photo dans la conversation",
-      sub: "La photo du ticket ou des articles achetés, envoyée au client dans la messagerie avant de quitter le vendeur.",
+      title: "Chez le vendeur, vous envoyez une demande de paiement dans la conversation",
+      sub: "Photo du numéro marchand MoMo (ou du numéro personnel du vendeur), nom du vendeur, montant total, photo du ticket ou des articles.",
     },
     {
       title: `${who} paie le vendeur directement par MoMo`,
-      sub: "Hors EduCash : le client règle le vendeur lui-même, sans passer par vous. Vous n'avancez jamais d'argent.",
+      sub: `Hors EduCash. ${who} vérifie le nom du bénéficiaire affiché par MoMo, puis marque la carte « Payé » avec la capture du SMS.`,
     },
-    paymentsEnabled
-      ? {
-          title: "EduCash ne garde que le prix du service en séquestre",
-          sub: "Les achats ne sont jamais bloqués et ne portent aucune commission. Le service est versé à la validation.",
-        }
-      : {
-          title: "EduCash n'intervient pas dans les achats",
-          sub: "Les achats ne passent pas par la plateforme et ne portent aucune commission : le client règle les vendeurs.",
-        },
+    {
+      title: "Vous confirmez « Reçu par le vendeur » et repartez avec les articles",
+      sub: `Statuts de la carte : En attente de paiement, Payé, Reçu par le vendeur, Signalé. Chaque carte peut être signalée.${
+        paymentsEnabled ? " Seul le service est bloqué en séquestre." : ""
+      }`,
+    },
   ]
 }
 
