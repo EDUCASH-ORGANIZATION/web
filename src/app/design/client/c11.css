@@ -7,12 +7,19 @@
 .fup2__rating { display: flex; align-items: center; gap: 8px; font-size: var(--t-body); }
 .fup2__rating .ic { width: 18px; height: 18px; stroke-width: 1.75; }
 .fup2__quote { margin: 0; padding: 12px 14px; border-radius: var(--r-m); background: var(--c-givre); font-size: var(--t-body-s); line-height: 1.5; color: var(--c-encre); overflow-wrap: anywhere; }
+/* Achats payés en direct : la pastille de statut passe sous le texte quand la carte est étroite (mission annulée,
+   colonne droite) ou sur mobile, pour que le nom du vendeur ne soit pas écrasé */
+.fup2__paid--side .buy2 { grid-template-columns: 36px minmax(0, 1fr); }
+.fup2__paid--side .buy2 .badge { grid-column: 2; justify-self: start; }
 
 @media (max-width: 1023.98px) {
+  .fup2__paid .buy2 { grid-template-columns: 36px minmax(0, 1fr); }
+  .fup2__paid .buy2 .badge { grid-column: 2; justify-self: start; }
   /* Terminée avec achats (planche mobile) : le reçu précède les achats, l'étudiant les suit, la chronologie ferme
      la page ; la carte « À faire » est masquée car la barre du bas porte déjà « Noter » */
   .fup2 .fup2__split--done .fup2__money { order: 3; }
   .fup2 .fup2__split--done .fup2__purchases { order: 4; }
+  .fup2 .fup2__split--done .fup2__cost { order: 4; }
   .fup2 .fup2__split--purchases .fup2__student { order: 5; }
   .fup2 .fup2__split--purchases .fup2__timeline { order: 6; }
   .fup2 .fup2__split--purchases .fup2__status--todo { display: none; }
