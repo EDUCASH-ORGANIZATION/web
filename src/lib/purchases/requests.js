@@ -211,12 +211,16 @@ export function formatPayeeNumber(number) {
   return /^[0-9]{4,10}$/.test(number) && !LOCAL_PHONE.test(number) ? number : ""
 }
 
-// Clé de comparaison d'un téléphone : les 10 chiffres locaux béninois, sinon tous les chiffres.
+// Clé de comparaison d'un téléphone : les 8 chiffres béninois. Retire l'indicatif (00229, 229, +229) puis le « 01 » de
+// tête du format à 10 chiffres, de sorte que l'ancien format à 8 chiffres, le format à 10 chiffres et le format
+// international donnent la même clé. Une valeur qui n'a pas la forme d'un téléphone garde ses chiffres tels quels
+// (un code marchand de 6 chiffres ne ressemble donc à aucun téléphone).
 function phoneKey(raw) {
   if (typeof raw !== "string") return ""
-  const digits = raw.slice(0, 64).replace(/[^0-9]/g, "")
-  if (digits.length === 13 && digits.startsWith("229")) return digits.slice(3)
-  if (digits.length === 15 && digits.startsWith("00229")) return digits.slice(5)
+  let digits = raw.slice(0, 64).replace(/[^0-9]/g, "")
+  if (digits.startsWith("00229") && (digits.length === 13 || digits.length === 15)) digits = digits.slice(5)
+  else if (digits.startsWith("229") && (digits.length === 11 || digits.length === 13)) digits = digits.slice(3)
+  if (digits.length === 10 && digits.startsWith("01")) digits = digits.slice(2)
   return digits
 }
 
