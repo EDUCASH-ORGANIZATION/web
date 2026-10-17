@@ -34,8 +34,10 @@ export function displayName(row) {
   return row.name || "Profil incomplet"
 }
 
-/** Cellule « Statut » : suspension d'abord, puis vérification de l'étudiant, sinon actif. */
+/** Cellule « Statut » : fermeture d'abord, puis suspension, puis vérification de l'étudiant, sinon actif. */
 function StatusCell({ row }) {
+  if (row.closure === "closed") return <StatusBadge label="Fermé" tone="alerte" />
+  if (row.closure === "pseudonymizing" || row.closure === "pseudonymized") return <StatusBadge label="Clôturé" tone="neutre" />
   if (row.isSuspended) return <StatusBadge label="Suspendu" tone="erreur" />
   if (row.verification === "Vérifié") return <StatusBadge label="Vérifié" icon="seal" />
   if (row.verification) return <span>{row.verification}</span>

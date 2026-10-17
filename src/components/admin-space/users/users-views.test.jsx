@@ -4,10 +4,14 @@ import { renderToStaticMarkup } from "react-dom/server"
 const refresh = vi.fn()
 const suspendAccount = vi.fn()
 const reactivateAccount = vi.fn()
+const closeAccount = vi.fn()
+const reopenAccount = vi.fn()
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh, replace: vi.fn(), push: vi.fn() }) }))
 vi.mock("@/lib/actions/admin-users.actions", () => ({
   suspendAccount: (...a) => suspendAccount(...a),
   reactivateAccount: (...a) => reactivateAccount(...a),
+  closeAccount: (...a) => closeAccount(...a),
+  reopenAccount: (...a) => reopenAccount(...a),
 }))
 
 const { ToastProvider } = await import("@/components/app-ui/toast")
@@ -15,6 +19,8 @@ const { UsersView, displayName } = await import("./users-view")
 const { UserDetailView, ratingText, subtitleParts } = await import("./user-detail-view")
 const { SuspendDialog } = await import("./suspend-dialog")
 const { ReactivateDialog } = await import("./reactivate-dialog")
+const { CloseAccountDialog } = await import("./close-account-dialog")
+const { ReopenAccountDialog } = await import("./reopen-account-dialog")
 
 const ID1 = "11111111-1111-4111-8111-111111111111"
 const ID2 = "22222222-2222-4222-8222-222222222222"
@@ -321,5 +327,159 @@ describe("modales AD05", () => {
     expect(out).toContain("Réactiver le compte")
     expect(out).toContain("btn--dark")
     expect(out).not.toContain("btn--danger\"")
+  })
+})
+
+const closure = (over = {}) => ({
+  state: "active",
+  closedAt: null,
+  dueAt: null,
+  pseudonymizedAt: null,
+  canReopen: false,
+  blockers: [],
+  deferred: [],
+  history: [],
+  ...over,
+})
+
+const withClosure = (over, userOver = {}) => {
+  const d = detail({ closure: closure(over) })
+  d.user = { ...d.user, closure: over.state ?? "active", ...userOver }
+  return d
+}
+
+describe("fermeture de compte : liste", () => {
+  it("badges Fermé et Clôturé, prioritaires sur Suspendu", () => {
+    const rows = [
+      row({ userId: ID1, closure: "closed", isSuspended: true }),
+      row({ userId: ID2, closure: "pseudonymized", isSuspended: true }),
+      row({ userId: ID3, closure: "pseudonymizing", isSuspended: true }),
+    ]
+    const out = html(<UsersView data={list({ rows })} />)
+    expect(out).toContain(">Fermé<")
+    expect(out.match(/>Clôturé</g)).toHaveLength(2)
+    expect(out).not.toContain(">Suspendu<")
+  })
+})
+
+describe("fermeture de compte : fiche", () => {
+  it("compte actif : Suspendre et Fermer le compte, sans Réactiver ni bandeau", () => {
+    const out = html(<UserDetailView data={withClosure({})} />)
+    expect(out).toContain("Fermer le compte")
+    expect(out).toContain("Suspendre")
+    expect(out).not.toContain("Réactiver")
+    expect(out).not.toContain("pseudonymisation prévue")
+    expect(out).not.toContain("Historique de fermeture")
+  })
+
+  it("blocages : bouton Fermer inactif et blocages listés", () => {
+    const blockers = [{ code: "REPORT_OPEN", message: "Un signalement est en cours sur ce compte. Traitez-le avant la fermeture." }]
+    const out = html(<UserDetailView data={withClosure({ blockers })} />)
+    expect(out).toMatch(/<button[^>]*disabled=""[^>]*aria-describedby="closure-blockers"[^>]*>|<button[^>]*aria-describedby="closure-blockers"[^>]*disabled=""[^>]*>/)
+    expect(out).toContain('id="closure-blockers"')
+    expect(out).toContain("Un signalement est en cours")
+  })
+
+  it("compte fermé : Réactiver le compte seulement, bandeau avec date de fermeture et échéance", () => {
+    const out = html(
+      <UserDetailView
+        data={withClosure({ state: "closed", canReopen: true, closedAt: "2026-10-10T08:00:00Z", dueAt: "2026-10-24T08:00:00Z" })}
+      />,
+    )
+    expect(out).toContain("Réactiver le compte")
+    expect(out).not.toContain("Fermer le compte")
+    expect(out).not.toContain(">Suspendre<")
+    expect(out).toContain("Fermé le")
+    expect(out).toContain("pseudonymisation prévue le")
+    expect(out).toContain("Fermé")
+  })
+
+  it("compte fermé échu et bloqué : pseudonymisation reportée avec le motif", () => {
+    const out = html(
+      <UserDetailView
+        data={withClosure({ state: "closed", canReopen: true, closedAt: "2026-09-10T08:00:00Z", dueAt: "2026-09-24T08:00:00Z", deferred: ["REPORT_OPEN"] })}
+      />,
+    )
+    expect(out).toContain("Pseudonymisation reportée : signalement ouvert")
+  })
+
+  it.each(["pseudonymizing", "pseudonymized"])("état %s : aucune action, réactivation déclarée impossible", (state) => {
+    const out = html(
+      <UserDetailView data={withClosure({ state, closedAt: "2026-09-10T08:00:00Z", pseudonymizedAt: "2026-10-05T08:00:00Z" })} />,
+    )
+    expect(out).not.toContain("Réactiver")
+    expect(out).not.toContain("Fermer le compte")
+    expect(out).not.toContain("Suspendre")
+    expect(out).toContain("réactivation impossible")
+    expect(out).toContain("Clôturé")
+  })
+
+  it("pseudonymisé : le texte d'impossibilité mentionne l'effacement des données", () => {
+    const out = html(<UserDetailView data={withClosure({ state: "pseudonymized", pseudonymizedAt: "2026-10-05T08:00:00Z" })} />)
+    expect(out).toContain("les données")
+    expect(out).toContain("personnelles ont été effacées")
+  })
+
+  it("historique : date, événement et acteur, sans identifiant", () => {
+    const history = [
+      { event: "closed", actorKind: "admin", reasonCode: "admin_decision", createdAt: "2026-10-10T08:00:00Z" },
+      { event: "pseudonymized", actorKind: "system", reasonCode: null, createdAt: "2026-10-24T08:00:00Z" },
+    ]
+    const out = html(<UserDetailView data={withClosure({ history })} />)
+    expect(out).toContain("Historique de fermeture")
+    expect(out).toContain("Fermeture")
+    expect(out).toContain("Pseudonymisation")
+    expect(out).toContain("Administrateur")
+    expect(out).toContain("Automatique")
+    expect(out).not.toContain("admin_decision")
+  })
+
+  it("historique illisible : mention neutre", () => {
+    expect(html(<UserDetailView data={withClosure({ history: null })} />)).toContain("n&#x27;a pas pu être chargé")
+  })
+
+  it("administrateur et compte connecté : aucun bouton de fermeture", () => {
+    const d = withClosure({}, { role: "admin" })
+    d.verification = null
+    d.wallet = null
+    d.missions = { count: 0, rows: [], role: "admin" }
+    expect(html(<UserDetailView data={d} />)).not.toContain("Fermer le compte")
+    const self = withClosure({}, { isSelf: true })
+    expect(html(<UserDetailView data={self} />)).not.toContain("Fermer le compte")
+  })
+
+  it("sous-titre : statut Fermé ou Clôturé", () => {
+    expect(subtitleParts(withClosure({ state: "closed" }))).toContain("Fermé")
+    expect(subtitleParts(withClosure({ state: "pseudonymized" }))).toContain("Clôturé")
+  })
+})
+
+describe("modales de fermeture", () => {
+  it("fermées : rien n'est rendu", () => {
+    expect(html(<CloseAccountDialog open={false} onClose={() => {}} onConfirm={() => {}} name="Sèna" />)).not.toContain("dialog")
+    expect(html(<ReopenAccountDialog open={false} onClose={() => {}} onConfirm={() => {}} name="Sèna" />)).not.toContain("dialog")
+  })
+
+  it("fermeture : motif en liste, confirmation FERMER, conséquences et échéance, vouvoiement", () => {
+    const out = html(<CloseAccountDialog open onClose={() => {}} onConfirm={() => {}} name="Sèna" />)
+    expect(out).toContain("Fermer le compte de Sèna ?")
+    expect(out).toContain("Motif")
+    expect(out).toContain("Saisissez FERMER pour confirmer")
+    expect(out).toContain("14 jours")
+    expect(out).toContain("la réactivation devient impossible")
+    expect(out).toContain("btn--danger")
+    expect(out).toContain('role="dialog"')
+    expect(out).not.toMatch(DASHES)
+    expect(out).not.toMatch(/\b(tu|ton|ta|tes)\b/i)
+  })
+
+  it("réactivation : motif en liste, rappel de l'échéance, bouton encre", () => {
+    const out = html(<ReopenAccountDialog open onClose={() => {}} onConfirm={() => {}} name="Sèna" dueAt="2026-10-24T08:00:00Z" />)
+    expect(out).toContain("Réactiver le compte de Sèna ?")
+    expect(out).toContain("Motif")
+    expect(out).toContain("La réactivation reste possible jusqu")
+    expect(out).toContain("btn--dark")
+    expect(out).not.toMatch(DASHES)
+    expect(out).not.toMatch(/\b(tu|ton|ta|tes)\b/i)
   })
 })
