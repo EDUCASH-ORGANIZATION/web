@@ -271,6 +271,7 @@ describe("aides pures", () => {
     expect(stuck.heroTitle).toContain("Compte sans nom")
     expect(stuck.text).toContain("sans référence de paiement enregistrée")
     expect(stuck.text).toContain("il y a 1 j")
+    expect(stuck.text).toContain("vérifiez chez le prestataire de paiement que le virement n'est pas parti")
   })
 })
 

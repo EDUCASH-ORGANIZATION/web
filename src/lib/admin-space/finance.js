@@ -195,3 +195,8 @@ export function formatTime(iso) {
   if (iso === null || iso === undefined || Number.isNaN(date.getTime())) return ""
   return new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: BENIN_TZ }).format(date)
 }
+
+// Avertissement affiché partout où un retrait bloqué est présenté : l'enregistrement de la référence de paiement
+// peut avoir échoué alors que le virement est parti, un recrédit ferait alors payer deux fois.
+export const STUCK_WITHDRAWAL_WARNING =
+  "Avant tout recrédit, vérifiez chez le prestataire de paiement que le virement n'est pas parti : un enregistrement peut avoir échoué alors que l'argent a été envoyé."
