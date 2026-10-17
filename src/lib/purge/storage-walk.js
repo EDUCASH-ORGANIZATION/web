@@ -16,6 +16,9 @@ import { LIST_PAGE, REMOVE_BATCH } from "@/lib/purge/purge-rules"
 // Garde-fou contre une boucle de pagination sans fin (1000 pages = 1 million d'entrées).
 const MAX_PAGES = 1000
 
+// Fichier technique que Supabase pose dans les dossiers vides : jamais un candidat.
+const PLACEHOLDER = ".emptyFolderPlaceholder"
+
 /** Code d'erreur sûr à journaliser (statusCode ou code), "unknown" si absent ou suspect. */
 function safeCode(error) {
   const raw = error?.statusCode ?? error?.code
@@ -64,6 +67,7 @@ export async function listFiles(service, bucket, prefix, { deadline } = {}) {
       }
       for (const entry of data) {
         if (!entry || typeof entry.name !== "string" || entry.name === "") continue
+        if (entry.name === PLACEHOLDER) continue
         if (entry.id == null) folders.push(entry.name)
         else files.push({ name: join(prefix, entry.name), createdAt: entry.created_at ?? null })
       }

@@ -57,6 +57,13 @@ describe("listFiles", () => {
     ])
   })
 
+  it("ignore le fichier technique .emptyFolderPlaceholder", async () => {
+    const { service } = fakeService({ tree: { [UID]: [file(".emptyFolderPlaceholder"), file("a.jpg"), folder(".emptyFolderPlaceholder")] } })
+    const out = await listFiles(service, "avatars", UID)
+    expect(out.files.map((f) => f.name)).toEqual([`${UID}/a.jpg`])
+    expect(out.folders).toEqual([])
+  })
+
   it("liste la racine avec un préfixe vide, sans barre oblique", async () => {
     const { service, calls } = fakeService({ tree: { "": [folder(UID), file("x.txt")] } })
     const out = await listFiles(service, "avatars", "")
