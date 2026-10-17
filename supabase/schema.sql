@@ -8,7 +8,9 @@
 -- public.message_contact_events et public.reports, retrait du droit INSERT de
 -- authenticated sur public.messages), puis script 94 de RD-ACHATS-01 (table
 -- public.purchase_requests, extension de messages, de reports et de notifications,
--- compartiment purchase-proofs).
+-- compartiment purchase-proofs), puis script 96 de RD-CLOSE-01 (fermeture de compte :
+-- colonnes de cycle de vie de public.profiles, garde, journal account_closure_events,
+-- six clés étrangères financières et d'achats en ON DELETE RESTRICT).
 -- Script 70 appliqué en production le 2026-10-15.
 -- Script 80 de RD-NOTIF-01 appliqué en production le 2026-10-15.
 -- Script 90 de RD-DONE-01 appliqué en production le 2026-10-15.
@@ -16,10 +18,11 @@
 -- Script 92 de RD-MSG-01 appliqué en production le 2026-10-16.
 -- Script 93 de RD-MSG-01 appliqué en production le 2026-10-16.
 -- Script 94 de RD-ACHATS-01 appliqué en production le 2026-10-17.
--- Le script 94 se lance strictement après le script 93.
--- Ce fichier décrit l'état APRÈS le script 94 : ses objets sont repérés par « Script 94 »
--- dans chaque section (3 à 10), les définitions d'origine de messages, reports et
--- notifications y sont déjà remplacées.
+-- Script 96 de RD-CLOSE-01 appliqué en production le 2026-10-17.
+-- Le script 94 se lance strictement après le script 93, le script 96 après le script 94.
+-- Ce fichier décrit l'état APRÈS le script 96 : les objets du 94 sont repérés par « Script 94 »
+-- dans chaque section (3 à 10), ceux du 96 par « Script 96 » ; les définitions d'origine de
+-- messages, reports, notifications et profiles y sont déjà remplacées.
 -- DOCUMENTATION DE RÉFÉRENCE : ne pas exécuter sur la base de production (les
 -- politiques RLS s'additionnent, rejouer des politiques plus larges rouvrirait des
 -- failles). Pour une base neuve ou la migration Neon, vérifier d'abord les points
@@ -90,7 +93,11 @@ create table public.profiles (
   is_suspended boolean default false not null,
   rejection_reason text,
   verified_until date,
-  verification_submitted_at timestamp with time zone
+  verification_submitted_at timestamp with time zone,
+  -- Script 96 de RD-CLOSE-01 : cycle de fermeture de compte (voir guard_profile_sensitive_columns).
+  closed_at timestamp with time zone,
+  pseudonymized_at timestamp with time zone,
+  closure_prev_suspended boolean
 );
 
 create table public.student_profiles (
@@ -288,6 +295,17 @@ create table public.purchase_requests (
   edited_at timestamp with time zone
 );
 
+-- Script 96 de RD-CLOSE-01 : journal des fermetures de compte (RLS sans politique, service_role seulement).
+create table public.account_closure_events (
+  id uuid default gen_random_uuid() not null,
+  user_id uuid not null,
+  event text not null,
+  actor_kind text not null,
+  actor_id uuid,
+  reason_code text,
+  created_at timestamp with time zone default now() not null
+);
+
 -- 4. CONTRAINTES (clés primaires, uniques, checks, puis clés étrangères)
 
 alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
@@ -307,6 +325,7 @@ alter table public.universities add constraint universities_name_key UNIQUE (nam
 alter table public.wallets add constraint wallets_user_id_key UNIQUE (user_id);
 alter table public.reviews add constraint reviews_mission_id_reviewer_id_key UNIQUE (mission_id, reviewer_id);
 alter table public.applications add constraint applications_mission_id_student_id_key UNIQUE (mission_id, student_id);
+alter table public.profiles add constraint profiles_closure_order_check CHECK (((pseudonymized_at IS NULL) OR (closed_at IS NOT NULL)));
 alter table public.profiles add constraint profiles_role_check CHECK ((role = ANY (ARRAY['student'::text, 'client'::text, 'admin'::text])));
 alter table public.wallets add constraint wallets_balance_check CHECK ((balance >= (0)::numeric));
 alter table public.wallets add constraint wallets_reserved_check CHECK ((reserved >= (0)::numeric));
@@ -338,13 +357,13 @@ alter table public.reviews add constraint reviews_mission_id_fkey FOREIGN KEY (m
 alter table public.reviews add constraint reviews_reviewed_id_fkey FOREIGN KEY (reviewed_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.reviews add constraint reviews_reviewer_id_fkey FOREIGN KEY (reviewer_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.reviews add constraint reviews_reviewer_id_profiles_fkey FOREIGN KEY (reviewer_id) REFERENCES profiles(user_id) ON DELETE CASCADE;
-alter table public.transactions add constraint transactions_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+alter table public.transactions add constraint transactions_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
 alter table public.transactions add constraint transactions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE;
-alter table public.transactions add constraint transactions_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+alter table public.transactions add constraint transactions_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
 alter table public.wallet_transactions add constraint wallet_transactions_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE SET NULL;
 alter table public.wallet_transactions add constraint wallet_transactions_reverses_id_fkey FOREIGN KEY (reverses_id) REFERENCES wallet_transactions(id);
-alter table public.wallet_transactions add constraint wallet_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-alter table public.wallet_transactions add constraint wallet_transactions_user_id_profiles_fkey FOREIGN KEY (user_id) REFERENCES profiles(user_id) ON DELETE CASCADE;
+alter table public.wallet_transactions add constraint wallet_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
+alter table public.wallet_transactions add constraint wallet_transactions_user_id_profiles_fkey FOREIGN KEY (user_id) REFERENCES profiles(user_id) ON DELETE RESTRICT;
 alter table public.applications add constraint applications_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE;
 alter table public.applications add constraint applications_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 alter table public.messages add constraint messages_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE;
@@ -412,11 +431,19 @@ alter table public.purchase_requests add constraint purchase_requests_status_che
 alter table public.purchase_requests add constraint purchase_requests_ticket_photo_check CHECK (((char_length(ticket_photo_path) <= 200) AND (strpos(ticket_photo_path, '..'::text) = 0) AND starts_with(ticket_photo_path, ((((student_id)::text || '/'::text) || (id)::text) || '/'::text))));
 alter table public.purchase_requests add constraint purchase_requests_vendor_name_check CHECK (((char_length(vendor_name) >= 2) AND (char_length(vendor_name) <= 80)));
 alter table public.purchase_requests add constraint purchase_requests_version_check CHECK (((version >= 1) AND ((version = 1) = (edited_at IS NULL))));
-alter table public.purchase_requests add constraint purchase_requests_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+alter table public.purchase_requests add constraint purchase_requests_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.profiles(user_id) ON DELETE RESTRICT;
 alter table public.purchase_requests add constraint purchase_requests_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES public.missions(id) ON DELETE CASCADE;
-alter table public.purchase_requests add constraint purchase_requests_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+alter table public.purchase_requests add constraint purchase_requests_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.profiles(user_id) ON DELETE RESTRICT;
 alter table public.messages add constraint messages_purchase_request_fkey FOREIGN KEY (purchase_request_id, mission_id) REFERENCES public.purchase_requests(id, mission_id) ON DELETE CASCADE;
 alter table public.reports add constraint reports_purchase_request_id_fkey FOREIGN KEY (purchase_request_id) REFERENCES public.purchase_requests(id) ON DELETE CASCADE;
+
+-- Script 96 de RD-CLOSE-01 : contraintes du journal account_closure_events.
+alter table public.account_closure_events add constraint account_closure_events_pkey PRIMARY KEY (id);
+alter table public.account_closure_events add constraint account_closure_events_event_check CHECK ((event = ANY (ARRAY['closed'::text, 'reopened'::text, 'pseudonymized'::text])));
+alter table public.account_closure_events add constraint account_closure_events_actor_kind_check CHECK ((actor_kind = ANY (ARRAY['admin'::text, 'self'::text, 'system'::text])));
+alter table public.account_closure_events add constraint account_closure_events_reason_code_check CHECK (((reason_code IS NULL) OR (reason_code = ANY (ARRAY['user_request'::text, 'admin_decision'::text]))));
+alter table public.account_closure_events add constraint account_closure_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(user_id) ON DELETE RESTRICT;
+alter table public.account_closure_events add constraint account_closure_events_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(user_id) ON DELETE SET NULL;
 
 -- 5. INDEX (hors index portés par une contrainte)
 
@@ -459,6 +486,10 @@ CREATE INDEX purchase_requests_student_id_idx ON public.purchase_requests USING 
 CREATE INDEX purchase_requests_client_id_idx ON public.purchase_requests USING btree (client_id);
 CREATE UNIQUE INDEX reports_purchase_reporter_idx ON public.reports USING btree (purchase_request_id, reporter_id) WHERE (purchase_request_id IS NOT NULL);
 CREATE INDEX messages_purchase_request_idx ON public.messages USING btree (purchase_request_id) WHERE (purchase_request_id IS NOT NULL);
+
+-- Script 96 de RD-CLOSE-01
+CREATE INDEX account_closure_events_user_created_idx ON public.account_closure_events USING btree (user_id, created_at);
+CREATE UNIQUE INDEX account_closure_events_pseudonymized_once_idx ON public.account_closure_events USING btree (user_id) WHERE (event = 'pseudonymized'::text);
 
 -- 6. FONCTIONS (propriétaire postgres ; SECURITY DEFINER et search_path dans la définition)
 
@@ -1006,12 +1037,23 @@ CREATE OR REPLACE FUNCTION public.guard_profile_sensitive_columns()
  SET search_path TO ''
 AS $function$
 begin
+  -- 96 : un compte pseudonymise ne peut plus etre rouvert, pour TOUS les roles (service role et proprietaire compris)
+  if old.pseudonymized_at is not null
+     and (new.pseudonymized_at is distinct from old.pseudonymized_at
+          or new.closed_at is distinct from old.closed_at) then
+    raise exception 'Compte pseudonymise : reouverture impossible.'
+      using errcode = '42501';
+  end if;
   if current_user in ('authenticated', 'anon') and not (select public.is_admin()) then
     if new.role is distinct from old.role
        or new.user_id is distinct from old.user_id
        or new.is_suspended is distinct from old.is_suspended
        or new.rating is distinct from old.rating
        or new.missions_done is distinct from old.missions_done
+       -- 96 : colonnes du cycle de fermeture, jamais modifiables par l'API (hors admin)
+       or new.closed_at is distinct from old.closed_at
+       or new.pseudonymized_at is distinct from old.pseudonymized_at
+       or new.closure_prev_suspended is distinct from old.closure_prev_suspended
        -- is_verified : seul true -> false est permis
        or (new.is_verified is distinct from old.is_verified
            and not (old.is_verified = true and new.is_verified = false))
@@ -2170,6 +2212,8 @@ alter table public.messages enable row level security;
 alter table public.mission_completions enable row level security;
 alter table public.missions enable row level security;
 alter table public.profiles enable row level security;
+-- Script 96 de RD-CLOSE-01 : account_closure_events, RLS activée sans aucune politique.
+alter table public.account_closure_events enable row level security;
 alter table public.reviews enable row level security;
 alter table public.student_profiles enable row level security;
 alter table public.transactions enable row level security;
@@ -2353,6 +2397,8 @@ grant select (bio) on table public.profiles to anon;
 grant select (bio) on table public.profiles to authenticated;
 grant select (city) on table public.profiles to anon;
 grant select (city) on table public.profiles to authenticated;
+grant select (closed_at) on table public.profiles to anon;
+grant select (closed_at) on table public.profiles to authenticated;
 grant select (created_at) on table public.profiles to anon;
 grant select (created_at) on table public.profiles to authenticated;
 grant select (full_name) on table public.profiles to anon;
@@ -2408,6 +2454,9 @@ grant USAGE, SELECT on sequence public.reports_number_seq to service_role;
 -- Script 94 de RD-ACHATS-01 : purchase_requests, service_role seulement.
 revoke all on table public.purchase_requests from public, anon, authenticated, service_role;
 grant INSERT, SELECT, UPDATE on table public.purchase_requests to service_role;
+-- Script 96 de RD-CLOSE-01 : journal des fermetures, service_role en lecture et insertion seulement.
+revoke all on table public.account_closure_events from public, anon, authenticated, service_role;
+grant INSERT, SELECT on table public.account_closure_events to service_role;
 
 -- 10. BUCKETS (storage.buckets ; les politiques storage.objects sont en section 8)
 
@@ -2461,6 +2510,10 @@ alter publication supabase_realtime add table public.messages;
 --   GRANT / REVOKE, et seulement le compartiment purchase-proofs avec sa politique d'insertion sur
 --   storage.objects (auth.uid(), storage.foldername()), repérés par « Script 94 » aux sections
 --   8 (politique) et 10 (compartiment).
+-- - Script 96 (RD-CLOSE-01) : colonnes de profiles, CHECK, table account_closure_events, trigger
+--   PL/pgSQL : SQL standard. Propres à Supabase : les noms de rôles des GRANT / REVOKE et les
+--   clés étrangères vers auth.users(id) des tables transactions et wallet_transactions, passées
+--   en ON DELETE RESTRICT.
 -- - rôles API : anon, authenticated, service_role et leurs GRANT/REVOKE.
 -- - extensions : pg_cron (schéma pg_catalog), pg_net (public), supabase_vault
 --   (vault), pg_stat_statements, uuid-ossp et pgcrypto (extensions).
