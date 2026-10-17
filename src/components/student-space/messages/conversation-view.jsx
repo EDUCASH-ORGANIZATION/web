@@ -122,6 +122,17 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
     }, REFRESH_WINDOW_MS)
   }, [router])
   useEffect(() => () => clearTimeout(refreshTimer.current), [])
+  // Une seule relecture par photo : une photo durablement illisible ne doit pas relancer la page sans fin.
+  const renewedPhotos = useRef(new Set())
+  const renewPhoto = useCallback(
+    (requestId, kind) => {
+      const key = `${requestId}:${kind}`
+      if (renewedPhotos.current.has(key)) return
+      renewedPhotos.current.add(key)
+      refreshPurchases()
+    },
+    [refreshPurchases],
+  )
   const { messages, append, refreshMedia } = useRealtimeMessages({
     missionId,
     studentId: clientId,
@@ -226,7 +237,7 @@ export function StudentConversationView({ conversation, now, paymentsEnabled = f
       clientName: client.name,
       missionStatus: mission.status,
       busy: Boolean(request) && dialog?.request?.id === request.id,
-      onPhotoError: refreshPurchases,
+      onPhotoError: renewPhoto,
       ...cardActions,
     }
   }

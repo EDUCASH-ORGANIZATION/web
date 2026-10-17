@@ -207,7 +207,7 @@ describe("preuves de la carte étudiant", () => {
     render(<StudentCard request={studentRequest({ status: "paid" })} clientName="Afiavi" onPhotoError={onPhotoError} />)
     const trigger = screen.getByRole("button", { name: "Agrandir la photo du ticket" })
     fireEvent.error(trigger.querySelector("img"))
-    expect(onPhotoError).toHaveBeenLastCalledWith("11111111-1111-4111-8111-111111111111")
+    expect(onPhotoError).toHaveBeenLastCalledWith("11111111-1111-4111-8111-111111111111", "ticket")
     fireEvent.click(trigger)
     fireEvent.error(viewerImage())
     expect(onPhotoError).toHaveBeenCalledTimes(2)

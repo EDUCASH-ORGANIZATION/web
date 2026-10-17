@@ -2163,6 +2163,11 @@ describe("Visionneuse de la messagerie", () => {
     expect(shell).toMatch(/\.c2 \.c-shot \.zoom-btn2:focus-visible \{[^}]*box-shadow: inset 0 0 0 3px var\(--c-bleu\)/)
   })
 
+  it("le lien « Ouvrir dans un nouvel onglet » a une cible tactile de 44 px sous 1024 px, des deux cotes", () => {
+    expect(read("app-shell.css")).toMatch(/@media \(max-width: 1023\.98px\) \{[\s\S]*?\.c2 \.zoom-link2 \{ min-height: 44px; \}/)
+    expect(read("student/base.css")).toMatch(/@media \(max-width: 1023\.98px\) \{[\s\S]*?\.e2 \.zoom-link2 \{ min-height: 44px; \}/)
+  })
+
   it("la zone cliquable d'une photo de bulle suit la photo", () => {
     expect(shell).toMatch(/\.c2 \.bubble--media \.zoom-btn2, \.e2 \.bubble--media \.zoom-btn2 \{[^}]*width: auto/)
   })

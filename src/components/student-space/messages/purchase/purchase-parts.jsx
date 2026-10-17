@@ -13,14 +13,14 @@ export const PROOF_ACCEPT = PROOF_MIME_TYPES.join(",")
 const cx = (...parts) => parts.filter(Boolean).join(" ")
 
 /** Vignette d'une preuve : la photo (adresse signée fournie par la page, agrandie au clic) ou, à défaut, l'icône de sa nature. */
-export function Thumb({ url, icon, caption, noun, variant, tag, onPhotoError }) {
+export function Thumb({ url, icon, caption, noun, kind, variant, tag, onPhotoError }) {
   return (
     <figure className="e-thumb">
       <span className={cx("e-thumb__img", variant && `e-thumb__img--${variant}`)}>
         {url ? (
-          <Enlargeable url={url} caption={caption} label={`Agrandir la photo ${noun}`} onError={onPhotoError}>
+          <Enlargeable url={url} caption={caption} label={`Agrandir la photo ${noun}`} onError={onPhotoError && (() => onPhotoError(kind))}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="e2-07-pic" src={url} alt="" loading="lazy" onError={onPhotoError} />
+            <img className="e2-07-pic" src={url} alt="" loading="lazy" onError={onPhotoError && (() => onPhotoError(kind))} />
           </Enlargeable>
         ) : (
           <Icon name={icon} />

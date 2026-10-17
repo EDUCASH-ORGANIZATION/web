@@ -434,6 +434,7 @@ html:has(.shell--v2) { scroll-padding-top: calc(56px + var(--s-3)); }
   /* Liens-texte des rangees et des cartes : zone de 44 px de haut, texte inchange (>= 13 px) */
   .c2 .item2__action, .c2 .hero2__link { display: inline-flex; align-items: center; min-height: 44px; }
   .c2 .btn--sm { min-height: 44px; }
+  .c2 .zoom-link2 { min-height: 44px; }
   .c2 .list2__more { display: inline-flex; align-items: center; min-height: 44px; }
   /* Symbole (34 x 32) et avatar (32 x 32) de l'en-tete, seuls liens directs de .mtop2 : zone de 44 px de haut
      (46 x 44 et 44 x 44) par pseudo-element, apparence inchangee. Les 6 px de debord restent sous l'ecart

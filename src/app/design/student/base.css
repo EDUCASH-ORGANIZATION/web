@@ -298,6 +298,7 @@
   .e2-back, .e2-link { min-height: 44px; }
   .e2-pill { min-height: 44px; }
   .e2 .chip { min-height: 44px; }
+  .e2 .zoom-link2 { min-height: 44px; }
   .e2 .iconbtn2, .e2 .btn-icon, .e2 .btn-icon--sm { width: 44px; height: 44px; }
   .e2 .toast__close { margin: -8px -8px -8px 0; }
   .e2 .check, .e2 .radio { min-height: 44px; align-items: flex-start; }

@@ -113,8 +113,11 @@ export function PurchaseCard({ request, studentName, missionStatus, estimateExce
     paidCaption = `Payé à ${formatClock(request.paidAt)}${reference}`
   }
 
+  // L'échec est mémorisé avec l'adresse qui a échoué : une adresse renouvelée remet la vignette en état, sans remonter la carte.
+  const urls = { payee: request.payeePhotoUrl, ticket: request.ticketPhotoUrl, sms: request.smsPhotoUrl }
+  const hasFailed = (kind) => failed[kind] !== undefined && failed[kind] === urls[kind]
   const photoFailed = (kind) => {
-    setFailed((current) => ({ ...current, [kind]: true }))
+    setFailed((current) => ({ ...current, [kind]: urls[kind] }))
     onPhotoError?.(request.id, kind)
   }
 
@@ -148,15 +151,29 @@ export function PurchaseCard({ request, studentName, missionStatus, estimateExce
           caption={personal ? "Panneau du vendeur" : "Numéro marchand"}
           noun={personal ? "du panneau du vendeur" : "du numéro marchand"}
           url={request.payeePhotoUrl}
-          failed={failed.payee}
+          failed={hasFailed("payee")}
           onError={photoFailed}
           onRenew={photoRenew}
         />
-        <Shot kind="ticket" caption="Ticket ou articles" noun="du ticket" url={request.ticketPhotoUrl} failed={failed.ticket} onError={photoFailed}
-          onRenew={photoRenew} />
-        {request.smsPhotoUrl || failed.sms ? (
-          <Shot kind="sms" caption="Capture du SMS" noun="de la capture du SMS" url={request.smsPhotoUrl} failed={failed.sms} onError={photoFailed}
-          onRenew={photoRenew} />
+        <Shot
+          kind="ticket"
+          caption="Ticket ou articles"
+          noun="du ticket"
+          url={request.ticketPhotoUrl}
+          failed={hasFailed("ticket")}
+          onError={photoFailed}
+          onRenew={photoRenew}
+        />
+        {request.smsPhotoUrl || failed.sms !== undefined ? (
+          <Shot
+            kind="sms"
+            caption="Capture du SMS"
+            noun="de la capture du SMS"
+            url={request.smsPhotoUrl}
+            failed={hasFailed("sms")}
+            onError={photoFailed}
+            onRenew={photoRenew}
+          />
         ) : null}
       </div>
 
