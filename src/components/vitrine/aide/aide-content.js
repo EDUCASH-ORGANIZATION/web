@@ -223,7 +223,7 @@ export const AIDE_THEMES = [
         id: "compte-supprimer",
         question: "Comment fermer mon compte ?",
         answer: [
-          "Écrivez-nous depuis la page de contact, nous traiterons votre demande dans un délai de 30 jours. Aucune mission, aucun solde, aucune demande d'achats ni aucun signalement ne doit être en cours.",
+          "Depuis votre espace, ouvrez « Mon profil », puis « Fermer mon compte » en bas de la page. Vous pouvez aussi nous écrire depuis la page de contact : nous traiterons votre demande dans un délai de 30 jours. Aucune mission, aucun solde, aucune demande d'achats ni aucun signalement ne doit être en cours.",
           "Le compte est d'abord fermé, et nous pouvons le réactiver sur demande pendant 14 jours. Ensuite, vos données personnelles sont effacées automatiquement et vos messages, avis et transactions restent rattachés à un compte sans nom, « Compte clôturé ».",
         ],
         links: [{ href: "/contact", label: "Nous contacter" }],

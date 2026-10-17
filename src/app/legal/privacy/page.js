@@ -89,10 +89,11 @@ export default function PrivacyPage() {
             inscription.
           </li>
           <li>
-            <strong>Clôture du compte :</strong> vous pouvez demander la clôture de votre compte à
-            contact@educash.bj. La demande est traitée dans un délai de <strong>30 jours</strong>,
-            si aucune mission, aucun solde, aucune demande d’achats ni aucun signalement n’est en
-            cours. Le compte est d’abord fermé : l’accès est coupé et vos données restent
+            <strong>Clôture du compte :</strong> vous pouvez fermer votre compte vous-même depuis votre
+            espace (Mon profil, « Fermer mon compte »), ou en faire la demande à
+            contact@educash.bj. Une demande écrite est traitée dans un délai de <strong>30 jours</strong>.
+            Dans les deux cas, aucune mission, aucun solde, aucune demande d’achats ni aucun
+            signalement ne doit être en cours. Le compte est d’abord fermé : l’accès est coupé et vos données restent
             intactes. Pendant <strong>14 jours</strong>, il peut être réactivé sur demande. À
             l’échéance, l’effacement est automatique : l’adresse e-mail est remplacée par une
             adresse sans lien avec vous, et sont effacés le nom, la photo de profil, la
