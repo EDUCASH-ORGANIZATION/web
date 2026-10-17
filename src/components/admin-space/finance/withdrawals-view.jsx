@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/app-ui/status-badge"
 import { Stat, StatGroup } from "@/components/app-ui/stats"
 import { formatAmount } from "@/lib/app/format"
 import { adminUserHref, adminWithdrawalsHref } from "@/lib/app/admin-routes"
-import { WITHDRAWAL_STATUS_VIEW, elapsedLabel, formatDateTime } from "@/lib/admin-space/finance"
+import { STUCK_WITHDRAWAL_WARNING, WITHDRAWAL_STATUS_VIEW, elapsedLabel, formatDateTime } from "@/lib/admin-space/finance"
 import { Pager } from "./pager"
 
 const plural = (n, one, many) => (n > 1 ? many : one)
@@ -55,6 +55,10 @@ function StuckCard({ row, now }) {
       <p className="hero2__text">
         {`${row.operator} · demandé le ${formatDateTime(row.createdAt)} · aucune référence de paiement enregistrée : le portefeuille a été débité sans qu'un virement soit créé.`}
       </p>
+      <div className="banner banner--alerte-doux" role="note">
+        <Icon name="i-alert-triangle" className="ic" />
+        <div className="banner__body">{STUCK_WITHDRAWAL_WARNING}</div>
+      </div>
       {row.userId ? (
         <div className="hero2__actions">
           <Link className="btn btn--dark" href={adminUserHref(row.userId)}>
@@ -150,7 +154,7 @@ export function WithdrawalsView({ data, error, paymentsEnabled = false }) {
       <Pager page={data.page} pageSize={data.pageSize} total={data.total} hrefFor={href} />
       <p className="a2-note">
         <Icon name="i-info" />
-        <span>{"Pour un retrait bloqué, contactez l'équipe technique."}</span>
+        <span>{`Pour un retrait bloqué, contactez l'équipe technique. ${STUCK_WITHDRAWAL_WARNING}`}</span>
       </p>
     </div>
   )

@@ -11,6 +11,7 @@ import { adminUserHref, adminUsersHref, adminVerificationsHref, adminWalletsHref
 import { buildQueue, heroItem, nextItems } from "@/lib/admin-space/dashboard-queue"
 import { ageLabel } from "@/lib/admin-space/verification-queue"
 import { roleLabel } from "@/lib/admin-space/labels"
+import { STUCK_WITHDRAWAL_WARNING } from "@/lib/admin-space/finance"
 
 const LIST_LIMIT = 6
 const plural = (n, one, many) => (n > 1 ? many : one)
@@ -78,7 +79,7 @@ export function describeItem(item, now) {
     icon: "i-arrow-up-right",
     heroTitle: `Retrait débité sans virement créé : ${who(item)}`,
     rowTitle: `${who(item)} · retrait sans virement`,
-    text: `${formatAmount(item.amount)} débités ${since}, sans référence de paiement enregistrée.`,
+    text: `${formatAmount(item.amount)} débités ${since}, sans référence de paiement enregistrée. ${STUCK_WITHDRAWAL_WARNING}`,
     meta: since,
     heroAction: "Voir le portefeuille",
     rowAction: "Voir",
