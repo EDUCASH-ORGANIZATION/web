@@ -7,6 +7,7 @@ import { Stat, StatGroup } from "@/components/app-ui/stats"
 import { StatusBadge } from "@/components/app-ui/status-badge"
 import { EmptyState } from "@/components/app-ui/empty-state"
 import { ErrorState } from "@/components/app-ui/state-block"
+import { CloseAccountCard } from "@/components/app-ui/close-account"
 import { formatDateFr } from "@/lib/app/format"
 import { publicTalentHref, studentProfileEditHref, studentWalletHref } from "@/lib/app/student-routes"
 import { missionTypeLabel } from "@/lib/constants/missions"
@@ -327,6 +328,7 @@ export function StudentProfileView({ summary, error, logoutAction }) {
               </form>
             </nav>
           </Section>
+          <CloseAccountCard space="student" />
         </div>
       </div>
     </div>
