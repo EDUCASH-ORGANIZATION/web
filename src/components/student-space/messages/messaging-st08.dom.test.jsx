@@ -15,6 +15,14 @@ vi.mock("@/lib/actions/message.actions", () => ({
 }))
 vi.mock("@/lib/actions/message-report.actions", () => ({ reportStudentMessage: vi.fn() }))
 const append = vi.fn()
+vi.mock("@/lib/actions/purchase-request.actions", () => ({
+  createPurchaseRequest: vi.fn(),
+  editPurchaseRequest: vi.fn(),
+  cancelPurchaseRequest: vi.fn(),
+  confirmPurchaseReceived: vi.fn(),
+  reportPurchaseRequestAsStudent: vi.fn(),
+}))
+vi.mock("@/hooks/use-purchase-proof-upload", () => ({ usePurchaseProofUpload: () => vi.fn() }))
 vi.mock("@/hooks/use-realtime-messages", () => ({
   useRealtimeMessages: ({ initialMessages }) => ({ messages: initialMessages, append, refreshMedia: vi.fn() }),
   useMessageMediaUpload: () => vi.fn(),
