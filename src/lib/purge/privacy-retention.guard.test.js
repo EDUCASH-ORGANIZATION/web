@@ -41,8 +41,9 @@ describe("confidentialité : durées liées aux règles de purge", () => {
 
   it("les fichiers inutilisés affichent le délai ORPHAN_GRACE_DAYS", () => {
     const conservation = section("conservation_des_donnees")
-    expect(conservation).toContain(`après un délai de ${ORPHAN_GRACE_DAYS} jours`)
-    expect(conservation).toContain(`dans un délai de ${ORPHAN_GRACE_DAYS} jours`)
+    const phrase = `supprimés automatiquement dès qu’ils ne sont plus utilisés, et jamais moins de ${ORPHAN_GRACE_DAYS} jours après leur envoi`
+    expect(conservation.split(phrase).length - 1).toBeGreaterThanOrEqual(3)
+    expect(conservation).not.toMatch(/après un délai de \d+ jours/)
   })
 
   it("la clôture de compte et la durée comptable sont affichées", () => {

@@ -93,7 +93,7 @@ export default function PrivacyPage() {
             contact@educash.bj. La demande est traitée dans un délai de <strong>30 jours</strong>.
             Les fichiers associés au compte (photo de profil, carte étudiante, photos et messages
             vocaux envoyés, preuves d’achats) qui ne sont plus utilisés sont ensuite supprimés
-            automatiquement dans un délai de <strong>7 jours</strong>.
+            automatiquement dès qu’ils ne sont plus utilisés, et jamais moins de <strong>7 jours</strong> après leur envoi.
           </li>
           <li>
             <strong>Données comptables :</strong> les transactions et les mouvements du portefeuille
@@ -104,7 +104,7 @@ export default function PrivacyPage() {
           <li>
             <strong>Fichiers qui ne sont plus utilisés :</strong> une photo remplacée, une carte
             refusée, un envoi abandonné ou une preuve remplacée sont supprimés automatiquement
-            après un délai de <strong>7 jours</strong>.
+            dès qu’ils ne sont plus utilisés, et jamais moins de <strong>7 jours</strong> après leur envoi.
           </li>
           <li>
             <strong>Journal de détection et signalements :</strong> supprimés automatiquement
@@ -114,7 +114,7 @@ export default function PrivacyPage() {
           <li>
             <strong>Messages vocaux, photos et autres médias de messagerie :</strong> aucune durée
             de conservation n’est fixée pour ces fichiers tant qu’ils restent utilisés ; ils sont
-            supprimés automatiquement après 7 jours une fois qu’ils ne sont plus utilisés.
+            supprimés automatiquement dès qu’ils ne sont plus utilisés, et jamais moins de 7 jours après leur envoi.
           </li>
         </ul>
       </LegalSection>
