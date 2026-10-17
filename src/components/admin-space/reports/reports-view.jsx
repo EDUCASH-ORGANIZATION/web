@@ -2,6 +2,7 @@
 import Link from "next/link"
 import { Icon } from "@/components/design/icon"
 import { TabsNav } from "@/components/app-ui/tabs-nav"
+import { ChipFilter } from "@/components/app-ui/chip-filter"
 import { EmptyState } from "@/components/app-ui/empty-state"
 import { ErrorState } from "@/components/app-ui/state-block"
 import { StatusBadge } from "@/components/app-ui/status-badge"
@@ -20,6 +21,20 @@ import {
 
 const NO_NAME = "Compte sans nom"
 const AUTO_REPORTER = "Analyse automatique"
+const PURCHASE_TYPE = "demande-paiement-achats"
+
+// Filtre de type : valeur d'URL (`type`), libellé de la puce. Tous les types : paramètre absent.
+const TYPE_OPTIONS = [
+  { value: "", label: "Tous les types" },
+  { value: "messages", label: "Messages" },
+  { value: PURCHASE_TYPE, label: "Demandes de paiement d'achats" },
+]
+
+// Adresse de la file : `adminReportsHref` ne connaît pas le filtre de type, il est ajouté ici.
+function listHref({ statut, tri, page, type }) {
+  const href = adminReportsHref({ statut, tri, page })
+  return type ? `${href}${href.includes("?") ? "&" : "?"}type=${encodeURIComponent(type)}` : href
+}
 
 const plural = (n, one, many) => (n > 1 ? many : one)
 
@@ -59,15 +74,44 @@ function SortLink({ data }) {
   const label = data.sort === "recents" ? "Plus récents d'abord" : "Plus anciens d'abord"
   return (
     <div className="a2-filters">
-      <span className="caption">Tri : {label.toLowerCase()}</span>
+      <span className="caption">Tri : {label.toLowerCase()}. Les demandes de paiement d&apos;achats passent toujours en premier.</span>
       <Link
         className="btn btn--secondary btn--sm"
-        href={adminReportsHref({ statut: data.tab, tri: next === DEFAULT_REPORT_SORT ? undefined : next })}
+        href={listHref({ statut: data.tab, tri: next === DEFAULT_REPORT_SORT ? undefined : next, type: data.type })}
       >
         <Icon name="i-sort" />
         {next === "recents" ? "Voir les plus récents d'abord" : "Voir les plus anciens d'abord"}
       </Link>
     </div>
+  )
+}
+
+function TypeFilter({ data }) {
+  const options = TYPE_OPTIONS.map((o) => ({
+    ...o,
+    href: listHref({ statut: data.tab, tri: data.sort, type: o.value }),
+  }))
+  return (
+    <div className="a2-filters">
+      <ChipFilter label="Filtrer par type de signalement" options={options} value={data.type ?? ""} />
+      {data.type ? (
+        <span className="a2-filters__count" role="status">
+          {data.total} {plural(data.total, "résultat", "résultats")}
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
+function PurchaseNote() {
+  return (
+    <p className="a2-note">
+      <Icon name="i-info" className="ic" />
+      <span>
+        Ces achats ont été payés par MoMo <b>hors EduCash</b>. Les montants sont déclaratifs : EduCash ne peut ni les rembourser ni les
+        compenser. L&apos;équipe examine le signalement, le clôt et prévient les deux parties.
+      </span>
+    </p>
   )
 }
 
@@ -79,8 +123,10 @@ function Row({ row, now }) {
         <Link className="a2-09-title link" href={adminReportHref(row.id)}>
           {row.reference ?? "Signalement"}
         </Link>
+        {row.targetDetail ? <div className="a2-09-sub">{row.targetDetail}</div> : null}
         {row.missionTitle ? <div className="a2-09-sub">{row.missionTitle}</div> : null}
       </td>
+      <td data-label="Type">{row.typeLabel || "Message"}</td>
       <td data-label="Origine">{reportSourceLabel(row.source)}</td>
       <td data-label="Motif">{row.reasonLabel}</td>
       <td data-label="Signalé par">{row.reporter ? row.reporter.name || NO_NAME : AUTO_REPORTER}</td>
@@ -142,7 +188,7 @@ export function ReportsView({ data, error, now = new Date() }) {
   const tabs = REPORT_TABS.map((key) => ({
     key,
     label: REPORT_TAB_LABELS[key],
-    href: adminReportsHref({ statut: key === DEFAULT_REPORT_TAB ? undefined : key }),
+    href: listHref({ statut: key === DEFAULT_REPORT_TAB ? undefined : key, type: data.type }),
     count: counts[key],
   }))
 
@@ -151,6 +197,8 @@ export function ReportsView({ data, error, now = new Date() }) {
       <Header toHandle={counts["a-traiter"]} />
       <Indicators counts={counts} />
       <TabsNav label="Signalements par état" items={tabs} activeKey={tab} />
+      <TypeFilter data={data} />
+      {data.type === PURCHASE_TYPE ? <PurchaseNote /> : null}
       {items.length > 0 ? (
         <>
           <SortLink data={data} />
@@ -160,6 +208,7 @@ export function ReportsView({ data, error, now = new Date() }) {
               <thead>
                 <tr>
                   <th scope="col">Signalement</th>
+                  <th scope="col">Type</th>
                   <th scope="col">Origine</th>
                   <th scope="col">Motif</th>
                   <th scope="col">Signalé par</th>
@@ -184,7 +233,7 @@ export function ReportsView({ data, error, now = new Date() }) {
         pageSize={data.pageSize}
         total={data.total}
         label="Pagination des signalements"
-        hrefFor={(page) => adminReportsHref({ statut: tab, tri: data.sort, page })}
+        hrefFor={(page) => listHref({ statut: tab, tri: data.sort, page, type: data.type })}
       />
     </div>
   )

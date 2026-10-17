@@ -7,6 +7,7 @@ import { SectionCard } from "@/components/app-ui/section-card"
 import { StatusBadge } from "@/components/app-ui/status-badge"
 import { PlaceLinks } from "@/components/messaging/place-links"
 import { adminMissionHref, adminReportsHref, adminUserHref } from "@/lib/app/admin-routes"
+import { formatPurchaseAmount } from "@/lib/purchases/requests"
 import {
   detectionRows,
   messageTypeLabel,
@@ -38,6 +39,7 @@ function Header({ report }) {
         <h1 className="head2__title">{report.reference ?? "Signalement"}</h1>
         <p className="head2__sub">
           <StatusBadge label={view.label} tone={view.tone} />
+          {report.targetType === "purchase_request" ? ` · ${report.typeLabel}` : ""}
           {` · ${report.reasonLabel} · ${reportSourceLabel(report.source)}`}
           {moment ? ` · reçu le ${moment}` : ""}
         </p>
@@ -85,6 +87,7 @@ function MessageBlock({ message, report }) {
 }
 
 function Summary({ report, message }) {
+  const isPurchase = report.targetType === "purchase_request"
   return (
     <SectionCard title="Signalement">
       <dl className="a2-kv">
@@ -99,8 +102,118 @@ function Summary({ report, message }) {
           </>
         ) : null}
       </dl>
-      <h3 className="a2-09-sub">Message signalé</h3>
-      <MessageBlock message={message} report={report} />
+      {isPurchase ? null : (
+        <>
+          <h3 className="a2-09-sub">Message signalé</h3>
+          <MessageBlock message={message} report={report} />
+        </>
+      )}
+    </SectionCard>
+  )
+}
+
+function Proof({ proof }) {
+  const moment = reportMoment(proof.at)
+  const caption = moment ? `${proof.label} · ${moment}` : proof.label
+  if (!proof.url) {
+    return (
+      <div className="ad-proof is-missing" role="img" aria-label={`${proof.label} : non disponible`}>
+        <span className="ad-proof__lab">
+          {proof.label}
+          <small>Non disponible</small>
+        </span>
+      </div>
+    )
+  }
+  return (
+    <div className="stack stack--2">
+      <a href={proof.url} target="_blank" rel="noopener noreferrer">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="a2-10-msg__img" src={proof.url} alt={proof.label} loading="lazy" />
+        <span className="sr-only"> (s&apos;ouvre dans un nouvel onglet)</span>
+      </a>
+      <div className="a2-09-sub">{caption}</div>
+    </div>
+  )
+}
+
+function Fact({ label, children }) {
+  return (
+    <>
+      <dt>{label}</dt>
+      <dd>{children}</dd>
+    </>
+  )
+}
+
+function PartyLink({ party }) {
+  if (!party?.id) return <span>{NO_NAME}</span>
+  return (
+    <Link className="link" href={adminUserHref(party.id)}>
+      {party.name || NO_NAME}
+      <span className="sr-only">{`, voir la fiche`}</span>
+    </Link>
+  )
+}
+
+// Demande de paiement d'achats visée (AD10) : lecture seule. Le paiement a eu lieu par MoMo hors EduCash : aucun
+// bouton de remboursement ni de compensation, aucune suspension automatique.
+function PurchaseBlock({ report, purchase }) {
+  if (!purchase) {
+    return (
+      <SectionCard title="Demande de paiement d'achats">
+        <p className="a2-09-sub">La demande signalée n&apos;est plus disponible.</p>
+      </SectionCard>
+    )
+  }
+  const open = report.status === "open" || report.status === "in_progress"
+  return (
+    <SectionCard title="Demande de paiement d'achats">
+      <article className={`ad-payreq ad07-payreq${open ? " is-flagged" : ""}`} aria-label={`Détail de la demande ${purchase.number}`}>
+        <div className="ad-payreq__head">
+          <div>
+            <b>{[purchase.number, purchase.vendorName].filter(Boolean).join(" · ")}</b>
+            {purchase.payeeNumber ? <small>{`${purchase.payeeKindLabel || "Numéro à payer"} : ${purchase.payeeNumber}`}</small> : null}
+          </div>
+          <div className="ad-payreq__amt">
+            {formatPurchaseAmount(purchase.amount)}
+            <small>Montant demandé</small>
+          </div>
+        </div>
+        <div className="ad-payreq__proofs">
+          {purchase.proofs.map((proof) => (
+            <Proof key={proof.kind} proof={proof} />
+          ))}
+        </div>
+        <div className="ad-payreq__foot">
+          <StatusBadge label={purchase.statusLabel || "Statut inconnu"} tone={purchase.statusTone} />
+        </div>
+      </article>
+      <dl className="a2-kv">
+        <Fact label="Étudiant">
+          <PartyLink party={purchase.student} />
+        </Fact>
+        <Fact label="Client">
+          <PartyLink party={purchase.client} />
+        </Fact>
+        {purchase.items ? <Fact label="Articles">{purchase.items}</Fact> : null}
+        {purchase.createdAt ? <Fact label="Envoyée le">{reportMoment(purchase.createdAt)}</Fact> : null}
+        {purchase.paidAt ? <Fact label="Payée le">{reportMoment(purchase.paidAt)}</Fact> : null}
+        {purchase.paidAt ? <Fact label="Bénéficiaire vérifié par le client">{purchase.beneficiaryConfirmed ? "Oui" : "Non"}</Fact> : null}
+        {purchase.paidReference ? <Fact label="Référence de paiement">{purchase.paidReference}</Fact> : null}
+        {purchase.receivedAt ? <Fact label="Reçue par le vendeur le">{reportMoment(purchase.receivedAt)}</Fact> : null}
+      </dl>
+      <p className="a2-note">
+        <Icon name="i-info" className="ic" />
+        <span>
+          Payé par MoMo <b>hors EduCash</b> : non remboursable par EduCash. Les preuves ci-dessus sont déclaratives.
+        </span>
+      </p>
+      {report.missionId ? (
+        <Link className="link" href={adminMissionHref(report.missionId)}>
+          Voir la mission et ses achats
+        </Link>
+      ) : null}
     </SectionCard>
   )
 }
@@ -241,19 +354,27 @@ export function ReportDetailView({ data, error }) {
     )
   }
 
-  const { report, message, events } = data
+  const { report, message, events, purchase } = data
+  const isPurchase = report.targetType === "purchase_request"
   return (
     <div className="a2-10">
       <Header report={report} />
       <div className="a2-split">
         <div className="stack stack--3">
           <Summary report={report} message={message} />
+          {isPurchase ? <PurchaseBlock report={report} purchase={purchase} /> : null}
           <Detections report={report} events={events} />
           <Mission report={report} />
         </div>
         <div className="stack stack--3">
           <SectionCard title="Actions">
             <ReportActions reportId={report.id} reference={report.reference ?? "ce signalement"} status={report.status} />
+            {isPurchase ? (
+              <p className="a2-note">
+                <Icon name="i-info" className="ic" />
+                <span>La clôture prévient les deux parties. Aucun remboursement ni aucune compensation n&apos;est possible depuis cet écran.</span>
+              </p>
+            ) : null}
           </SectionCard>
           <Parties report={report} />
           <Handling report={report} />
