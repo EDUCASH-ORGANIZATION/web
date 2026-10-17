@@ -365,10 +365,16 @@ describe("segment client/messages", () => {
     vi.resetModules()
     vi.doMock("@/lib/actions/message.actions", () => ({ getClientConversation: async () => ({ error: "Impossible de charger." }) }))
     vi.doMock("@/lib/actions/message-report.actions", () => ({ reportClientMessage: vi.fn() }))
+    vi.doMock("@/lib/actions/purchase-request.actions", () => ({
+      markPurchasePaid: vi.fn(),
+      reportPurchaseRequestAsClient: vi.fn(),
+      getClientPurchaseRequests: vi.fn(),
+    }))
     const { default: Page } = await import("@/app/(client)/client/messages/[missionId]/page")
     const html = renderToStaticMarkup(await Page({ params: Promise.resolve({ missionId: M1 }), searchParams: Promise.resolve({}) }))
     vi.doUnmock("@/lib/actions/message.actions")
     vi.doUnmock("@/lib/actions/message-report.actions")
+    vi.doUnmock("@/lib/actions/purchase-request.actions")
     expect(html).toContain("<h2")
     expect(html).not.toContain("<h1")
     expect(html).toContain('href="/client/messages"')

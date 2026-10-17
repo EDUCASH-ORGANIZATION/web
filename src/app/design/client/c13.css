@@ -97,6 +97,9 @@
   .c2 .conv2 .composer:not(.is-locked) { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   .c2 .conv2 .composer.is-locked { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
   .c2 .bubble__actions2 .link2 { min-height: 44px; }
+  /* Carte de demande de paiement : pleine largeur du fil (variante .c-payreq--m de la planche), actions de 44 px */
+  .c2 .conv2 .c-payreq { width: 100%; max-width: 100%; padding: 12px; gap: 10px; }
+  .c2 .conv2 .c-payreq__actions .btn { min-height: 44px; }
   /* Liens de position Google Maps : zone tactile de 44 px, ligne centrée. */
   .c2 .bubble__place2 { min-height: 44px; }
 }
