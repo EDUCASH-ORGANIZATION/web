@@ -469,10 +469,15 @@ describe("getClientMissionDetail : demandes de paiement d'achats (RD-ACHATS-01)"
     expect(detail.selectedStudent).not.toBeNull()
   })
 
-  it("lecture en échec : erreur neutre sans message de base", async () => {
+  it("lecture des achats en échec : achats indisponibles, la mission reste lisible, sans message de base", async () => {
     withPurchases()
-    getClientPurchaseRequests.mockResolvedValue({ error: "Impossible de charger les demandes de paiement. Veuillez réessayer." })
-    await expect(getClientMissionDetail(MISSION)).rejects.toThrow("Impossible de charger la mission.")
+    const log = vi.spyOn(console, "error").mockImplementation(() => {})
+    getClientPurchaseRequests.mockResolvedValue({ error: "Impossible de charger les demandes de paiement. Veuillez réessayer.", code: "XX000" })
+    const detail = await getClientMissionDetail(MISSION)
+    expect(detail.purchases).toEqual({ available: false })
+    expect(detail.mission.id).toBe(MISSION)
+    expect(log).toHaveBeenCalledWith("[getClientMissionDetail] demandes d'achats", "XX000")
+    expect(JSON.stringify(detail)).not.toContain("Impossible de charger les demandes")
   })
 
   it("la source réutilise le lecteur d'ST-04 : ni service role, ni sonde HEAD, ni écriture, ni calcul de commission", () => {

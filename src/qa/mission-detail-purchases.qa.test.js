@@ -218,12 +218,14 @@ describe("étudiant : détail de mission avec demandes d'achats", () => {
     expect((await getStudentMissionDetail(MISSION)).purchases).toEqual({ available: false })
   })
 
-  it("erreur de base inattendue : erreur neutre, aucun message SQL", async () => {
+  it("erreur de base inattendue : achats indisponibles, mission lisible, aucun message SQL", async () => {
     seed({ requests: [requestRow({ id: R1 })] })
     db.faults["purchase_requests.select"] = { code: "XX000", message: "secret: connexion à db.internal" }
     asRole("student", STUDENT)
-    await expect(getStudentMissionDetail(MISSION)).rejects.toThrow("Impossible de charger la mission.")
-    await getStudentMissionDetail(MISSION).catch((e) => expect(e.message).not.toMatch(/secret|internal|XX000/))
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.purchases).toEqual({ available: false })
+    expect(detail.mission.id).toBe(MISSION)
+    expect(JSON.stringify(detail)).not.toMatch(/secret|internal|XX000/)
   })
 
   it("aucune information privée du client : ni identifiant, ni téléphone, ni chemin de la capture du SMS", async () => {
@@ -357,11 +359,14 @@ describe("client : détail de mission avec demandes d'achats", () => {
     expect(detail.mission.purchasesEstimate).toBe(20000)
   })
 
-  it("erreur de base inattendue : erreur neutre, aucun message SQL", async () => {
+  it("erreur de base inattendue : achats indisponibles, mission lisible, aucun message SQL", async () => {
     seed({ requests: threeRequests() })
     db.faults["purchase_requests.select"] = { code: "XX000", message: "secret: connexion à db.internal" }
     asRole("client", CLIENT)
-    await expect(getClientMissionDetail(MISSION)).rejects.toThrow("Impossible de charger la mission.")
+    const detail = await getClientMissionDetail(MISSION)
+    expect(detail.purchases).toEqual({ available: false })
+    expect(detail.mission.id).toBe(MISSION)
+    expect(JSON.stringify(detail)).not.toMatch(/secret|internal|XX000/)
   })
 
   it("aucune écriture : ni demande, ni message, ni signalement, ni portefeuille", async () => {

@@ -124,15 +124,16 @@ const isValidRequest = (r) =>
 
 // Demandes d'achats du client propriétaire : les lecteurs de RD-ACHATS-01 (ST-04) font l'accès, la propriété et la
 // signature des photos ; ce module n'en garde que la forme exposée. Mission sans estimation d'achats ou sans étudiant
-// retenu : aucune demande ne peut exister (le déclencheur de la base l'exige), donc aucune lecture. Table absente ou
-// réponse inattendue : indisponible, jamais une erreur. Autre échec : erreur neutre, comme les autres lectures.
+// retenu : aucune demande ne peut exister (le déclencheur de la base l'exige), donc aucune lecture. Table absente,
+// réponse inattendue ou échec de lecture : indisponible (journalisé), jamais une erreur : l'écran reste lisible et la
+// confirmation de fin accessible.
 async function readPurchases(mission) {
   const estimate = purchasesEstimateOf(mission.purchases_estimate)
   if (estimate === null || !mission.selected_student_id) return NO_PURCHASES
   const res = await getClientPurchaseRequests({ missionId: mission.id })
   if (res?.error) {
-    console.error("[getClientMissionDetail] demandes d'achats")
-    throw new Error(ERR_LOAD)
+    console.error("[getClientMissionDetail] demandes d'achats", res.code ?? "erreur")
+    return NO_PURCHASES
   }
   if (res?.available !== true || !Array.isArray(res.requests)) return NO_PURCHASES
   // Ligne invalide (identifiant, statut ou montant inattendu) : ignorée, jamais affichée ni additionnée.

@@ -584,10 +584,15 @@ describe("getStudentMissionDetail : demandes de paiement d'achats (RD-ACHATS-01)
     expect(detail.mission.title).toBe("Cours de maths")
   })
 
-  it("lecture en échec : erreur neutre sans message de base", async () => {
+  it("lecture des achats en échec : achats indisponibles, la mission reste lisible, sans message de base", async () => {
     responses.missions = missionsFor(retained)
-    getStudentPurchaseRequests.mockResolvedValue({ error: "Impossible de charger les demandes de paiement. Veuillez réessayer." })
-    await expect(getStudentMissionDetail(MISSION)).rejects.toThrow("Impossible de charger la mission.")
+    const log = vi.spyOn(console, "error").mockImplementation(() => {})
+    getStudentPurchaseRequests.mockResolvedValue({ error: "Impossible de charger les demandes de paiement. Veuillez réessayer.", code: "XX000" })
+    const detail = await getStudentMissionDetail(MISSION)
+    expect(detail.purchases).toEqual({ available: false })
+    expect(detail.mission.title).toBe("Cours de maths")
+    expect(log).toHaveBeenCalledWith("[getStudentMissionDetail] demandes d'achats", "XX000")
+    expect(JSON.stringify(detail)).not.toContain("Impossible de charger les demandes")
   })
 
   it("n'expose ni identifiant du client ni colonne d'une autre partie, et ne lit pas purchase_requests lui-même", async () => {

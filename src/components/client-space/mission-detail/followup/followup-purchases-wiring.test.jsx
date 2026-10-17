@@ -89,6 +89,12 @@ describe("followup-view : achats branchés sur C09 et C11", () => {
     expect(withPaid).toMatch(/achats/i)
   })
 
+  it("lecture des achats indisponible : « Libérer le paiement » reste accessible par ?confirmer=1", () => {
+    const out = plain(render(detailOf("in_progress", { available: false })))
+    expect(out).toContain("Libérer le paiement")
+    expect(out).not.toContain("demande de paiement d'achats en attente")
+  })
+
   it.each(["in_progress", "done", "cancelled"])("%s sans achats : aucun libellé d'achats payés ni coût total, rendu identique à purchases indisponible", (status) => {
     const flags = { confirmer: status === "in_progress", publiee: false, paymentsEnabled: true }
     const absent = render(detailOf(status), flags)
