@@ -95,7 +95,7 @@ function startsWithAdminCheck(source, name) {
 }
 
 function importsClosureModule(source) {
-  return /from\s+["']@\/lib\/actions\/account-closure-(core|auth|pseudonymize)["']/.test(stripComments(source))
+  return /from\s+["'][^"']*account-closure-(core|auth|pseudonymize)["']/.test(stripComments(source))
 }
 
 function isClientModule(source) {
@@ -161,6 +161,11 @@ describe("règles du garde de fermeture sur des fixtures en mémoire", () => {
     const client = '"use client"\nimport { closeAccountCore } from "@/lib/actions/account-closure-core"'
     expect(isClientModule(client)).toBe(true)
     expect(importsClosureModule(client)).toBe(true)
+    const relative = '"use client"\nimport { pseudonymizeAuthUser } from "./account-closure-auth"'
+    expect(isClientModule(relative)).toBe(true)
+    expect(importsClosureModule(relative)).toBe(true)
+    expect(importsClosureModule('import { a } from "../actions/account-closure-pseudonymize"')).toBe(true)
+    expect(importsClosureModule('import { a } from "./account-closure-other"')).toBe(false)
     expect(isClientModule('import "server-only"')).toBe(false)
   })
 })
