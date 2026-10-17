@@ -46,6 +46,29 @@ describe("sendEmail completion-declared", () => {
   })
 })
 
+describe("sendEmail demandes d'achats", () => {
+  const props = { missionTitle: "Courses", missionId: "0b8f1c1e-2c1b-4b53-9a52-9d6b6a6f3a10", studentId: "22222222-2222-4222-8222-222222222221", requestId: "33333333-3333-4333-8333-333333333331" }
+
+  it.each([
+    ["purchase-requested", "Nouvelle demande de paiement d’achats"],
+    ["purchase-paid", "Paiement indiqué : confirmez la réception"],
+    ["purchase-reported", "Une demande d’achats a été signalée"],
+  ])("%s : sujet fixe, rendu envoyé à l'adresse donnée", async (template, subject) => {
+    expect(await sendEmail(template, "a@b.bj", props)).toEqual({ success: true })
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(send.mock.calls[0][0].subject).toBe(subject)
+    expect(send.mock.calls[0][0].to).toBe("a@b.bj")
+    expect(send.mock.calls[0][0].react).toBeTruthy()
+  })
+
+  it("domaine non vérifié (403) : retourne une erreur sans lever", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    send.mockResolvedValueOnce({ error: { name: "validation_error", statusCode: 403, message: "domain not verified" } })
+    expect(await sendEmail("purchase-requested", "a@b.bj", props)).toEqual({ error: "domain not verified" })
+    spy.mockRestore()
+  })
+})
+
 describe("sendEmail journal", () => {
   it("n'écrit aucune donnée du message d'erreur ou de l'exception dans le journal", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})

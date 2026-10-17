@@ -14,6 +14,9 @@ import VerificationRejected  from "./templates/verification-rejected.jsx"
 import VerificationExpired   from "./templates/verification-expired.jsx"
 import CompletionDeclared    from "./templates/completion-declared.jsx"
 import ContactMessage        from "./templates/contact-message.jsx"
+import PurchaseRequested     from "./templates/purchase-requested.jsx"
+import PurchasePaid          from "./templates/purchase-paid.jsx"
+import PurchaseReported      from "./templates/purchase-reported.jsx"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -31,6 +34,9 @@ const TEMPLATES = {
   "verification-expired":   VerificationExpired,
   "contact-message":        ContactMessage,
   "completion-declared":    CompletionDeclared,
+  "purchase-requested":     PurchaseRequested,
+  "purchase-paid":          PurchasePaid,
+  "purchase-reported":      PurchaseReported,
 }
 
 const SUBJECTS = {
@@ -46,6 +52,9 @@ const SUBJECTS = {
   "payment-received-wallet":    "Paiement reçu dans votre portefeuille",
   "contact-message":            "Contact EduCash",
   "completion-declared":        "Mission terminée : votre confirmation est attendue",
+  "purchase-requested":         "Nouvelle demande de paiement d’achats",
+  "purchase-paid":              "Paiement indiqué : confirmez la réception",
+  "purchase-reported":          "Une demande d’achats a été signalée",
 }
 
 /**
