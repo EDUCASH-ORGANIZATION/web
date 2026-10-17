@@ -2137,3 +2137,13 @@ describe("E05 : modale « J'ai terminé » au-dessus de la barre du haut", () =>
     expect(e05).toContain(".e2-05-modal { width: 560px; }")
   })
 })
+
+describe("C13 : badge de la demande de paiement", () => {
+  const css = read("client/c13.css")
+
+  it("l'en-tete passe a la ligne et le badge ne sort pas de la carte", () => {
+    expect(css).toMatch(/\.c2 \.c-payreq__head \{[^}]*flex-wrap: wrap/)
+    expect(css).toMatch(/\.c2 \.c-payreq__head > div \{[^}]*min-width: 0/)
+    expect(css).toMatch(/\.c2 \.c-payreq__head \.badge \{[^}]*flex: none[^}]*max-width: 100%/)
+  })
+})
