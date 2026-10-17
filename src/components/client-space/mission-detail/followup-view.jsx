@@ -10,7 +10,7 @@ import { SelectedStudent, STUDENT_FALLBACK } from "./followup/selected-student"
 import { EscrowCard } from "./followup/escrow-card"
 import { Timeline, buildTimeline, formatDay } from "./followup/timeline"
 import { ConfirmEndDialog, ConfirmEndSuccess } from "./followup/confirm-end-dialog"
-import { Receipt } from "./followup/receipt"
+import { Receipt, DonePurchasesCard } from "./followup/receipt"
 import { PurchasesCard, PaymentTodoCard, firstPendingRequest } from "./followup/purchases-card"
 import { CancelledSummary } from "./followup/cancelled-summary"
 import { COMPLETION_COPY } from "@/lib/missions/completion"
@@ -220,7 +220,7 @@ function Done({ detail, view, studentName }) {
           ) : review ? (
             <ReviewCard review={review} studentName={studentName} />
           ) : null}
-          {estimate === null ? null : <PurchasesCard estimate={estimate} escrowed={Boolean(view.reservedAt)} />}
+          {estimate === null ? null : <DonePurchasesCard estimate={estimate} escrowed={Boolean(view.reservedAt)} purchases={detail.purchases} />}
           <section className="card2 fup2__timeline" aria-label="Chronologie">
             <div className="sec2">
               <h2 className="sec2__title">Chronologie</h2>
@@ -230,7 +230,7 @@ function Done({ detail, view, studentName }) {
         </div>
         <div className="col2">
           {estimate === null ? <SelectedStudent title="Réalisée par" student={selectedStudent} missionId={mission.id} /> : null}
-          <Receipt view={view} ledger={ledger} studentName={studentName} withPurchases={estimate !== null} />
+          <Receipt view={view} ledger={ledger} studentName={studentName} withPurchases={estimate !== null} purchases={detail.purchases} />
           {estimate === null ? null : <SelectedStudent title="Réalisée par" student={selectedStudent} missionId={mission.id} />}
         </div>
       </div>
@@ -281,7 +281,7 @@ function Cancelled({ detail, view, studentName }) {
           </section>
         </div>
         <div className="col2">
-          <CancelledSummary mission={mission} view={view} applicationsCount={applications.length} />
+          <CancelledSummary mission={mission} view={view} applicationsCount={applications.length} purchases={detail.purchases} />
         </div>
       </div>
       <div className="mbar2">
@@ -368,6 +368,7 @@ export function MissionFollowupView({ detail, flags }) {
         studentName={studentName}
         split={view.split}
         since={view.reservedAt ? formatShortDate(view.reservedAt) : ""}
+        purchases={detail.purchases}
         onClose={() => setDialogOpen(false)}
         onPaid={(amount) => {
           setDialogOpen(false)

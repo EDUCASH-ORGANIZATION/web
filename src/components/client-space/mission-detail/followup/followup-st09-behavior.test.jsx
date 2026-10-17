@@ -238,13 +238,15 @@ describe("ST-09 dates de la note de blocage", () => {
 })
 
 describe("ST-09 zones intactes", () => {
-  it("ConfirmEndDialog, releaseOnce, confirmMission : diff vide et libellé conservé", () => {
-    const diff = execFileSync(
-      "git",
-      ["diff", "--name-only", "origin/main...HEAD", "--", "src/components/client-space/mission-detail/followup/confirm-end-dialog.jsx", "src/lib/actions/mission.actions.js"],
-      { encoding: "utf8", cwd: process.cwd() },
-    )
-    expect(diff.trim()).toBe("")
+  it("confirmMission : diff vide ; ConfirmEndDialog : la libération (releaseOnce, confirmMission, libellé) n'est pas modifiée", () => {
+    const run = (args) => execFileSync("git", args, { encoding: "utf8", cwd: process.cwd() })
+    expect(run(["diff", "--name-only", "origin/main...HEAD", "--", "src/lib/actions/mission.actions.js"]).trim()).toBe("")
+    // RD-ACHATS-01 (ST-14) ajoute l'avertissement et la liste des achats à la modale : seules des lignes de
+    // libération modifiées ou retirées feraient échouer ce garde.
+    const dialogDiff = run(["diff", "-U0", "origin/main...HEAD", "--", "src/components/client-space/mission-detail/followup/confirm-end-dialog.jsx"])
+    const touched = dialogDiff.split("\n").filter((l) => /^[-+](?![-+])/.test(l) && /releaseOnce|confirmMission|Libérer le paiement/.test(l))
+    const removed = touched.filter((l) => l.startsWith("-"))
+    expect(removed).toEqual([])
   })
 
   it("le libellé « Libérer le paiement » reste dans la modale", async () => {
