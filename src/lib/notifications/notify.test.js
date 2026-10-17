@@ -11,6 +11,8 @@ const service = {
     const chain = {
       select: () => chain,
       eq: (c, v) => { profilesFilters.push([c, v]); return chain },
+      in: (c, v) => { profilesFilters.push([c, v]); return chain },
+      not: (c, op, v) => { profilesFilters.push([c, op, v]); return chain },
       then: (resolve, reject) => Promise.resolve(adminsResult).then(resolve, reject),
     }
     return chain
@@ -110,6 +112,42 @@ describe("notifyMany", () => {
   it("liste vide : rien à écrire", async () => {
     expect(await notifyMany([], input())).toEqual({ ok: true })
     expect(upsert).not.toHaveBeenCalled()
+  })
+})
+
+describe("comptes fermés", () => {
+  it("notify : aucune écriture vers un destinataire fermé (filtre closed_at non nul)", async () => {
+    adminsResult = { data: [{ user_id: "cli-1" }], error: null }
+    expect(await notify(input())).toEqual({ ok: true })
+    expect(upsert).not.toHaveBeenCalled()
+    expect(profilesFilters).toContainEqual(["closed_at", "is", null])
+  })
+
+  it("notify : lecture de l'état en erreur, rien n'est écrit", async () => {
+    adminsResult = { data: null, error: { code: "42703", message: "column closed_at does not exist" } }
+    await expect(notify(input())).resolves.toEqual({ ok: false })
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it("notifyMany : écrit seulement pour les destinataires ouverts", async () => {
+    adminsResult = { data: [{ user_id: "cli-2" }], error: null }
+    const { recipientId, ...notification } = input()
+    expect(await notifyMany(["cli-1", "cli-2"], notification)).toEqual({ ok: true })
+    expect(upsert.mock.calls[0][0].map((r) => r.recipient_id)).toEqual(["cli-1"])
+  })
+
+  it("notifyMany : tous fermés, aucune écriture", async () => {
+    adminsResult = { data: [{ user_id: "cli-1" }], error: null }
+    const { recipientId, ...notification } = input()
+    expect(await notifyMany(["cli-1"], notification)).toEqual({ ok: true })
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it("notifyAdmins reste inchangé : aucune lecture de closed_at", async () => {
+    adminsResult = { data: [{ user_id: "adm-1" }], error: null }
+    await notifyAdmins(cardSubmitted({ studentId: S, studentName: "Codjo Agbo", at: new Date("2026-10-15T10:00:00Z") }))
+    expect(profilesFilters.flat()).not.toContain("closed_at")
+    expect(upsert).toHaveBeenCalledTimes(1)
   })
 })
 

@@ -17,6 +17,10 @@ const state = {
 const createServiceClient = vi.fn(() => makeService())
 const notifyInApp = vi.fn()
 const revalidatePath = vi.fn()
+const closeAccountCore = vi.fn()
+const reopenAccountCore = vi.fn()
+const readClosureSnapshot = vi.fn()
+const readClosureHistory = vi.fn()
 
 function project(row, cols) {
   if (!cols || cols === "*") return { ...row }
@@ -141,6 +145,12 @@ function makeService() {
   }
 }
 
+vi.mock("./account-closure-core", () => ({
+  closeAccountCore: (...a) => closeAccountCore(...a),
+  reopenAccountCore: (...a) => reopenAccountCore(...a),
+  readClosureSnapshot: (...a) => readClosureSnapshot(...a),
+  readClosureHistory: (...a) => readClosureHistory(...a),
+}))
 vi.mock("next/cache", () => ({ revalidatePath: (...a) => revalidatePath(...a) }))
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: (...a) => createServiceClient(...a) }))
 vi.mock("@/lib/notifications/notify", () => ({ notify: (...a) => notifyInApp(...a) }))
@@ -154,7 +164,7 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }))
 
-const { listAdminUsers, getAdminUserDetail, suspendAccount, reactivateAccount } = await import("./admin-users.actions")
+const { listAdminUsers, getAdminUserDetail, suspendAccount, reactivateAccount, closeAccount, reopenAccount } = await import("./admin-users.actions")
 
 function addProfile(n, over = {}) {
   const id = uid(n)
@@ -181,6 +191,18 @@ function addProfile(n, over = {}) {
   return id
 }
 
+const HEALTHY_SNAPSHOT = {
+  role: "student",
+  activeClientMissions: 0,
+  activeStudentMissions: 0,
+  walletBalance: 0,
+  walletReserved: 0,
+  openPurchases: 0,
+  openReports: 0,
+  recentWithdrawals: 0,
+  pendingTransactions: 0,
+}
+
 const profileOf = (id) => state.tables.profiles.find((p) => p.user_id === id)
 const updates = () => state.queries.filter((q) => q.op === "update")
 
@@ -199,6 +221,9 @@ beforeEach(() => {
   notifyInApp.mockReset()
   notifyInApp.mockResolvedValue({ ok: true })
   revalidatePath.mockClear()
+  for (const fn of [closeAccountCore, reopenAccountCore, readClosureSnapshot, readClosureHistory]) fn.mockReset()
+  readClosureSnapshot.mockResolvedValue(HEALTHY_SNAPSHOT)
+  readClosureHistory.mockResolvedValue({ events: [] })
   vi.spyOn(console, "error").mockImplementation(() => {})
   vi.spyOn(console, "info").mockImplementation(() => {})
 })
@@ -213,6 +238,8 @@ const CALLS = {
   getAdminUserDetail: (id) => getAdminUserDetail(id, {}),
   suspendAccount: (id) => suspendAccount(id, { reason: "Comportement répété" }),
   reactivateAccount: (id) => reactivateAccount(id, { reason: "Situation réglée" }),
+  closeAccount: (id) => closeAccount(id, { reasonCode: "admin_decision", confirmation: "FERMER" }),
+  reopenAccount: (id) => reopenAccount(id, { reasonCode: "admin_decision" }),
 }
 
 describe("contrôle admin de chaque action", () => {
@@ -614,5 +641,198 @@ describe("notifications in-app (RD-NOTIF-01)", () => {
     const id2 = addProfile(2, { is_suspended: true })
     notifyInApp.mockResolvedValueOnce({ ok: false })
     expect(await reactivateAccount(id2, { reason: "Situation réglée" })).toEqual({ success: true })
+  })
+})
+
+describe("suspension et compte fermé", () => {
+  it("suspendAccount et reactivateAccount refusent un compte fermé, sans écriture", async () => {
+    const id = addProfile(1, { closed_at: "2026-10-10T08:00:00+00:00", is_suspended: true })
+    expect((await suspendAccount(id, { reason: "Comportement répété" })).error).toMatch(/fermé/)
+    expect((await reactivateAccount(id, { reason: "Situation réglée" })).error).toMatch(/fermé/)
+    expect(updates()).toHaveLength(0)
+  })
+})
+
+describe("closeAccount", () => {
+  const ok = { success: true, alreadyClosed: false, complete: true, dueAt: "2026-10-29T08:00:00.000Z" }
+  const valid = { reasonCode: "admin_decision", confirmation: "FERMER" }
+
+  it("refuse sans appel au coeur : uuid invalide, soi-même, cible admin, confirmation inexacte, motif hors liste", async () => {
+    const id = addProfile(1)
+    const admin = addProfile(2, { role: "admin" })
+    state.tables.profiles.push({ user_id: ADMIN_ID, role: "admin", full_name: "Admin" })
+    expect((await closeAccount("pas-un-uuid", valid)).error).toBeTruthy()
+    expect((await closeAccount(ADMIN_ID, valid)).error).toMatch(/propre compte/)
+    expect((await closeAccount(admin, valid)).error).toMatch(/administrateur/)
+    for (const confirmation of ["fermer", "FERMER ", "", undefined]) {
+      expect((await closeAccount(id, { ...valid, confirmation })).error).toMatch(/FERMER/)
+    }
+    for (const reasonCode of ["autre", "", undefined, "__proto__"]) {
+      expect((await closeAccount(id, { ...valid, reasonCode })).error).toMatch(/motif/)
+    }
+    expect((await closeAccount(uid(999), valid)).error).toBeTruthy()
+    expect(closeAccountCore).not.toHaveBeenCalled()
+  })
+
+  it("succès : appelle le coeur en acteur admin, journal sans donnée personnelle, revalidation", async () => {
+    const id = addProfile(1)
+    closeAccountCore.mockResolvedValue(ok)
+    const res = await closeAccount(id, valid)
+    expect(res).toEqual({ success: true, complete: true, alreadyClosed: false, dueAt: ok.dueAt })
+    expect(closeAccountCore).toHaveBeenCalledWith(expect.anything(), {
+      userId: id,
+      actor: { kind: "admin", id: ADMIN_ID },
+      reasonCode: "admin_decision",
+    })
+    const line = console.info.mock.calls.find((c) => c[0] === "[admin-audit]")[1]
+    expect(JSON.parse(line)).toMatchObject({ adminId: ADMIN_ID, action: "user.close", targetId: id, reason: "admin_decision" })
+    expect(line).not.toMatch(/exemple\.bj|\+229|Utilisateur/)
+    expect(revalidatePath).toHaveBeenCalledWith(`/admin/users/${id}`)
+  })
+
+  it("blocages : messages d'administration, aucun journal", async () => {
+    const id = addProfile(1)
+    closeAccountCore.mockResolvedValue({ blocked: ["REPORT_OPEN", "WALLET_NOT_EMPTY"] })
+    const res = await closeAccount(id, valid)
+    expect(res.error).toMatch(/signalement/)
+    expect(res.blockers.map((b) => b.code)).toEqual(["REPORT_OPEN", "WALLET_NOT_EMPTY"])
+    expect(console.info.mock.calls.find((c) => c[0] === "[admin-audit]")).toBeUndefined()
+  })
+
+  it("erreur du coeur ou exception : message neutre, aucun journal", async () => {
+    const id = addProfile(1)
+    closeAccountCore.mockResolvedValueOnce({ error: "L'opération n'a pas pu aboutir. Réessayez dans un instant." })
+    expect((await closeAccount(id, valid)).error).toMatch(/pas pu aboutir/)
+    closeAccountCore.mockRejectedValueOnce(new Error("boom secret"))
+    expect((await closeAccount(id, valid)).error).not.toMatch(/boom|secret/)
+    expect(console.info.mock.calls.find((c) => c[0] === "[admin-audit]")).toBeUndefined()
+  })
+
+  it("fermeture incomplète : succès avec complete à false", async () => {
+    const id = addProfile(1)
+    closeAccountCore.mockResolvedValue({ ...ok, complete: false })
+    expect((await closeAccount(id, valid)).complete).toBe(false)
+  })
+})
+
+describe("reopenAccount", () => {
+  const closedAt = "2026-10-10T08:00:00+00:00"
+
+  it("refuse sans appel au coeur : uuid, soi-même, motif hors liste, admin, compte inconnu", async () => {
+    const active = addProfile(1)
+    const admin = addProfile(2, { role: "admin" })
+    expect((await reopenAccount("x", { reasonCode: "admin_decision" })).error).toBeTruthy()
+    expect((await reopenAccount(ADMIN_ID, { reasonCode: "admin_decision" })).error).toBeTruthy()
+    expect((await reopenAccount(active, { reasonCode: "autre" })).error).toMatch(/motif/)
+    expect((await reopenAccount(admin, { reasonCode: "admin_decision" })).error).toMatch(/administrateur/)
+    expect((await reopenAccount(uid(999), { reasonCode: "admin_decision" })).error).toBeTruthy()
+    expect(reopenAccountCore).not.toHaveBeenCalled()
+  })
+
+  it("compte actif : le coeur tranche (NOT_CLOSED sans bannissement, reprise sinon)", async () => {
+    const id = addProfile(1)
+    reopenAccountCore.mockResolvedValueOnce({ error: "Ce compte n'est pas fermé.", code: "NOT_CLOSED" })
+    expect((await reopenAccount(id, { reasonCode: "admin_decision" })).error).toMatch(/pas fermé/)
+    reopenAccountCore.mockResolvedValueOnce({ success: true, complete: true, alreadyActive: true })
+    expect(await reopenAccount(id, { reasonCode: "admin_decision" })).toEqual({ success: true, complete: true, alreadyActive: true })
+    expect(reopenAccountCore).toHaveBeenCalledTimes(2)
+  })
+
+  it.each([
+    ["pseudonymizing", "Nom restant"],
+    ["pseudonymized", "Compte clôturé"],
+  ])("état %s : refus côté serveur avec le message d'impossibilité, sans appel au coeur", async (_state, fullName) => {
+    const id = addProfile(1, { closed_at: closedAt, pseudonymized_at: "2026-10-24T08:00:00+00:00", full_name: fullName })
+    const res = await reopenAccount(id, { reasonCode: "admin_decision" })
+    expect(res.error).toMatch(/impossible/)
+    expect(res.error).toMatch(/effacées/)
+    expect(reopenAccountCore).not.toHaveBeenCalled()
+  })
+
+  it("succès : coeur en acteur admin, journal avec codes seulement", async () => {
+    const id = addProfile(1, { closed_at: closedAt, is_suspended: true })
+    reopenAccountCore.mockResolvedValue({ success: true, complete: true, alreadyActive: false })
+    const res = await reopenAccount(id, { reasonCode: "user_request" })
+    expect(res).toEqual({ success: true, complete: true, alreadyActive: false })
+    expect(reopenAccountCore).toHaveBeenCalledWith(expect.anything(), {
+      userId: id,
+      actor: { kind: "admin", id: ADMIN_ID },
+      reasonCode: "user_request",
+    })
+    const line = console.info.mock.calls.find((c) => c[0] === "[admin-audit]")[1]
+    expect(JSON.parse(line)).toMatchObject({ action: "user.reopen", targetId: id, reason: "user_request" })
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/users")
+  })
+
+  it("le coeur répond PSEUDONYMIZED (course) : message d'impossibilité, aucun journal", async () => {
+    const id = addProfile(1, { closed_at: closedAt })
+    reopenAccountCore.mockResolvedValue({ error: "autre texte", code: "PSEUDONYMIZED" })
+    expect((await reopenAccount(id, { reasonCode: "admin_decision" })).error).toMatch(/effacées/)
+    expect(console.info.mock.calls.find((c) => c[0] === "[admin-audit]")).toBeUndefined()
+  })
+})
+
+describe("getAdminUserDetail : cycle de vie", () => {
+  it("compte actif : aperçu des blocages traduits, échéance absente, historique", async () => {
+    const id = addProfile(1)
+    readClosureSnapshot.mockResolvedValue({ ...HEALTHY_SNAPSHOT, openReports: 1 })
+    readClosureHistory.mockResolvedValue({
+      events: [{ event: "reopened", actor_kind: "admin", actor_id: ADMIN_ID, reason_code: "admin_decision", created_at: "2026-10-11T08:00:00Z" }],
+    })
+    const res = await getAdminUserDetail(id, {})
+    expect(res.user.closure).toBe("active")
+    expect(res.closure).toMatchObject({ state: "active", canReopen: false, dueAt: null, deferred: [] })
+    expect(res.closure.blockers).toEqual([expect.objectContaining({ code: "REPORT_OPEN", message: expect.stringMatching(/signalement/) })])
+    expect(res.closure.history).toEqual([{ event: "reopened", actorKind: "admin", reasonCode: "admin_decision", createdAt: "2026-10-11T08:00:00Z" }])
+    expect(JSON.stringify(res.closure)).not.toContain(ADMIN_ID)
+  })
+
+  it("compte fermé : échéance à 14 jours, réactivable, pas d'aperçu de blocages", async () => {
+    const id = addProfile(1, { closed_at: "2026-10-10T08:00:00+00:00", is_suspended: true })
+    const res = await getAdminUserDetail(id, {})
+    expect(res.closure).toMatchObject({ state: "closed", canReopen: true, dueAt: "2026-10-24T08:00:00.000Z", blockers: [], deferred: [] })
+    expect(readClosureSnapshot).not.toHaveBeenCalled()
+  })
+
+  it("fermeture inachevée : compte fermé non banni, ou dernier événement différent de closed", async () => {
+    const future = new Date(Date.now() + 86400000 * 365).toISOString()
+    const id = addProfile(1, { closed_at: "2026-10-10T08:00:00+00:00", is_suspended: true })
+    state.authUsers.find((u) => u.id === id).banned_until = future
+    readClosureHistory.mockResolvedValue({ events: [{ event: "closed", actor_kind: "admin", created_at: "2026-10-10T08:00:00Z" }] })
+    expect((await getAdminUserDetail(id, {})).closure).toMatchObject({ authBanned: true, incomplete: false })
+
+    readClosureHistory.mockResolvedValue({ events: [] })
+    expect((await getAdminUserDetail(id, {})).closure).toMatchObject({ authBanned: true, incomplete: true })
+
+    state.authUsers.find((u) => u.id === id).banned_until = null
+    readClosureHistory.mockResolvedValue({ events: [{ event: "closed", actor_kind: "admin", created_at: "2026-10-10T08:00:00Z" }] })
+    expect((await getAdminUserDetail(id, {})).closure).toMatchObject({ authBanned: false, incomplete: true })
+  })
+
+  it("compte actif encore banni : authBanned vrai, pas d'incomplétude de fermeture", async () => {
+    const id = addProfile(1)
+    state.authUsers.find((u) => u.id === id).banned_until = new Date(Date.now() + 86400000 * 365).toISOString()
+    expect((await getAdminUserDetail(id, {})).closure).toMatchObject({ state: "active", authBanned: true, incomplete: false })
+  })
+
+  it("compte fermé et échu avec un signalement ouvert : pseudonymisation reportée", async () => {
+    const id = addProfile(1, { closed_at: "2026-09-20T08:00:00+00:00", is_suspended: true })
+    readClosureSnapshot.mockResolvedValue({ ...HEALTHY_SNAPSHOT, openReports: 2 })
+    const res = await getAdminUserDetail(id, {})
+    expect(res.closure.deferred).toEqual(["REPORT_OPEN"])
+  })
+
+  it("compte pseudonymisé : non réactivable ; historique illisible : null", async () => {
+    const id = addProfile(1, { closed_at: "2026-09-20T08:00:00+00:00", pseudonymized_at: "2026-10-05T08:00:00+00:00", full_name: "Compte clôturé" })
+    readClosureHistory.mockResolvedValue({ error: "x" })
+    const res = await getAdminUserDetail(id, {})
+    expect(res.closure).toMatchObject({ state: "pseudonymized", canReopen: false, history: null })
+  })
+
+  it("liste : l'état de fermeture de chaque ligne", async () => {
+    addProfile(1, { closed_at: "2026-10-10T08:00:00+00:00", is_suspended: true })
+    addProfile(2)
+    const res = await listAdminUsers({})
+    expect(res.rows.map((r) => r.closure).sort()).toEqual(["active", "closed"])
   })
 })

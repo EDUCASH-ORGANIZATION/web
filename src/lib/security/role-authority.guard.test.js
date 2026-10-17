@@ -13,6 +13,12 @@ const ROOT = process.cwd()
 const ALLOWED_CODE = []
 const DISPLAY_ONLY = { "src/hooks/use-vitrine-session.js": "full_name" }
 
+// Seule écriture permise : mettre à null les clés des métadonnées d'un compte à la pseudonymisation (RD-CLOSE-01).
+// Les clés existantes sont passées à nullMetadata, qui n'en conserve que les noms (jamais une valeur, jamais une
+// autorisation). Une seule occurrence exacte, dans ce seul fichier ; tout le reste y reste refusé.
+const ADAPTER_WRITE = "user_metadata: nullMetadata(existing?.data?.user?.user_metadata)"
+const WRITE_ONLY = { "src/lib/actions/account-closure-auth.js": ADAPTER_WRITE }
+
 const FIXED_FILES = ["middleware.js", "src/app/(student)/layout.js", "src/app/(client)/layout.js"]
 
 const ADMIN_PAGES = ["dashboard", "verifications", "users", "missions", "wallets", "transactions", "withdrawals"].map(
@@ -34,8 +40,14 @@ function stripComments(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1")
 }
 
-function readsUserMetadata(source) {
-  return /user_metadata/.test(stripComments(source))
+/** Retire (une seule fois) l'écriture exacte autorisée pour ce fichier, s'il y en a une. */
+function stripAllowedWrite(code, rel = "") {
+  const allowed = WRITE_ONLY[rel]
+  return allowed ? code.replace(allowed, "") : code
+}
+
+function readsUserMetadata(source, rel = "") {
+  return /user_metadata/.test(stripAllowedWrite(stripComments(source), rel))
 }
 
 function adminPageFiles() {
@@ -122,8 +134,22 @@ describe("garde-fou role-authority", () => {
     const offenders = guardedFiles()
       .map((f) => path.relative(ROOT, f))
       .filter((rel) => !ALLOWED_CODE.includes(rel))
-      .filter((rel) => readsUserMetadata(readFileSync(path.join(ROOT, rel), "utf8")))
+      .filter((rel) => readsUserMetadata(readFileSync(path.join(ROOT, rel), "utf8"), rel))
     expect(offenders).toEqual([])
+  })
+
+  it("l'écriture de remise à null n'est permise que dans l'adaptateur auth de fermeture (fixtures en mémoire)", () => {
+    const adapter = "src/lib/actions/account-closure-auth.js"
+    const write = `const a = { ${ADAPTER_WRITE} }`
+    expect(readsUserMetadata(write, adapter)).toBe(false)
+    expect(readsUserMetadata(write, "src/lib/actions/other.actions.js")).toBe(true)
+    expect(readsUserMetadata(write)).toBe(true)
+    expect(readsUserMetadata("const r = user.user_metadata.role", adapter)).toBe(true)
+    expect(readsUserMetadata(`${write}\nconst r = u?.user_metadata?.role`, adapter)).toBe(true)
+    expect(readsUserMetadata("const a = { user_metadata: { role: 'admin' } }", adapter)).toBe(true)
+    expect(readsUserMetadata("const a = { user_metadata: {} }", adapter)).toBe(true)
+    expect(readsUserMetadata("const a = { user_metadata: nullMetadata(other) }", adapter)).toBe(true)
+    expect(readsUserMetadata(`${write}\nconst b = { ${ADAPTER_WRITE} }`, adapter)).toBe(true)
   })
 
   it("server-role.js ne lit jamais user_metadata (aucun repli sans profil)", () => {
@@ -139,7 +165,7 @@ describe("garde-fou role-authority", () => {
     const offenders = []
     for (const file of files) {
       const rel = path.relative(ROOT, file)
-      const code = stripComments(readFileSync(file, "utf8"))
+      const code = stripAllowedWrite(stripComments(readFileSync(file, "utf8")), rel)
       const uses = code.match(/user_metadata\??\.?\w*/g) ?? []
       for (const use of uses) {
         const key = DISPLAY_ONLY[rel]

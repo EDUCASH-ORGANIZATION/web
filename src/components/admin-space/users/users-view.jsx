@@ -10,6 +10,9 @@ import { adminUserHref, adminUsersHref } from "@/lib/app/admin-routes"
 import { formatAmount, formatDateFr } from "@/lib/app/format"
 import { roleLabel } from "@/lib/admin-space/labels"
 import { pageWindow } from "@/lib/admin-space/users"
+import { isClosedEmail } from "@/lib/account-closure/closure-rules"
+
+const ERASED_EMAIL = "Adresse effacée (compte clôturé)"
 
 const plural = (n, one, many) => (n > 1 ? many : one)
 
@@ -34,8 +37,10 @@ export function displayName(row) {
   return row.name || "Profil incomplet"
 }
 
-/** Cellule « Statut » : suspension d'abord, puis vérification de l'étudiant, sinon actif. */
+/** Cellule « Statut » : fermeture d'abord, puis suspension, puis vérification de l'étudiant, sinon actif. */
 function StatusCell({ row }) {
+  if (row.closure === "closed") return <StatusBadge label="Fermé" tone="alerte" />
+  if (row.closure === "pseudonymizing" || row.closure === "pseudonymized") return <StatusBadge label="Clôturé" tone="neutre" />
   if (row.isSuspended) return <StatusBadge label="Suspendu" tone="erreur" />
   if (row.verification === "Vérifié") return <StatusBadge label="Vérifié" icon="seal" />
   if (row.verification) return <span>{row.verification}</span>
@@ -189,7 +194,7 @@ function Table({ rows }) {
                       {displayName(row)}
                       {row.isSelf ? " (vous)" : ""}
                     </Link>
-                    {row.email ? <div className="a2-03-who__sub">{row.email}</div> : null}
+                    {row.email ? <div className="a2-03-who__sub">{isClosedEmail(row.email) ? ERASED_EMAIL : row.email}</div> : null}
                   </div>
                 </div>
               </td>

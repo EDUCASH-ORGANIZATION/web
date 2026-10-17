@@ -90,10 +90,23 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Clôture du compte :</strong> vous pouvez demander la clôture de votre compte à
-            contact@educash.bj. La demande est traitée dans un délai de <strong>30 jours</strong>.
-            Les fichiers associés au compte (photo de profil, carte étudiante, photos et messages
-            vocaux envoyés, preuves d’achats) qui ne sont plus utilisés sont ensuite supprimés
-            automatiquement dès qu’ils ne sont plus utilisés, et jamais moins de <strong>7 jours</strong> après leur envoi.
+            contact@educash.bj. La demande est traitée dans un délai de <strong>30 jours</strong>,
+            si aucune mission, aucun solde, aucune demande d’achats ni aucun signalement n’est en
+            cours. Le compte est d’abord fermé : l’accès est coupé et vos données restent
+            intactes. Pendant <strong>14 jours</strong>, il peut être réactivé sur demande. À
+            l’échéance, l’effacement est automatique : l’adresse e-mail est remplacée par une
+            adresse sans lien avec vous, et sont effacés le nom, la photo de profil, la
+            présentation, le numéro de téléphone, l’identifiant de notification, les informations
+            d’étudiant (école, niveau, disponibilités, compétences, carte étudiante), les
+            notifications reçues, les candidatures en attente et les candidatures non retenues. Si un signalement ou un litige
+            est en cours à l’échéance, l’effacement est reporté jusqu’à sa clôture. Restent
+            conservés, rattachés à un compte sans nom : la ville, les données comptables (10 ans), les
+            demandes d’achats (section 7), les messages et les avis, dont l’auteur est alors
+            affiché « Compte clôturé », les signalements (section 8) et un journal des fermetures
+            sans donnée personnelle. Les fichiers associés au compte (photo de profil, carte
+            étudiante, photos et messages vocaux envoyés, preuves d’achats) qui ne sont plus
+            utilisés sont ensuite supprimés automatiquement dès qu’ils ne sont plus utilisés, et
+            jamais moins de <strong>7 jours</strong> après leur envoi.
           </li>
           <li>
             <strong>Données comptables :</strong> les transactions et les mouvements du portefeuille
@@ -146,7 +159,8 @@ export default function PrivacyPage() {
             <strong>Durée de conservation :</strong> les photos et captures sont supprimées
             automatiquement 12 mois après la fin de la mission, et jamais tant qu’un signalement est
             ouvert. Le numéro à payer, le nom du vendeur et le montant restent attachés à la mission
-            tant que la mission et les comptes concernés existent.
+            tant que la mission et les comptes concernés existent. Après la clôture
+            d’un compte, elles restent rattachées à un compte sans nom.
           </li>
           <li>
             <strong>Droits :</strong> vous disposez des droits décrits à la section « Vos droits »,

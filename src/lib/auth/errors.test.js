@@ -50,3 +50,19 @@ describe("mapAuthError", () => {
     }
   })
 })
+
+describe("compte fermé (banni)", () => {
+  it.each([
+    [{ code: "user_banned", status: 400, message: "User is banned" }],
+    [{ message: "User is banned" }],
+  ])("%j -> user_banned", (error) => {
+    expect(authErrorCode(error)).toBe("user_banned")
+    expect(mapAuthError(error).message).toBe(
+      "Ce compte est fermé. Pour demander sa réactivation, écrivez-nous à contact@educash.bj.",
+    )
+  })
+
+  it("après pseudonymisation l'adresse ne correspond plus : identifiants incorrects", () => {
+    expect(mapAuthError({ code: "invalid_credentials" }).message).toBe("Email ou mot de passe incorrect.")
+  })
+})

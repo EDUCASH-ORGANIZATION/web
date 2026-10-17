@@ -47,10 +47,11 @@ export const CLOSED_REPORT_STATUSES = ["resolved", "dismissed"]
 /** Statuts de mission qui marquent la fin d'une mission. */
 export const ENDED_MISSION_STATUSES = ["done", "cancelled"]
 
-/** Catégories du résumé, dans l'ordre d'exécution (P1, P2, P3, P5, P6, P7, P4). */
+/** Catégories du résumé, dans l'ordre d'exécution (P1, P2, P8, P3, P5, P6, P7, P4). */
 export const PURGE_CATEGORIES = [
   "contact_events",
   "closed_reports",
+  "closed_accounts",
   "proof_orphans",
   "message_media",
   "avatars",

@@ -44,6 +44,15 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => sessio
 vi.mock("@/lib/supabase/service", () => ({
   createServiceClient: () => ({
     from: (table) => ({
+      // Lecture des comptes fermes (RD-CLOSE-01) : aucun destinataire ferme dans ce scenario.
+      select: () => {
+        const b = {
+          in: () => b,
+          not: () => b,
+          then: (res, rej) => Promise.resolve({ data: [], error: null }).then(res, rej),
+        }
+        return b
+      },
       upsert: async (rows, options) => {
         serviceWrites.push({ table, rows, options })
         if (serviceBehaviour === "throw") throw new Error("reseau coupe a@b.com 0197000000")

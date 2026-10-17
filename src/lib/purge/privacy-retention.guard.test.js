@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
+import { CLOSURE_GRACE_DAYS } from "@/lib/account-closure/closure-rules"
 import {
   JOURNAL_RETENTION_DAYS,
   ORPHAN_GRACE_DAYS,
@@ -54,6 +55,10 @@ describe("confidentialité : durées liées aux règles de purge", () => {
     expect(conservation).toContain("OHADA")
   })
 
+  it("la section 6 affiche le délai de grâce CLOSURE_GRACE_DAYS", () => {
+    expect(section("conservation_des_donnees")).toContain(`${CLOSURE_GRACE_DAYS} jours`)
+  })
+
   it("les preuves d'achats affichent PROOF_RETENTION_MONTHS, jamais tant qu'un signalement est ouvert", () => {
     expect(PROOF_RETENTION_MONTHS).not.toBeNull()
     const achats = section("demandes_d_achats")
@@ -69,6 +74,7 @@ describe("confidentialité : durées liées aux règles de purge", () => {
       `${JOURNAL_RETENTION_DAYS} jours`,
       `${ORPHAN_GRACE_DAYS} jours`,
       `${ACCOUNT_CLOSURE_DAYS} jours`,
+      `${CLOSURE_GRACE_DAYS} jours`,
       `${REPORT_RETENTION_MONTHS} mois`,
       `${PROOF_RETENTION_MONTHS} mois`,
       `${ACCOUNTING_YEARS} ans`,

@@ -5,11 +5,15 @@ import { join } from "node:path"
 const createServiceClient = vi.fn()
 const calls = []
 const fakes = {}
+const closedModes = []
 
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: (...a) => createServiceClient(...a) }))
 vi.mock("@/lib/actions/purge-rows", () => ({
   purgeContactEvents: (...a) => fakes.contact(...a),
   purgeClosedReports: (...a) => fakes.reports(...a),
+}))
+vi.mock("@/lib/actions/account-closure-pseudonymize", () => ({
+  pseudonymizeClosedAccounts: (...a) => fakes.closed(...a),
 }))
 vi.mock("@/lib/actions/purge-files", () => ({
   purgeProofFiles: (...a) => fakes.proofs(...a),
@@ -68,10 +72,12 @@ describe("GET /api/cron/purge", () => {
     createServiceClient.mockReset()
     createServiceClient.mockReturnValue({ marker: "service" })
     calls.length = 0
+    closedModes.length = 0
     const rows = (name) => vi.fn(async (_s, o) => { calls.push({ name, mode: o.mode }); return o.summary })
     const files = (name, cat) => vi.fn(async (_s, o) => { calls.push({ name, mode: o.mode }); return emptyFiles(cat) })
     fakes.contact = rows("contact")
     fakes.reports = rows("reports")
+    fakes.closed = vi.fn(async (_s, o) => { closedModes.push(o.mode); return emptyFiles("closed_accounts") })
     fakes.proofs = files("proofs", "proof_orphans")
     fakes.media = files("media", "message_media")
     fakes.avatars = files("avatars", "avatars")
@@ -131,6 +137,28 @@ describe("GET /api/cron/purge", () => {
   it("enchaîne les catégories dans l'ordre", async () => {
     await call()
     expect(calls.map((c) => c.name)).toEqual(["contact", "reports", "proofs", "media", "avatars", "cards"])
+  })
+
+  it("insère closed_accounts entre closed_reports et proof_orphans, en dry par défaut", async () => {
+    const body = await (await call()).json()
+    expect(closedModes).toEqual(["dry"])
+    const first = (fn) => fn.mock.invocationCallOrder[0]
+    expect(first(fakes.reports)).toBeLessThan(first(fakes.closed))
+    expect(first(fakes.closed)).toBeLessThan(first(fakes.proofs))
+    expect(Object.keys(body.categories).slice(0, 3)).toEqual(["contact_events", "closed_reports", "closed_accounts"])
+  })
+
+  it("isole closed_accounts en échec sans arrêter les suivantes", async () => {
+    fakes.closed = vi.fn(async () => {
+      throw new Error("boom 3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b")
+    })
+    const res = await call()
+    const body = await res.json()
+    expect(res.status).toBe(200)
+    expect(body.categories.closed_accounts.erreurs).toBe(1)
+    expect(fakes.proofs).toHaveBeenCalled()
+    expect(fakes.cards).toHaveBeenCalled()
+    expect(JSON.stringify(body)).not.toContain("3f2b8c1e")
   })
 
   it("isole une catégorie en échec et la compte en erreur", async () => {
